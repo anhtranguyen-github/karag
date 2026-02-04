@@ -2,6 +2,28 @@
 
 An advanced, multi-workspace RAG (Retrieval-Augmented Generation) chat application designed for deep document analysis and intelligent conversation.
 
+## Visual Tour
+
+### Workspaces Dashboard
+Unified entry point to all your intelligence sectors.
+![Workspaces Dashboard](assets/screenshots/workspaces_dashboard.png)
+
+### Intelligent Chat Interface
+Deep reasoning and source-cited conversation layer.
+![Chat Interface](assets/screenshots/chat_interface.png)
+
+### Master Intelligence Vault
+Cross-workspace document orchestration and global state management.
+![Master Vault](assets/screenshots/master_vault.png)
+
+### Document Management
+Granular control over paper ingestion and vector metadata.
+![Document Management](assets/screenshots/document_management.png)
+
+### Workspace Overview
+Analytical summary of specific research projects.
+![Workspace Overview](assets/screenshots/workspace_overview.png)
+
 ![Version](https://img.shields.io/badge/version-0.1.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Next.js](https://img.shields.io/badge/frontend-Next.js%2015-black)
