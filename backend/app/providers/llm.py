@@ -1,6 +1,6 @@
 from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
-from langchain_community.chat_models import ChatOllama
+from langchain_ollama import ChatOllama
 from backend.app.core.config import ai_settings
 from backend.app.core.settings_manager import settings_manager
 from typing import Optional

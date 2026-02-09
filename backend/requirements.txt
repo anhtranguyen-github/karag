@@ -23,3 +23,5 @@ motor
 langgraph-checkpoint-mongodb
 arxiv
 minio
+langchain-ollama
+ollama

@@ -1,6 +1,7 @@
 from langchain_openai import OpenAIEmbeddings
 from langchain_voyageai import VoyageAIEmbeddings
-from langchain_community.embeddings import HuggingFaceEmbeddings, OllamaEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_ollama import OllamaEmbeddings
 from backend.app.core.config import ai_settings
 from backend.app.core.settings_manager import settings_manager
 from typing import Optional
