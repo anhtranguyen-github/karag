@@ -30,6 +30,8 @@ async def lifespan(app: FastAPI):
     # Ensure default collections exist (1536 for OpenAI/Deep, 768 for Local/Fast)
     await qdrant.create_collection("knowledge_base_1536", 1536)
     await qdrant.create_collection("knowledge_base_768", 768)
+    await qdrant.create_collection("knowledge_base_896", 896) # Qwen series
+    await qdrant.create_collection("knowledge_base_1024", 1024) # Multilingual-E5, etc.
     
     # Ensure default workspace exists
     logger.info("Ensuring default workspace...")
