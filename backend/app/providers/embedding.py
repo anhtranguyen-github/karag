@@ -1,6 +1,6 @@
 from langchain_openai import OpenAIEmbeddings
 from langchain_voyageai import VoyageAIEmbeddings
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings, OllamaEmbeddings
 from backend.app.core.config import ai_settings
 from backend.app.core.settings_manager import settings_manager
 from typing import Optional
@@ -24,6 +24,23 @@ async def get_embeddings(workspace_id: Optional[str] = None):
     elif provider == "local":
         return HuggingFaceEmbeddings(
             model_name=model
+        )
+    elif provider == "ollama":
+        return OllamaEmbeddings(
+            model=model,
+            base_url=ai_settings.OLLAMA_BASE_URL
+        )
+    elif provider == "vllm":
+        return OpenAIEmbeddings(
+            model=model,
+            api_key="EMPTY",
+            base_url=ai_settings.VLLM_BASE_URL
+        )
+    elif provider == "llama-cpp":
+        return OpenAIEmbeddings(
+            model=model,
+            api_key="EMPTY",
+            base_url=ai_settings.LLAMACPP_BASE_URL
         )
     else:
         raise ValueError(f"Unsupported Embedding provider: {provider}")

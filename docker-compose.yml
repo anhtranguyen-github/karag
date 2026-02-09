@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   qdrant:
     image: qdrant/qdrant:latest
@@ -28,4 +26,38 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     command: server /data --console-address ":9001"
+    restart: always
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./ollama_data:/root/.ollama
+    restart: always
+
+  vllm:
+    image: vllm/vllm-openai:latest
+    ports:
+      - "8008:8000" # Changed to 8008 to avoid conflict with backend
+    volumes:
+      - ./model_cache:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+    command: --model Qwen/Qwen2.5-0.5B-Instruct --max-model-len 4096 --disable-log-requests
+    restart: always
+
+  llama-cpp:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./models:/models
+    # Note: Requires Qwen2.5-0.5B-Instruct-GGUF or similar in ./models
+    command: -m /models/qwen2.5-0.5b-instruct.gguf --host 0.0.0.0 --port 8080 -c 2048
     restart: always

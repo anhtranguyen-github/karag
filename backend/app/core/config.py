@@ -3,15 +3,17 @@ from typing import Optional
 
 class AISettings(BaseSettings):
     # LLM Configuration
-    LLM_PROVIDER: str = "openai"  # openai, anthropic, ollama
+    LLM_PROVIDER: str = "openai"  # openai, anthropic, ollama, vllm, llama-cpp
     LLM_MODEL: str = "gpt-4o"
     OPENAI_API_KEY: Optional[str] = None
     ANTHROPIC_API_KEY: Optional[str] = None
     OLLAMA_BASE_URL: str = "http://localhost:11434"
+    VLLM_BASE_URL: str = "http://localhost:8008/v1"
+    LLAMACPP_BASE_URL: str = "http://localhost:8081/v1"
     BACKEND_PORT: int = 8000
     
     # Embedding Configuration
-    EMBEDDING_PROVIDER: str = "openai"  # openai, voyage, local
+    EMBEDDING_PROVIDER: str = "openai"  # openai, voyage, local, ollama, vllm, llama-cpp
     EMBEDDING_MODEL: str = "text-embedding-3-small"
     VOYAGE_API_KEY: Optional[str] = None
     LOCAL_EMBEDDING_MODEL: str = "BAAI/bge-large-en-v1.5"

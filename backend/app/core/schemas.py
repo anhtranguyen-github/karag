@@ -3,11 +3,11 @@ from typing import Optional, Literal
 
 class AppSettings(BaseModel):
     # LLM Settings
-    llm_provider: str = Field(default="openai", description="LLM Provider (openai, anthropic, ollama)")
+    llm_provider: str = Field(default="openai", description="LLM Provider (openai, anthropic, ollama, vllm, llama-cpp)")
     llm_model: str = Field(default="gpt-4o", description="Model name")
     
     # Embedding Settings
-    embedding_provider: str = Field(default="openai", description="Embedding Provider (openai, voyage, local)")
+    embedding_provider: str = Field(default="openai", description="Embedding Provider (openai, voyage, local, ollama, vllm, llama-cpp)")
     embedding_model: str = Field(default="text-embedding-3-small", description="Embedding model name")
     
     # Retrieval Engine Selection (IMMUTABLE at workspace creation)

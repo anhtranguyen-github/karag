@@ -44,6 +44,8 @@ Thumbs.db
 # Project Specific
 qdrant_storage/
 ollama_data/
+models/
+model_cache/
 backend/app/graph/__pycache__/
 backend/app/tools/__pycache__/
 backend/app/rag/__pycache__/

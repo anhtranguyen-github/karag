@@ -28,5 +28,19 @@ async def get_llm(workspace_id: Optional[str] = None):
             model=model,
             base_url=ai_settings.OLLAMA_BASE_URL
         )
+    elif provider == "vllm":
+        return ChatOpenAI(
+            model=model,
+            api_key="EMPTY",
+            base_url=ai_settings.VLLM_BASE_URL,
+            streaming=True
+        )
+    elif provider == "llama-cpp":
+        return ChatOpenAI(
+            model=model,
+            api_key="EMPTY",
+            base_url=ai_settings.LLAMACPP_BASE_URL,
+            streaming=True
+        )
     else:
         raise ValueError(f"Unsupported LLM provider: {provider}")

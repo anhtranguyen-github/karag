@@ -151,8 +151,8 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                         <div className="grid gap-6">
                                             <div className="space-y-3">
                                                 <label className="block text-tiny font-black text-gray-600 uppercase tracking-widest ml-1">AI Provider</label>
-                                                <div className="grid grid-cols-3 gap-3">
-                                                    {['openai', 'anthropic', 'ollama'].map((prov) => (
+                                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                                    {['openai', 'anthropic', 'ollama', 'vllm', 'llama-cpp'].map((prov) => (
                                                         <button
                                                             key={prov}
                                                             onClick={() => handleChange('llm_provider', prov)}
@@ -193,10 +193,13 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
 
                                         <div className="space-y-3">
                                             <label className="block text-tiny font-black text-gray-600 uppercase tracking-widest ml-1">Embedding Logic</label>
-                                            <div className="grid grid-cols-2 gap-3">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                 {[
                                                     { id: 'openai', label: 'Cloud (OpenAI)', sub: 'Fast & Robust' },
-                                                    { id: 'local', label: 'Local (HuggingFace)', sub: 'Privacy First' }
+                                                    { id: 'local', label: 'Local (HuggingFace)', sub: 'Privacy First' },
+                                                    { id: 'ollama', label: 'Local (Ollama)', sub: 'Neural Engine' },
+                                                    { id: 'vllm', label: 'vLLM', sub: 'High Throughput' },
+                                                    { id: 'llama-cpp', label: 'Llama.cpp', sub: 'Low Latency' }
                                                 ].map((item) => (
                                                     <button
                                                         key={item.id}
