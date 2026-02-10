@@ -210,6 +210,38 @@ export default function DocumentsPage() {
         }
     };
 
+    const [isArxivModalOpen, setIsArxivModalOpen] = useState(false);
+    const [arxivUrl, setArxivUrl] = useState('');
+    const [isArxivLoading, setIsArxivLoading] = useState(false);
+
+    const handleArxivUpload = async () => {
+        if (!arxivUrl || !workspaceId) return;
+
+        setIsArxivLoading(true);
+        try {
+            const res = await fetch(`${API_BASE_URL}/upload-arxiv?workspace_id=${workspaceId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: arxivUrl }),
+            });
+
+            if (res.ok) {
+                setIsArxivModalOpen(false);
+                setArxivUrl('');
+                // Task is now handled by the polling effect
+                await res.json();
+            } else {
+                const data = await res.json();
+                showError("ArXiv Import Failed", data.detail || 'Failed to download paper', `Source: ${arxivUrl}`);
+            }
+        } catch (err) {
+            console.error('ArXiv error:', err);
+            showError("Network Error", "Could not connect to reasoning engine.");
+        } finally {
+            setIsArxivLoading(false);
+        }
+    };
+
     return (
         <div className="flex-1 flex flex-col h-full overflow-hidden">
             {/* Header */}
@@ -229,6 +261,13 @@ export default function DocumentsPage() {
                         accept=".pdf,.txt,.docx,.md"
                     />
                     <button
+                        onClick={() => setIsArxivModalOpen(true)}
+                        className="px-4 py-2 rounded-lg text-caption font-medium flex items-center gap-2 transition-all bg-white/5 border border-white/10 text-white hover:bg-white/10"
+                    >
+                        <Network size={16} className="text-blue-400" />
+                        From ArXiv
+                    </button>
+                    <button
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isUploading}
                         className={cn(
@@ -247,6 +286,54 @@ export default function DocumentsPage() {
                     </button>
                 </div>
             </header>
+
+            {/* ArXiv Modal */}
+            {isArxivModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-[#121214] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+                        <div className="p-6">
+                            <h2 className="text-h4 font-bold text-white mb-2">Import from ArXiv</h2>
+                            <p className="text-caption text-gray-500 mb-6">Enter the ArXiv paper URL or ID (e.g., 1706.03762)</p>
+
+                            <input
+                                type="text"
+                                placeholder="https://arxiv.org/abs/..."
+                                value={arxivUrl}
+                                onChange={(e) => setArxivUrl(e.target.value)}
+                                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 ring-blue-500/50 mb-6"
+                                autoFocus
+                                onKeyDown={(e) => e.key === 'Enter' && handleArxivUpload()}
+                            />
+
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    onClick={() => setIsArxivModalOpen(false)}
+                                    className="px-4 py-2 rounded-lg text-caption font-medium text-gray-400 hover:text-white transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleArxivUpload}
+                                    disabled={!arxivUrl || isArxivLoading}
+                                    className="px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-caption font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isArxivLoading ? (
+                                        <>
+                                            <Loader2 size={16} className="animate-spin" />
+                                            Downloading...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Upload size={16} />
+                                            Import Paper
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Filters */}
             <div className="p-4 border-b border-white/10 flex items-center gap-4">

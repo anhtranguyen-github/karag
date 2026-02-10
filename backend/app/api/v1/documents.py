@@ -25,6 +25,31 @@ async def upload_document(
         "message": "Ingestion started in background."
     }
 
+@router.post("/upload-arxiv")
+async def upload_arxiv_document(
+    background_tasks: BackgroundTasks,
+    request: Request,
+    workspace_id: str = "default"
+):
+    data = await request.json()
+    arxiv_url = data.get("url")
+    if not arxiv_url:
+        raise ValidationError("arXiv URL or ID is required")
+        
+    task_id, content, filename, content_type = await document_service.upload_arxiv(arxiv_url, workspace_id)
+    
+    # Dispatch background task
+    background_tasks.add_task(
+        document_service.run_ingestion,
+        task_id, filename, content, content_type, workspace_id
+    )
+    
+    return {
+        "status": "pending", 
+        "task_id": task_id,
+        "message": f"ArXiv paper '{filename}' downloading and ingestion started."
+    }
+
 @router.get("/documents")
 async def list_documents(workspace_id: str = "default"):
     return await document_service.list_by_workspace(workspace_id)
