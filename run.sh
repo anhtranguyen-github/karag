@@ -34,6 +34,30 @@ kill_port() {
         echo -e "${YELLOW}Port $port is in use. Terminating existing process...${NC}"
         fuser -k $port/tcp > /dev/null 2>&1
         sleep 1
+        # Secondary check/kill for stubborn processes
+        if check_port $port; then
+            echo -e "${RED}Port $port still busy. Using aggressive kill...${NC}"
+            # Find PID and kill -9
+            local pid=$(lsof -t -i :$port)
+            [ ! -z "$pid" ] && kill -9 $pid
+        fi
+    fi
+}
+
+# Function to clean frontend corruption
+clean_frontend() {
+    if [ -d "frontend/.next" ]; then
+        echo -e "${YELLOW}[FRONTEND] Cleaning corrupted cache (if any)...${NC}"
+        # Check for stale lock file
+        if [ -f "frontend/.next/dev/lock" ]; then
+            echo -e "${CYAN}Found stale Next.js lock file. Removing...${NC}"
+            rm -f frontend/.next/dev/lock
+        fi
+        # Optional: Deep clean if requested via global flag or if we suspect corruption
+        if [[ "$*" == *"--force-clean"* ]]; then
+             echo -e "${CYAN}Force-cleaning .next folder...${NC}"
+             rm -rf frontend/.next
+        fi
     fi
 }
 
@@ -54,13 +78,15 @@ show_help() {
     echo "Options:"
     echo "  --llm [provider]        Set LLM_PROVIDER override"
     echo "  --embedding [provider]  Set EMBEDDING_PROVIDER override"
+    echo "  --force-clean           Clear all caches (.next, .pytest_cache) before start"
     echo ""
     echo "Example:"
-    echo "  ./run.sh turbo --llm openai"
+    echo "  ./run.sh turbo --llm openai --force-clean"
 }
 
 # Parse Args
 COMMAND="help"
+FORCE_CLEAN=false
 if [ $# -gt 0 ]; then
     COMMAND=$1
     shift
@@ -78,6 +104,10 @@ while [[ $# -gt 0 ]]; do
         --embedding)
             export EMBEDDING_PROVIDER="$2"
             shift 2
+            ;;
+        --force-clean)
+            FORCE_CLEAN=true
+            shift
             ;;
         *)
             echo -e "${RED}Unknown option: $1${NC}"
@@ -117,6 +147,8 @@ start_ai() {
 start_backend() {
     echo -e "\n${BLUE}[BACKEND] Starting FastAPI...${NC}"
     kill_port $BACKEND_PORT
+    # Kill any lingering uvicorn/python workers that might not be bound to port yet
+    pkill -f "uvicorn.*backend.app.main:app" || true
     
     VENV_PYTHON="backend/.venv/bin/python3"
     VENV_PIP="backend/.venv/bin/pip"
@@ -125,6 +157,12 @@ start_backend() {
         echo -e "${YELLOW}Creating virtual environment...${NC}"
         python3 -m venv backend/.venv
         "$VENV_PIP" install -r backend/requirements.txt
+    fi
+
+    if [ "$FORCE_CLEAN" = true ]; then
+        echo -e "${CYAN}Cleaning pytest and python cache...${NC}"
+        find . -type d -name "__pycache__" -exec rm -rf {} +
+        rm -rf .pytest_cache
     fi
     
     export PYTHONPATH=$PYTHONPATH:.
@@ -148,6 +186,13 @@ start_backend() {
 start_frontend() {
     echo -e "\n${BLUE}[FRONTEND] Starting Next.js...${NC}"
     kill_port $FRONTEND_PORT
+    # Aggressive kill for next processes
+    pkill -f "next-dev" || true
+    pkill -f "next dev" || true
+    
+    [ "$FORCE_CLEAN" = true ] && ARGS="--force-clean" || ARGS=""
+    clean_frontend $ARGS
+    
     cd frontend
     [ ! -d "node_modules" ] && pnpm install
     nohup pnpm run dev > ../frontend.log 2>&1 &
@@ -157,6 +202,7 @@ start_frontend() {
     while ! curl -s http://localhost:$FRONTEND_PORT > /dev/null; do echo -n "."; sleep 2; done
     echo -e "${GREEN} ONLINE (PID: $F_PID)${NC}"
 }
+
 
 # -- Turbo Mode Logic --
 

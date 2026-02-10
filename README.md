@@ -96,11 +96,27 @@ See `Jenkinsfile` and `sonar-project.properties` for configuration details.
    ```
 
 3. **Run the Application**:
-   Use the provided convenience script to start all services (Infrastructure, Backend, and Frontend):
+   Use the modular runner script for a self-healing development experience. It automatically handles zombie processes and cache corruption:
+
    ```bash
    chmod +x run.sh
-   ./run.sh
+   
+   # Start everything in Turbo Mode (Cloud-first, handles local cleanup)
+   ./run.sh turbo --llm openai
+   
+   # Deep clean and restart if you face corruption issues
+   ./run.sh turbo --llm openai --force-clean
+   
+   # Check status of all services
+   ./run.sh status
    ```
+
+   **Runner Commands:**
+   - `all`: Full local stack.
+   - `turbo`: Adaptive stack (Cloud LLM + local DB).
+   - `stop`: Graceful shutdown of Docker and local processes.
+   - `clean`: Deep wipe of volumes and logs.
+   - `status`: Health check dashboard.
 
 ## Development
 
