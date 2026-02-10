@@ -33,6 +33,15 @@ class AISettings(BaseSettings):
     MINIO_SECRET_KEY: str = "minioadmin"
     MINIO_SECURE: bool = False
     MINIO_BUCKET: str = "rag-docs"
+
+    # Observability Configuration
+    OTEL_ENABLED: bool = False  # Master switch for distributed tracing
+    OTEL_EXPORTER_ENDPOINT: str = "http://localhost:4317"  # OTLP gRPC endpoint
+    OTEL_SERVICE_NAME: str = "scienchan-backend"
+    OTEL_SAMPLE_RATE: float = 1.0  # 1.0 = 100% in dev, lower in prod
+    METRICS_ENABLED: bool = True  # Prometheus metrics at /metrics
+    LOG_FORMAT: str = "json"  # "json" for production, "console" for dev
+    LOG_LEVEL: str = "INFO"
     
     model_config = SettingsConfigDict(
         env_file=".env",

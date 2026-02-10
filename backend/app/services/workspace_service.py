@@ -1,5 +1,5 @@
 import uuid
-import logging
+import structlog
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 from backend.app.core.mongodb import mongodb_manager

@@ -1,9 +1,9 @@
-import logging
+import structlog
 from typing import List, Dict, Optional
 from backend.app.core.settings_manager import settings_manager
 from backend.app.rag.qdrant_provider import qdrant
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 class GraphProvider:
     """
@@ -27,7 +27,7 @@ class GraphProvider:
         
         # NOTE: In a real implementation, we would use settings.neo4j_uri etc here.
         # For now, we simulate the 'Graph Expansion' step.
-        logger.info(f"WS [{workspace_id}] - Executing Graph-Aware Retrieval for: {query[:50]}")
+        logger.info("graph_aware_retrieval", workspace_id=workspace_id, query_preview=query[:50])
         
         # STEP 1: Simulate Graph Lookup (Fetch related keywords or entity IDs)
         # In Basic mode, we just do hybrid. In Graph mode, we might discover that 
