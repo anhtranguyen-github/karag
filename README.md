@@ -24,10 +24,11 @@ Granular control over paper ingestion and vector metadata.
 Analytical summary of specific research projects.
 ![Workspace Overview](assets/screenshots/workspace_overview.png)
 
-![Version](https://img.shields.io/badge/version-0.1.0-blue)
+![Version](https://img.shields.io/badge/version-2.0.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Next.js](https://img.shields.io/badge/frontend-Next.js%2015-black)
 ![FastAPI](https://img.shields.io/badge/backend-FastAPI-009688)
+![CI/CD](https://img.shields.io/badge/cicd-Jenkins-orange)
 
 ## Features
 
@@ -42,6 +43,18 @@ Analytical summary of specific research projects.
 - **Document Ingestion**: Seamless ingestion of PDFs, Markdown, and text files with automated deduplication and global vault persistence.
 - **Premium UI/UX**: Unified typography using the **Outfit** font and a dark-mode first design aesthetic.
 - **Provider Agnostic**: Configurable support for OpenAI, Anthropic, Ollama, and more.
+
+## CI/CD Pipeline
+
+The project implements a robust **DevOps / CI/CD pipeline** via Jenkins:
+
+- **Source Control**: Automated triggers on GitHub push/commit events.
+- **Unit Testing**: Pre-build verification using `pytest`.
+- **Code Quality**: Static analysis and security scanning via **SonarQube**.
+- **IaC Security**: Infrastructure-as-Code scanning using **Checkov** (fails on HIGH/CRITICAL findings).
+- **Dockerization**: Automated building of production-ready Docker images.
+
+See `Jenkinsfile` and `sonar-project.properties` for configuration details.
 
 ## Architecture
 

@@ -130,6 +130,13 @@ You MUST select the most specific workflow for the task. **DO NOT stay in the ma
 ### R5: Local First (Turbo Mode)
 - **RULE:** Always use `./run.sh turbo` for local verification to save resources.
 
+### R6: Mandatory Runner & README Sync
+- **RULE:** You MUST update `run.sh` (if infrastructure changed) and `README.md` (to reflect new features/setup) after every workflow execution.
+- **PURPOSE:** Keep the project "runnable" and "documented" at all times.
+
+### R7: Zero Secret Leakage
+- **RULE:** ❌ NEVER commit `.env`, API keys, or credentials. Check `git status` before adding.
+
 ---
 
 ## 🛠️ Operational Workflow: [Master Loop]
@@ -140,7 +147,9 @@ You MUST select the most specific workflow for the task. **DO NOT stay in the ma
     - Run unit tests: `./backend/.venv/bin/python3 -m pytest`
     - Run E2E tests: `bun run test:e2e` (if applicable)
     - Check principles in `docs/constraints/`.
-4. **Document**: Update `docs/project-changelog.md` and `docs/EDGE-CASES.md`.
+4. **Document & Sync**: 
+    - Update `docs/project-changelog.md` and `docs/EDGE-CASES.md`.
+    - Update `run.sh` and `README.md` (Rule R6).
 5. **Commit**: `git add .` and `git commit` (Rule R1).
 
 ## Documentation Quick Reference
@@ -162,6 +171,8 @@ You MUST select the most specific workflow for the task. **DO NOT stay in the ma
 | `docs/project-changelog.md` | Every change |
 | `docs/EDGE-CASES.md` | New/handled cases |
 | `docs/constraints/*.md` | New rules |
+| `run.sh` | Infrastructure changes |
+| `README.md` | Feature/Setup changes |
 
 ---
 
@@ -171,8 +182,10 @@ Before finishing ANY task:
 - [ ] Read all docs (STEP 0)?
 - [ ] Read edge cases?
 - [ ] Created plan (if feature)?
-- [ ] Followed **STRICT RULES (R1-R6)**?
+- [ ] Followed **STRICT RULES (R1-R7)**?
 - [ ] Handled relevant edge cases?
 - [ ] Updated changelog and edge case status?
+- [ ] Updated `run.sh` and `README.md` (Rule R6)?
+- [ ] Checked for secrets (Rule R7)?
 - [ ] All tests pass?
 - [ ] **Committed immediately after test success (Rule R1)?**
