@@ -75,6 +75,79 @@ class DocumentService:
             
             return task_id, content, original_filename, file_type
 
+    @staticmethod
+    async def upload_arxiv(arxiv_id_or_url: str, workspace_id: str) -> Tuple[str, bytes, str, str]:
+        """Download a paper from arXiv and prepare it for ingestion."""
+        with tracer.start_as_current_span(
+            "document.upload_arxiv",
+            attributes={"workspace_id": workspace_id, "arxiv_id_or_url": arxiv_id_or_url},
+        ) as span:
+            import arxiv
+            
+            # 1. Extract arXiv ID
+            arxiv_id = arxiv_id_or_url.split('/')[-1]
+            if arxiv_id.endswith('.pdf'):
+                arxiv_id = arxiv_id.replace('.pdf', '')
+            
+            try:
+                # 2. Search for the paper
+                search = arxiv.Search(id_list=[arxiv_id])
+                paper = next(search.results())
+                
+                # 3. Validation and Filename Clean
+                title = paper.title
+                from backend.app.core.constants import ILLEGAL_NAME_CHARS
+                safe_title = re.sub(r'[\\/*?:"<>|]', "", title).replace(" ", "_").strip(".")
+                filename = f"{safe_title}.pdf"
+                
+                found_chars = [c for c in ILLEGAL_NAME_CHARS if c in filename]
+                if found_chars:
+                    # If still has illegal chars, fallback to a safer version
+                    filename = re.sub(r'[^a-zA-Z0-9._-]', '_', filename)
+
+                # 4. Check for duplicates in this workspace
+                db = mongodb_manager.get_async_database()
+                existing_doc = await db.documents.find_one({"workspace_id": workspace_id, "filename": filename})
+                if existing_doc:
+                    raise ConflictError(f"Document '{filename}' already exists in this workspace.")
+
+                # 5. Download the PDF into memory
+                # Create a temporary file to download to
+                with tempfile.TemporaryDirectory() as tmp_dir:
+                    paper.download_pdf(dirpath=tmp_dir, filename=filename)
+                    pdf_path = os.path.join(tmp_dir, filename)
+                    with open(pdf_path, "rb") as f:
+                        content = f.read()
+                
+                file_size = len(content)
+                content_type = "application/pdf"
+                
+                # 6. Create Task
+                task_id = task_service.create_task("ingestion", {
+                    "filename": filename,
+                    "safe_filename": filename,
+                    "workspace_id": workspace_id,
+                    "size": file_size,
+                    "source": "arxiv",
+                    "arxiv_id": arxiv_id
+                })
+
+                logger.info(
+                    "document_arxiv_download_complete",
+                    filename=filename,
+                    arxiv_id=arxiv_id,
+                    workspace_id=workspace_id,
+                    task_id=task_id,
+                )
+                
+                return task_id, content, filename, content_type
+
+            except Exception as e:
+                logger.error("arxiv_download_failed", arxiv_id=arxiv_id, error=str(e))
+                if isinstance(e, ConflictError):
+                    raise e
+                raise ValidationError(f"Failed to download arXiv paper: {str(e)}")
+
     async def run_ingestion(self, task_id: str, safe_filename: str, content: bytes, content_type: str, workspace_id: str):
         """Internal method to run the pipeline steps with global vault deduplication."""
         db = mongodb_manager.get_async_database()

@@ -224,6 +224,38 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
         }
     };
 
+    const [isArxivModalOpen, setIsArxivModalOpen] = useState(false);
+    const [arxivUrl, setArxivUrl] = useState('');
+    const [isArxivLoading, setIsArxivLoading] = useState(false);
+
+    const handleArxivUpload = async () => {
+        if (!arxivUrl || !workspaceId) return;
+
+        setIsArxivLoading(true);
+        try {
+            const res = await fetch(`${API_ROUTES.UPLOAD}-arxiv?workspace_id=${encodeURIComponent(workspaceId)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: arxivUrl }),
+            });
+
+            if (res.ok) {
+                setIsArxivModalOpen(false);
+                setArxivUrl('');
+                // Task is now handled by the polling effect
+                await res.json();
+            } else {
+                const data = await res.json();
+                showError("ArXiv Import Failed", data.detail || 'Failed to download paper', `Source: ${arxivUrl}`);
+            }
+        } catch (err) {
+            console.error('ArXiv error:', err);
+            showError("Network Error", "Could not connect to reasoning engine.");
+        } finally {
+            setIsArxivLoading(false);
+        }
+    };
+
     const handleDelete = async (name: string, vaultDelete: boolean = false) => {
         try {
             const url = new URL(API_ROUTES.DOCUMENT_DELETE(name));
@@ -336,10 +368,16 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                     )}
                 </div>
 
-                <div className="px-1 py-4 mt-2">
-                    <label className="cursor-pointer group flex items-center justify-center gap-3 h-10 w-full rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-dashed border-white/10 text-gray-500 hover:text-white transition-all text-tiny font-black uppercase tracking-widest">
+                <div className="flex items-center gap-2 px-1 py-4 mt-2">
+                    <button
+                        onClick={() => setIsArxivModalOpen(true)}
+                        className="flex-1 group flex items-center justify-center gap-3 h-10 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/10 text-gray-500 hover:text-blue-400 transition-all text-tiny font-black uppercase tracking-widest"
+                    >
+                        <Network size={14} className="group-hover:rotate-12 transition-transform" />
+                        ArXiv
+                    </button>
+                    <label className="cursor-pointer group flex items-center justify-center gap-3 h-10 w-10 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-dashed border-white/10 text-gray-500 hover:text-white transition-all text-tiny font-black uppercase tracking-widest">
                         <Plus size={14} className="group-hover:rotate-90 transition-transform" />
-                        Injest Source
                         <input type="file" className="hidden" onChange={handleUpload} disabled={isUploading} />
                     </label>
                 </div>
@@ -350,6 +388,69 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
     return (
         <div className="flex flex-col gap-6 p-10 bg-[#121214] rounded-[2.5rem] h-full border border-white/10 overflow-hidden relative">
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-purple-500 opacity-30" />
+
+            {/* ArXiv Modal */}
+            <AnimatePresence>
+                {isArxivModalOpen && (
+                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-black/80 backdrop-blur-md"
+                            onClick={() => setIsArxivModalOpen(false)}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="relative w-full max-w-lg bg-[#121214] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl"
+                        >
+                            <div className="p-8 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400">
+                                        <Network size={24} />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-h3 font-black text-white uppercase tracking-tight">ArXiv Import</h4>
+                                        <p className="text-tiny text-gray-500 font-bold uppercase tracking-widest">Neural Source Acquisition</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setIsArxivModalOpen(false)}
+                                    className="p-2 text-gray-500 hover:text-white transition-colors"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="p-8 space-y-6">
+                                <div className="space-y-3">
+                                    <label className="text-tiny font-black text-gray-500 uppercase tracking-[0.2em] ml-1">Paper Link or ID</label>
+                                    <input
+                                        type="text"
+                                        placeholder="https://arxiv.org/abs/1706.03762 or 1706.03762"
+                                        value={arxivUrl}
+                                        onChange={(e) => setArxivUrl(e.target.value)}
+                                        className="w-full bg-[#0a0a0b] border border-white/10 rounded-2xl px-6 h-14 text-caption text-white focus:ring-2 ring-blue-500/20 outline-none font-medium transition-all hover:border-white/20"
+                                        autoFocus
+                                        onKeyDown={(e) => e.key === 'Enter' && handleArxivUpload()}
+                                    />
+                                </div>
+
+                                <button
+                                    onClick={handleArxivUpload}
+                                    disabled={!arxivUrl || isArxivLoading}
+                                    className="w-full h-14 bg-white text-black hover:bg-gray-200 rounded-2xl font-black text-tiny uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
+                                >
+                                    {isArxivLoading ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
+                                    Initialize Acquisition
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-5">
@@ -380,6 +481,13 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                 </div>
 
                 <div className="flex gap-2">
+                    <button
+                        onClick={() => setIsArxivModalOpen(true)}
+                        className="h-12 px-6 flex items-center gap-3 rounded-2xl bg-white/[0.05] border border-white/10 hover:bg-white/[0.1] text-white transition-all active:scale-95 text-tiny font-black uppercase tracking-widest"
+                    >
+                        <Network size={14} className="text-blue-400" />
+                        ArXiv
+                    </button>
                     <label className="cursor-pointer h-12 px-6 flex items-center gap-3 rounded-2xl bg-white hover:bg-white/90 text-black shadow-xl transition-all active:scale-95 text-tiny font-black uppercase tracking-widest">
                         <Upload size={14} />
                         Upload
