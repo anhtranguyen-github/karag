@@ -1,6 +1,6 @@
 import os
 import json
-import logging
+import structlog
 from pathlib import Path
 from typing import Dict, Any, Optional
 from backend.app.core.schemas import AppSettings
@@ -10,7 +10,7 @@ from backend.app.core.mongodb import mongodb_manager
 from pydantic import ValidationError as PydanticValidationError
 from backend.app.core.exceptions import ValidationError, NotFoundError
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 class SettingsManager:
     def __init__(self, config_path: str = "backend/data/settings.json"):
@@ -27,7 +27,7 @@ class SettingsManager:
             with open(self.config_path, "w") as f:
                 json.dump(self._global_settings.model_dump(), f, indent=4)
         except Exception as e:
-            logger.error(f"Error saving global settings: {e}")
+            logger.error("settings_save_error", error=str(e))
 
     def _load_initial_settings(self) -> AppSettings:
         """Load global settings from JSON, falling back to environment variables."""
@@ -37,7 +37,7 @@ class SettingsManager:
                     data = json.load(f)
                     return AppSettings(**data)
             except Exception as e:
-                logger.error(f"Error loading settings.json: {e}")
+                logger.error("settings_load_error", error=str(e))
         
         return AppSettings(
             llm_provider=ai_settings.LLM_PROVIDER,
@@ -72,10 +72,10 @@ class SettingsManager:
             try:
                 return AppSettings(**merged_data)
             except PydanticValidationError as e:
-                logger.error(f"Schema mismatch for workspace {workspace_id}: {e}")
+                logger.error("settings_schema_mismatch", workspace_id=workspace_id, error=str(e))
                 return self._global_settings
         except Exception as e:
-            logger.error(f"Error fetching settings for workspace {workspace_id}: {e}")
+            logger.error("settings_fetch_error", workspace_id=workspace_id, error=str(e))
             return self._global_settings
 
     async def update_settings(self, updates: Dict[str, Any], workspace_id: Optional[str] = None) -> AppSettings:

@@ -1,55 +1,58 @@
-import logging
+import structlog
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+from contextlib import asynccontextmanager
 
 from backend.app.api.v1 import api_v1_router
 from backend.app.core.config import ai_settings
 from backend.app.core.exceptions import BaseAppException
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+from backend.app.core.telemetry import init_telemetry
+from backend.app.core.middleware import ObservabilityMiddleware
 
 load_dotenv()
 
-from contextlib import asynccontextmanager
+# Initialize telemetry FIRST — before any logger is created
+# This configures structlog + OTEL tracing based on environment variables
+init_telemetry()
+
+logger = structlog.get_logger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from backend.app.core.minio import minio_manager
     from backend.app.rag.qdrant_provider import qdrant
     from backend.app.services.workspace_service import workspace_service
-    
-    logger.info("Initializing Infrastructure...")
+
+    logger.info("infra_init_start", msg="Initializing Infrastructure...")
     minio_manager.ensure_bucket()
     # Ensure default collections exist (1536 for OpenAI/Deep, 768 for Local/Fast)
     await qdrant.create_collection("knowledge_base_1536", 1536)
     await qdrant.create_collection("knowledge_base_768", 768)
-    await qdrant.create_collection("knowledge_base_896", 896) # Qwen series
-    await qdrant.create_collection("knowledge_base_1024", 1024) # Multilingual-E5, etc.
-    
+    await qdrant.create_collection("knowledge_base_896", 896)  # Qwen series
+    await qdrant.create_collection("knowledge_base_1024", 1024)  # Multilingual-E5, etc.
+
     # Ensure default workspace exists
-    logger.info("Ensuring default workspace...")
+    logger.info("workspace_init", msg="Ensuring default workspace...")
     await workspace_service.ensure_default_workspace()
-    
-    logger.info("Infrastructure ready.")
+
+    logger.info("infra_init_complete", msg="Infrastructure ready.")
     yield
 
+
 def create_app() -> FastAPI:
-    logger.info("Initializing FastAPI app...")
+    logger.info("app_init_start", msg="Initializing FastAPI app...")
     app = FastAPI(
         title="Knowledge Bank API",
         description="Modular RAG & Agentic Chatbot API",
         version="2.0.0",
-        lifespan=lifespan
+        lifespan=lifespan,
     )
 
-    # CORS Setup
+    # --- Middleware Stack (order matters: outermost first) ---
+    # CORS must be added before our middleware so preflight requests work
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
@@ -58,19 +61,34 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Roots
+    # Observability middleware: correlation IDs, structured logging, Prometheus metrics
+    app.add_middleware(ObservabilityMiddleware)
+
+    # Prometheus metrics endpoint
+    if ai_settings.METRICS_ENABLED:
+        from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+
+        @app.get("/metrics", tags=["observability"], include_in_schema=False)
+        async def metrics():
+            """Prometheus-compatible metrics endpoint."""
+            return JSONResponse(
+                content=generate_latest().decode("utf-8"),
+                media_type=CONTENT_TYPE_LATEST,
+            )
+
+    # Health check
     @app.get("/", tags=["health"])
     async def root():
         return {
             "status": "online",
             "message": "Knowledge Bank API is running",
-            "version": "2.0.0"
+            "version": "2.0.0",
         }
 
     # Include modular routes
-    logger.info("Including API routers...")
+    logger.info("router_init", msg="Including API routers...")
     app.include_router(api_v1_router)
-    logger.info("API routers included.")
+    logger.info("router_init_complete", msg="API routers included.")
 
     @app.exception_handler(BaseAppException)
     async def app_exception_handler(request: Request, exc: BaseAppException):
@@ -79,19 +97,21 @@ def create_app() -> FastAPI:
             content={
                 "code": exc.code,
                 "detail": exc.message,
-                "params": exc.params
-            }
+                "params": exc.params,
+            },
         )
 
     return app
+
 
 app = create_app()
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(
-        "backend.app.main:app", 
-        host="0.0.0.0", 
+        "backend.app.main:app",
+        host="0.0.0.0",
         port=ai_settings.BACKEND_PORT,
-        reload=False
+        reload=False,
     )

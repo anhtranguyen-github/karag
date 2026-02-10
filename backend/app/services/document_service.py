@@ -1,7 +1,6 @@
 import os
 import shutil
 import tempfile
-import logging
 import hashlib
 import uuid
 import io
@@ -10,6 +9,7 @@ from typing import List, Dict, Optional, Tuple
 from fastapi import UploadFile
 import re
 
+import structlog
 from backend.app.rag.ingestion import ingestion_pipeline
 from backend.app.rag.qdrant_provider import qdrant
 from qdrant_client.http import models as qmodels
@@ -18,50 +18,67 @@ from backend.app.core.mongodb import mongodb_manager
 from backend.app.services.task_service import task_service
 from backend.app.core.settings_manager import settings_manager
 from backend.app.core.exceptions import ValidationError, ConflictError, NotFoundError
+from backend.app.core.telemetry import get_tracer, DOCUMENT_INGESTION_COUNT
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
+tracer = get_tracer(__name__)
 
 class DocumentService:
     @staticmethod
     async def upload(file: UploadFile, workspace_id: str) -> Tuple[str, bytes, str, str]:
         """Process and ingest a new document with background task tracking."""
-        db = mongodb_manager.get_async_database()
-        
-        # 1. Filename validation
-        original_filename = file.filename or "unnamed_file"
-        illegal_chars = ['/', '\\', ':', '*', '?', '"', '<', '>', '|']
-        found_chars = [c for c in illegal_chars if c in original_filename]
-        if found_chars:
-            raise ValidationError(
-                message=f"Filename contains illegal characters: {' '.join(found_chars)}",
-                params={"illegal": found_chars}
-            )
-
-        # 2. Local name duplicate check
-        existing_doc = await db.documents.find_one({"workspace_id": workspace_id, "filename": original_filename})
-        if existing_doc:
-            raise ConflictError(f"Document '{original_filename}' already exists in this workspace.")
-
-        content = await file.read()
-        file_size = len(content)
-        file_type = file.content_type
-        
-        # Sanitize filename for internal storage safety
-        safe_filename = re.sub(r'[^a-zA-Z0-9._-]', '_', original_filename)
+        with tracer.start_as_current_span(
+            "document.upload",
+            attributes={"workspace_id": workspace_id},
+        ) as span:
+            db = mongodb_manager.get_async_database()
             
-        # Create Task
-        task_id = task_service.create_task("ingestion", {
-            "filename": original_filename,
-            "safe_filename": safe_filename,
-            "workspace_id": workspace_id,
-            "size": file_size
-        })
-        
-        return task_id, content, original_filename, file_type
+            # 1. Filename validation
+            original_filename = file.filename or "unnamed_file"
+            illegal_chars = ['/', '\\', ':', '*', '?', '"', '<', '>', '|']
+            found_chars = [c for c in illegal_chars if c in original_filename]
+            if found_chars:
+                raise ValidationError(
+                    message=f"Filename contains illegal characters: {' '.join(found_chars)}",
+                    params={"illegal": found_chars}
+                )
+
+            # 2. Local name duplicate check
+            existing_doc = await db.documents.find_one({"workspace_id": workspace_id, "filename": original_filename})
+            if existing_doc:
+                raise ConflictError(f"Document '{original_filename}' already exists in this workspace.")
+
+            content = await file.read()
+            file_size = len(content)
+            file_type = file.content_type
+            
+            # Sanitize filename for internal storage safety
+            safe_filename = re.sub(r'[^a-zA-Z0-9._-]', '_', original_filename)
+                
+            # Create Task
+            task_id = task_service.create_task("ingestion", {
+                "filename": original_filename,
+                "safe_filename": safe_filename,
+                "workspace_id": workspace_id,
+                "size": file_size
+            })
+
+            span.set_attribute("document.filename", original_filename)
+            span.set_attribute("document.size_bytes", file_size)
+            logger.info(
+                "document_upload_accepted",
+                filename=original_filename,
+                size_bytes=file_size,
+                workspace_id=workspace_id,
+                task_id=task_id,
+            )
+            
+            return task_id, content, original_filename, file_type
 
     async def run_ingestion(self, task_id: str, safe_filename: str, content: bytes, content_type: str, workspace_id: str):
         """Internal method to run the pipeline steps with global vault deduplication."""
         db = mongodb_manager.get_async_database()
+        doc_id = None
         try:
             task_service.update_task(task_id, status="processing", progress=10, message="Calculating signatures...")
             file_hash = hashlib.sha256(content).hexdigest()
@@ -155,7 +172,15 @@ class DocumentService:
                     os.remove(tmp_path)
                     
         except Exception as e:
-            logger.error(f"Background ingestion failed for {safe_filename}: {e}")
+            extension = os.path.splitext(safe_filename)[1].lower()
+            DOCUMENT_INGESTION_COUNT.labels(extension=extension, status="failed").inc()
+            logger.error(
+                "ingestion_failed",
+                filename=safe_filename,
+                workspace_id=workspace_id,
+                error=str(e),
+                exc_info=True,
+            )
             error_msg = str(e)
             error_code = "INTERNAL_ERROR"
             if "illegal path" in error_msg.lower():
@@ -164,7 +189,8 @@ class DocumentService:
                 error_code = "CONNECTION_ERROR"
                 
             task_service.update_task(task_id, status="failed", message=error_msg, error_code=error_code)
-            await db.documents.update_one({"id": doc_id}, {"$set": {"status": "failed"}})
+            if doc_id:
+                await db.documents.update_one({"id": doc_id}, {"$set": {"status": "failed"}})
 
     @staticmethod
     async def list_by_workspace(workspace_id: str) -> List[Dict]:
@@ -257,7 +283,7 @@ class DocumentService:
                 try:
                     minio_manager.delete_file(doc["minio_path"])
                 except Exception as e:
-                    logger.error(f"MinIO delete failed: {e}")
+                    logger.error("minio_delete_failed", error=str(e))
             
             # 2. Vector Store removal: Attempt to delete from all potential dimension collections
             for dim in [384, 768, 1024, 1536, 1792, 3072]:
@@ -327,7 +353,7 @@ class DocumentService:
             chunks.sort(key=lambda x: x["index"])
             return chunks
         except Exception as e:
-            logger.error(f"Get chunks failed for {name}: {e}")
+            logger.error("get_chunks_failed", name=name, error=str(e))
             return []
 
     @staticmethod
@@ -357,7 +383,7 @@ class DocumentService:
             )
             return [{"id": p.id, "payload": p.payload, "vector_size": len(p.vector) if p.vector else 0} for p in response[0]]
         except Exception as e:
-            logger.error(f"Inspect failed for {name}: {e}")
+            logger.error("inspect_failed", name=name, error=str(e))
             return []
 
     @staticmethod

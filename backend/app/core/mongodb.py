@@ -1,9 +1,10 @@
+import structlog
 from pymongo import MongoClient
 from motor.motor_asyncio import AsyncIOMotorClient
 from backend.app.core.config import ai_settings
-import logging
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
+
 
 class MongoDBManager:
     _instance = None
@@ -18,14 +19,20 @@ class MongoDBManager:
     @property
     def client(self):
         if self._client is None:
-            logger.info(f"Connecting to MongoDB (Sync) at {ai_settings.MONGO_URI}")
+            logger.info(
+                "mongodb_connect_sync",
+                uri=ai_settings.MONGO_URI.split("@")[-1],  # Log host only, no creds
+            )
             self._client = MongoClient(ai_settings.MONGO_URI)
         return self._client
 
     @property
     def async_client(self):
         if self._async_client is None:
-            logger.info(f"Connecting to MongoDB (Async) at {ai_settings.MONGO_URI}")
+            logger.info(
+                "mongodb_connect_async",
+                uri=ai_settings.MONGO_URI.split("@")[-1],
+            )
             self._async_client = AsyncIOMotorClient(ai_settings.MONGO_URI)
         return self._async_client
 
@@ -34,5 +41,6 @@ class MongoDBManager:
 
     def get_async_database(self):
         return self.async_client[ai_settings.MONGO_DB]
+
 
 mongodb_manager = MongoDBManager()

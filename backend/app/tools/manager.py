@@ -1,6 +1,6 @@
 import os
 import json
-import logging
+import structlog
 from typing import List, Optional
 from langchain_core.tools import BaseTool
 from langchain_community.tools.tavily_search import TavilySearchResults
@@ -8,7 +8,7 @@ from langchain_community.tools.tavily_search import TavilySearchResults
 from backend.app.tools.local_tools import calculator
 from backend.app.tools.schemas import ToolDefinition
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 DATA_FILE = "backend/data/tools.json"
 
@@ -32,7 +32,7 @@ class ToolManager:
                 data = json.load(f)
                 self._tools = [ToolDefinition(**item) for item in data]
         except Exception as e:
-            logger.error(f"Failed to load tools: {e}")
+            logger.error("tools_load_failed", error=str(e))
             self._tools = []
 
     def save_tools(self):
@@ -41,7 +41,7 @@ class ToolManager:
                 data = [t.model_dump() for t in self._tools]
                 json.dump(data, f, indent=2)
         except Exception as e:
-            logger.error(f"Failed to save tools: {e}")
+            logger.error("tools_save_failed", error=str(e))
 
     def _sync_system_tools(self):
         """Ensure system tools (calculator, tavily) exist in the config."""
@@ -67,7 +67,7 @@ class ToolManager:
         
         for st in system_tools:
             if st["id"] not in existing_ids:
-                logger.info(f"Adding new system tool: {st['name']}")
+                logger.info("system_tool_added", tool=st['name'])
                 self._tools.append(ToolDefinition(**st))
                 changed = True
         
