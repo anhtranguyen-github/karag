@@ -8,7 +8,7 @@ from backend.app.core.config import ai_settings
 from backend.app.core.mongodb import mongodb_manager
 
 from pydantic import ValidationError as PydanticValidationError
-from backend.app.core.exceptions import ValidationError, NotFoundError
+from backend.app.core.exceptions import ValidationError
 
 logger = structlog.get_logger(__name__)
 

@@ -344,6 +344,24 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
         }
     };
 
+    const handleIndex = async (doc: Document) => {
+        const docId = doc.id || doc.name;
+        try {
+            const res = await fetch(`${API_ROUTES.DOCUMENTS}/${encodeURIComponent(docId)}/index?workspace_id=${encodeURIComponent(doc.workspace_id || workspaceId)}`, {
+                method: 'POST'
+            });
+            if (res.ok) {
+                fetchDocuments();
+            } else {
+                const data = await res.json();
+                showError("Indexing Error", data.detail || 'Manual indexing failed.');
+            }
+        } catch (err) {
+            console.error('Failed to index document', err);
+            showError("Network Error", "Could not reach the indexing service.");
+        }
+    };
+
     if (isSidebar) {
         return (
             <div className="flex flex-col gap-3 h-full overflow-hidden">
@@ -627,6 +645,16 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                                 </div>
 
                                 <div className="flex items-center gap-3">
+                                    {doc.status !== 'indexed' && (
+                                        <button
+                                            onClick={() => handleIndex(doc)}
+                                            className="w-12 h-12 flex items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 transition-all active:scale-90"
+                                            title="Neural Indexing (On-Demand)"
+                                        >
+                                            <Zap size={18} />
+                                        </button>
+                                    )}
+
                                     <button
                                         onClick={() => handleView(doc.name)}
                                         className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white/5 text-gray-500 hover:text-indigo-400 hover:bg-white/10 transition-all active:scale-90"

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, UploadFile, File, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Request, UploadFile, File, BackgroundTasks
 from backend.app.services.document_service import document_service
 
 from backend.app.core.exceptions import ValidationError, NotFoundError
@@ -76,6 +76,11 @@ async def delete_document(name: str, workspace_id: str = "default", vault_delete
 @router.get("/documents/{name:path}/chunks")
 async def get_document_chunks(name: str, limit: int = 100):
     return await document_service.get_chunks(name, limit=limit)
+
+@router.post("/documents/{name:path}/index")
+async def index_document(name: str, workspace_id: str = "default"):
+    await document_service.index_document(name, workspace_id)
+    return {"status": "success", "message": f"Document {name} indexed successfully."}
 
 @router.get("/documents/{name:path}/inspect")
 async def inspect_document(name: str):

@@ -1,7 +1,6 @@
 import json
-import asyncio
 from datetime import datetime
-from typing import AsyncGenerator, List, Dict, Optional
+from typing import AsyncGenerator, List, Dict
 
 import structlog
 from langchain_core.messages import HumanMessage
@@ -12,8 +11,6 @@ from backend.app.core.settings_manager import settings_manager
 from backend.app.core.telemetry import (
     get_tracer,
     ACTIVE_STREAMS,
-    LLM_REQUEST_LATENCY,
-    LLM_REQUEST_COUNT,
 )
 
 logger = structlog.get_logger(__name__)

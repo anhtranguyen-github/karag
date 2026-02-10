@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Query
 from typing import Dict, Any, Optional
 from backend.app.core.schemas import AppSettings
 from backend.app.core.settings_manager import settings_manager

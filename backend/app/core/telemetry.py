@@ -11,7 +11,6 @@ When OTEL_ENABLED=false, tracing degrades to a no-op with zero overhead.
 """
 
 import logging
-import time
 import functools
 from typing import Optional, Callable, Any
 from contextvars import ContextVar

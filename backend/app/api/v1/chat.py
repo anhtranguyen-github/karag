@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 import asyncio
 from backend.app.services.chat_service import chat_service
 
-from backend.app.core.exceptions import ValidationError, NotFoundError
+from backend.app.core.exceptions import ValidationError
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 

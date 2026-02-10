@@ -2,11 +2,10 @@
 import os
 import sys
 import re
-import arxiv
 import pypdf
-from typing import List, Tuple, Set
+from typing import List, Set
 
-from downloader import download_arxiv_paper, clean_filename
+from downloader import download_arxiv_paper
 
 def extract_content_from_pdf(pdf_path: str) -> str:
     """Extracts text from the last part of the PDF where references usually are."""
@@ -114,13 +113,13 @@ def run_recursive_downloader(main_id: str, max_refs: int = 10, output_dir: str =
         for aid in sorted(list(arxiv_ids)):
             f.write(f"- [arXiv:{aid}](https://arxiv.org/abs/{aid})\n")
         
-        f.write(f"\n## Non-ArXiv Citations Identified\n")
+        f.write("\n## Non-ArXiv Citations Identified\n")
         if not non_arxiv_refs:
             f.write("*No non-arXiv citations were clearly identified via heuristic.*\n")
         for ref in non_arxiv_refs:
             f.write(f"- {ref}\n")
             
-    print(f"\n=== Process Complete ===")
+    print("\n=== Process Complete ===")
     print(f"Report saved to: {report_path}")
 
 if __name__ == "__main__":
