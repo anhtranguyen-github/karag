@@ -149,8 +149,8 @@ start_frontend() {
     echo -e "\n${BLUE}[FRONTEND] Starting Next.js...${NC}"
     kill_port $FRONTEND_PORT
     cd frontend
-    [ ! -d "node_modules" ] && bun install
-    nohup bun run dev > ../frontend.log 2>&1 &
+    [ ! -d "node_modules" ] && pnpm install
+    nohup pnpm run dev > ../frontend.log 2>&1 &
     F_PID=$!
     cd ..
     echo -n "Waiting..."
