@@ -346,12 +346,18 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
 
     const handleIndex = async (doc: Document) => {
         const docId = doc.id || doc.name;
+        // Proactive feedback: show user indexing has started
+        setIsViewing(true);
+        setActiveSource({ id: 0, name: doc.name, content: "Initializing neural processing pipeline..." });
+
         try {
             const res = await fetch(`${API_ROUTES.DOCUMENTS}/${encodeURIComponent(docId)}/index?workspace_id=${encodeURIComponent(doc.workspace_id || workspaceId)}`, {
                 method: 'POST'
             });
             if (res.ok) {
-                fetchDocuments();
+                await fetchDocuments();
+                // If it was just indexed, show the content automatically
+                handleView(doc.name);
             } else {
                 const data = await res.json();
                 showError("Indexing Error", data.detail || 'Manual indexing failed.');
@@ -359,6 +365,8 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
         } catch (err) {
             console.error('Failed to index document', err);
             showError("Network Error", "Could not reach the indexing service.");
+        } finally {
+            setIsViewing(false);
         }
     };
 
