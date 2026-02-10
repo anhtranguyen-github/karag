@@ -5,7 +5,7 @@ import {
     Upload, FileText, Trash2, Loader2,
     Database, Search, Eye,
     Plus, Filter, Shield, ArrowRight, AlertTriangle,
-    ArrowRightLeft, Layers, X, Zap, ChevronDown
+    ArrowRightLeft, Layers, X, Zap, ChevronDown, Network
 } from 'lucide-react';
 import Link from 'next/link';
 import { API_ROUTES } from '@/lib/api-config';
@@ -20,6 +20,7 @@ interface Document {
     name: string;
     extension: string;
     chunks: number;
+    status: string; // Added for Vault logic
     shared?: boolean;
     workspace_id?: string;
     workspace_name?: string;
@@ -41,6 +42,7 @@ interface BackendDocument {
     filename: string;
     extension: string;
     chunks: number;
+    status: string;
     workspace_id: string;
     workspace_name?: string;
 }
@@ -88,6 +90,7 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                     name: doc.filename,
                     extension: doc.extension,
                     chunks: doc.chunks,
+                    status: doc.status,
                     shared: !isGlobal && doc.workspace_id !== workspaceId,
                     workspace_id: doc.workspace_id,
                     workspace_name: doc.workspace_name || doc.workspace_id
@@ -602,7 +605,13 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                                         <div className="flex items-center gap-3 mt-1">
                                             <span className="text-tiny text-gray-600 uppercase">{doc.extension?.replace('.', '') || 'FILE'}</span>
                                             <span className="w-1 h-1 rounded-full bg-gray-800" />
-                                            <span className="text-tiny text-indigo-400/50 font-black uppercase tracking-widest">{doc.chunks} Fragments</span>
+                                            {doc.status === 'indexed' ? (
+                                                <span className="text-tiny text-indigo-400/50 font-black uppercase tracking-widest">{doc.chunks} Fragments</span>
+                                            ) : (
+                                                <span className="text-tiny text-amber-400/50 font-black uppercase tracking-widest flex items-center gap-2">
+                                                    Vault Persistence
+                                                </span>
+                                            )}
                                             {isGlobal && (
                                                 <>
                                                     <span className="w-1 h-1 rounded-full bg-gray-800" />
