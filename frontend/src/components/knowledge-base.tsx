@@ -13,6 +13,7 @@ import { SourceViewer } from '@/components/source-viewer';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useError } from '@/context/error-context';
+import { getIllegalCharsFound } from '@/lib/constants';
 
 interface Document {
     id?: string;
@@ -178,10 +179,9 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
         if (!file) return;
 
         // Optimistic Validation
-        const illegalChars = ['/', '\\', ':', '*', '?', '"', '<', '>', '|'];
-        const found = illegalChars.filter(c => file.name.includes(c));
+        const found = getIllegalCharsFound(file.name);
         if (found.length > 0) {
-            showError("Invalid Filename", `The filename contains characters that are not allowed: ${found.join(' ')}. Please rename the file.`);
+            showError("Invalid Filename", `The filename contains characters that are not allowed: ${found.join(' ')}. Please rename the file and try again.`);
             return;
         }
 

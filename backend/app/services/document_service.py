@@ -34,12 +34,12 @@ class DocumentService:
             db = mongodb_manager.get_async_database()
             
             # 1. Filename validation
+            from backend.app.core.constants import ILLEGAL_NAME_CHARS
             original_filename = file.filename or "unnamed_file"
-            illegal_chars = ['/', '\\', ':', '*', '?', '"', '<', '>', '|']
-            found_chars = [c for c in illegal_chars if c in original_filename]
+            found_chars = [c for c in ILLEGAL_NAME_CHARS if c in original_filename]
             if found_chars:
                 raise ValidationError(
-                    message=f"Filename contains illegal characters: {' '.join(found_chars)}",
+                    message=f"Filename contains illegal characters: {' '.join(found_chars)}. Please remove them and try again.",
                     params={"illegal": found_chars}
                 )
 

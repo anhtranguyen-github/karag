@@ -46,6 +46,12 @@ kill_port() {
 
 # Function to clean frontend corruption
 clean_frontend() {
+    # Check for redundant nested directory
+    if [ -d "frontend/frontend" ]; then
+        echo -e "${YELLOW}Detected redundant nested frontend directory. Removing...${NC}"
+        rm -rf frontend/frontend
+    fi
+
     if [ -d "frontend/.next" ]; then
         echo -e "${YELLOW}[FRONTEND] Cleaning corrupted cache (if any)...${NC}"
         # Check for stale lock file
@@ -53,8 +59,9 @@ clean_frontend() {
             echo -e "${CYAN}Found stale Next.js lock file. Removing...${NC}"
             rm -f frontend/.next/dev/lock
         fi
-        # Optional: Deep clean if requested via global flag or if we suspect corruption
-        if [[ "$*" == *"--force-clean"* ]]; then
+        
+        # Deep clean if requested via global flag
+        if [ "$FORCE_CLEAN" = true ]; then
              echo -e "${CYAN}Force-cleaning .next folder...${NC}"
              rm -rf frontend/.next
         fi
@@ -161,8 +168,8 @@ start_backend() {
 
     if [ "$FORCE_CLEAN" = true ]; then
         echo -e "${CYAN}Cleaning pytest and python cache...${NC}"
-        find . -type d -name "__pycache__" -exec rm -rf {} +
-        rm -rf .pytest_cache
+        find backend -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null
+        rm -rf .pytest_cache 2>/dev/null
     fi
     
     export PYTHONPATH=$PYTHONPATH:.
@@ -209,16 +216,36 @@ start_frontend() {
 start_turbo() {
     echo -e "${BLUE}>> Entering Turbo Mode: Cloud-First Strategy${NC}"
     
-    # 1. Check AI (Cloud vs Local)
-    if [ ! -z "$OPENAI_API_KEY" ] || [ ! -z "$ANTHROPIC_API_KEY" ]; then
-        echo -e "${GREEN}✓ Cloud AI detected. Skipping local AI containers.${NC}"
+    # 1. Resolve providers (Priority: Env Var > settings.json)
+    RESOLVED_LLM=${LLM_PROVIDER:-""}
+    RESOLVED_EMB=${EMBEDDING_PROVIDER:-""}
+
+    if [ -z "$RESOLVED_LLM" ] || [ -z "$RESOLVED_EMB" ]; then
+        if [ -f "backend/data/settings.json" ]; then
+            [ -z "$RESOLVED_LLM" ] && RESOLVED_LLM=$(grep '"llm_provider":' "backend/data/settings.json" | cut -d'"' -f4)
+            [ -z "$RESOLVED_EMB" ] && RESOLVED_EMB=$(grep '"embedding_provider":' "backend/data/settings.json" | cut -d'"' -f4)
+        fi
+    fi
+
+    OLLAMA_REQUIRED=false
+    if [[ "$RESOLVED_LLM" == "ollama" ]] || [[ "$RESOLVED_EMB" == "ollama" ]]; then
+        OLLAMA_REQUIRED=true
+    fi
+
+    # 2. Check AI Deployment Strategy
+    if { [ ! -z "$OPENAI_API_KEY" ] || [ ! -z "$ANTHROPIC_API_KEY" ]; } && [ "$OLLAMA_REQUIRED" = false ]; then
+        echo -e "${GREEN}✓ Cloud AI configured (LLM: $RESOLVED_LLM, EMB: $RESOLVED_EMB). Skipping local AI containers.${NC}"
         # Still check if we need local embeddings (if using only Anthropic)
         if [ -z "$OPENAI_API_KEY" ] && [ -z "$VOYAGE_API_KEY" ]; then
             echo -e "${YELLOW}! No Cloud embedding key. Starting local AI for embeddings...${NC}"
             docker compose up -d ollama
         fi
     else
-        echo -e "${YELLOW}! No Cloud AI keys. Starting full local AI stack...${NC}"
+        if [ "$OLLAMA_REQUIRED" = true ]; then
+            echo -e "${CYAN}i Ollama explicitly requested in settings.json. Starting local AI...${NC}"
+        else
+            echo -e "${YELLOW}! No Cloud AI keys. Starting full local AI stack...${NC}"
+        fi
         start_ai
     fi
 

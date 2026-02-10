@@ -118,7 +118,18 @@ async def reason_node(state: AgentState, config: RunnableConfig) -> Dict:
 
         logger.info("graph_reason_llm_invoke", workspace_id=workspace_id)
         messages = [system_prompt] + state["messages"]
-        response = await llm_with_tools.ainvoke(messages, config=config)
+        
+        try:
+            response = await llm_with_tools.ainvoke(messages, config=config)
+        except Exception as e:
+            logger.error("graph_reason_llm_failed", error=str(e), workspace_id=workspace_id)
+            # Create a graceful error message as the response
+            error_msg = f"Error: Failed to connect to the reasoning engine ({type(llm).__name__}). Please ensure the service is running or check your configuration."
+            if "ConnectError" in str(e) or "connection" in str(e).lower():
+                error_msg = f"Error: Connection to {type(llm).__name__} failed. If using local models, ensure Ollama/vLLM is running."
+            
+            response = AIMessage(content=error_msg)
+            return {"messages": [response], "reasoning_steps": state.get("reasoning_steps", []) + ["Internal reasoning error"]}
 
         duration = time.perf_counter() - start
 
