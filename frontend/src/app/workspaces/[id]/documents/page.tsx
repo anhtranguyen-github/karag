@@ -11,6 +11,7 @@ import { API_BASE_URL } from '@/lib/api-config';
 import { useError } from '@/context/error-context';
 import { cn } from '@/lib/utils';
 import { DocumentGraph } from '@/components/documents/document-graph';
+import { getIllegalCharsFound } from '@/lib/constants';
 
 interface Document {
     id: string;
@@ -117,10 +118,9 @@ export default function DocumentsPage() {
         if (!file || !workspaceId) return;
 
         // Optimistic Validation
-        const illegalChars = ['/', '\\', ':', '*', '?', '"', '<', '>', '|'];
-        const found = illegalChars.filter(c => file.name.includes(c));
+        const found = getIllegalCharsFound(file.name);
         if (found.length > 0) {
-            showError("Invalid Filename", `The filename contains characters that are not allowed: ${found.join(' ')}. Please rename the file.`);
+            showError("Invalid Filename", `The filename contains characters that are not allowed: ${found.join(' ')}. Please rename the file and try again.`);
             if (fileInputRef.current) fileInputRef.current.value = '';
             return;
         }

@@ -30,21 +30,35 @@ class SettingsManager:
             logger.error("settings_save_error", error=str(e))
 
     def _load_initial_settings(self) -> AppSettings:
-        """Load global settings from JSON, falling back to environment variables."""
+        """Load global settings from JSON, allowing environment variable overrides."""
+        settings_data = {}
         if self.config_path.exists():
             try:
                 with open(self.config_path, "r") as f:
-                    data = json.load(f)
-                    return AppSettings(**data)
+                    settings_data = json.load(f)
             except Exception as e:
                 logger.error("settings_load_error", error=str(e))
         
-        return AppSettings(
-            llm_provider=ai_settings.LLM_PROVIDER,
-            llm_model=ai_settings.LLM_MODEL,
-            embedding_provider=ai_settings.EMBEDDING_PROVIDER,
-            embedding_model=ai_settings.EMBEDDING_MODEL,
-        )
+        # Priority: Env Var > settings.json > defaults in config.py
+        # Check for environment overrides specifically
+        env_overrides = {
+            "llm_provider": os.getenv("LLM_PROVIDER"),
+            "llm_model": os.getenv("LLM_MODEL"),
+            "embedding_provider": os.getenv("EMBEDDING_PROVIDER"),
+            "embedding_model": os.getenv("EMBEDDING_MODEL"),
+        }
+        
+        # Merge: settings_data has priority over config defaults, but env_overrides has highest priority
+        merged_data = {
+            "llm_provider": ai_settings.LLM_PROVIDER,
+            "llm_model": ai_settings.LLM_MODEL,
+            "embedding_provider": ai_settings.EMBEDDING_PROVIDER,
+            "embedding_model": ai_settings.EMBEDDING_MODEL,
+        }
+        merged_data.update(settings_data)
+        merged_data.update({k: v for k, v in env_overrides.items() if v is not None})
+        
+        return AppSettings(**merged_data)
 
     def get_global_settings(self) -> AppSettings:
         return self._global_settings

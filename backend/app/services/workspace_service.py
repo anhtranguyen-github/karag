@@ -31,12 +31,12 @@ class WorkspaceService:
         if not name:
             raise ValidationError("Workspace name cannot be empty.")
             
-        illegal_chars = ['/', '\\', ':', '*', '?', '"', '<', '>', '|', '[', ']', '{', '}', '(', ')', ';', '&', '$', '#', '@', '!']
-        found_chars = [char for char in illegal_chars if char in name]
+        from backend.app.core.constants import WORKSPACE_NAME_FORBIDDEN
+        found_chars = [char for char in WORKSPACE_NAME_FORBIDDEN if char in name]
         if found_chars:
             raise ValidationError(
-                message=f"Workspace name contains invalid characters: {' '.join(found_chars)}",
-                params={"found": found_chars, "illegal": illegal_chars}
+                message=f"Workspace name contains invalid characters: {' '.join(found_chars)}. These are reserved for system safety.",
+                params={"found": found_chars, "illegal": WORKSPACE_NAME_FORBIDDEN}
             )
 
         # Check for duplicate name
@@ -105,11 +105,11 @@ class WorkspaceService:
             if not new_name:
                 raise ValidationError("Workspace name cannot be empty.")
             
-            illegal_chars = ['/', '\\', ':', '*', '?', '"', '<', '>', '|', '[', ']', '{', '}', '(', ')', ';', '&', '$', '#', '@', '!']
-            found_chars = [char for char in illegal_chars if char in new_name]
+            from backend.app.core.constants import WORKSPACE_NAME_FORBIDDEN
+            found_chars = [char for char in WORKSPACE_NAME_FORBIDDEN if char in new_name]
             if found_chars:
                 raise ValidationError(
-                    message=f"Workspace name contains invalid characters: {' '.join(found_chars)}",
+                    message=f"Workspace name contains invalid characters: {' '.join(found_chars)}. These are reserved for system safety.",
                     params={"found": found_chars}
                 )
             
