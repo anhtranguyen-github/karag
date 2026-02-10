@@ -97,8 +97,13 @@ class QdrantProvider:
                     settings = await settings_manager.get_settings(workspace_id)
                     return self.get_collection_name(settings.embedding_dim)
                 except Exception:
-                    return self.get_collection_name(1536)
-            return self.get_collection_name(1536)
+                    from backend.app.core.settings_manager import settings_manager
+                    global_settings = settings_manager.get_global_settings()
+                    return self.get_collection_name(global_settings.embedding_dim)
+            
+            from backend.app.core.settings_manager import settings_manager
+            global_settings = settings_manager.get_global_settings()
+            return self.get_collection_name(global_settings.embedding_dim)
         return collection_name
 
     async def hybrid_search(
