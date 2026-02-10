@@ -1,4 +1,3 @@
-.openapi-generator-ignore
 apis/ChatApi.ts
 apis/DocumentsApi.ts
 apis/HealthApi.ts
