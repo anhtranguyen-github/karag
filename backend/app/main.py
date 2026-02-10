@@ -28,11 +28,15 @@ async def lifespan(app: FastAPI):
 
     logger.info("infra_init_start", msg="Initializing Infrastructure...")
     minio_manager.ensure_bucket()
-    # Ensure default collections exist (1536 for OpenAI/Deep, 768 for Local/Fast)
-    await qdrant.create_collection("knowledge_base_1536", 1536)
-    await qdrant.create_collection("knowledge_base_768", 768)
-    await qdrant.create_collection("knowledge_base_896", 896)  # Qwen series
-    await qdrant.create_collection("knowledge_base_1024", 1024)  # Multilingual-E5, etc.
+    
+    # Dynamically ensure active collection exists (Must follow AI Settings / OpenAI Contract)
+    from backend.app.core.settings_manager import settings_manager
+    global_settings = settings_manager.get_global_settings()
+    target_dim = global_settings.embedding_dim
+    coll_name = qdrant.get_collection_name(target_dim)
+    
+    logger.info("vector_init", msg=f"Ensuring active collection: {coll_name} (Dim: {target_dim})")
+    await qdrant.create_collection(coll_name, target_dim)
 
     # Ensure default workspace exists
     logger.info("workspace_init", msg="Ensuring default workspace...")
