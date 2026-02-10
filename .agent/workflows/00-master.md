@@ -137,6 +137,13 @@ You MUST select the most specific workflow for the task. **DO NOT stay in the ma
 ### R7: Zero Secret Leakage
 - **RULE:** ❌ NEVER commit `.env`, API keys, or credentials. Check `git status` before adding.
 
+### R8: Integration Integrity
+- **RULE:** ANY new feature, refactor, or update MUST be verified against:
+    1. **Integration**: API Contracts (OpenAPI), Frontend-Backend sync.
+    2. **Policies**: Security, IAM, and Data Handling rules.
+    3. **CI/CD**: Ensure no pipeline stages (Lint, Test, Build, Sonar) are broken.
+    4. **Contracts**: Proto/JSON schemas must remain backward compatible or be versioned.
+
 ---
 
 ## 🛠️ Operational Workflow: [Master Loop]
@@ -182,7 +189,8 @@ Before finishing ANY task:
 - [ ] Read all docs (STEP 0)?
 - [ ] Read edge cases?
 - [ ] Created plan (if feature)?
-- [ ] Followed **STRICT RULES (R1-R7)**?
+- [ ] Followed **STRICT RULES (R1-R8)**?
+- [ ] Verified Integration, Contracts, & CI (Rule R8)?
 - [ ] Handled relevant edge cases?
 - [ ] Updated changelog and edge case status?
 - [ ] Updated `run.sh` and `README.md` (Rule R6)?
