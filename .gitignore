@@ -100,7 +100,6 @@ backend/app/tools/arxiv_downloader/downloads/
 # Project Documentation (Local Only)
 # ===================
 /docs/
-!/docs/.gitkeep
 /plans/
 /scripts/
 /test-resources/
