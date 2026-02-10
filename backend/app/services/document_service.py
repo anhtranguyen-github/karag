@@ -149,16 +149,15 @@ class DocumentService:
                 raise ValidationError(f"Failed to download arXiv paper: {str(e)}")
 
     async def run_ingestion(self, task_id: str, safe_filename: str, content: bytes, content_type: str, workspace_id: str):
-        """Internal method to run the pipeline steps with global vault deduplication."""
+        """Phase 1: Neutral Storage. Only stores in MinIO and records in MongoDB."""
         db = mongodb_manager.get_async_database()
         doc_id = None
         try:
-            task_service.update_task(task_id, status="processing", progress=10, message="Calculating signatures...")
+            task_service.update_task(task_id, status="processing", progress=20, message="Calculating signatures...")
             file_hash = hashlib.sha256(content).hexdigest()
             file_size = len(content)
             
             # 1. GLOBAL VAULT DEDUPLICATION CHECK
-            # Check if this file already exists in ANY workspace (or in the vault)
             existing_vault_doc = await db.documents.find_one({"content_hash": file_hash})
             
             doc_id = str(uuid.uuid4())[:8]
@@ -166,28 +165,28 @@ class DocumentService:
             version = 1
             timestamp = datetime.utcnow().isoformat()
             
-            # RAG Config Hash for Traceability
+            # Use current settings for traceability, even if not indexing yet
             settings = await settings_manager.get_settings(workspace_id)
             rag_hash = settings.get_rag_hash()
 
             if existing_vault_doc:
-                # REUSE PHYSICAL STORAGE (MinIO)
+                # REUSE PHYSICAL STORAGE
                 minio_path = existing_vault_doc["minio_path"]
-                task_service.update_task(task_id, progress=30, message="Linking to existing vault record...")
+                task_service.update_task(task_id, progress=60, message="Linking to existing vault record...")
             else:
                 # NEW PHYSICAL UPLOAD
                 minio_path = f"vault/{doc_id}/v{version}/{safe_filename}"
-                task_service.update_task(task_id, progress=30, message="Storing in global vault...")
+                task_service.update_task(task_id, progress=60, message="Storing in neutral vault...")
                 await minio_manager.upload_file(minio_path, io.BytesIO(content), file_size, content_type=content_type)
 
-            # Create MongoDB record for THIS workspace
+            # Create MongoDB record (Status is 'uploaded', NOT 'indexed')
             doc_record = {
                 "id": doc_id, 
                 "workspace_id": workspace_id, 
                 "filename": safe_filename,
                 "extension": extension, 
                 "minio_path": minio_path, 
-                "status": "indexing",
+                "status": "uploaded", # Neutral state
                 "current_version": version, 
                 "content_hash": file_hash, 
                 "size_bytes": file_size,
@@ -195,54 +194,85 @@ class DocumentService:
                 "created_at": timestamp, 
                 "updated_at": timestamp, 
                 "shared_with": [],
-                "rag_config_hash": rag_hash  # Traceability
+                "rag_config_hash": rag_hash 
             }
             await db.documents.insert_one(doc_record)
             
-            # Check if we can also reuse embeddings (Only if RAG config matches exactly)
-            if existing_vault_doc and existing_vault_doc.get("rag_config_hash") == rag_hash:
-                 task_service.update_task(task_id, progress=90, message="Reusing compatible embeddings...")
-                 # Link the existing vectors in Qdrant to this new workspace_id
-                 from qdrant_client.http import models as qmodels
-                 await qdrant.client.set_payload(
-                     collection_name=await qdrant.get_effective_collection("knowledge_base", workspace_id),
-                     payload={"shared_with": [workspace_id]}, # Simple link by adding to shared_with or mirroring
-                     points=qmodels.Filter(must=[qmodels.FieldCondition(key="content_hash", match=qmodels.MatchValue(value=file_hash))])
-                 )
-                 num_chunks = existing_vault_doc.get("chunks", 0)
-                 await db.documents.update_one({"id": doc_id}, {"$set": {"status": "indexed", "chunks": num_chunks}})
-                 task_service.update_task(task_id, status="completed", progress=100, message="Reused existing embeddings.")
-                 return
+            task_service.update_task(task_id, status="completed", progress=100, message="Stored in Intelligence Vault.")
+            logger.info("document_vault_stored", filename=safe_filename, doc_id=doc_id, workspace_id=workspace_id)
 
-            # Perform indexing if no match or incompatible config
-            task_service.update_task(task_id, progress=50, message="Neural chunking...")
-            suffix = extension
-            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        except Exception as e:
+            logger.error("vault_storage_failed", filename=safe_filename, error=str(e))
+            task_service.update_task(task_id, status="failed", message=str(e))
+            if doc_id:
+                await db.documents.update_one({"id": doc_id}, {"$set": {"status": "failed"}})
+
+    async def index_document(self, doc_id_or_name: str, workspace_id: str):
+        """Phase 2: On-Demand Neural Indexing. Triggered by explicit interaction."""
+        db = mongodb_manager.get_async_database()
+        doc = await db.documents.find_one({
+            "$and": [
+                {"$or": [{"id": doc_id_or_name}, {"filename": doc_id_or_name}]},
+                {"$or": [{"workspace_id": workspace_id}, {"shared_with": workspace_id}]}
+            ]
+        })
+        
+        if not doc:
+            raise NotFoundError(f"Document {doc_id_or_name} not found in workspace {workspace_id}")
+            
+        if doc["status"] == "indexed":
+            # Already done
+            return doc["chunks"]
+
+        # 1. Update status
+        await db.documents.update_one({"id": doc["id"]}, {"$set": {"status": "indexing"}})
+        
+        try:
+            # 2. Get file content from MinIO
+            content = minio_manager.get_file(doc["minio_path"])
+            if not content:
+                raise ValueError("Source file missing in vault storage.")
+                
+            # 3. Save to temp file for ingestion loaders
+            extension = doc.get("extension", ".tmp")
+            with tempfile.NamedTemporaryFile(delete=False, suffix=extension) as tmp:
                 tmp.write(content)
                 tmp_path = tmp.name
 
             try:
-                await ingestion_pipeline.initialize(workspace_id=workspace_id)
-                task_service.update_task(task_id, progress=70, message="Generating embeddings...")
+                # 4. Run RAG Pipeline
+                settings = await settings_manager.get_settings(workspace_id)
+                rag_hash = settings.get_rag_hash()
                 
+                await ingestion_pipeline.initialize(workspace_id=workspace_id)
                 num_chunks = await ingestion_pipeline.process_file(
                     tmp_path, 
                     metadata={
-                        "filename": safe_filename, 
+                        "filename": doc["filename"], 
                         "workspace_id": workspace_id,
-                        "doc_id": doc_id, 
-                        "version": version, 
-                        "minio_path": minio_path,
-                        "content_hash": file_hash,
+                        "doc_id": doc["id"], 
+                        "version": doc.get("current_version", 1), 
+                        "minio_path": doc["minio_path"],
+                        "content_hash": doc["content_hash"],
                         "rag_config_hash": rag_hash
                     }
                 )
                 
-                await db.documents.update_one({"id": doc_id}, {"$set": {"status": "indexed", "chunks": num_chunks}})
-                task_service.update_task(task_id, status="completed", progress=100, message="Successfully indexed.")
+                # 5. Finalize
+                await db.documents.update_one(
+                    {"id": doc["id"]}, 
+                    {"$set": {"status": "indexed", "chunks": num_chunks, "rag_config_hash": rag_hash}}
+                )
+                logger.info("document_indexed_on_demand", filename=doc["filename"], chunks=num_chunks)
+                return num_chunks
             finally:
                 if os.path.exists(tmp_path):
                     os.remove(tmp_path)
+                    
+        except Exception as e:
+            logger.error("indexing_failed", doc_id=doc["id"], error=str(e))
+            await db.documents.update_one({"id": doc["id"]}, {"$set": {"status": "uploaded"}}) # Revert to neutral
+            raise e
                     
         except Exception as e:
             extension = os.path.splitext(safe_filename)[1].lower()
@@ -314,8 +344,7 @@ class DocumentService:
             doc["_id"] = str(doc["_id"])
         return doc
 
-    @staticmethod
-    async def get_content(name: str) -> Optional[str]:
+    async def get_content(self, name: str) -> Optional[str]:
         db = mongodb_manager.get_async_database()
         # Try finding by ID first, then by filename
         doc = await db.documents.find_one({
@@ -328,6 +357,22 @@ class DocumentService:
             return None
             
         workspace_id = doc.get("workspace_id")
+        
+        # Explicit Interaction: Trigger indexing if not indexed
+        if doc["status"] != "indexed":
+            try:
+                await self.index_document(doc["id"], workspace_id)
+            except Exception as e:
+                logger.error("auto_index_on_view_failed", error=str(e))
+                # Fallback to MinIO raw read (best effort)
+                raw_data = minio_manager.get_file(doc["minio_path"])
+                if raw_data:
+                    try:
+                        return raw_data.decode('utf-8')
+                    except:
+                        return f"[REDACTED BINARY DATA: {doc['extension']}]"
+                return None
+
         return await qdrant.get_document_content("knowledge_base", doc["filename"], workspace_id=workspace_id)
 
     @staticmethod
@@ -479,35 +524,11 @@ class DocumentService:
                 params={"type": "rag_mismatch", "expected": res.get("rag_config_hash"), "actual": target_rag_hash}
             )
 
-        if force_reindex or (not is_config_compatible):
-            # Full Re-indexing Flow (Using shared vault document)
-            file_data = minio_manager.get_file(res["minio_path"])
-            if not file_data:
-                raise ValueError("Source file missing in vault storage.")
-                
-            suffix = res.get("extension", ".tmp")
-            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-                tmp.write(file_data)
-                tmp_path = tmp.name
-
-            try:
-                await ingestion_pipeline.initialize(workspace_id=target_workspace_id)
-                await ingestion_pipeline.process_file(
-                    tmp_path, 
-                    metadata={
-                        "filename": res["filename"], 
-                        "workspace_id": target_workspace_id,
-                        "doc_id": res["id"],
-                        "version": res.get("current_version", 1),
-                        "minio_path": res["minio_path"],
-                        "content_hash": res["content_hash"],
-                        "rag_config_hash": target_rag_hash
-                    }
-                )
-                await db.documents.update_one({"id": res["id"]}, {"$set": {"rag_config_hash": target_rag_hash}})
-            finally:
-                if os.path.exists(tmp_path):
-                    os.remove(tmp_path)
+        if force_reindex or (not is_config_compatible) or res["status"] != "indexed":
+            # Explicit Interaction: Add to workspace triggers indexing
+            await self.index_document(res["id"], target_workspace_id)
+            # Fetch updated record
+            res = await db.documents.find_one({"id": res["id"]})
 
         # Update MongoDB Association
         if action == "move":

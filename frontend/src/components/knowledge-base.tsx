@@ -329,6 +329,8 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                     name: data.name,
                     content: data.content
                 });
+                fetchDocuments(); // Refresh status/fragments after on-demand indexing
+
             } else {
                 const data = await res.json();
                 showError("Retrieval Failure", data.detail || 'Could not fetch document content.', `Source: ${name}`);
