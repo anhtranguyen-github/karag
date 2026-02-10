@@ -403,7 +403,8 @@ class DocumentService:
                     logger.error("minio_delete_failed", error=str(e))
             
             # 2. Vector Store removal: Attempt to delete from all potential dimension collections
-            for dim in [384, 768, 1024, 1536, 1792, 3072]:
+            # (Proactive: cover all known model outputs to prevent stale data hallucinations)
+            for dim in [384, 512, 768, 896, 1024, 1536, 1792, 3072]:
                 coll = f"knowledge_base_{dim}"
                 if await qdrant.client.collection_exists(coll):
                     await qdrant.client.delete(
