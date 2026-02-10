@@ -73,15 +73,21 @@ async def test_document_service_delete(mocker):
     mock_doc = {
         "id": "doc-123",
         "workspace_id": "default",
-        "minio_path": "ws/doc/v1/test.pdf"
+        "minio_path": "ws/doc/v1/test.pdf",
+        "content_hash": "hash-123"
     }
     mock_col.find_one.return_value = mock_doc
     
     mocker.patch("backend.app.core.mongodb.mongodb_manager.get_async_database", return_value=mock_db)
     mock_minio = mocker.patch("backend.app.services.document_service.minio_manager.delete_file")
-    mock_qdrant = mocker.patch("backend.app.services.document_service.qdrant.delete_document", new=AsyncMock())
+    
+    # Mock Qdrant client methods
+    mock_qdrant_client = MagicMock()
+    mock_qdrant_client.collection_exists = AsyncMock(return_value=False) # Skip qdrant loops for simplicity
+    mock_qdrant_client.delete = AsyncMock()
+    mocker.patch("backend.app.services.document_service.qdrant.client", mock_qdrant_client)
     
     await document_service.delete("test.pdf", "default", vault_delete=True)
     
     mock_minio.assert_called_once_with("ws/doc/v1/test.pdf")
-    mock_col.delete_one.assert_called_once_with({"id": "doc-123"})
+    mock_col.delete_many.assert_called_once_with({"minio_path": "ws/doc/v1/test.pdf"})

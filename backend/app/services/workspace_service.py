@@ -92,7 +92,7 @@ class WorkspaceService:
     @staticmethod
     async def update(workspace_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         if workspace_id == "default":
-            raise ValueError("The 'default' workspace is a system fallback and cannot be edited.")
+            raise ValidationError("The 'default' workspace is a system fallback and cannot be edited.")
             
         db = mongodb_manager.get_async_database()
 

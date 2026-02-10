@@ -5,7 +5,7 @@ from backend.app.core.schemas import AppSettings
 
 @pytest.mark.asyncio
 async def test_settings_persistence():
-    test_path = "/home/tra01/project/chabot-template/backend/data/test_settings.json"
+    test_path = os.path.join(os.getcwd(), "backend/data/test_settings.json")
     if os.path.exists(test_path):
         os.remove(test_path)
         
