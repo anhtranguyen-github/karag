@@ -32,9 +32,9 @@ pipeline {
             }
         }
 
-        stage('Unit Tests') {
+        stage('Backend Unit Tests') {
             steps {
-                echo 'Running unit tests with pytest...'
+                echo 'Running backend unit tests with pytest...'
                 sh '''
                     # Create virtual environment and install dependencies
                     python3 -m venv .venv
@@ -47,6 +47,25 @@ pipeline {
                     export PYTHONPATH=$PYTHONPATH:.
                     pytest backend/tests/ --maxfail=1
                 '''
+            }
+        }
+
+        stage('Frontend CI') {
+            steps {
+                echo 'Running frontend CI (Lint & Vitest)...'
+                dir('frontend') {
+                    sh '''
+                        # Install pnpm and dependencies
+                        npm install -g pnpm
+                        pnpm install
+                        
+                        # Run Lint
+                        pnpm run lint
+                        
+                        # Run Unit Tests
+                        pnpm run test:unit -- --bail 1
+                    '''
+                }
             }
         }
 

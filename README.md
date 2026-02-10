@@ -70,7 +70,7 @@ See `Jenkinsfile` and `sonar-project.properties` for configuration details.
 ### Prerequisites
 
 - **Docker** and **Docker Compose**
-- **Bun** (for frontend)
+- **pnpm** (for frontend)
 - **Python 3.10+** (for backend)
 
 ### Installation
@@ -107,8 +107,8 @@ See `Jenkinsfile` and `sonar-project.properties` for configuration details.
 ### Frontend
 ```bash
 cd frontend
-bun install
-bun run dev
+pnpm install
+pnpm run dev
 ```
 
 ### Backend
@@ -133,8 +133,8 @@ pytest
 ### Frontend Tests
 ```bash
 cd frontend
-bun run test:unit    # Unit & Integration
-bun run test:e2e     # End-to-End with Playwright
+pnpm run test:unit    # Unit & Integration
+pnpm run test:e2e     # End-to-End with Playwright
 ```
 
 ## Contributing
