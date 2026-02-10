@@ -3,6 +3,10 @@ pipeline {
         label 'linux'
     }
 
+    triggers {
+        githubPush()
+    }
+
     environment {
         // Application specific variables
         APP_NAME = 'karag-backend'
