@@ -1,83 +1,138 @@
-# Node
+# ===================
+# Dependencies
+# ===================
 node_modules/
-.npm
-dist/
+.pnpm-store/
+.yarn/
+.npm/
+package-lock.json
+
+# ===================
+# Environment
+# ===================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+env/
+ENV/
+
+# ===================
+# Build Output
+# ===================
 .next/
 out/
 build/
-.vercel
+dist/
+*.tsbuildinfo
+
+# ===================
+# Cache
+# ===================
+.cache/
+.turbo/
+.vercel/
+.netlify/
+
+# ===================
+# IDE & Editor
+# ===================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ===================
+# Logs
+# ===================
+logs/
 *.log
-package-lock.json
-
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-venv/
-.venv/
-env/
-.env
-.env.local
-.env.*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 pip-log.txt
-pip-delete-this-directory.txt
-.tox/
+
+# ===================
+# Testing
+# ===================
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+frontend/playwright-report/
+frontend/test-results/
 .coverage
-.cache
-nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
+nosetests.xml
 
-# IDEs
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Project Specific
+# ===================
+# Data & Storage (Project Specific)
+# ===================
 qdrant_storage/
 ollama_data/
-models/
-model_cache/
-backend/app/graph/__pycache__/
-backend/app/tools/__pycache__/
-backend/app/rag/__pycache__/
-backend/app/core/__pycache__/
-
-
-.agent/
-.gemini/artifacts/
-
-
-# Testing
-frontend/playwright-report/
-frontend/test-results/
-
-# Data
-backend/data/*.json
-!backend/data/.keep
-
-# Documentation and Plans
-/docs/
-/plans/
-/scripts/
-/test-resources/
-TESTING_CONSTRAINTS_AND_BUGS.md
 mongo_data/
 minio_data/
+models/
+model_cache/
+backend/data/*.json
+!backend/data/.keep
 backend/app/tools/arxiv_downloader/downloads/
 *.pdf
 *.zip
 *.tar.gz
 
-test-results/
+# ===================
+# Agent & Gemini (Local Only)
+# ===================
+.agent/
+.gemini/artifacts/
 
-*.log
+# ===================
+# Project Documentation (Local Only)
+# ===================
+/docs/
+!/docs/.gitkeep
+/plans/
+/scripts/
+/test-resources/
+TESTING_CONSTRAINTS_AND_BUGS.md
 
+# ===================
+# Python (if applicable)
+# ===================
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+.venv/
+.tox/
+pip-delete-this-directory.txt
+backend/app/graph/__pycache__/
+backend/app/tools/__pycache__/
+backend/app/rag/__pycache__/
+backend/app/core/__pycache__/
+
+# ===================
+# Secrets & Keys
+# ===================
+*.pem
+*.key
+*.crt
+secrets/
+
+# ===================
+# Temporary Files
+# ===================
+tmp/
+temp/
+*.tmp
+*.temp
