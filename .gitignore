@@ -93,6 +93,7 @@ backend/app/tools/arxiv_downloader/downloads/
 # Agent & Gemini (Local Only)
 # ===================
 .agent/
+.agents/
 .gemini/artifacts/
 
 # ===================
