@@ -137,35 +137,45 @@ class ChatService:
 
     @staticmethod
     async def stream_updates(message: str, thread_id: str, workspace_id: str) -> AsyncGenerator[str, None]:
-        """Stream event updates from the LangGraph execution."""
+        """Stream event updates from the LangGraph execution with robust error handling."""
         inputs = {"messages": [HumanMessage(content=message)], "workspace_id": workspace_id}
         config = {"configurable": {"thread_id": thread_id}}
         
-        async for event in graph_app.astream_events(inputs, config=config, version="v2"):
-            kind = event["event"]
-            name = event.get("name", "")
-            
-            if kind == "on_chain_end" and name in ["retrieve", "reason", "generate"]:
-                output = event["data"].get("output", {})
-                if isinstance(output, dict):
-                    settings = await settings_manager.get_settings(workspace_id)
-                    if settings.show_reasoning and "reasoning_steps" in output:
-                        db = mongodb_manager.get_async_database()
-                        await db["thread_metadata"].update_one(
-                            {"thread_id": thread_id},
-                            {"$set": {"has_thinking": True}}
-                        )
-                        yield f"data: {json.dumps({'type': 'reasoning', 'steps': output['reasoning_steps']})}\n\n"
-                    if "sources" in output:
-                        yield f"data: {json.dumps({'type': 'sources', 'sources': output['sources']})}\n\n"
-            
-            if kind == "on_chat_model_stream":
-                content = event["data"]["chunk"].content
-                if content:
-                    yield f"data: {json.dumps({'type': 'content', 'delta': content})}\n\n"
-            elif kind == "on_tool_start":
-                yield f"data: {json.dumps({'type': 'tool_start', 'tool': event['name']})}\n\n"
-            elif kind == "on_tool_end":
-                yield f"data: {json.dumps({'type': 'tool_end', 'tool': event['name'], 'output': event['data'].get('output')})}\n\n"
+        try:
+            async for event in graph_app.astream_events(inputs, config=config, version="v2"):
+                kind = event["event"]
+                name = event.get("name", "")
+                
+                try:
+                    if kind == "on_chain_end" and name in ["retrieve", "reason", "generate"]:
+                        output = event["data"].get("output", {})
+                        if isinstance(output, dict):
+                            # Check reasoning visibility settings
+                            settings = await settings_manager.get_settings(workspace_id)
+                            if settings.show_reasoning and "reasoning_steps" in output:
+                                db = mongodb_manager.get_async_database()
+                                await db["thread_metadata"].update_one(
+                                    {"thread_id": thread_id},
+                                    {"$set": {"has_thinking": True}}
+                                )
+                                yield f"data: {json.dumps({'type': 'reasoning', 'steps': output['reasoning_steps']})}\n\n"
+                            if "sources" in output:
+                                yield f"data: {json.dumps({'type': 'sources', 'sources': output['sources']})}\n\n"
+                    
+                    if kind == "on_chat_model_stream":
+                        content = event["data"]["chunk"].content
+                        if content:
+                            yield f"data: {json.dumps({'type': 'content', 'delta': content})}\n\n"
+                    elif kind == "on_tool_start":
+                        yield f"data: {json.dumps({'type': 'tool_start', 'tool': event['name']})}\n\n"
+                    elif kind == "on_tool_end":
+                        yield f"data: {json.dumps({'type': 'tool_end', 'tool': event['name'], 'output': event['data'].get('output')})}\n\n"
+                except Exception as inner_e:
+                    logger.error(f"Error processing SSE event: {inner_e}")
+                    continue
+
+        except Exception as e:
+            logger.error(f"Stream generation failed for thread {thread_id}: {e}", exc_info=True)
+            yield f"data: {json.dumps({'type': 'error', 'message': 'Connection to reasoning engine lost'})}\n\n"
 
 chat_service = ChatService()

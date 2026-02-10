@@ -41,5 +41,10 @@ async def chat_stream(request: Request):
     
     return StreamingResponse(
         chat_service.stream_updates(message, thread_id, workspace_id),
-        media_type="text/event-stream"
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
     )

@@ -11,9 +11,15 @@ GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}=== AI Architect Application Runner ===${NC}"
+echo -e "${BLUE}=== AI Architect Modular Runner ===${NC}"
+
+# Load .env if exists
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+fi
 
 # Function to check port status
 check_port() {
@@ -31,129 +37,209 @@ kill_port() {
     fi
 }
 
-# 1. Cleanup existing processes
-echo -e "\n${BLUE}[1/4] Cleaning up existing processes...${NC}"
-kill_port $BACKEND_PORT
-kill_port $FRONTEND_PORT
+show_help() {
+    echo -e "Usage: ./run.sh [COMMAND] [OPTIONS]"
+    echo ""
+    echo "Commands:"
+    echo "  all          Start everything (infra, ai, backend, frontend)"
+    echo "  turbo        Cloud-First Mode: Use APIs if keys exist, else start local infra"
+    echo "  infra        Start core infrastructure (Qdrant, MongoDB, MinIO)"
+    echo "  ai           Start AI providers (Ollama, vLLM, llama-cpp)"
+    echo "  backend      Start backend API"
+    echo "  frontend     Start frontend app"
+    echo "  stop         Stop Docker services and kill local processes"
+    echo "  clean        Deep clean: Stop everything, remove volumes & logs"
+    echo "  status       Show current status of all components"
+    echo ""
+    echo "Options:"
+    echo "  --llm [provider]        Set LLM_PROVIDER override"
+    echo "  --embedding [provider]  Set EMBEDDING_PROVIDER override"
+    echo ""
+    echo "Example:"
+    echo "  ./run.sh turbo --llm openai"
+}
 
-# 2. Start Infrastructure (Qdrant & MongoDB)
-echo -e "\n${BLUE}[2/4] Starting Infrastructure (Qdrant & MongoDB)...${NC}"
-if ! command -v docker compose &> /dev/null; then
-    echo -e "${RED}Error: docker compose not found. Please install Docker.${NC}"
-    exit 1
+# Parse Args
+COMMAND="help"
+if [ $# -gt 0 ]; then
+    COMMAND=$1
+    shift
 fi
 
-docker compose up -d
+# Support 'turpo' typo
+[ "$COMMAND" == "turpo" ] && COMMAND="turbo"
 
-echo -n "Waiting for Infrastructure to be ready..."
-count=0
-while ! curl -s http://localhost:$QDRANT_PORT/healthz > /dev/null; do
-    echo -n "."
-    sleep 1
-    count=$((count+1))
-    if [ $count -ge $MAX_RETRIES ]; then
-        echo -e "${RED}\nError: Infrastructure failed to start (Qdrant).${NC}"
-        exit 1
-    fi
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --llm)
+            export LLM_PROVIDER="$2"
+            shift 2
+            ;;
+        --embedding)
+            export EMBEDDING_PROVIDER="$2"
+            shift 2
+            ;;
+        *)
+            echo -e "${RED}Unknown option: $1${NC}"
+            show_help
+            exit 1
+            ;;
+    esac
 done
 
-# Basic check for MinIO (port 9000)
-if ! nc -z localhost 9000; then
-    echo -n "Waiting for MinIO..."
+if [ "$COMMAND" == "help" ]; then
+    show_help
+    exit 0
+fi
+
+# -- Execution Functions --
+
+start_infra() {
+    echo -e "\n${BLUE}[INFRA] Starting core services...${NC}"
+    docker compose up -d qdrant mongodb minio
+    echo -n "Waiting for Qdrant..."
     count=0
-    while ! nc -z localhost 9000; do
+    while ! curl -s http://localhost:6333/healthz > /dev/null; do
         echo -n "."
         sleep 1
         count=$((count+1))
-        if [ $count -ge $MAX_RETRIES ]; then
-            echo -e "${RED}\nError: MinIO failed to start.${NC}"
-            exit 1
-        fi
+        [ $count -ge $MAX_RETRIES ] && { echo -e "${RED}\nFailed.${NC}"; exit 1; }
     done
-fi
+    echo -e "${GREEN} READY!${NC}"
+}
 
-# Basic check for MongoDB (port 27017)
-if ! nc -z localhost 27017; then
-    echo -n "Waiting for MongoDB..."
+start_ai() {
+    echo -e "\n${BLUE}[AI] Starting model providers...${NC}"
+    docker compose up -d ollama vllm llama-cpp
+    echo -e "${YELLOW}Check 'docker compose logs -f' for pull status.${NC}"
+}
+
+start_backend() {
+    echo -e "\n${BLUE}[BACKEND] Starting FastAPI...${NC}"
+    kill_port $BACKEND_PORT
+    
+    VENV_PYTHON="backend/.venv/bin/python3"
+    VENV_PIP="backend/.venv/bin/pip"
+
+    if [ ! -d "backend/.venv" ]; then
+        echo -e "${YELLOW}Creating virtual environment...${NC}"
+        python3 -m venv backend/.venv
+        "$VENV_PIP" install -r backend/requirements.txt
+    fi
+    
+    export PYTHONPATH=$PYTHONPATH:.
+    nohup "$VENV_PYTHON" backend/app/main.py > backend.log 2>&1 &
+    B_PID=$!
+    echo -n "Waiting for Backend..."
     count=0
-    while ! nc -z localhost 27017; do
+    while ! curl -s http://localhost:$BACKEND_PORT/ > /dev/null; do
         echo -n "."
         sleep 1
         count=$((count+1))
-        if [ $count -ge $MAX_RETRIES ]; then
-            echo -e "${RED}\nError: MongoDB failed to start.${NC}"
+        if ! ps -p $B_PID > /dev/null; then 
+            echo -e "${RED}\nBackend Died. Check backend.log${NC}"
             exit 1
         fi
+        [ $count -ge 60 ] && { echo -e "${RED}\nTimeout.${NC}"; kill $B_PID; exit 1; }
     done
-fi
+    echo -e "${GREEN} ONLINE (PID: $B_PID)${NC}"
+}
 
-echo -e "${GREEN} READY!${NC}"
+start_frontend() {
+    echo -e "\n${BLUE}[FRONTEND] Starting Next.js...${NC}"
+    kill_port $FRONTEND_PORT
+    cd frontend
+    [ ! -d "node_modules" ] && bun install
+    nohup bun run dev > ../frontend.log 2>&1 &
+    F_PID=$!
+    cd ..
+    echo -n "Waiting..."
+    while ! curl -s http://localhost:$FRONTEND_PORT > /dev/null; do echo -n "."; sleep 2; done
+    echo -e "${GREEN} ONLINE (PID: $F_PID)${NC}"
+}
 
-# 3. Start Backend
-echo -e "\n${BLUE}[3/4] Starting Backend (FastAPI)...${NC}"
-if [ ! -d "backend/.venv" ]; then
-    echo -e "${YELLOW}Warning: Virtual environment not found. Attempting to create one...${NC}"
-    python3 -m venv backend/.venv
-    source backend/.venv/bin/activate
-    pip install -r backend/requirements.txt
-else
-    source backend/.venv/bin/activate
-fi
+# -- Turbo Mode Logic --
 
-export PYTHONPATH=$PYTHONPATH:.
-# Run in background
-nohup python3 backend/app/main.py > backend.log 2>&1 &
-BACKEND_PID=$!
-
-echo -n "Waiting for Backend to be ready..."
-count=0
-while ! curl -s http://localhost:$BACKEND_PORT/ > /dev/null; do
-    if ! ps -p $BACKEND_PID > /dev/null; then
-        echo -e "${RED}\nError: Backend process died. Check backend.log for details.${NC}"
-        exit 1
+start_turbo() {
+    echo -e "${BLUE}>> Entering Turbo Mode: Cloud-First Strategy${NC}"
+    
+    # 1. Check AI (Cloud vs Local)
+    if [ ! -z "$OPENAI_API_KEY" ] || [ ! -z "$ANTHROPIC_API_KEY" ]; then
+        echo -e "${GREEN}✓ Cloud AI detected. Skipping local AI containers.${NC}"
+        # Still check if we need local embeddings (if using only Anthropic)
+        if [ -z "$OPENAI_API_KEY" ] && [ -z "$VOYAGE_API_KEY" ]; then
+            echo -e "${YELLOW}! No Cloud embedding key. Starting local AI for embeddings...${NC}"
+            docker compose up -d ollama
+        fi
+    else
+        echo -e "${YELLOW}! No Cloud AI keys. Starting full local AI stack...${NC}"
+        start_ai
     fi
-    echo -n "."
-    sleep 1
-    count=$((count+1))
-    if [ $count -ge 60 ]; then
-        echo -e "${RED}\nError: Backend failed to respond within 60 seconds. Check backend.log${NC}"
-        kill $BACKEND_PID
-        exit 1
+
+    # 2. Check Database (Cloud vs Local)
+    # If QDRANT_HOST is not localhost, assume cloud
+    if [ ! -z "$QDRANT_HOST" ] && [[ "$QDRANT_HOST" != "localhost" && "$QDRANT_HOST" != "127.0.0.1" ]]; then
+        echo -e "${GREEN}✓ Cloud Database detected ($QDRANT_HOST). Skipping local infrastructure.${NC}"
+    else
+        echo -e "${YELLOW}! Using local infrastructure...${NC}"
+        start_infra
     fi
-done
-echo -e "${GREEN} READY! (PID: $BACKEND_PID)${NC}"
+    
+    start_backend
+    start_frontend
+}
 
-# 4. Start Frontend
-echo -e "\n${BLUE}[4/4] Starting Frontend (Next.js)...${NC}"
-cd frontend
-if [ ! -d "node_modules" ]; then
-    echo -e "${YELLOW}Warning: node_modules not found. Running bun install...${NC}"
-    bun install
-fi
-
-# Run in background
-nohup bun run dev > ../frontend.log 2>&1 &
-FRONTEND_PID=$!
-cd ..
-
-echo -n "Waiting for Frontend to be ready..."
-count=0
-while ! curl -s http://localhost:$FRONTEND_PORT > /dev/null; do
-    echo -n "."
-    sleep 2
-    count=$((count+1))
-    if [ $count -ge $MAX_RETRIES ]; then
-        echo -e "${RED}\nError: Frontend failed to start. Check frontend.log${NC}"
-        kill $BACKEND_PID
-        kill $FRONTEND_PID
+# Dispatcher
+case "$COMMAND" in
+    all)
+        start_infra
+        start_ai
+        start_backend
+        start_frontend
+        ;;
+    turbo)
+        start_turbo
+        ;;
+    infra)
+        start_infra
+        ;;
+    all-ai)
+        start_ai
+        ;;
+    backend)
+        start_backend
+        ;;
+    frontend)
+        start_frontend
+        ;;
+    stop)
+        echo -e "${YELLOW}Stopping all services...${NC}"
+        docker compose stop
+        kill_port $BACKEND_PORT
+        kill_port $FRONTEND_PORT
+        echo -e "${GREEN}Stopped.${NC}"
+        ;;
+    clean)
+        echo -e "${RED}Deep cleaning system...${NC}"
+        docker compose down -v
+        docker system prune -f
+        kill_port $BACKEND_PORT
+        kill_port $FRONTEND_PORT
+        rm -f backend.log frontend.log
+        echo -e "${GREEN}Cleaned.${NC}"
+        ;;
+    status)
+        echo -e "\n${BLUE}--- Docker ---${NC}"
+        docker compose ps
+        echo -e "\n${BLUE}--- Local ---${NC}"
+        if check_port $BACKEND_PORT; then echo -e "Backend:  ${GREEN}RUNNING${NC}"; else echo -e "Backend:  ${RED}STOPPED${NC}"; fi
+        if check_port $FRONTEND_PORT; then echo -e "Frontend: ${GREEN}RUNNING${NC}"; else echo -e "Frontend: ${RED}STOPPED${NC}"; fi
+        ;;
+    *)
+        echo -e "${RED}Invalid command: $COMMAND${NC}"
+        show_help
         exit 1
-    fi
-done
-echo -e "${GREEN} READY! (PID: $FRONTEND_PID)${NC}"
+        ;;
+esac
 
-echo -e "\n${GREEN}=== Application successfully started! ===${NC}"
-echo -e "${BLUE}Frontend:   ${NC} http://localhost:3000"
-echo -e "${BLUE}Backend API:${NC} http://localhost:8000"
-echo -e "${BLUE}Qdrant UI:  ${NC} http://localhost:6333/dashboard"
-echo -e "\n${YELLOW}Logs are available in backend.log and frontend.log${NC}"
-echo -e "To stop the app, run: ${CYAN}kill $BACKEND_PID $FRONTEND_PID && docker compose stop${NC}"
+echo -e "\n${GREEN}=== Operation Completed ===${NC}"

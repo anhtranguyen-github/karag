@@ -1,47 +1,99 @@
+networks:
+  ai_architect_network:
+    driver: bridge
+
 services:
   qdrant:
     image: qdrant/qdrant:latest
+    container_name: ai-qdrant
     ports:
-      - "6333:6333"
+      - "${QDRANT_PORT:-6333}:6333"
       - "6334:6334"
     volumes:
-      - ./qdrant_storage:/qdrant/storage
-    restart: always
+      - ./qdrant_storage:/qdrant/storage:z
+    restart: unless-stopped
+    networks:
+      - ai_architect_network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:6333/healthz" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   mongodb:
     image: mongo:latest
+    container_name: ai-mongodb
     ports:
       - "27017:27017"
     volumes:
-      - ./mongo_data:/data/db
-    restart: always
+      - ./mongo_data:/data/db:z
+    restart: unless-stopped
+    networks:
+      - ai_architect_network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   minio:
     image: minio/minio:latest
+    container_name: ai-minio
     ports:
       - "9000:9000"
       - "9001:9001"
     volumes:
-      - ./minio_data:/data
+      - ./minio_data:/data:z
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
     command: server /data --console-address ":9001"
-    restart: always
+    restart: unless-stopped
+    networks:
+      - ai_architect_network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   ollama:
     image: ollama/ollama:latest
+    container_name: ai-ollama
     ports:
       - "11434:11434"
     volumes:
-      - ./ollama_data:/root/.ollama
-    restart: always
-
-  vllm:
-    image: vllm/vllm-openai:latest
-    ports:
-      - "8008:8000" # Changed to 8008 to avoid conflict with backend
-    volumes:
-      - ./model_cache:/root/.cache/huggingface
+      - ./ollama_data:/root/.ollama:z
+    restart: unless-stopped
+    networks:
+      - ai_architect_network
     deploy:
       resources:
         reservations:
@@ -49,15 +101,63 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [ gpu ]
-    command: --model Qwen/Qwen2.5-0.5B-Instruct --max-model-len 4096 --disable-log-requests
-    restart: always
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:11434/api/tags" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: ai-vllm
+    ports:
+      - "8008:8000"
+    volumes:
+      - ./model_cache:/root/.cache/huggingface:z
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+    networks:
+      - ai_architect_network
+    command: >
+      --model ${VLLM_MODEL:-Qwen/Qwen2.5-0.5B-Instruct} --max-model-len 4096 --disable-log-requests --enforce-eager
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
   llama-cpp:
     image: ghcr.io/ggml-org/llama.cpp:server
+    container_name: ai-llamacpp
     ports:
       - "8081:8080"
     volumes:
-      - ./models:/models
-    # Note: Requires Qwen2.5-0.5B-Instruct-GGUF or similar in ./models
-    command: -m /models/qwen2.5-0.5b-instruct.gguf --host 0.0.0.0 --port 8080 -c 2048 --embedding
-    restart: always
+      - ./models:/models:z
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+    networks:
+      - ai_architect_network
+    command: >
+      -m /models/${LLAMACPP_MODEL:-qwen2.5-0.5b-instruct.gguf} --host 0.0.0.0 --port 8080 -c 4096 --embedding -ngl 99
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
