@@ -1,5 +1,4 @@
 import os
-import shutil
 import tempfile
 import hashlib
 import uuid
@@ -81,7 +80,7 @@ class DocumentService:
         with tracer.start_as_current_span(
             "document.upload_arxiv",
             attributes={"workspace_id": workspace_id, "arxiv_id_or_url": arxiv_id_or_url},
-        ) as span:
+        ):
             import arxiv
             
             # 1. Extract arXiv ID

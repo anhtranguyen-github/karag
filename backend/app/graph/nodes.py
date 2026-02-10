@@ -1,14 +1,12 @@
 import time
 
 import structlog
-from typing import Dict, List
-from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, RemoveMessage
+from typing import Dict
+from langchain_core.messages import SystemMessage, AIMessage, RemoveMessage
 from backend.app.graph.state import AgentState
-from backend.app.rag.qdrant_provider import qdrant
 from backend.app.rag.rag_service import rag_service
 from backend.app.tools.registry import get_tools
 from backend.app.providers.llm import get_llm
-from backend.app.core.settings_manager import settings_manager
 from backend.app.core.telemetry import get_tracer, LLM_REQUEST_LATENCY, LLM_REQUEST_COUNT
 
 logger = structlog.get_logger(__name__)

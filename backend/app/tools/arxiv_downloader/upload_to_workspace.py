@@ -2,7 +2,6 @@
 """
 Upload all PDFs from the arxiv_downloader/downloads folder to a specific workspace via the backend API.
 """
-import os
 import sys
 import requests
 import mimetypes

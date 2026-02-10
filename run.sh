@@ -157,7 +157,13 @@ start_backend() {
     # Kill any lingering uvicorn/python workers that might not be bound to port yet
     pkill -f "uvicorn.*backend.app.main:app" || true
     
-    VENV_PYTHON="backend/.venv/bin/python3"
+    # Prefer uv for environment management if available
+    if command -v uv >/dev/null 2>&1; then
+        VENV_PYTHON="uv run"
+        echo -e "${CYAN}[SYSTEM] Using 'uv' for backend execution (Performance Mode)${NC}"
+    else
+        VENV_PYTHON="backend/.venv/bin/python3"
+    fi
     VENV_PIP="backend/.venv/bin/pip"
 
     if [ ! -d "backend/.venv" ]; then

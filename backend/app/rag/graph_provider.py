@@ -1,5 +1,5 @@
 import structlog
-from typing import List, Dict, Optional
+from typing import List, Dict
 from backend.app.core.settings_manager import settings_manager
 from backend.app.rag.qdrant_provider import qdrant
 

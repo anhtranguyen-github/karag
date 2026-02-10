@@ -14,7 +14,6 @@ from backend.app.core.telemetry import (
 from langchain_community.document_loaders import (
     PyPDFLoader,
     TextLoader,
-    UnstructuredMarkdownLoader,
     Docx2txtLoader,
 )
 

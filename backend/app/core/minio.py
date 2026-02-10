@@ -66,7 +66,7 @@ class MinioManager:
                 "minio.size_bytes": length,
                 "minio.content_type": content_type,
             },
-        ) as span:
+        ):
             try:
                 self.client.put_object(
                     ai_settings.MINIO_BUCKET,

@@ -1,5 +1,5 @@
-from fastapi import APIRouter, HTTPException
-from typing import List, Dict, Any
+from fastapi import APIRouter
+from typing import List
 from backend.app.tools.manager import tool_manager
 from backend.app.tools.schemas import ToolDefinition
 

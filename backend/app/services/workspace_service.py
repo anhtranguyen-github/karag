@@ -1,5 +1,4 @@
 import uuid
-import structlog
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 from backend.app.core.mongodb import mongodb_manager
@@ -13,7 +12,6 @@ class WorkspaceService:
         cursor = db.workspaces.find()
         workspaces = await cursor.to_list(length=100)
         
-        from qdrant_client.http import models as qmodels
         enhanced = []
         for ws in workspaces:
             thread_count = await db["thread_metadata"].count_documents({"workspace_id": ws["id"]})
@@ -58,7 +56,6 @@ class WorkspaceService:
         await db.workspaces.insert_one(workspace)
 
         # Persist RAG settings via SettingsManager
-        from backend.app.core.settings_manager import settings_manager
         rag_fields = ["rag_engine", "embedding_provider", "embedding_model", "embedding_dim", "chunk_size", "chunk_overlap", "neo4j_uri", "neo4j_user"]
         settings_to_apply = {k: data[k] for k in rag_fields if k in data}
         

@@ -1,5 +1,5 @@
 import time
-from typing import List, Dict, Optional
+from typing import List, Optional
 
 import structlog
 from qdrant_client import AsyncQdrantClient

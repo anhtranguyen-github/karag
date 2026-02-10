@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from backend.app.services.task_service import task_service
 
 from backend.app.core.exceptions import NotFoundError
