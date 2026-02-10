@@ -52,7 +52,8 @@ def parse_non_arxiv_references(text: str) -> List[str]:
     lines = text.split('\n')
     for line in lines:
         line = line.strip()
-        if not line: continue
+        if not line:
+            continue
         current += " " + line
         if re.search(r'\.\s+(19|20)\d{2}\.$', line) or re.search(r'\.(19|20)\d{2}$', line) or "http" in line:
             if "arxiv" not in current.lower():

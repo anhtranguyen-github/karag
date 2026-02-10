@@ -156,17 +156,20 @@ class WorkspaceService:
     async def get_details(workspace_id: str) -> Optional[Dict]:
         db = mongodb_manager.get_async_database()
         ws = await db.workspaces.find_one({"id": workspace_id})
-        if not ws: return None
+        if not ws:
+            return None
         
         threads = await db["thread_metadata"].find({"workspace_id": workspace_id}).sort("last_active", -1).to_list(100)
         for t in threads:
             t["id"] = t.get("thread_id", str(t.get("_id", "")))
-            if "_id" in t: del t["_id"]
+            if "_id" in t:
+                del t["_id"]
             
         doc_cursor = db.documents.find({"workspace_id": workspace_id})
         docs = await doc_cursor.to_list(length=100)
         for d in docs:
-            if "_id" in d: d["_id"] = str(d["_id"])
+            if "_id" in d:
+                d["_id"] = str(d["_id"])
             d["name"] = d.get("filename")
         
         ws["threads"] = threads
