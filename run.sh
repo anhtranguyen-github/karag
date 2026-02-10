@@ -157,19 +157,19 @@ start_backend() {
     # Kill any lingering uvicorn/python workers that might not be bound to port yet
     pkill -f "uvicorn.*backend.app.main:app" || true
     
-    # Prefer uv for environment management if available
-    if command -v uv >/dev/null 2>&1; then
-        VENV_PYTHON="uv run"
-        echo -e "${CYAN}[SYSTEM] Using 'uv' for backend execution (Performance Mode)${NC}"
-    else
-        VENV_PYTHON="backend/.venv/bin/python3"
+    # Enforce uv for environment management as per global constraints
+    if ! command -v uv >/dev/null 2>&1; then
+        echo -e "${RED}[ERROR] 'uv' is not installed but is REQUIRED for this project.${NC}"
+        echo -e "${YELLOW}Please install it: curl -LsSf https://astral.sh/uv/install.sh | sh${NC}"
+        exit 1
     fi
-    VENV_PIP="backend/.venv/bin/pip"
+
+    VENV_PYTHON="uv run"
+    echo -e "${CYAN}[SYSTEM] Using 'uv' for backend execution (Performance Mode)${NC}"
 
     if [ ! -d "backend/.venv" ]; then
-        echo -e "${YELLOW}Creating virtual environment...${NC}"
-        python3 -m venv backend/.venv
-        "$VENV_PIP" install -r backend/requirements.txt
+        echo -e "${YELLOW}Initial setup: Synchronizing environment with uv...${NC}"
+        uv sync --project backend
     fi
 
     if [ "$FORCE_CLEAN" = true ]; then
