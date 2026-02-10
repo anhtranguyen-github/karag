@@ -316,8 +316,9 @@ class QdrantProvider:
                     ),
                 )
             else:
-                collections = ["knowledge_base_1536", "knowledge_base_768"]
-                for c in collections:
+                # Proactive: clean all potential collections
+                for dim in [384, 512, 768, 896, 1024, 1536, 1792, 3072]:
+                    c = f"knowledge_base_{dim}"
                     if await self.client.collection_exists(c):
                         await self.client.delete(
                             collection_name=c,
