@@ -26,7 +26,7 @@ async def test_workspace_crud():
         
         # 2. Read (List)
         list_res = await ac.get("/workspaces/")
-        assert any(ws["id"] == ws_id for ws in list_res.json())
+        assert any(ws["id"] == ws_id for ws in list_res.json()["data"])
         
         # 3. Update
         new_name = f"Updated {uuid.uuid4().hex[:6]}"
@@ -40,7 +40,7 @@ async def test_workspace_crud():
         
         # 5. Verify deleted
         list_res_after = await ac.get("/workspaces/")
-        assert not any(ws["id"] == ws_id for ws in list_res_after.json())
+        assert not any(ws["id"] == ws_id for ws in list_res_after.json()["data"])
 
 @pytest.mark.asyncio
 async def test_workspace_isolation():

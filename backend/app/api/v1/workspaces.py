@@ -39,10 +39,11 @@ class WorkspaceUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
 
-@router.get("/", response_model=List[Workspace])
-@router.get("", response_model=List[Workspace])
+@router.get("/", response_model=AppResponse[List[Workspace]])
+@router.get("", response_model=AppResponse[List[Workspace]])
 async def list_workspaces():
-    return await workspace_service.list_all()
+    workspaces = await workspace_service.list_all()
+    return AppResponse.success_response(data=workspaces)
 
 @router.post("/")
 @router.post("")
