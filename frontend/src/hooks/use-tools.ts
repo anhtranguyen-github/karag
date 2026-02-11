@@ -20,11 +20,29 @@ export function useTools() {
         setIsLoading(true);
         try {
             const res = await fetch(API_ROUTES.TOOLS);
-            if (res.ok) {
-                const data = await res.json();
-                setTools(data);
-            } else {
+            if (!res.ok) {
                 showError("Subsystem Timeout", "Unable to list active intelligence extensions.");
+                return;
+            }
+
+            const rawData = await res.json();
+
+            // Runtime Validation
+            const { AppResponseSchema } = await import('@/lib/schemas/api');
+            const { ToolDefinitionSchema } = await import('@/lib/schemas/tools');
+            const { z } = await import('zod');
+
+            const ResponseSchema = AppResponseSchema(z.array(ToolDefinitionSchema));
+            const result = ResponseSchema.safeParse(rawData);
+
+            if (!result.success) {
+                console.error("API Contract Violation (Tools):", result.error);
+                return;
+            }
+
+            const payload = result.data;
+            if (payload.success && payload.data) {
+                setTools(payload.data);
             }
         } catch (err) {
             console.error('Failed to fetch tools:', err);

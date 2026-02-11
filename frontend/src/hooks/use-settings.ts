@@ -29,8 +29,24 @@ export function useSettings(workspaceId?: string) {
                 showError("Configuration Hub Offline", "Unable to retrieve synchronization parameters. Defaulting to local cache.");
                 return;
             }
-            const data = await res.json();
-            setSettings(data);
+            const rawData = await res.json();
+
+            // Runtime Validation
+            const { AppResponseSchema } = await import('@/lib/schemas/api');
+            const { AppSettingsSchema } = await import('@/lib/schemas/settings');
+
+            const ResponseSchema = AppResponseSchema(AppSettingsSchema);
+            const result = ResponseSchema.safeParse(rawData);
+
+            if (!result.success) {
+                console.error("API Contract Violation (Settings):", result.error);
+                return;
+            }
+
+            const payload = result.data;
+            if (payload.success && payload.data) {
+                setSettings(payload.data);
+            }
         } catch (err) {
             console.error('Failed to fetch settings:', err);
         } finally {

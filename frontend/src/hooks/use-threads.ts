@@ -18,16 +18,36 @@ export function useThreads(workspaceId: string = "default") {
         setIsLoading(true);
         try {
             const res = await fetch(`${API_ROUTES.CHAT_THREADS}?workspace_id=${encodeURIComponent(workspaceId)}`);
-            if (res.ok) {
-                const data = await res.json();
-                setThreads(data.threads || []);
+            if (!res.ok) {
+                showError("Subsystem Unavailable", "The thread management service is currently unreachable.");
+                return;
+            }
+
+            const rawData = await res.json();
+
+            // Runtime Validation
+            const { AppResponseSchema } = await import('@/lib/schemas/api');
+            const { ThreadSchema } = await import('@/lib/schemas/chat');
+            const { z } = await import('zod');
+
+            const ResponseSchema = AppResponseSchema(z.array(ThreadSchema));
+            const result = ResponseSchema.safeParse(rawData);
+
+            if (!result.success) {
+                console.error("API Contract Violation (Threads):", result.error);
+                return;
+            }
+
+            const payload = result.data;
+            if (payload.success && payload.data) {
+                setThreads(payload.data);
             }
         } catch (err) {
             console.error('Failed to fetch threads:', err);
         } finally {
             setIsLoading(false);
         }
-    }, [workspaceId]);
+    }, [workspaceId, showError]);
 
     const updateThreadTitle = async (id: string, title: string) => {
         if (!title.trim()) {
