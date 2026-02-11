@@ -97,9 +97,8 @@ backend/app/tools/arxiv_downloader/downloads/
 .gemini/artifacts/
 
 # ===================
-# Project Documentation (Local Only)
-# ===================
-/docs/
+# Project Documentation
+# /docs/ is no longer local only
 /plans/
 /scripts/
 /test-resources/
