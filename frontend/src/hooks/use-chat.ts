@@ -41,11 +41,29 @@ export function useChat(workspaceId: string = "default") {
     const fetchHistory = useCallback(async (id: string) => {
         try {
             const res = await fetch(API_ROUTES.CHAT_HISTORY(id));
-            if (res.ok) {
-                const data = await res.json();
-                setMessages(data.messages);
-            } else {
+            if (!res.ok) {
                 showError("History Retrieval Failed", "The server could not retrieve chat history for this thread.", `ID: ${id}`);
+                return;
+            }
+
+            const rawData = await res.json();
+
+            // Runtime Validation
+            const { AppResponseSchema } = await import('@/lib/schemas/api');
+            const { MessageSchema } = await import('@/lib/schemas/chat');
+            const { z } = await import('zod');
+
+            const ResponseSchema = AppResponseSchema(z.array(MessageSchema));
+            const result = ResponseSchema.safeParse(rawData);
+
+            if (!result.success) {
+                console.error("API Contract Violation (Chat History):", result.error);
+                return;
+            }
+
+            const payload = result.data;
+            if (payload.success && payload.data) {
+                setMessages(payload.data);
             }
         } catch (err) {
             console.error('Failed to fetch chat history:', err);

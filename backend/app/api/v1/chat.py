@@ -7,13 +7,17 @@ from backend.app.core.exceptions import ValidationError
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
+from backend.app.schemas.base import AppResponse
+
 @router.get("/history/{thread_id}")
 async def get_chat_history(thread_id: str):
-    return {"messages": await chat_service.get_history(thread_id)}
+    history = await chat_service.get_history(thread_id)
+    return AppResponse.success_response(data=history)
 
 @router.get("/threads")
 async def list_chat_threads(workspace_id: str = "default"):
-    return {"threads": await chat_service.list_threads(workspace_id)}
+    threads = await chat_service.list_threads(workspace_id)
+    return AppResponse.success_response(data=threads)
 
 @router.patch("/threads/{thread_id}/title")
 async def update_thread_title(thread_id: str, request: Request):
@@ -22,12 +26,12 @@ async def update_thread_title(thread_id: str, request: Request):
     if not title:
         raise ValidationError("Title is required")
     await chat_service.update_title(thread_id, title)
-    return {"status": "success", "title": title}
+    return AppResponse.success_response(data={"title": title}, message="Thread title updated")
 
 @router.delete("/threads/{thread_id}")
 async def delete_thread(thread_id: str):
     await chat_service.delete_thread(thread_id)
-    return {"status": "success", "message": f"Thread {thread_id} deleted"}
+    return AppResponse.success_response(data=None, message=f"Thread {thread_id} deleted")
 
 @router.post("/stream")
 async def chat_stream(request: Request):

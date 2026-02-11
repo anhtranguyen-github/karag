@@ -35,8 +35,24 @@ export function GlobalSearch({ isOpen, onClose }: { isOpen: boolean; onClose: ()
         try {
             const res = await fetch(`${API_ROUTES.SEARCH}?q=${encodeURIComponent(q)}`);
             if (res.ok) {
-                const data = await res.json();
-                setResults(data);
+                const rawData = await res.json();
+
+                // Runtime Validation
+                const { AppResponseSchema } = await import('@/lib/schemas/api');
+                const { SearchResultsSchema } = await import('@/lib/schemas/search');
+
+                const ResponseSchema = AppResponseSchema(SearchResultsSchema);
+                const result = ResponseSchema.safeParse(rawData);
+
+                if (!result.success) {
+                    console.error("API Contract Violation (Search):", result.error);
+                    return;
+                }
+
+                const payload = result.data;
+                if (payload.success && payload.data) {
+                    setResults(payload.data);
+                }
             }
         } catch (err) {
             console.error('Search failed', err);

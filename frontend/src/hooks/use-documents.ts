@@ -31,8 +31,25 @@ export function useDocuments() {
                 showError("Retrieval Failed", "The system could not load the global document vault.");
                 return;
             }
-            const data = await res.json();
-            setDocuments(data);
+            const rawData = await res.json();
+
+            // Runtime Validation
+            const { AppResponseSchema } = await import('@/lib/schemas/api');
+            const { DocumentSchema } = await import('@/lib/schemas/documents');
+            const { z } = await import('zod');
+
+            const ResponseSchema = AppResponseSchema(z.array(DocumentSchema));
+            const result = ResponseSchema.safeParse(rawData);
+
+            if (!result.success) {
+                console.error("API Contract Violation (Documents):", result.error);
+                return;
+            }
+
+            const payload = result.data;
+            if (payload.success && payload.data) {
+                setDocuments(payload.data);
+            }
         } catch (err) {
             console.error('Failed to fetch all documents:', err);
             showError("Connection Error", "Intelligence vault link offline.");

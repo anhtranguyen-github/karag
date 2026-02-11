@@ -8,10 +8,10 @@ from backend.app.schemas.base import AppResponse
 
 router = APIRouter(prefix="/tools", tags=["tools"])
 
-@router.get("/", response_model=List[ToolDefinition])
+@router.get("/")
 async def list_tools():
     """List all available tools and their status."""
-    return tool_manager.get_tool_definitions()
+    return AppResponse.success_response(data=tool_manager.get_tool_definitions())
 
 @router.post("/")
 async def add_tool(tool: ToolDefinition):
@@ -25,13 +25,13 @@ async def add_tool(tool: ToolDefinition):
     result = tool_manager.add_tool(tool)
     return AppResponse.success_response(data=result, message=f"Tool '{tool.id}' registered")
 
-@router.post("/{tool_id}/toggle", response_model=ToolDefinition)
+@router.post("/{tool_id}/toggle")
 async def toggle_tool(tool_id: str, enabled: bool):
     """Enable or disable a tool."""
     tool = tool_manager.toggle_tool(tool_id, enabled)
     if not tool:
         raise NotFoundError(f"Tool '{tool_id}' not found")
-    return tool
+    return AppResponse.success_response(data=tool, message=f"Tool '{tool_id}' {'enabled' if enabled else 'disabled'}")
 
 @router.delete("/{tool_id}")
 async def delete_tool(tool_id: str):

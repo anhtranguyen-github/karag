@@ -57,17 +57,20 @@ async def upload_arxiv_document(
 
 @router.get("/documents")
 async def list_documents(workspace_id: str = "default"):
-    return await document_service.list_by_workspace(workspace_id)
+    docs = await document_service.list_by_workspace(workspace_id)
+    return AppResponse.success_response(data=docs)
 
 
 @router.get("/documents-all")
 async def list_all_documents():
-    return await document_service.list_all()
+    docs = await document_service.list_all()
+    return AppResponse.success_response(data=docs)
 
 
 @router.get("/vault")
 async def list_vault_documents():
-    return await document_service.list_vault()
+    docs = await document_service.list_vault()
+    return AppResponse.success_response(data=docs)
 
 # --- Specific Document Sub-Resources (Must come before generic {name:path}) ---
 
