@@ -129,11 +129,15 @@ pnpm run dev
 
 ### Backend
 ```bash
+# Install uv if not present
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
 cd backend
-python -m venv .venv
-source .venv/bin/activate  # or .venv\Scripts\activate on Windows
-pip install -r requirements.txt
-python app/main.py
+# Create venv and sync dependencies
+uv sync
+
+# Run server
+uv run app/main.py
 ```
 
 ## Testing
