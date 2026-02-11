@@ -98,7 +98,7 @@ backend/app/tools/arxiv_downloader/downloads/
 
 # ===================
 # Project Documentation
-# /docs/ is no longer local only
+/docs/ 
 /plans/
 /scripts/
 /test-resources/
