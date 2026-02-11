@@ -71,10 +71,25 @@ class IngestionService:
 
             if strategy == "rename":
                 name, ext = os.path.splitext(original_filename)
-                count = 1
-                while await db.documents.find_one({"workspace_id": workspace_id, "filename": f"{name} ({count}){ext}"}):
-                    count += 1
-                target_filename = f"{name} ({count}){ext}"
+                
+                # Optimized regex query to find all conflicting names
+                # Properly escaping components
+                cursor = db.documents.find({
+                    "workspace_id": workspace_id, 
+                    "filename": {"$regex": f"^{re.escape(name)} \\(\\d+\\){re.escape(ext)}$"}
+                })
+                existing = await cursor.to_list(1000)
+                
+                max_count = 0
+                import re
+                for doc in existing:
+                    match = re.search(r"\((\d+)\)", doc["filename"])
+                    if match:
+                        count = int(match.group(1))
+                        if count > max_count:
+                            max_count = count
+                
+                target_filename = f"{name} ({max_count + 1}){ext}"
             elif strategy == "overwrite" and existing_local_name:
                 await self.delete(existing_local_name["filename"], workspace_id, vault_delete=True)
 
@@ -142,10 +157,24 @@ class IngestionService:
             target_filename = filename
             if strategy == "rename":
                 name, ext = os.path.splitext(filename)
-                count = 1
-                while await db.documents.find_one({"workspace_id": workspace_id, "filename": f"{name} ({count}){ext}"}):
-                    count += 1
-                target_filename = f"{name} ({count}){ext}"
+                max_count = 0
+                import re
+                
+                cursor = db.documents.find({
+                    "workspace_id": workspace_id, 
+                    # Escaping parentheses for regex: \( and \) needs double backslash in f-string or raw string logic
+                    "filename": {"$regex": f"^{re.escape(name)} \\(\\d+\\){re.escape(ext)}$"}
+                })
+                existing = await cursor.to_list(1000)
+                
+                for doc in existing:
+                    match = re.search(r"\((\d+)\)", doc["filename"])
+                    if match:
+                        count = int(match.group(1))
+                        if count > max_count:
+                            max_count = count
+                            
+                target_filename = f"{name} ({max_count + 1}){ext}"
 
             task_id = await task_service.create_task("arxiv_ingestion", {
                 "arxiv_id": arxiv_id,
