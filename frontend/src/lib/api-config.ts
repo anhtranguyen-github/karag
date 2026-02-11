@@ -22,6 +22,7 @@ export const API_ROUTES = {
     DOCUMENT_DELETE: (name: string) => `${API_BASE_URL}/documents/${encodeURIComponent(name)}`,
     UPLOAD: `${API_BASE_URL}/upload`,
     SETTINGS: `${API_BASE_URL}/settings/`,
+    SETTINGS_METADATA: `${API_BASE_URL}/settings/metadata`,
     TOOLS: `${API_BASE_URL}/tools/`,
     TOOL_TOGGLE: (id: string) => `${API_BASE_URL}/tools/${encodeURIComponent(id)}/toggle`,
     WORKSPACES: `${API_BASE_URL}/workspaces`,

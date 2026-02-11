@@ -7,16 +7,20 @@ import {
     Loader2, Brain, Database, Shield, Zap,
     ArrowRight, Check, Sliders, Server
 } from 'lucide-react';
-import { useSettings, AppSettings } from '@/hooks/use-settings';
+import { useSettings, AppSettings, useSettingsMetadata } from '@/hooks/use-settings';
 import { cn } from '@/lib/utils';
 
 export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClose?: () => void, workspaceId?: string, workspaceName?: string }) {
-    const { settings, updateSettings, isLoading } = useSettings(workspaceId);
+    const { settings, updateSettings, isLoading: isSettingsLoading } = useSettings(workspaceId);
+    const { metadata, isLoading: isMetadataLoading } = useSettingsMetadata();
+
     const [localSettings, setLocalSettings] = useState<Partial<AppSettings>>({});
     const [isSaving, setIsSaving] = useState(false);
     const [activeTab, setActiveTab] = useState<'llm' | 'retrieval' | 'system'>('llm');
 
-    if (isLoading || !settings) {
+    const isLoading = isSettingsLoading || isMetadataLoading;
+
+    if (isLoading || !settings || !metadata) {
         return (
             <div className={cn(
                 "flex flex-col items-center justify-center gap-4",
@@ -29,6 +33,10 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
     }
 
     const current = { ...settings, ...localSettings };
+
+    const isMutable = (key: string) => {
+        return metadata[key]?.mutable ?? true;
+    };
 
     const handleSave = async () => {
         setIsSaving(true);
@@ -44,6 +52,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
     };
 
     const handleChange = (key: keyof AppSettings, value: AppSettings[keyof AppSettings]) => {
+        if (!isMutable(key as string)) return;
         setLocalSettings(prev => ({ ...prev, [key]: value }));
     };
 
@@ -124,7 +133,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                             <span className="text-tiny font-black text-indigo-400 uppercase tracking-widest">Security Mode</span>
                         </div>
                         <p className="text-tiny text-gray-600 leading-relaxed font-medium">
-                            Settings are isolated per environment to ensure strict data compartmentalization.
+                            Structural settings are locked after workspace initialization to prevent vector drift.
                         </p>
                     </div>
                 </div>
@@ -155,12 +164,14 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                                     {['openai', 'anthropic', 'ollama', 'vllm', 'llama-cpp'].map((prov) => (
                                                         <button
                                                             key={prov}
+                                                            disabled={!isMutable('llm_provider')}
                                                             onClick={() => handleChange('llm_provider', prov)}
                                                             className={cn(
                                                                 "px-4 py-4 rounded-2xl border text-tiny font-black uppercase tracking-tighter transition-all",
                                                                 current.llm_provider === prov
                                                                     ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-600/20"
-                                                                    : "bg-[#0a0a0b] border-white/5 text-gray-600 hover:border-white/10 hover:text-gray-400"
+                                                                    : "bg-[#0a0a0b] border-white/5 text-gray-600 hover:border-white/10 hover:text-gray-400",
+                                                                !isMutable('llm_provider') && "opacity-50 cursor-not-allowed"
                                                             )}
                                                         >
                                                             {prov}
@@ -176,8 +187,12 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                                     <input
                                                         type="text"
                                                         value={current.llm_model}
+                                                        disabled={!isMutable('llm_model')}
                                                         onChange={e => handleChange('llm_model', e.target.value)}
-                                                        className="w-full bg-[#0a0a0b] border border-white/10 rounded-2xl pl-14 pr-6 py-5 text-caption text-white outline-none focus:ring-2 ring-blue-500/20 focus:border-blue-500/50 transition-all font-medium placeholder:text-gray-800"
+                                                        className={cn(
+                                                            "w-full bg-[#0a0a0b] border border-white/10 rounded-2xl pl-14 pr-6 py-5 text-caption text-white outline-none focus:ring-2 ring-blue-500/20 focus:border-blue-500/50 transition-all font-medium placeholder:text-gray-800",
+                                                            !isMutable('llm_model') && "opacity-50 cursor-not-allowed"
+                                                        )}
                                                         placeholder="e.g. gpt-4o-latest"
                                                     />
                                                 </div>
@@ -203,21 +218,30 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                                 ].map((item) => (
                                                     <button
                                                         key={item.id}
-                                                        onClick={() => handleChange('embedding_provider', item.id)}
+                                                        disabled={!isMutable('embedding_provider')}
+                                                        onClick={() => handleChange('embedding_provider', item.id as any)}
                                                         className={cn(
                                                             "p-5 rounded-2xl border text-left transition-all",
                                                             current.embedding_provider === item.id
                                                                 ? "bg-emerald-600/10 border-emerald-500/50 ring-1 ring-emerald-500/50"
-                                                                : "bg-[#0a0a0b] border-white/5 hover:border-white/10"
+                                                                : "bg-[#0a0a0b] border-white/5 hover:border-white/10",
+                                                            !isMutable('embedding_provider') && current.embedding_provider !== item.id && "hidden",
+                                                            !isMutable('embedding_provider') && "cursor-not-allowed border-emerald-500/20 bg-emerald-500/5"
                                                         )}
                                                     >
                                                         <div className={cn("text-tiny font-black uppercase tracking-tighter mb-1", current.embedding_provider === item.id ? "text-emerald-400" : "text-gray-400")}>
                                                             {item.label}
+                                                            {!isMutable('embedding_provider') && <Shield size={10} className="inline ml-2 opacity-50" />}
                                                         </div>
                                                         <div className="text-tiny text-gray-600 font-bold">{item.sub}</div>
                                                     </button>
                                                 ))}
                                             </div>
+                                            {!isMutable('embedding_provider') && (
+                                                <p className="text-tiny text-gray-700 font-bold uppercase mt-2 px-2">
+                                                    Structured Vector Index is locked for consistency.
+                                                </p>
+                                            )}
                                         </div>
                                     </section>
                                 </>
@@ -232,39 +256,16 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                         </header>
 
                                         <div className="space-y-4">
-                                            <label className="block text-tiny font-black text-gray-600 uppercase tracking-widest ml-1">Strategy</label>
-                                            <div className="grid grid-cols-1 gap-3">
-                                                {[
-                                                    { id: 'hybrid', label: 'Neural Hybrid', sub: 'Semantic + Keyword matching (Recommended)', color: 'blue' },
-                                                    { id: 'vector', label: 'Pure Vector', sub: 'Conceptual understanding only', color: 'indigo' },
-                                                    { id: 'keyword', label: 'Strict Keyword', sub: 'Exact text overlap matches', color: 'purple' },
-                                                ].map((mode) => (
-                                                    <button
-                                                        key={mode.id}
-                                                        onClick={() => handleChange('retrieval_mode', mode.id)}
-                                                        className={cn(
-                                                            "flex items-center justify-between p-6 rounded-[2rem] border transition-all text-left group",
-                                                            current.retrieval_mode === mode.id
-                                                                ? "bg-white border-white shadow-xl"
-                                                                : "bg-[#0a0a0b] border-white/5 hover:border-white/10"
-                                                        )}
-                                                    >
-                                                        <div>
-                                                            <div className={cn("text-tiny font-black uppercase tracking-widest mb-1", current.retrieval_mode === mode.id ? "text-black" : "text-gray-300")}>
-                                                                {mode.label}
-                                                            </div>
-                                                            <div className={cn("text-tiny font-medium", current.retrieval_mode === mode.id ? "text-gray-600" : "text-gray-500")}>
-                                                                {mode.sub}
-                                                            </div>
-                                                        </div>
-                                                        <div className={cn(
-                                                            "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
-                                                            current.retrieval_mode === mode.id ? "bg-black border-black text-white" : "border-white/10 text-transparent"
-                                                        )}>
-                                                            <Check size={12} />
-                                                        </div>
-                                                    </button>
-                                                ))}
+                                            <div className="p-8 rounded-[2rem] bg-indigo-500/5 border border-indigo-500/10 border-dashed">
+                                                <div className="flex items-center gap-4 mb-2">
+                                                    <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center">
+                                                        <Check size={16} className="text-indigo-400" />
+                                                    </div>
+                                                    <h4 className="text-caption font-black text-white uppercase tracking-tight">Unified Neural Retrieval</h4>
+                                                </div>
+                                                <p className="text-tiny text-gray-600 font-medium leading-relaxed">
+                                                    The system automatically balances Semantic Vectors and Keyword indexes using Recruit Rank Fusion (RRF). Individual mode selection is deprecated in favor of a unified high-performance pipeline.
+                                                </p>
                                             </div>
                                         </div>
                                     </section>
@@ -281,32 +282,32 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                             <input
                                                 type="range" min="1" max="25" step="1"
                                                 value={current.search_limit}
+                                                disabled={!isMutable('search_limit')}
                                                 onChange={e => handleChange('search_limit', parseInt(e.target.value))}
                                                 className="w-full h-1.5 bg-white/5 rounded-full appearance-none cursor-pointer accent-indigo-500"
                                             />
                                         </div>
 
-                                        {current.retrieval_mode === 'hybrid' && (
-                                            <div className="space-y-6 p-8 rounded-[2rem] bg-indigo-500/5 border border-indigo-500/10">
-                                                <div className="flex justify-between items-end">
-                                                    <div className="space-y-1">
-                                                        <label className="text-tiny font-black text-indigo-400 uppercase tracking-widest">Hybrid Weighting (Alpha)</label>
-                                                        <p className="text-tiny text-indigo-400/50 font-bold uppercase">Balance Concept vs. Exact Matches</p>
-                                                    </div>
-                                                    <span className="text-h3 font-black text-indigo-400">{current.hybrid_alpha}</span>
+                                        <div className="space-y-6 p-8 rounded-[2rem] bg-indigo-500/5 border border-indigo-500/10">
+                                            <div className="flex justify-between items-end">
+                                                <div className="space-y-1">
+                                                    <label className="text-tiny font-black text-indigo-400 uppercase tracking-widest">Hybrid Weighting (Alpha)</label>
+                                                    <p className="text-tiny text-indigo-400/50 font-bold uppercase">Balance Concept vs. Exact Matches</p>
                                                 </div>
-                                                <input
-                                                    type="range" min="0" max="1" step="0.1"
-                                                    value={current.hybrid_alpha}
-                                                    onChange={e => handleChange('hybrid_alpha', parseFloat(e.target.value))}
-                                                    className="w-full h-1.5 bg-indigo-500/10 rounded-full appearance-none cursor-pointer accent-indigo-500"
-                                                />
-                                                <div className="flex justify-between text-tiny font-black text-indigo-400/40 uppercase tracking-widest">
-                                                    <span>Strict BM25</span>
-                                                    <span>Dense Vector</span>
-                                                </div>
+                                                <span className="text-h3 font-black text-indigo-400">{current.hybrid_alpha}</span>
                                             </div>
-                                        )}
+                                            <input
+                                                type="range" min="0" max="1" step="0.1"
+                                                value={current.hybrid_alpha}
+                                                disabled={!isMutable('hybrid_alpha')}
+                                                onChange={e => handleChange('hybrid_alpha', parseFloat(e.target.value))}
+                                                className="w-full h-1.5 bg-indigo-500/10 rounded-full appearance-none cursor-pointer accent-indigo-500"
+                                            />
+                                            <div className="flex justify-between text-tiny font-black text-indigo-400/40 uppercase tracking-widest">
+                                                <span>Strict Text</span>
+                                                <span>Semantic</span>
+                                            </div>
+                                        </div>
                                     </section>
                                 </div>
                             )}

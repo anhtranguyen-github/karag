@@ -92,17 +92,36 @@ class SettingsManager:
             logger.error("settings_fetch_error", workspace_id=workspace_id, error=str(e))
             return self._global_settings
 
+    def get_settings_metadata(self) -> Dict[str, Any]:
+        """Discover settings metadata from the AppSettings schema."""
+        metadata = {}
+        # model_fields is Pydantic V2. For V1 use .__fields__
+        # Assuming Pydantic V2 based on current ecosystem in this project
+        for name, field in AppSettings.model_fields.items():
+            extra = field.json_schema_extra or {}
+            metadata[name] = {
+                "mutable": extra.get("mutable", True),
+                "category": extra.get("category", "General"),
+                "description": field.description or ""
+            }
+        return metadata
+
     async def update_settings(self, updates: Dict[str, Any], workspace_id: Optional[str] = None) -> AppSettings:
         """Update settings for a workspace or global."""
         
-        # 1. Audit: Prevent modification of core RAG parameters if they break consistency
-        immutable_fields = ["embedding_provider", "embedding_model", "chunk_size", "chunk_overlap", "embedding_dim", "rag_engine"]
+        # 1. Audit: Prevent modification of core parameters based on schema metadata
+        metadata = self.get_settings_metadata()
         
         if workspace_id and workspace_id != "default":
-            if any(k in updates for k in immutable_fields):
+            unsupported = []
+            for key in updates:
+                if key in metadata and not metadata[key]["mutable"]:
+                    unsupported.append(key)
+            
+            if unsupported:
                 raise ValidationError(
-                    message="Core RAG parameters (provider, model, chunking, dimension, engine) cannot be modified after workspace creation to ensure vector consistency.",
-                    params={"immutable": immutable_fields}
+                    message=f"The following parameters are immutable for existing workspaces: {', '.join(unsupported)}. These require workspace re-creation or structural rebuilds.",
+                    params={"immutable_fields": unsupported}
                 )
 
         try:

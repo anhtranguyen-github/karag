@@ -101,16 +101,16 @@ async def index_document(
         task_id, name, workspace_id, False
     )
 
-    return {
-        "status": "pending",
-        "task_id": task_id,
-        "message": f"Indexing for '{name}' started in background."
-    }
+    return AppResponse.success_response(
+        data={"task_id": task_id},
+        message=f"Indexing for '{name}' started in background."
+    )
 
 
 @router.get("/documents/{name:path}/inspect")
 async def inspect_document(name: str):
-    return await document_service.inspect(name)
+    results = await document_service.inspect(name)
+    return AppResponse.success_response(data=results)
 
 
 @router.post("/documents/update-workspaces")
@@ -158,11 +158,10 @@ async def update_document_workspaces(
         task_id, name, target_workspace_id, action, force_reindex
     )
 
-    return {
-        "status": "pending",
-        "task_id": task_id,
-        "message": f"Document {action} operation started in background."
-    }
+    return AppResponse.success_response(
+        data={"task_id": task_id},
+        message=f"Document {action} operation started in background."
+    )
 
 # --- Generic Document Operations ---
 
@@ -174,7 +173,7 @@ async def get_document(name: str):
 
     content = await document_service.get_content(name)
     doc["content"] = content
-    return doc
+    return AppResponse.success_response(data=doc)
 
 
 @router.delete("/documents/{name:path}")

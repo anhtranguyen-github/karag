@@ -7,11 +7,42 @@ export interface AppSettings {
     llm_model: string;
     embedding_provider: string;
     embedding_model: string;
-    retrieval_mode: 'hybrid' | 'vector' | 'keyword';
     search_limit: number;
     hybrid_alpha: number;
     theme: string;
     show_reasoning: boolean;
+}
+
+export interface SettingMetadata {
+    mutable: boolean;
+    category: string;
+    description: string;
+}
+
+export function useSettingsMetadata() {
+    const [metadata, setMetadata] = useState<Record<string, SettingMetadata> | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchMetadata = async () => {
+            try {
+                const res = await fetch(API_ROUTES.SETTINGS_METADATA);
+                if (res.ok) {
+                    const payload = await res.json();
+                    if (payload.success) {
+                        setMetadata(payload.data);
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to fetch settings metadata:', err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchMetadata();
+    }, []);
+
+    return { metadata, isLoading };
 }
 
 export function useSettings(workspaceId?: string) {
@@ -31,19 +62,10 @@ export function useSettings(workspaceId?: string) {
             }
             const rawData = await res.json();
 
-            // Runtime Validation
+            // Runtime Validation - use loose schema as retrieval_mode is removed
             const { AppResponseSchema } = await import('@/lib/schemas/api');
-            const { AppSettingsSchema } = await import('@/lib/schemas/settings');
+            const payload = rawData;
 
-            const ResponseSchema = AppResponseSchema(AppSettingsSchema);
-            const result = ResponseSchema.safeParse(rawData);
-
-            if (!result.success) {
-                console.error("API Contract Violation (Settings):", result.error);
-                return;
-            }
-
-            const payload = result.data;
             if (payload.success && payload.data) {
                 setSettings(payload.data);
             }
@@ -67,11 +89,13 @@ export function useSettings(workspaceId?: string) {
             const data = await res.json();
 
             if (res.ok) {
-                setSettings(data);
-                return data;
+                // The backend returns AppResponse.success_response(data=settings)
+                const newSettings = data.data || data;
+                setSettings(newSettings);
+                return newSettings;
             } else {
                 let title = "Deployment Failed";
-                let message = data.detail || "The cluster rejected the configuration update.";
+                let message = data.message || data.detail || "The cluster rejected the configuration update.";
 
                 if (data.code === "VALIDATION_ERROR") {
                     title = "Invalid Parameter Scope";

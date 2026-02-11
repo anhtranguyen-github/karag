@@ -75,7 +75,7 @@ export function useDocuments() {
                 return true;
             } else {
                 const data = await res.json();
-                showError("Purge Failed", data.detail || "Unable to remove document from sector.");
+                showError("Purge Failed", data.message || data.detail || "Unable to remove document from sector.");
             }
         } catch (err) {
             console.error('Failed to delete document:', err);
@@ -106,9 +106,9 @@ export function useDocuments() {
 
             if (data.code === "CONFLICT_ERROR") {
                 // Incompatible configuration or state conflict
-                return { success: false, conflict: true, error: data.detail };
+                return { success: false, conflict: true, error: data.message || data.detail };
             } else {
-                showError("Orchestration Failed", data.detail || "Unable to complete document transfer.");
+                showError("Orchestration Failed", data.message || data.detail || "Unable to complete document transfer.");
             }
         } catch (err) {
             console.error(`Failed to ${action} document:`, err);

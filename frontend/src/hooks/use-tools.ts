@@ -60,7 +60,7 @@ export function useTools() {
                 setTools(prev => prev.map(t => t.id === id ? { ...t, enabled } : t));
             } else {
                 const data = await res.json();
-                showError("Interface Error", data.detail || "Unable to modify extension state.");
+                showError("Interface Error", data.message || data.detail || "Unable to modify extension state.");
             }
         } catch (err) {
             console.error('Failed to toggle tool', err);
@@ -85,7 +85,7 @@ export function useTools() {
                 if (data.code === "CONFLICT_ERROR") {
                     title = "Identifier Conflict";
                 }
-                showError(title, data.detail || "The system rejected the extension registration.");
+                showError(title, data.message || data.detail || "The system rejected the extension registration.");
                 return false;
             }
         } catch (err) {
@@ -104,7 +104,7 @@ export function useTools() {
                 setTools(prev => prev.filter(t => t.id !== id));
             } else {
                 const data = await res.json();
-                showError("Decommissioning Refused", data.detail || "The system refused to purge the intelligence extension.");
+                showError("Decommissioning Refused", data.message || data.detail || "The system refused to purge the intelligence extension.");
             }
         } catch (err) {
             console.error('Failed to delete tool', err);

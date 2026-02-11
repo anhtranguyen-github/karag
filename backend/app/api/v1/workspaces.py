@@ -51,26 +51,27 @@ async def create_workspace(ws: WorkspaceCreate):
     result = await workspace_service.create(ws.model_dump())
     return AppResponse.from_result(result)
 
-@router.patch("/{workspace_id}", response_model=Workspace)
+@router.patch("/{workspace_id}")
 async def update_workspace(workspace_id: str, ws: WorkspaceUpdate):
     update_data = {k: v for k, v in ws.model_dump().items() if v is not None}
     if not update_data:
         raise ValidationError("No data to update")
-    return await workspace_service.update(workspace_id, update_data)
+    result = await workspace_service.update(workspace_id, update_data)
+    return AppResponse.success_response(data=result)
 
 @router.delete("/{workspace_id}")
 async def delete_workspace(workspace_id: str, vault_delete: bool = False):
     if workspace_id == "default":
         raise ValidationError("Cannot delete default workspace")
     await workspace_service.delete(workspace_id, vault_delete=vault_delete)
-    return {"status": "success", "message": f"Workspace {workspace_id} deleted"}
+    return AppResponse.success_response(message=f"Workspace {workspace_id} deleted")
 
-@router.get("/{workspace_id}/details", response_model=WorkspaceDetail)
+@router.get("/{workspace_id}/details")
 async def get_workspace_details(workspace_id: str):
     details = await workspace_service.get_details(workspace_id)
     if not details:
         raise NotFoundError(f"Workspace {workspace_id} not found")
-    return details
+    return AppResponse.success_response(data=details)
 
 @router.post("/{workspace_id}/share-document")
 async def share_document(workspace_id: str, request: Request):
@@ -83,8 +84,9 @@ async def share_document(workspace_id: str, request: Request):
     
     from backend.app.services.document_service import document_service
     await document_service.update_workspaces(source_name, target_workspace_id, "share")
-    return {"status": "success", "message": f"Document {source_name} shared with {target_workspace_id}"}
+    return AppResponse.success_response(message=f"Document {source_name} shared with {target_workspace_id}")
 
 @router.get("/{workspace_id}/graph")
 async def get_workspace_graph(workspace_id: str):
-    return await workspace_service.get_graph_data(workspace_id)
+    graph_data = await workspace_service.get_graph_data(workspace_id)
+    return AppResponse.success_response(data=graph_data)

@@ -66,7 +66,7 @@ export function useThreads(workspaceId: string = "default") {
             if (res.ok) {
                 await fetchThreads();
             } else {
-                showError("Rebranding Failed", data.detail || "Unable to update synchronization descriptor.");
+                showError("Rebranding Failed", data.message || data.detail || "Unable to update synchronization descriptor.");
             }
         } catch (err) {
             console.error('Failed to update thread title:', err);
@@ -83,7 +83,7 @@ export function useThreads(workspaceId: string = "default") {
                 await fetchThreads();
             } else {
                 const data = await res.json();
-                showError("Decommissioning Failed", data.detail || "Unable to purge thread memory.");
+                showError("Decommissioning Failed", data.message || data.detail || "Unable to purge thread memory.");
             }
         } catch (err) {
             console.error('Failed to delete thread:', err);

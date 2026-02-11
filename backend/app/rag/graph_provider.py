@@ -43,7 +43,6 @@ class GraphProvider:
             query_vector=query_vector,
             query_text=refined_query,
             limit=limit,
-            mode=settings.retrieval_mode,
             alpha=settings.hybrid_alpha,
             workspace_id=workspace_id
         )

@@ -113,13 +113,11 @@ class RAGService:
         settings = await settings_manager.get_settings(workspace_id)
         search_limit = limit or settings.search_limit
         engine = settings.rag_engine
-        mode = settings.retrieval_mode
 
         with tracer.start_as_current_span(
             "rag.search",
             attributes={
                 "rag.engine": engine,
-                "rag.mode": mode,
                 "rag.limit": search_limit,
                 "workspace_id": workspace_id,
                 "rag.query_preview": query[:80],
@@ -130,7 +128,8 @@ class RAGService:
             # 1. Generate Query Vector
             query_vector = await self.get_query_embedding(query, workspace_id)
 
-            # 2. Execute fixed mode (no dynamic switching)
+            # 2. Execute Unified Pipeline (Internal Complexity Hidden)
+            # Both paths internally use hybrid search, but the graph path applies discovered context.
             if engine == "graph":
                 results = await graph_provider.search(
                     query=query,
@@ -139,13 +138,11 @@ class RAGService:
                     limit=search_limit,
                 )
             else:
-                # Basic Hybrid RAG
                 results = await qdrant.hybrid_search(
                     collection_name="knowledge_base",
                     query_vector=query_vector,
                     query_text=query,
                     limit=search_limit,
-                    mode=mode,
                     alpha=settings.hybrid_alpha,
                     workspace_id=workspace_id,
                 )
@@ -153,7 +150,7 @@ class RAGService:
             duration = time.perf_counter() - start
 
             # Metrics
-            RAG_RETRIEVAL_LATENCY.labels(engine=engine, mode=mode).observe(duration)
+            RAG_RETRIEVAL_LATENCY.labels(engine=engine, mode="unified").observe(duration)
             RAG_CHUNKS_RETRIEVED.labels(engine=engine).observe(len(results))
 
             span.set_attribute("rag.results_count", len(results))
@@ -162,7 +159,7 @@ class RAGService:
             logger.info(
                 "rag_search_complete",
                 engine=engine,
-                mode=mode,
+                mode="unified",
                 results=len(results),
                 duration_ms=round(duration * 1000, 2),
                 workspace_id=workspace_id,

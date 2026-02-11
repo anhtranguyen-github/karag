@@ -13,6 +13,12 @@ async def get_settings(workspace_id: Optional[str] = Query(None)):
     settings = await settings_manager.get_settings(workspace_id)
     return AppResponse.success_response(data=settings.model_dump())
 
+@router.get("/metadata")
+async def get_settings_metadata():
+    """Get metadata describing setting field properties and editability."""
+    metadata = settings_manager.get_settings_metadata()
+    return AppResponse.success_response(data=metadata)
+
 @router.patch("/")
 async def update_settings(updates: Dict[str, Any], workspace_id: Optional[str] = Query(None)):
     """Update settings for a specific workspace or global defaults."""
