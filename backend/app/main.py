@@ -42,6 +42,10 @@ async def lifespan(app: FastAPI):
     logger.info("workspace_init", msg="Ensuring default workspace...")
     await workspace_service.ensure_default_workspace()
 
+    # Cleanup old completed/failed tasks
+    from backend.app.services.task_service import task_service
+    await task_service.cleanup_old_tasks(older_than_hours=24)
+
     logger.info("infra_init_complete", msg="Infrastructure ready.")
     yield
 
@@ -55,8 +59,11 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    # Observability middleware: correlation IDs, structured logging, Prometheus metrics
+    app.add_middleware(ObservabilityMiddleware)
+
     # --- Middleware Stack (order matters: outermost first) ---
-    # CORS must be added before our middleware so preflight requests work
+    # CORS must be added last so it's the outermost layer (handles errors from other middleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
@@ -64,9 +71,6 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-
-    # Observability middleware: correlation IDs, structured logging, Prometheus metrics
-    app.add_middleware(ObservabilityMiddleware)
 
     # Prometheus metrics endpoint
     if ai_settings.METRICS_ENABLED:

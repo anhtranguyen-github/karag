@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useError } from '@/context/error-context';
 import { getIllegalCharsFound } from '@/lib/constants';
+import { useTasks } from '@/context/task-context';
 
 interface Document {
     id?: string;
@@ -26,16 +27,7 @@ interface Document {
     workspace_name?: string;
 }
 
-interface Task {
-    id: string;
-    status: string;
-    progress?: number;
-    metadata: {
-        workspace_id: string;
-        filename?: string;
-    };
-    message?: string;
-}
+// Task type is now managed globally by TaskContext
 
 interface BackendDocument {
     id: string;
@@ -64,22 +56,32 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [_error, setError] = useState<string | null>(null);
     const { showError } = useError();
+    const { activeTasks, recentCompletedTasks } = useTasks();
     const [activeSource, setActiveSource] = useState<{ id: number; name: string; content: string } | null>(null);
     const [isViewing, setIsViewing] = useState(false);
     const [shareTarget, setShareTarget] = useState('');
-    const [activeTasks, setActiveTasks] = useState<Task[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [deletingDoc, setDeletingDoc] = useState<Document | null>(null);
     const [managingDoc, setManagingDoc] = useState<Document | null>(null);
     const [manageMode, setManageMode] = useState<'move' | 'share'>('share');
     const [isManaging, setIsManaging] = useState(false);
     const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+    const [duplicateData, setDuplicateData] = useState<{
+        id: string;
+        name: string;
+        workspace: string;
+        is_duplicate: boolean;
+    } | null>(null);
+    const [isLinking, setIsLinking] = useState(false);
+    const [isVaultBrowserOpen, setIsVaultBrowserOpen] = useState(false);
+    const [vaultDocuments, setVaultDocuments] = useState<Document[]>([]);
+    const [isVaultLoading, setIsVaultLoading] = useState(false);
 
     // Poll for active tasks
     const fetchDocuments = React.useCallback(async () => {
         try {
             const url = isGlobal
-                ? API_ROUTES.DOCUMENTS_ALL
+                ? (API_ROUTES as any).VAULT
                 : `${API_ROUTES.DOCUMENTS}?workspace_id=${encodeURIComponent(workspaceId)}`;
 
             const res = await fetch(url);
@@ -102,59 +104,68 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
         }
     }, [isGlobal, workspaceId]);
 
-    const notifiedTasksRef = React.useRef<Set<string>>(new Set());
-
-    useEffect(() => {
-        const pollTasks = async () => {
-            try {
-                const res = await fetch(`${API_ROUTES.TASKS}?type=ingestion`);
-                if (res.ok) {
-                    const data = await res.json();
-
-                    // Filter pending tasks for the UI list
-                    const pendingTasks = data.tasks.filter((t: Task) =>
-                        (t.status === 'pending' || t.status === 'processing') &&
-                        (isGlobal || t.metadata.workspace_id === workspaceId)
-                    );
-                    setActiveTasks(pendingTasks);
-
-                    // Check for active failures we haven't shown yet
-                    const failedTasks = data.tasks.filter((t: Task) =>
-                        t.status === 'failed' &&
-                        (isGlobal || t.metadata.workspace_id === workspaceId) &&
-                        !notifiedTasksRef.current.has(t.id)
-                    );
-
-                    for (const task of failedTasks) {
-                        let displayTitle = "Ingestion Failed";
-                        let displayMessage = task.message || "The system encountered an error while processing this document.";
-
-                        if (task.error_code === 'ILLEGAL_PATH') {
-                            displayTitle = "Invalid Filename";
-                            displayMessage = "The filename contains characters that are not allowed by the storage system.";
-                        }
-
-                        showError(
-                            displayTitle,
-                            displayMessage,
-                            `File: ${task.metadata.filename || 'Unknown'}`
-                        );
-                        notifiedTasksRef.current.add(task.id);
-                    }
-
-                    const hasJustCompleted = data.tasks.some((t: Task) => t.status === 'completed' && t.progress === 100);
-                    if (hasJustCompleted) {
-                        fetchDocuments();
-                    }
-                }
-            } catch (err) {
-                console.error('Task polling failed', err);
+    const fetchVaultDocuments = async () => {
+        setIsVaultLoading(true);
+        try {
+            const res = await fetch((API_ROUTES as any).VAULT);
+            if (res.ok) {
+                const data: BackendDocument[] = await res.json();
+                const mappedDocs = data.map((doc) => ({
+                    id: doc.id,
+                    name: doc.filename,
+                    extension: doc.extension,
+                    chunks: doc.chunks,
+                    status: doc.status,
+                    workspace_id: doc.workspace_id,
+                    workspace_name: doc.workspace_name || doc.workspace_id
+                }));
+                // Filter out documents already in this workspace
+                const filtered = mappedDocs.filter(vd =>
+                    !documents.some(d => d.name === vd.name)
+                );
+                setVaultDocuments(filtered);
             }
-        };
+        } catch (err) {
+            console.error('Failed to fetch vault', err);
+        } finally {
+            setIsVaultLoading(false);
+        }
+    };
 
-        const interval = setInterval(pollTasks, 2000);
-        return () => clearInterval(interval);
-    }, [workspaceId, isGlobal, fetchDocuments, showError]);
+    const handleLinkFromVault = async (doc: Document) => {
+        // Fire-and-forget: submit and close modal immediately
+        try {
+            const res = await fetch(API_ROUTES.DOCUMENTS_UPDATE_WS, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: doc.name,
+                    target_workspace_id: workspaceId,
+                    action: 'link',
+                    force_reindex: false
+                })
+            });
+
+            if (res.ok) {
+                setIsVaultBrowserOpen(false);
+                // The job will appear in the global JobPanel — no need to block
+            } else {
+                const data = await res.json();
+                showError("Link Failed", data.detail || 'Could not link document.');
+            }
+        } catch (err) {
+            showError("Network Error", "Transmission interrupted.");
+        }
+    };
+
+    // Auto-refresh documents when tasks complete (via global TaskContext)
+    const prevCompletedCountRef = React.useRef(recentCompletedTasks.length);
+    useEffect(() => {
+        if (recentCompletedTasks.length > prevCompletedCountRef.current) {
+            fetchDocuments();
+        }
+        prevCompletedCountRef.current = recentCompletedTasks.length;
+    }, [recentCompletedTasks.length, fetchDocuments]);
 
     useEffect(() => {
         if (workspaceId) {
@@ -200,8 +211,15 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                 body: formData,
             });
             if (res.ok) {
-                // Task is now handled by the polling effect
-                await res.json();
+                const data = await res.json();
+                if (data.duplicate?.is_duplicate) {
+                    setDuplicateData({
+                        id: data.duplicate.existing_id,
+                        name: data.duplicate.existing_name,
+                        workspace: data.duplicate.original_workspace,
+                        is_duplicate: true
+                    });
+                }
             } else {
                 const data = await res.json();
                 let title = "Ingestion Rejected";
@@ -245,8 +263,15 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
             if (res.ok) {
                 setIsArxivModalOpen(false);
                 setArxivUrl('');
-                // Task is now handled by the polling effect
-                await res.json();
+                const data = await res.json();
+                if (data.duplicate?.is_duplicate) {
+                    setDuplicateData({
+                        id: data.duplicate.existing_id,
+                        name: data.duplicate.existing_name,
+                        workspace: data.duplicate.original_workspace,
+                        is_duplicate: true
+                    });
+                }
             } else {
                 const data = await res.json();
                 showError("ArXiv Import Failed", data.detail || 'Failed to download paper', `Source: ${arxivUrl}`);
@@ -256,6 +281,36 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
             showError("Network Error", "Could not connect to reasoning engine.");
         } finally {
             setIsArxivLoading(false);
+        }
+    };
+
+    const handleConfirmLink = async () => {
+        if (!duplicateData) return;
+        setIsLinking(true);
+        try {
+            const res = await fetch(API_ROUTES.DOCUMENTS_UPDATE_WS, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: duplicateData.name,
+                    target_workspace_id: workspaceId,
+                    action: 'link',
+                    force_reindex: false
+                })
+            });
+
+            if (res.ok) {
+                setDuplicateData(null);
+                fetchDocuments();
+            } else {
+                const data = await res.json();
+                showError("Link Failed", data.detail || 'Could not link existing document.');
+            }
+        } catch (err) {
+            console.error('Link error:', err);
+            showError("Network Error", "Transmission interrupted.");
+        } finally {
+            setIsLinking(false);
         }
     };
 
@@ -296,15 +351,14 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                     name: managingDoc.name,
                     target_workspace_id: shareTarget,
                     action: manageMode,
-                    force_reindex: true // Trigger re-indexing as required
+                    force_reindex: true
                 })
             });
 
             if (res.ok) {
+                // Fire-and-forget: close modal, progress visible in JobPanel
                 setManagingDoc(null);
                 setShareTarget('');
-                fetchDocuments();
-                alert(`Protocol Executed: ${managingDoc.name} ${manageMode}ed to ${shareTarget}`);
             } else {
                 const data = await res.json();
                 showError("Transition Failed", data.detail || 'Workspace update failed.', `Document: ${managingDoc.name}`);
@@ -346,27 +400,19 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
 
     const handleIndex = async (doc: Document) => {
         const docId = doc.id || doc.name;
-        // Proactive feedback: show user indexing has started
-        setIsViewing(true);
-        setActiveSource({ id: 0, name: doc.name, content: "Initializing neural processing pipeline..." });
-
+        // Fire-and-forget: submit indexing, progress shown in global JobPanel
         try {
             const res = await fetch(`${API_ROUTES.DOCUMENTS}/${encodeURIComponent(docId)}/index?workspace_id=${encodeURIComponent(doc.workspace_id || workspaceId)}`, {
                 method: 'POST'
             });
-            if (res.ok) {
-                await fetchDocuments();
-                // If it was just indexed, show the content automatically
-                handleView(doc.name);
-            } else {
+            if (!res.ok) {
                 const data = await res.json();
                 showError("Indexing Error", data.detail || 'Manual indexing failed.');
             }
+            // Task created — progress visible in the persistent JobPanel
         } catch (err) {
             console.error('Failed to index document', err);
             showError("Network Error", "Could not reach the indexing service.");
-        } finally {
-            setIsViewing(false);
         }
     };
 
@@ -483,6 +529,130 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                 )}
             </AnimatePresence>
 
+            {/* Vault Browser Modal */}
+            <AnimatePresence>
+                {isVaultBrowserOpen && (
+                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-black/80 backdrop-blur-md"
+                            onClick={() => setIsVaultBrowserOpen(false)}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="relative w-full max-w-2xl bg-[#121214] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col max-h-[80vh]"
+                        >
+                            <div className="p-8 border-b border-white/5 bg-white/[0.02] flex items-center justify-between shrink-0">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+                                        <Database size={24} />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-h3 font-black text-white uppercase tracking-tight">Vault Browser</h4>
+                                        <p className="text-tiny text-gray-500 font-bold uppercase tracking-widest">Select Intelligence to Link</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setIsVaultBrowserOpen(false)}
+                                    className="p-2 text-gray-500 hover:text-white transition-colors"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto p-6 space-y-3 custom-scrollbar">
+                                {isVaultLoading ? (
+                                    <div className="flex flex-col items-center justify-center py-20 gap-4">
+                                        <Loader2 size={32} className="animate-spin text-indigo-400" />
+                                        <span className="text-tiny font-black text-gray-600 uppercase tracking-widest">Scanning Global Vault...</span>
+                                    </div>
+                                ) : vaultDocuments.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-40">
+                                        <Database size={48} className="text-gray-600" />
+                                        <span className="text-tiny font-black text-gray-600 uppercase tracking-widest">No New Entities Found</span>
+                                    </div>
+                                ) : (
+                                    vaultDocuments.map((doc) => (
+                                        <div key={doc.id} className="flex items-center justify-between p-5 rounded-[1.5rem] bg-white/[0.02] border border-white/5 hover:border-indigo-500/30 transition-all group">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-indigo-500/10">
+                                                    <FileText size={18} className="text-gray-500 group-hover:text-indigo-400" />
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <span className="text-caption font-bold text-white uppercase tracking-tight">{doc.name}</span>
+                                                    <span className="text-tiny text-gray-500 uppercase font-medium">{doc.extension?.replace('.', '')} • FROM {doc.workspace_name}</span>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => handleLinkFromVault(doc)}
+                                                disabled={isLinking}
+                                                className="h-10 px-6 rounded-xl bg-white text-black hover:bg-gray-200 text-tiny font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                                            >
+                                                {isLinking ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
+                                                Link
+                                            </button>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Duplicate Confirmation Modal */}
+            <AnimatePresence>
+                {duplicateData && (
+                    <div className="fixed inset-0 z-[210] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-black/80 backdrop-blur-xl"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 30 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 30 }}
+                            className="relative w-full max-w-lg bg-[#121214] border border-white/10 rounded-[3rem] overflow-hidden shadow-2xl"
+                        >
+                            <div className="p-10 text-center space-y-8">
+                                <div className="w-24 h-24 rounded-[2rem] bg-indigo-500/10 flex items-center justify-center mx-auto border border-indigo-500/20">
+                                    <AlertTriangle size={40} className="text-indigo-400" />
+                                </div>
+                                <div className="space-y-3">
+                                    <h2 className="text-h2 font-black text-white uppercase tracking-tighter">Vault Match Detected</h2>
+                                    <p className="text-caption text-gray-500 font-medium leading-relaxed px-4">
+                                        This document is already registered in the <span className="text-indigo-400 font-bold">Intelligence Vault</span>.
+                                        Would you like to link the existing record to this workspace instead of creating a duplicate?
+                                    </p>
+                                </div>
+                                <div className="flex flex-col gap-3">
+                                    <button
+                                        onClick={handleConfirmLink}
+                                        disabled={isLinking}
+                                        className="w-full h-16 bg-white text-black hover:bg-gray-200 rounded-[1.5rem] font-black text-tiny uppercase tracking-[0.2em] transition-all active:scale-95 flex items-center justify-center gap-3"
+                                    >
+                                        {isLinking ? <Loader2 className="animate-spin" /> : <ArrowRightLeft size={18} />}
+                                        Link Existing Entry
+                                    </button>
+                                    <button
+                                        onClick={() => setDuplicateData(null)}
+                                        className="w-full h-16 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-[1.5rem] font-black text-tiny uppercase tracking-[0.2em] transition-all"
+                                    >
+                                        Continue with New Upload
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-5">
                     <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 shadow-xl shadow-indigo-500/10">
@@ -519,6 +689,18 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                         <Network size={14} className="text-blue-400" />
                         ArXiv
                     </button>
+                    {!isGlobal && (
+                        <button
+                            onClick={() => {
+                                fetchVaultDocuments();
+                                setIsVaultBrowserOpen(true);
+                            }}
+                            className="h-12 px-6 flex items-center gap-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 text-indigo-400 transition-all active:scale-95 text-tiny font-black uppercase tracking-widest"
+                        >
+                            <Database size={14} />
+                            Vault
+                        </button>
+                    )}
                     <label className="cursor-pointer h-12 px-6 flex items-center gap-3 rounded-2xl bg-white hover:bg-white/90 text-black shadow-xl transition-all active:scale-95 text-tiny font-black uppercase tracking-widest">
                         <Upload size={14} />
                         Upload
@@ -527,62 +709,27 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                 </div>
             </div>
 
-            {(isUploading || activeTasks.length > 0) && (
-                <div className="space-y-3">
-                    {activeTasks.map((task) => (
-                        <motion.div
-                            key={task.id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="flex flex-col gap-3 bg-white/[0.03] p-6 rounded-[2rem] border border-white/5 relative overflow-hidden group"
-                        >
-                            <div className="absolute inset-y-0 left-0 w-1 bg-indigo-500" />
-                            <div className="flex items-center justify-between mb-1">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center">
-                                        <Loader2 className="w-5 h-5 animate-spin text-indigo-400" />
-                                    </div>
-                                    <div>
-                                        <div className="text-tiny font-black text-white uppercase tracking-widest">{task.metadata.filename}</div>
-                                        <div className="text-tiny text-indigo-400/50 font-bold uppercase mt-0.5">{task.message}</div>
-                                    </div>
-                                </div>
-                                <div className="text-tiny font-black text-indigo-400">{task.progress}%</div>
-                            </div>
-                            <div className="w-full bg-white/[0.03] h-1.5 rounded-full overflow-hidden">
-                                <motion.div
-                                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]"
-                                    initial={{ width: "0%" }}
-                                    animate={{ width: `${task.progress}%` }}
-                                    transition={{ duration: 0.5 }}
-                                />
-                            </div>
-                        </motion.div>
-                    ))}
-
-                    {isUploading && activeTasks.length === 0 && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="flex items-center gap-4 bg-indigo-500/10 p-5 rounded-3xl border border-indigo-500/20"
-                        >
-                            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center">
-                                <Loader2 className="w-5 h-5 animate-spin text-indigo-400" />
-                            </div>
-                            <div className="flex-1">
-                                <div className="text-tiny font-black text-indigo-300 uppercase tracking-wider mb-1">Streaming to Server...</div>
-                                <div className="w-full bg-indigo-500/10 h-1 rounded-full overflow-hidden">
-                                    <motion.div
-                                        className="h-full bg-indigo-400"
-                                        initial={{ width: "0%" }}
-                                        animate={{ width: "100%" }}
-                                        transition={{ duration: 1, repeat: Infinity }}
-                                    />
-                                </div>
-                            </div>
-                        </motion.div>
-                    )}
-                </div>
+            {isUploading && (
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-4 bg-indigo-500/10 p-5 rounded-3xl border border-indigo-500/20"
+                >
+                    <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center">
+                        <Loader2 className="w-5 h-5 animate-spin text-indigo-400" />
+                    </div>
+                    <div className="flex-1">
+                        <div className="text-tiny font-black text-indigo-300 uppercase tracking-wider mb-1">Streaming to Server...</div>
+                        <div className="w-full bg-indigo-500/10 h-1 rounded-full overflow-hidden">
+                            <motion.div
+                                className="h-full bg-indigo-400"
+                                initial={{ width: "0%" }}
+                                animate={{ width: "100%" }}
+                                transition={{ duration: 1, repeat: Infinity }}
+                            />
+                        </div>
+                    </div>
+                </motion.div>
             )}
 
             <div className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar">

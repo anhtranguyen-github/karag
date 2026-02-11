@@ -12,8 +12,13 @@ When OTEL_ENABLED=false, tracing degrades to a no-op with zero overhead.
 
 import logging
 import functools
+import os
+from pathlib import Path
+from logging.handlers import RotatingFileHandler
 from typing import Optional, Callable, Any
 from contextvars import ContextVar
+
+from backend.app.core.config import ai_settings
 
 import structlog
 from opentelemetry import trace
@@ -149,9 +154,23 @@ def configure_logging(log_format: str = "json", log_level: str = "INFO") -> None
 
     # Also configure stdlib logging to use structlog formatting
     # so existing `logging.getLogger()` calls get structured output
+    handlers = [logging.StreamHandler()]
+    
+    if ai_settings.LOG_FILE:
+        log_path = Path(ai_settings.LOG_FILE)
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        handlers.append(
+            RotatingFileHandler(
+                ai_settings.LOG_FILE,
+                maxBytes=10 * 1024 * 1024,  # 10MB
+                backupCount=5
+            )
+        )
+
     logging.basicConfig(
         format="%(message)s",
         level=getattr(logging, log_level.upper(), logging.INFO),
+        handlers=handlers
     )
 
 
@@ -204,8 +223,6 @@ def init_telemetry() -> None:
     Single entry point to initialize all observability subsystems.
     Called once during FastAPI lifespan startup.
     """
-    from backend.app.core.config import ai_settings
-
     configure_logging(
         log_format=ai_settings.LOG_FORMAT,
         log_level=ai_settings.LOG_LEVEL,

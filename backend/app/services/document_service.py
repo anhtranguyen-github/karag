@@ -24,7 +24,7 @@ tracer = get_tracer(__name__)
 
 class DocumentService:
     @staticmethod
-    async def upload(file: UploadFile, workspace_id: str) -> Tuple[str, bytes, str, str]:
+    async def upload(file: UploadFile, workspace_id: str) -> Tuple[str, bytes, str, str, Dict]:
         """Process and ingest a new document with background task tracking."""
         with tracer.start_as_current_span(
             "document.upload",
@@ -42,24 +42,39 @@ class DocumentService:
                     params={"illegal": found_chars}
                 )
 
-            # 2. Local name duplicate check
-            existing_doc = await db.documents.find_one({"workspace_id": workspace_id, "filename": original_filename})
-            if existing_doc:
-                raise ConflictError(f"Document '{original_filename}' already exists in this workspace.")
-
             content = await file.read()
             file_size = len(content)
             file_type = file.content_type
+            file_hash = hashlib.sha256(content).hexdigest()
             
+            # 2. Global Deduplication Check
+            existing_vault_doc = await db.documents.find_one({"content_hash": file_hash})
+            
+            # Check for local name duplicate
+            existing_local = await db.documents.find_one({"workspace_id": workspace_id, "filename": original_filename})
+            if existing_local:
+                raise ConflictError(f"Document '{original_filename}' already exists in this workspace.")
+
+            duplicate_info = {}
+            if existing_vault_doc:
+                duplicate_info = {
+                    "is_duplicate": True,
+                    "existing_id": existing_vault_doc["id"],
+                    "existing_name": existing_vault_doc["filename"],
+                    "original_workspace": existing_vault_doc["workspace_id"]
+                }
+                logger.info("global_duplicate_detected", filename=original_filename, existing_id=existing_vault_doc["id"])
+
             # Sanitize filename for internal storage safety
             safe_filename = re.sub(r'[^a-zA-Z0-9._-]', '_', original_filename)
                 
             # Create Task
-            task_id = task_service.create_task("ingestion", {
+            task_id = await task_service.create_task("ingestion", {
                 "filename": original_filename,
                 "safe_filename": safe_filename,
                 "workspace_id": workspace_id,
-                "size": file_size
+                "size": file_size,
+                "content_hash": file_hash
             })
 
             span.set_attribute("document.filename", original_filename)
@@ -70,9 +85,10 @@ class DocumentService:
                 size_bytes=file_size,
                 workspace_id=workspace_id,
                 task_id=task_id,
+                is_duplicate=bool(duplicate_info)
             )
             
-            return task_id, content, original_filename, file_type
+            return task_id, content, original_filename, file_type, duplicate_info
 
     @staticmethod
     async def upload_arxiv(arxiv_id_or_url: str, workspace_id: str) -> Tuple[str, bytes, str, str]:
@@ -120,15 +136,29 @@ class DocumentService:
                 
                 file_size = len(content)
                 content_type = "application/pdf"
+                file_hash = hashlib.sha256(content).hexdigest()
                 
-                # 6. Create Task
-                task_id = task_service.create_task("ingestion", {
+                # 6. Global Deduplication Check
+                existing_vault_doc = await db.documents.find_one({"content_hash": file_hash})
+                duplicate_info = {}
+                if existing_vault_doc:
+                    duplicate_info = {
+                        "is_duplicate": True,
+                        "existing_id": existing_vault_doc["id"],
+                        "existing_name": existing_vault_doc["filename"],
+                        "original_workspace": existing_vault_doc["workspace_id"]
+                    }
+                    logger.info("global_duplicate_detected_arxiv", filename=filename, arxiv_id=arxiv_id)
+
+                # 7. Create Task
+                task_id = await task_service.create_task("ingestion", {
                     "filename": filename,
                     "safe_filename": filename,
                     "workspace_id": workspace_id,
                     "size": file_size,
                     "source": "arxiv",
-                    "arxiv_id": arxiv_id
+                    "arxiv_id": arxiv_id,
+                    "content_hash": file_hash
                 })
 
                 logger.info(
@@ -137,9 +167,10 @@ class DocumentService:
                     arxiv_id=arxiv_id,
                     workspace_id=workspace_id,
                     task_id=task_id,
+                    is_duplicate=bool(duplicate_info)
                 )
                 
-                return task_id, content, filename, content_type
+                return task_id, content, filename, content_type, duplicate_info
 
             except Exception as e:
                 logger.error("arxiv_download_failed", arxiv_id=arxiv_id, error=str(e))
@@ -152,13 +183,28 @@ class DocumentService:
         db = mongodb_manager.get_async_database()
         doc_id = None
         try:
-            task_service.update_task(task_id, status="processing", progress=20, message="Calculating signatures...")
+            if await task_service.is_cancelled(task_id):
+                logger.info("ingestion_cancelled_start", task_id=task_id)
+                return
+
+            await task_service.update_task(task_id, status="processing", progress=20, message="Calculating signatures...")
             file_hash = hashlib.sha256(content).hexdigest()
             file_size = len(content)
             
             # 1. GLOBAL VAULT DEDUPLICATION CHECK
             existing_vault_doc = await db.documents.find_one({"content_hash": file_hash})
             
+            if await task_service.is_cancelled(task_id):
+                logger.info("ingestion_cancelled_mid", task_id=task_id)
+                return
+
+            # 2. LOCAL WORKSPACE COLLISION CHECK (Avoid double entries in same WS)
+            existing_local_doc = await db.documents.find_one({"workspace_id": workspace_id, "content_hash": file_hash})
+            if existing_local_doc:
+                await task_service.update_task(task_id, status="completed", progress=100, message="Document already exists in this workspace. Reusing index.")
+                logger.info("ingestion_skipped_local_duplicate", filename=safe_filename, workspace_id=workspace_id)
+                return
+
             doc_id = str(uuid.uuid4())[:8]
             extension = os.path.splitext(safe_filename)[1].lower()
             version = 1
@@ -171,11 +217,16 @@ class DocumentService:
             if existing_vault_doc:
                 # REUSE PHYSICAL STORAGE
                 minio_path = existing_vault_doc["minio_path"]
-                task_service.update_task(task_id, progress=60, message="Linking to existing vault record...")
+                await task_service.update_task(task_id, progress=60, message="Linking to existing vault record...")
             else:
                 # NEW PHYSICAL UPLOAD
                 minio_path = f"vault/{doc_id}/v{version}/{safe_filename}"
-                task_service.update_task(task_id, progress=60, message="Storing in neutral vault...")
+                await task_service.update_task(task_id, progress=60, message="Storing in neutral vault...")
+                
+                if await task_service.is_cancelled(task_id):
+                    logger.info("ingestion_cancelled_before_upload", task_id=task_id)
+                    return
+
                 await minio_manager.upload_file(minio_path, io.BytesIO(content), file_size, content_type=content_type)
 
             # Create MongoDB record (Status is 'uploaded', NOT 'indexed')
@@ -195,19 +246,36 @@ class DocumentService:
                 "shared_with": [],
                 "rag_config_hash": rag_hash 
             }
+            
+            if await task_service.is_cancelled(task_id):
+                # Cleanup if we just uploaded
+                if not existing_vault_doc:
+                     minio_manager.delete_file(minio_path)
+                logger.info("ingestion_cancelled_final", task_id=task_id)
+                return
+
             await db.documents.insert_one(doc_record)
             
-            task_service.update_task(task_id, status="completed", progress=100, message="Stored in Intelligence Vault.")
+            await task_service.update_task(task_id, status="completed", progress=100, message="Stored in Intelligence Vault.")
             logger.info("document_vault_stored", filename=safe_filename, doc_id=doc_id, workspace_id=workspace_id)
 
         except Exception as e:
-            logger.error("vault_storage_failed", filename=safe_filename, error=str(e))
-            task_service.update_task(task_id, status="failed", message=str(e))
+            logger.error("vault_storage_failed", filename=safe_filename, error=str(e), exc_info=True)
+            error_msg = str(e)
+            error_code = "INTERNAL_ERROR"
+            if "illegal" in error_msg.lower():
+                error_code = "ILLEGAL_PATH"
+            
+            await task_service.update_task(task_id, status="failed", message=error_msg, error_code=error_code)
             if doc_id:
                 await db.documents.update_one({"id": doc_id}, {"$set": {"status": "failed"}})
 
-    async def index_document(self, doc_id_or_name: str, workspace_id: str):
+    async def index_document(self, doc_id_or_name: str, workspace_id: str, force: bool = False, task_id: str = None):
         """Phase 2: On-Demand Neural Indexing. Triggered by explicit interaction."""
+        if task_id and await task_service.is_cancelled(task_id):
+            logger.info("indexing_cancelled_start", task_id=task_id)
+            return 0
+
         db = mongodb_manager.get_async_database()
         doc = await db.documents.find_one({
             "$and": [
@@ -219,7 +287,7 @@ class DocumentService:
         if not doc:
             raise NotFoundError(f"Document {doc_id_or_name} not found in workspace {workspace_id}")
             
-        if doc["status"] == "indexed":
+        if doc["status"] == "indexed" and not force:
             # Already done
             return doc["chunks"]
 
@@ -227,22 +295,44 @@ class DocumentService:
         await db.documents.update_one({"id": doc["id"]}, {"$set": {"status": "indexing"}})
         
         try:
-            # 2. Get file content from MinIO
+            if task_id and await task_service.is_cancelled(task_id):
+                logger.info("indexing_cancelled_post_update", task_id=task_id)
+                # Revert status
+                await db.documents.update_one({"id": doc["id"]}, {"$set": {"status": "uploaded"}})
+                return 0
+
+            # 2. Cleanup old points for this doc in THIS workspace if re-indexing
+            settings = await settings_manager.get_settings(workspace_id)
+            target_coll = qdrant.get_collection_name(settings.embedding_dim)
+            if await qdrant.client.collection_exists(target_coll):
+                await qdrant.client.delete(
+                    collection_name=target_coll,
+                    points_selector=qmodels.Filter(must=[
+                        qmodels.FieldCondition(key="doc_id", match=qmodels.MatchValue(value=doc["id"])),
+                        qmodels.FieldCondition(key="workspace_id", match=qmodels.MatchValue(value=workspace_id))
+                    ])
+                )
+
+            # 3. Get file content from MinIO
             content = minio_manager.get_file(doc["minio_path"])
             if not content:
                 raise ValueError("Source file missing in vault storage.")
                 
-            # 3. Save to temp file for ingestion loaders
+            # 4. Save to temp file for ingestion loaders
             extension = doc.get("extension", ".tmp")
             with tempfile.NamedTemporaryFile(delete=False, suffix=extension) as tmp:
                 tmp.write(content)
                 tmp_path = tmp.name
 
             try:
-                # 4. Run RAG Pipeline
-                settings = await settings_manager.get_settings(workspace_id)
+                # 5. Run RAG Pipeline
                 rag_hash = settings.get_rag_hash()
                 
+                if task_id and await task_service.is_cancelled(task_id):
+                    logger.info("indexing_cancelled_before_pipeline", task_id=task_id)
+                    await db.documents.update_one({"id": doc["id"]}, {"$set": {"status": "uploaded"}})
+                    return 0
+
                 await ingestion_pipeline.initialize(workspace_id=workspace_id)
                 num_chunks = await ingestion_pipeline.process_file(
                     tmp_path, 
@@ -257,42 +347,116 @@ class DocumentService:
                     }
                 )
                 
-                # 5. Finalize
+                # 6. Finalize
                 await db.documents.update_one(
                     {"id": doc["id"]}, 
                     {"$set": {"status": "indexed", "chunks": num_chunks, "rag_config_hash": rag_hash}}
                 )
-                logger.info("document_indexed_on_demand", filename=doc["filename"], chunks=num_chunks)
+                logger.info("document_indexed_on_demand", filename=doc["filename"], chunks=num_chunks, force=force)
                 return num_chunks
             finally:
                 if os.path.exists(tmp_path):
                     os.remove(tmp_path)
                     
         except Exception as e:
-            logger.error("indexing_failed", doc_id=doc["id"], error=str(e))
+            logger.error("indexing_failed", doc_id=doc["id"], error=str(e), exc_info=True)
             await db.documents.update_one({"id": doc["id"]}, {"$set": {"status": "uploaded"}}) # Revert to neutral
             raise e
-                    
-        except Exception as e:
-            extension = os.path.splitext(safe_filename)[1].lower()
-            DOCUMENT_INGESTION_COUNT.labels(extension=extension, status="failed").inc()
-            logger.error(
-                "ingestion_failed",
-                filename=safe_filename,
-                workspace_id=workspace_id,
-                error=str(e),
-                exc_info=True,
+
+    async def run_index_background(self, task_id: str, doc_id_or_name: str, workspace_id: str, force: bool = False):
+        """Background wrapper for index_document that updates task progress."""
+        try:
+            if await task_service.is_cancelled(task_id):
+                return
+
+            await task_service.update_task(task_id, status="processing", progress=10, message="Starting neural indexing...")
+            num_chunks = await self.index_document(doc_id_or_name, workspace_id, force=force, task_id=task_id)
+            
+            if await task_service.is_cancelled(task_id):
+                return
+
+            await task_service.update_task(
+                task_id, status="completed", progress=100,
+                message=f"Indexed {num_chunks} fragments.",
+                result={"chunks": num_chunks, "doc_id": doc_id_or_name, "workspace_id": workspace_id}
             )
-            error_msg = str(e)
-            error_code = "INTERNAL_ERROR"
-            if "illegal path" in error_msg.lower():
-                error_code = "ILLEGAL_PATH"
-            elif "connection" in error_msg.lower():
-                error_code = "CONNECTION_ERROR"
-                
-            task_service.update_task(task_id, status="failed", message=error_msg, error_code=error_code)
-            if doc_id:
-                await db.documents.update_one({"id": doc_id}, {"$set": {"status": "failed"}})
+        except Exception as e:
+            logger.error("background_index_failed", task_id=task_id, error=str(e), exc_info=True)
+            await task_service.update_task(
+                task_id, status="failed", message=str(e), error_code="INDEXING_FAILED"
+            )
+
+    async def run_workspace_op_background(
+        self, task_id: str, name: str, target_workspace_id: str,
+        action: str, force_reindex: bool = False
+    ):
+        """Background wrapper for update_workspaces that updates task progress."""
+        try:
+            if await task_service.is_cancelled(task_id):
+                return 
+
+            await task_service.update_task(
+                task_id, status="processing", progress=10,
+                message=f"Executing {action} operation..."
+            )
+            await self.update_workspaces(name, target_workspace_id, action, force_reindex=force_reindex, task_id=task_id)
+            
+            if await task_service.is_cancelled(task_id):
+                return
+
+            await task_service.update_task(
+                task_id, status="completed", progress=100,
+                message=f"Document {action} completed.",
+                result={"document": name, "workspace": target_workspace_id, "action": action}
+            )
+        except Exception as e:
+            logger.error("background_workspace_op_failed", task_id=task_id, error=str(e), exc_info=True)
+            await task_service.update_task(
+                task_id, status="failed", message=str(e), error_code="WORKSPACE_OP_FAILED"
+            )
+
+    async def update_workspaces(self, name: str, target_workspace_id: str, action: str, force_reindex: bool = False, task_id: str = None):
+        db = mongodb_manager.get_async_database()
+        doc = await db.documents.find_one({"filename": name})
+        if not doc:
+            raise NotFoundError(f"Document '{name}' not found.")
+
+        if action == "share":
+            if target_workspace_id in doc.get("shared_with", []):
+                raise ConflictError(f"Document '{name}' already shared with workspace '{target_workspace_id}'.")
+            
+            await db.documents.update_one(
+                {"_id": doc["_id"]},
+                {"$addToSet": {"shared_with": target_workspace_id}}
+            )
+            logger.info("document_shared", filename=name, target_workspace_id=target_workspace_id)
+            
+            # Trigger indexing in the target workspace if not already indexed
+            await self.index_document(doc["id"], target_workspace_id, force=force_reindex, task_id=task_id)
+
+        elif action == "unshare":
+            if target_workspace_id not in doc.get("shared_with", []):
+                raise NotFoundError(f"Document '{name}' is not shared with workspace '{target_workspace_id}'.")
+            
+            await db.documents.update_one(
+                {"_id": doc["_id"]},
+                {"$pull": {"shared_with": target_workspace_id}}
+            )
+            logger.info("document_unshared", filename=name, target_workspace_id=target_workspace_id)
+
+            # Clean up vector store entries for this specific workspace
+            target_settings = await settings_manager.get_settings(target_workspace_id)
+            coll = qdrant.get_collection_name(target_settings.embedding_dim)
+            if await qdrant.client.collection_exists(coll):
+                await qdrant.client.delete(
+                    collection_name=coll,
+                    points_selector=qmodels.Filter(must=[
+                        qmodels.FieldCondition(key="doc_id", match=qmodels.MatchValue(value=doc["id"])),
+                        qmodels.FieldCondition(key="workspace_id", match=qmodels.MatchValue(value=target_workspace_id))
+                    ])
+                )
+        else:
+            raise ValidationError(f"Invalid action: {action}")
 
     @staticmethod
     async def list_by_workspace(workspace_id: str) -> List[Dict]:
@@ -323,6 +487,34 @@ class DocumentService:
         workspaces = await ws_cursor.to_list(length=1000)
         ws_map = {ws.get("id", ""): ws.get("name", "Unknown") for ws in workspaces if ws.get("id")}
         
+        for d in docs:
+            if "_id" in d:
+                d["_id"] = str(d["_id"])
+            d["name"] = d.get("filename")
+            d["workspace_name"] = ws_map.get(d.get("workspace_id", ""), "Unknown Workspace")
+        return docs
+
+    @staticmethod
+    async def list_vault() -> List[Dict]:
+        """Returns unique documents in the vault, deduped by content_hash."""
+        db = mongodb_manager.get_async_database()
+        pipeline = [
+            {"$sort": {"updated_at": -1}},
+            {
+                "$group": {
+                    "_id": "$content_hash",
+                    "doc": {"$first": "$$ROOT"}
+                }
+            },
+            {"$replaceRoot": {"newRoot": "$doc"}}
+        ]
+        cursor = db.documents.aggregate(pipeline)
+        docs = await cursor.to_list(length=1000)
+        
+        ws_cursor = db.workspaces.find({}, {"id": 1, "name": 1})
+        workspaces = await ws_cursor.to_list(length=1000)
+        ws_map = {ws.get("id", ""): ws.get("name", "Unknown") for ws in workspaces if ws.get("id")}
+
         for d in docs:
             if "_id" in d:
                 d["_id"] = str(d["_id"])
@@ -504,9 +696,11 @@ class DocumentService:
             logger.error("inspect_failed", name=name, error=str(e))
             return []
 
-    @staticmethod
-    async def update_workspaces(name: str, target_workspace_id: str, action: str, force_reindex: bool = False):
-        """Cross-workspace orchestration (move/share) with RAG Config auditing."""
+    async def update_workspaces(self, name: str, target_workspace_id: str, action: str, force_reindex: bool = False, task_id: str = None):
+        """Cross-workspace orchestration (move/share/link) with RAG Config auditing."""
+        if task_id and await task_service.is_cancelled(task_id):
+            return
+
         db = mongodb_manager.get_async_database()
         res = await db.documents.find_one({"filename": name})
         if not res:
@@ -515,7 +709,30 @@ class DocumentService:
         target_settings = await settings_manager.get_settings(target_workspace_id)
         target_rag_hash = target_settings.get_rag_hash()
         
-        # AUDIT: Check if target config matches existing embeddings
+        # 1. LINK ACTION (Branching): Create a new record for this content in the target workspace
+        if action == "link":
+            # Check if already exists in target
+            exists = await db.documents.find_one({"workspace_id": target_workspace_id, "content_hash": res["content_hash"]})
+            if exists:
+                return # Already exists
+                
+            new_id = str(uuid.uuid4())[:8]
+            new_doc = res.copy()
+            if "_id" in new_doc: del new_doc["_id"]
+            new_doc["id"] = new_id
+            new_doc["workspace_id"] = target_workspace_id
+            new_doc["shared_with"] = []
+            new_doc["status"] = "uploaded" 
+            new_doc["rag_config_hash"] = target_rag_hash
+            new_doc["created_at"] = datetime.utcnow().isoformat()
+            new_doc["updated_at"] = new_doc["created_at"]
+            
+            await db.documents.insert_one(new_doc)
+            # Trigger indexing for the NEW branched record
+            await self.index_document(new_id, target_workspace_id, task_id=task_id)
+            return
+
+        # 2. MOVE/SHARE ACTIONS: Auditing and in-place updates
         is_config_compatible = res.get("rag_config_hash") == target_rag_hash
         
         if not is_config_compatible and not force_reindex:
@@ -525,18 +742,14 @@ class DocumentService:
             )
 
         if force_reindex or (not is_config_compatible) or res["status"] != "indexed":
-            # Explicit Interaction: Add to workspace triggers indexing
-            await self.index_document(res["id"], target_workspace_id)
-            # Fetch updated record
+            # Re-index original record if sharing/moving to incompatible space
+            await self.index_document(res["id"], target_workspace_id, force=(force_reindex or not is_config_compatible), task_id=task_id)
             res = await db.documents.find_one({"id": res["id"]})
 
-        # Update MongoDB Association
         if action == "move":
             source_ws_id = res["workspace_id"]
-            # 1. Update ownership in DB
             await db.documents.update_one({"id": res["id"]}, {"$set": {"workspace_id": target_workspace_id}})
             
-            # 2. Cleanup source index (if it's a different workspace)
             if source_ws_id != target_workspace_id:
                 source_settings = await settings_manager.get_settings(source_ws_id)
                 source_coll = qdrant.get_collection_name(source_settings.embedding_dim)
@@ -550,5 +763,7 @@ class DocumentService:
                     )
         elif action == "share":
             await db.documents.update_one({"id": res["id"]}, {"$addToSet": {"shared_with": target_workspace_id}})
+            updated_doc = await db.documents.find_one({"id": res["id"]})
+            await qdrant.sync_shared_with(res["id"], updated_doc.get("shared_with", []))
 
 document_service = DocumentService()

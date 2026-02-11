@@ -444,6 +444,21 @@ class QdrantProvider:
                     }
             return centroids
 
+    async def sync_shared_with(self, doc_id: str, shared_with: List[str]):
+        """Update shared_with list in Qdrant payloads for all points of a document."""
+        with tracer.start_as_current_span("qdrant.sync_shared_with", attributes={"doc_id": doc_id}):
+            # Iterate through known potential collections
+            for dim in [384, 512, 768, 896, 1024, 1536, 1792, 3072]:
+                coll = f"knowledge_base_{dim}"
+                if await self.client.collection_exists(coll):
+                    await self.client.set_payload(
+                        collection_name=coll,
+                        payload={"shared_with": shared_with},
+                        points_selector=qmodels.Filter(must=[
+                            qmodels.FieldCondition(key="doc_id", match=qmodels.MatchValue(value=doc_id))
+                        ])
+                    )
+            logger.info("qdrant_shared_with_synced", doc_id=doc_id, count=len(shared_with))
 
 # Global instance (fixed: removed duplicate)
 qdrant = QdrantProvider()

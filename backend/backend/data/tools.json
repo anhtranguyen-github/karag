@@ -1,0 +1,10 @@
+[
+  {
+    "id": "calculator",
+    "name": "calculator",
+    "description": "Evaluate a mathematical expression safely.",
+    "type": "system",
+    "enabled": true,
+    "config": {}
+  }
+]
