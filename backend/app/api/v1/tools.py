@@ -4,6 +4,7 @@ from backend.app.tools.manager import tool_manager
 from backend.app.tools.schemas import ToolDefinition
 
 from backend.app.core.exceptions import ValidationError, NotFoundError, ConflictError
+from backend.app.schemas.base import AppResponse
 
 router = APIRouter(prefix="/tools", tags=["tools"])
 
@@ -12,13 +13,17 @@ async def list_tools():
     """List all available tools and their status."""
     return tool_manager.get_tool_definitions()
 
-@router.post("/", response_model=ToolDefinition)
+@router.post("/")
 async def add_tool(tool: ToolDefinition):
     """Register a new tool (Custom/MCP)."""
     # Basic validation: ensure ID is unique
     if tool_manager.get_tool_definition(tool.id):
-        raise ConflictError(f"Tool with ID '{tool.id}' already exists")
-    return tool_manager.add_tool(tool)
+        return AppResponse.business_failure(
+            code="DUPLICATE_TOOL",
+            message=f"Tool with ID '{tool.id}' already exists"
+        )
+    result = tool_manager.add_tool(tool)
+    return AppResponse.success_response(data=result, message=f"Tool '{tool.id}' registered")
 
 @router.post("/{tool_id}/toggle", response_model=ToolDefinition)
 async def toggle_tool(tool_id: str, enabled: bool):
@@ -36,7 +41,13 @@ async def delete_tool(tool_id: str):
     if not tool:
         raise NotFoundError(f"Tool '{tool_id}' not found")
     if tool.type == "system":
-        raise ValidationError("Cannot delete system protected tools")
+        return AppResponse.business_failure(
+            code="PROTECTED_TOOL",
+            message="Cannot delete system protected tools"
+        )
     
     tool_manager.delete_tool(tool_id)
-    return {"status": "success", "message": f"Tool {tool_id} deleted"}
+    return AppResponse(
+        code="TOOL_DELETED",
+        message=f"Tool {tool_id} deleted"
+    )

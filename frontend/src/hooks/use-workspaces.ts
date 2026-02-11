@@ -104,22 +104,24 @@ export function useWorkspaces() {
             });
             const data = await res.json();
 
-            if (res.ok) {
+            if (res.ok && data.success) {
                 await fetchWorkspaces();
-                return { success: true, workspace: data };
+                return { success: true, workspace: data.data };
             } else {
                 // Structured Error Handling (Code-based contract)
                 let title = "Unable to Create Workspace";
-                let message = data.detail || "System rejected creation request.";
+                let message = data.message || data.detail || "System rejected creation request.";
 
                 switch (data.code) {
-                    case "CONFLICT_ERROR":
+                    case "DUPLICATE_NAME":
                         title = "Name Unavailable";
                         message = "A workspace with this name already exists.";
                         break;
-                    case "VALIDATION_ERROR":
+                    case "INVALID_NAME":
                         title = "Invalid Name Format";
-                        message = data.detail; // Backend provides specifics
+                        break;
+                    case "VALIDATION_ERROR":
+                        title = "Input Validation Error";
                         break;
                     default:
                         if (res.status >= 500) {
@@ -128,7 +130,7 @@ export function useWorkspaces() {
                         }
                 }
 
-                showError(title, message, data.params ? JSON.stringify(data.params) : undefined);
+                showError(title, message, data.data ? JSON.stringify(data.data) : (data.params ? JSON.stringify(data.params) : undefined));
                 return { success: false, error: message };
             }
         } catch (err) {

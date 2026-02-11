@@ -61,9 +61,10 @@ async def test_workspace_service_create(mocker):
     # Mock settings manager to avoid real DB calls during workspace creation
     mocker.patch("backend.app.core.settings_manager.settings_manager.update_settings", new=AsyncMock())
     
-    ws = await workspace_service.create({"name": "New Workspace", "description": "Description"})
-    assert ws["name"] == "New Workspace"
-    assert len(ws["id"]) == 8
+    ws_result = await workspace_service.create({"name": "New Workspace", "description": "Description"})
+    assert ws_result["status"] == "success"
+    assert ws_result["data"]["name"] == "New Workspace"
+    assert len(ws_result["data"]["id"]) == 8
     assert mock_col.insert_one.call_count == 2
 
 @pytest.mark.asyncio
@@ -79,13 +80,13 @@ async def test_document_service_delete(mocker):
     mock_col.find_one.return_value = mock_doc
     
     mocker.patch("backend.app.core.mongodb.mongodb_manager.get_async_database", return_value=mock_db)
-    mock_minio = mocker.patch("backend.app.services.document_service.minio_manager.delete_file")
+    mock_minio = mocker.patch("backend.app.services.document.storage_service.minio_manager.delete_file")
     
     # Mock Qdrant client methods
     mock_qdrant_client = MagicMock()
     mock_qdrant_client.collection_exists = AsyncMock(return_value=False) # Skip qdrant loops for simplicity
     mock_qdrant_client.delete = AsyncMock()
-    mocker.patch("backend.app.services.document_service.qdrant.client", mock_qdrant_client)
+    mocker.patch("backend.app.services.document.storage_service.qdrant.client", mock_qdrant_client)
     
     await document_service.delete("test.pdf", "default", vault_delete=True)
     

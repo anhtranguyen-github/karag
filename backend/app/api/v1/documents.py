@@ -1,8 +1,10 @@
+from typing import Optional
 from fastapi import APIRouter, Request, UploadFile, File, BackgroundTasks
 from backend.app.services.document_service import document_service
 from backend.app.services.task_service import task_service
 
 from backend.app.core.exceptions import ValidationError, NotFoundError
+from backend.app.schemas.base import AppResponse
 
 router = APIRouter(tags=["documents"])
 
@@ -11,22 +13,19 @@ router = APIRouter(tags=["documents"])
 async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    workspace_id: str = "default"
+    workspace_id: str = "default",
+    strategy: Optional[str] = None
 ):
-    task_id, content, filename, content_type, duplicate_info = await document_service.upload(file, workspace_id)
+    result = await document_service.upload(file, workspace_id, strategy=strategy)
+    
+    if result["status"] == "success":
+        # Dispatch background task
+        background_tasks.add_task(
+            document_service.run_ingestion,
+            result["task_id"], result["filename"], result["content"], result["content_type"], workspace_id
+        )
 
-    # Dispatch background task
-    background_tasks.add_task(
-        document_service.run_ingestion,
-        task_id, filename, content, content_type, workspace_id
-    )
-
-    return {
-        "status": "pending",
-        "task_id": task_id,
-        "message": "Ingestion started in background.",
-        "duplicate": duplicate_info
-    }
+    return AppResponse.from_result(result)
 
 
 @router.post("/upload-arxiv")
@@ -37,23 +36,23 @@ async def upload_arxiv_document(
 ):
     data = await request.json()
     arxiv_url = data.get("url")
+    strategy = data.get("strategy")
     if not arxiv_url:
-        raise ValidationError("arXiv URL or ID is required")
+        return AppResponse.business_failure(
+            code="MISSING_URL",
+            message="arXiv URL or ID is required"
+        )
 
-    task_id, content, filename, content_type, duplicate_info = await document_service.upload_arxiv(arxiv_url, workspace_id)
+    result = await document_service.upload_arxiv(arxiv_url, workspace_id, strategy=strategy)
 
-    # Dispatch background task
-    background_tasks.add_task(
-        document_service.run_ingestion,
-        task_id, filename, content, content_type, workspace_id
-    )
+    if result["status"] == "success":
+        # Dispatch background task
+        background_tasks.add_task(
+            document_service.run_ingestion,
+            result["task_id"], result["filename"], result["content"], result["content_type"], workspace_id
+        )
 
-    return {
-        "status": "pending",
-        "task_id": task_id,
-        "message": f"ArXiv paper '{filename}' downloading and ingestion started.",
-        "duplicate": duplicate_info
-    }
+    return AppResponse.from_result(result)
 
 
 @router.get("/documents")
@@ -70,23 +69,7 @@ async def list_all_documents():
 async def list_vault_documents():
     return await document_service.list_vault()
 
-
-@router.get("/documents/{name:path}")
-async def get_document(name: str):
-    doc = await document_service.get_by_id_or_name(name)
-    if not doc:
-        raise NotFoundError(f"Document '{name}' not found")
-
-    content = await document_service.get_content(name)
-    doc["content"] = content
-    return doc
-
-
-@router.delete("/documents/{name:path}")
-async def delete_document(name: str, workspace_id: str = "default", vault_delete: bool = False):
-    await document_service.delete(name, workspace_id, vault_delete=vault_delete)
-    return {"status": "success", "message": f"Document {name} deleted."}
-
+# --- Specific Document Sub-Resources (Must come before generic {name:path}) ---
 
 @router.get("/documents/{name:path}/chunks")
 async def get_document_chunks(name: str, limit: int = 100):
@@ -146,6 +129,21 @@ async def update_document_workspaces(
     if not name or not target_workspace_id:
         raise ValidationError("Name and target_workspace_id are required")
 
+    # Early validation for Incompatible Workspaces (Domain Conflict)
+    if not force_reindex and action in ["move", "share"]:
+        from backend.app.core.settings_manager import settings_manager
+        from backend.app.core.exceptions import ConflictError
+        
+        doc = await document_service.get_by_id_or_name(name)
+        if doc and doc.get("status") == "indexed":
+            target_settings = await settings_manager.get_settings(target_workspace_id)
+            target_rag_hash = target_settings.get_rag_hash()
+            if doc.get("rag_config_hash") != target_rag_hash:
+                raise ConflictError(
+                    message=f"Incompatible Workspace: Target RAG config ({target_rag_hash}) differs from Document ({doc.get('rag_config_hash')})",
+                    params={"type": "rag_mismatch", "expected": doc.get("rag_config_hash"), "actual": target_rag_hash}
+                )
+
     task_id = await task_service.create_task("workspace_op", {
         "filename": name,
         "workspace_id": target_workspace_id,
@@ -162,3 +160,24 @@ async def update_document_workspaces(
         "task_id": task_id,
         "message": f"Document {action} operation started in background."
     }
+
+# --- Generic Document Operations ---
+
+@router.get("/documents/{name:path}")
+async def get_document(name: str):
+    doc = await document_service.get_by_id_or_name(name)
+    if not doc:
+        raise NotFoundError(f"Document '{name}' not found")
+
+    content = await document_service.get_content(name)
+    doc["content"] = content
+    return doc
+
+
+@router.delete("/documents/{name:path}")
+async def delete_document(name: str, workspace_id: str = "default", vault_delete: bool = False):
+    await document_service.delete(name, workspace_id, vault_delete=vault_delete)
+    return AppResponse(
+        code="DOCUMENT_DELETED",
+        message=f"Document '{name}' deleted successfully."
+    )
