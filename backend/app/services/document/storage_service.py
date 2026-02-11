@@ -69,3 +69,42 @@ class StorageService:
                         qmodels.FieldCondition(key="workspace_id", match=qmodels.MatchValue(value=workspace_id))
                     ])
                 )
+    
+    async def delete_many(self, workspace_id: str, delete_content: bool = False):
+        """Batch delete documents associated with a workspace."""
+        db = mongodb_manager.get_async_database()
+
+        if delete_content:
+            # Full deletion logic for owned documents
+            cursor = db.documents.find({"workspace_id": workspace_id})
+            docs = await cursor.to_list(1000)
+            
+            for doc in docs:
+                await self.delete(doc["filename"], workspace_id, vault_delete=True)
+
+            # Cleanup shared references where this workspace is a target
+            await db.documents.update_many(
+                {"shared_with": workspace_id},
+                {"$pull": {"shared_with": workspace_id}}
+            )
+        else:
+            # Soft delete logic: Move owned to vault, remove shared
+            await db.documents.update_many(
+                {"workspace_id": workspace_id},
+                {"$set": {"workspace_id": "vault"}}
+            )
+            await db.documents.update_many(
+                {"shared_with": workspace_id},
+                {"$pull": {"shared_with": workspace_id}}
+            )
+            
+            # Batch remove vector points
+            target_settings = await settings_manager.get_settings(workspace_id)
+            coll = qdrant.get_collection_name(target_settings.embedding_dim)
+            if await qdrant.client.collection_exists(coll):
+                await qdrant.client.delete(
+                    collection_name=coll,
+                    points_selector=qmodels.Filter(must=[
+                        qmodels.FieldCondition(key="workspace_id", match=qmodels.MatchValue(value=workspace_id))
+                    ])
+                )

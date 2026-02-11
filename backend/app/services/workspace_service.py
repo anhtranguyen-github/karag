@@ -9,16 +9,41 @@ class WorkspaceService:
     @staticmethod
     async def list_all() -> List[Dict]:
         db = mongodb_manager.get_async_database()
-        cursor = db.workspaces.find()
-        workspaces = await cursor.to_list(length=100)
         
-        enhanced = []
-        for ws in workspaces:
-            thread_count = await db["thread_metadata"].count_documents({"workspace_id": ws["id"]})
-            doc_count = await db["documents"].count_documents({"workspace_id": ws["id"]})
-            ws["stats"] = {"thread_count": thread_count, "doc_count": doc_count}
-            enhanced.append(ws)
-        return enhanced
+        # Optimized Aggregation Pipeline to avoid N+1 queries
+        pipeline = [
+            {
+                "$lookup": {
+                    "from": "documents",
+                    "localField": "id",
+                    "foreignField": "workspace_id",
+                    "as": "docs"
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "thread_metadata",
+                    "localField": "id",
+                    "foreignField": "workspace_id",
+                    "as": "threads"
+                }
+            },
+            {
+                "$project": {
+                    "id": 1,
+                    "name": 1, 
+                    "description": 1,
+                    "created_at": 1,
+                    "updated_at": 1,
+                    "stats": {
+                        "doc_count": {"$size": "$docs"},
+                        "thread_count": {"$size": "$threads"}
+                    }
+                }
+            }
+        ]
+        
+        return await db.workspaces.aggregate(pipeline).to_list(100)
 
     @staticmethod
     async def create(data: Dict[str, Any]) -> Dict[str, Any]:
@@ -152,18 +177,9 @@ class WorkspaceService:
         db = mongodb_manager.get_async_database()
         
         # 1. Handle associated documents
-        # Fetch docs owned by or shared with this workspace
-        owned_docs = await db.documents.find({"workspace_id": workspace_id}).to_list(1000)
-        shared_docs = await db.documents.find({"shared_with": workspace_id}).to_list(1000)
-        
+        # Batch delete using StorageService optimized method
         from backend.app.services.document_service import document_service
-        # For owned docs, apply chosen vault_delete logic
-        for doc in owned_docs:
-            await document_service.delete(doc["filename"], workspace_id, vault_delete=vault_delete)
-            
-        # For shared docs, we just remove the share association regardless
-        for doc in shared_docs:
-            await document_service.delete(doc["filename"], workspace_id, vault_delete=False)
+        await document_service.delete_many(workspace_id, delete_content=vault_delete)
 
         # 2. Cleanup workspace meta
         await db.workspaces.delete_one({"id": workspace_id})
