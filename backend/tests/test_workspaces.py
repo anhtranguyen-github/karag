@@ -22,7 +22,7 @@ async def test_workspace_crud():
         # 1. Create
         res = await ac.post("/workspaces/", json={"name": ws_name, "description": "Initial"})
         assert res.status_code == 200
-        ws_id = res.json()["id"]
+        ws_id = res.json()["data"]["id"]
         
         # 2. Read (List)
         list_res = await ac.get("/workspaces/")
@@ -50,12 +50,12 @@ async def test_workspace_isolation():
         name1 = f"WS 1 {uuid.uuid4().hex[:6]}"
         ws1_res = await ac.post("/workspaces/", json={"name": name1})
         assert ws1_res.status_code == 200
-        ws1_id = ws1_res.json()["id"]
+        ws1_id = ws1_res.json()["data"]["id"]
         
         name2 = f"WS 2 {uuid.uuid4().hex[:6]}"
         ws2_res = await ac.post("/workspaces/", json={"name": name2})
         assert ws2_res.status_code == 200
-        ws2_id = ws2_res.json()["id"]
+        ws2_id = ws2_res.json()["data"]["id"]
         
         # Create a thread in WS 1 by manually inserting metadata and checkpoint
         db = mongodb_manager.get_async_database()
@@ -90,7 +90,7 @@ async def test_document_listing_isolation():
         name = f"Doc WS 1 {uuid.uuid4().hex[:6]}"
         res = await ac.post("/workspaces/", json={"name": name})
         assert res.status_code == 200
-        ws1_id = res.json()["id"]
+        ws1_id = res.json()["data"]["id"]
         
         # Listing should be empty for a new workspace
         res = await ac.get(f"/documents?workspace_id={ws1_id}")

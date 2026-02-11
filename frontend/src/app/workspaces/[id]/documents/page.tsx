@@ -12,6 +12,7 @@ import { useError } from '@/context/error-context';
 import { cn } from '@/lib/utils';
 import { DocumentGraph } from '@/components/documents/document-graph';
 import { getIllegalCharsFound } from '@/lib/constants';
+import { DuplicateModal } from '@/components/documents/duplicate-modal';
 
 interface Document {
     id: string;
@@ -37,6 +38,11 @@ export default function DocumentsPage() {
     const [viewMode, setViewMode] = useState<'grid' | 'list' | 'graph'>('list');
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+    // Conflict Management
+    const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
+    const [conflictData, setConflictData] = useState<any>(null);
+    const [pendingFile, setPendingFile] = useState<File | null>(null);
 
     const fetchDocuments = useCallback(async (showLoading = true) => {
         if (showLoading) setIsLoading(true);
@@ -113,16 +119,22 @@ export default function DocumentsPage() {
         return () => clearInterval(interval);
     }, [workspaceId, fetchDocuments, showError]);
 
-    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement> | null, strategy?: string) => {
+        let file = pendingFile;
+        if (e && e.target.files?.[0]) {
+            file = e.target.files[0];
+        }
+
         if (!file || !workspaceId) return;
 
-        // Optimistic Validation
-        const found = getIllegalCharsFound(file.name);
-        if (found.length > 0) {
-            showError("Invalid Filename", `The filename contains characters that are not allowed: ${found.join(' ')}. Please rename the file and try again.`);
-            if (fileInputRef.current) fileInputRef.current.value = '';
-            return;
+        // Optimistic Validation (only if not already validated)
+        if (!strategy) {
+            const found = getIllegalCharsFound(file.name);
+            if (found.length > 0) {
+                showError("Invalid Filename", `The filename contains characters that are not allowed: ${found.join(' ')}. Please rename the file and try again.`);
+                if (fileInputRef.current) fileInputRef.current.value = '';
+                return;
+            }
         }
 
         setIsUploading(true);
@@ -130,25 +142,34 @@ export default function DocumentsPage() {
         formData.append('file', file);
 
         try {
-            const res = await fetch(`${API_BASE_URL}/upload?workspace_id=${workspaceId}`, {
+            let url = `${API_BASE_URL}/upload?workspace_id=${workspaceId}`;
+            if (strategy) url += `&strategy=${strategy}`;
+
+            const res = await fetch(url, {
                 method: 'POST',
                 body: formData,
             });
 
-            if (res.ok) {
-                // Task is now handled by the polling effect
-                await res.json();
-            } else {
-                const data = await res.json();
-                let title = "Ingestion Rejected";
-                let message = data.detail || 'Upload failed';
+            const data = await res.json();
 
-                if (data.code === 'VALIDATION_ERROR') {
+            if (res.ok && data.success) {
+                setIsDuplicateModalOpen(false);
+                setPendingFile(null);
+                setConflictData(null);
+                // Task is now handled by the polling effect
+            } else if (data.code === 'DUPLICATE_DETECTED') {
+                // Duplicate detected
+                setConflictData(data.data);
+                setPendingFile(file);
+                setIsDuplicateModalOpen(true);
+            } else {
+                let title = "Ingestion Rejected";
+                let message = data.message || data.detail || 'Upload failed';
+
+                if (data.code === 'INVALID_FILENAME') {
                     title = "Invalid Filename";
-                    message = data.detail; // Backend gives specifics about invalid chars
                 } else if (data.code === 'CONFLICT_ERROR') {
                     title = "Duplicate Document";
-                    message = "A document with this name already exists in this workspace.";
                 }
 
                 showError(title, message, `File: ${file.name}`);
@@ -161,6 +182,10 @@ export default function DocumentsPage() {
             setIsUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
         }
+    };
+
+    const handleResolveDuplicate = (strategy: string) => {
+        handleUpload(null, strategy);
     };
 
     const handleDelete = async (filename: string) => {
@@ -214,7 +239,40 @@ export default function DocumentsPage() {
     const [arxivUrl, setArxivUrl] = useState('');
     const [isArxivLoading, setIsArxivLoading] = useState(false);
 
-    const handleArxivUpload = async () => {
+    const [arxivStrategy, setArxivStrategy] = useState<string | null>(null);
+
+    const handleArxivResolve = (strategy: string) => {
+        setIsDuplicateModalOpen(false);
+        // We reuse the same logic but with the saved arxivUrl
+        const retryArxiv = async () => {
+            setIsArxivLoading(true);
+            try {
+                const res = await fetch(`${API_BASE_URL}/upload-arxiv?workspace_id=${workspaceId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: arxivUrl, strategy }),
+                });
+
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    setIsArxivModalOpen(false);
+                    setArxivUrl('');
+                    setConflictData(null);
+                } else {
+                    showError("ArXiv Import Failed", data.message || data.detail || 'Failed to download paper', `Source: ${arxivUrl}`);
+                }
+            } catch (err) {
+                console.error('ArXiv retry error:', err);
+                showError("Network Error", "Could not connect to reasoning engine.");
+            } finally {
+                setIsArxivLoading(false);
+            }
+        };
+        retryArxiv();
+    };
+
+    const handleArxivUpload = async (strategy?: string) => {
         if (!arxivUrl || !workspaceId) return;
 
         setIsArxivLoading(true);
@@ -222,17 +280,21 @@ export default function DocumentsPage() {
             const res = await fetch(`${API_BASE_URL}/upload-arxiv?workspace_id=${workspaceId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: arxivUrl }),
+                body: JSON.stringify({ url: arxivUrl, strategy }),
             });
 
-            if (res.ok) {
+            const data = await res.json();
+
+            if (res.ok && data.success) {
                 setIsArxivModalOpen(false);
                 setArxivUrl('');
+                setConflictData(null);
                 // Task is now handled by the polling effect
-                await res.json();
+            } else if (data.code === 'DUPLICATE_DETECTED') {
+                setConflictData(data.data);
+                setIsDuplicateModalOpen(true);
             } else {
-                const data = await res.json();
-                showError("ArXiv Import Failed", data.detail || 'Failed to download paper', `Source: ${arxivUrl}`);
+                showError("ArXiv Import Failed", data.message || data.detail || 'Failed to download paper', `Source: ${arxivUrl}`);
             }
         } catch (err) {
             console.error('ArXiv error:', err);
@@ -492,6 +554,24 @@ export default function DocumentsPage() {
                     <DocumentGraph workspaceId={workspaceId} />
                 )}
             </div>
+
+            {/* Duplicate Conflict Resolution Modal */}
+            <DuplicateModal
+                isOpen={isDuplicateModalOpen}
+                onClose={() => {
+                    setIsDuplicateModalOpen(false);
+                    setPendingFile(null);
+                }}
+                conflict={conflictData}
+                isProcessing={isUploading || isArxivLoading}
+                onResolve={(strategy) => {
+                    if (pendingFile) {
+                        handleResolveDuplicate(strategy);
+                    } else {
+                        handleArxivResolve(strategy);
+                    }
+                }}
+            />
         </div>
     );
 }

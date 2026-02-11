@@ -3,6 +3,7 @@ from fastapi import APIRouter, Request
 from pydantic import BaseModel
 from backend.app.services.workspace_service import workspace_service
 from backend.app.core.exceptions import ValidationError, NotFoundError
+from backend.app.schemas.base import AppResponse
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
 
@@ -43,10 +44,11 @@ class WorkspaceUpdate(BaseModel):
 async def list_workspaces():
     return await workspace_service.list_all()
 
-@router.post("/", response_model=Workspace)
-@router.post("", response_model=Workspace)
+@router.post("/")
+@router.post("")
 async def create_workspace(ws: WorkspaceCreate):
-    return await workspace_service.create(ws.model_dump())
+    result = await workspace_service.create(ws.model_dump())
+    return AppResponse.from_result(result)
 
 @router.patch("/{workspace_id}", response_model=Workspace)
 async def update_workspace(workspace_id: str, ws: WorkspaceUpdate):

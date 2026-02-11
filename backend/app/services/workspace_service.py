@@ -27,20 +27,30 @@ class WorkspaceService:
         name = data.get("name", "").strip()
         
         if not name:
-            raise ValidationError("Workspace name cannot be empty.")
+            return {
+                "status": "error",
+                "code": "VALIDATION_ERROR",
+                "message": "Workspace name cannot be empty."
+            }
             
         from backend.app.core.constants import WORKSPACE_NAME_FORBIDDEN
         found_chars = [char for char in WORKSPACE_NAME_FORBIDDEN if char in name]
         if found_chars:
-            raise ValidationError(
-                message=f"Workspace name contains invalid characters: {' '.join(found_chars)}. These are reserved for system safety.",
-                params={"found": found_chars, "illegal": WORKSPACE_NAME_FORBIDDEN}
-            )
+            return {
+                "status": "error",
+                "code": "INVALID_NAME",
+                "message": f"Workspace name contains invalid characters: {' '.join(found_chars)}. These are reserved for system safety.",
+                "params": {"found": found_chars, "illegal": WORKSPACE_NAME_FORBIDDEN}
+            }
 
         # Check for duplicate name
         existing = await db.workspaces.find_one({"name": name})
         if existing:
-            raise ConflictError(f"A workspace with the name '{name}' already exists.")
+            return {
+                "status": "error",
+                "code": "DUPLICATE_NAME",
+                "message": f"A workspace with the name '{name}' already exists."
+            }
 
         workspace_id = str(uuid.uuid4())[:8]
         timestamp = datetime.utcnow().isoformat()
@@ -65,7 +75,15 @@ class WorkspaceService:
             **settings_to_apply
         })
 
-        return workspace
+        if "_id" in workspace:
+            workspace.pop("_id")
+
+        return {
+            "status": "success",
+            "code": "WORKSPACE_CREATED",
+            "message": f"Workspace '{name}' created successfully.",
+            "data": workspace
+        }
 
     @staticmethod
     async def ensure_default_workspace():

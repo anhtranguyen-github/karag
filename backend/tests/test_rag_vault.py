@@ -24,7 +24,9 @@ async def test_workspace_rag_configuration():
         }
         res = await ac.post("/workspaces/", json=payload)
         assert res.status_code == 200, res.text
-        data = res.json()
+        data_wrapper = res.json()
+        assert data_wrapper["success"] is True
+        data = data_wrapper["data"]
         assert "id" in data
         ws_id = data["id"]
         
@@ -43,23 +45,26 @@ async def test_document_sharing_dimension_conflict(mocker):
         ws1_name = f"Conflict Source {uuid.uuid4().hex[:6]}"
         ws1 = await ac.post("/workspaces/", json={"name": ws1_name, "embedding_dim": 1536})
         assert ws1.status_code == 200, ws1.text
-        ws1_id = ws1.json()["id"]
+        ws1_id = ws1.json()["data"]["id"]
         
         # 2. Create Target WS (Local 768)
         ws2_name = f"Conflict Target {uuid.uuid4().hex[:6]}"
         ws2 = await ac.post("/workspaces/", json={"name": ws2_name, "embedding_dim": 768})
         assert ws2.status_code == 200, ws2.text
-        ws2_id = ws2.json()["id"]
+        ws2_id = ws2.json()["data"]["id"]
         
         # 3. Create dummy doc record in DB
         db = mongodb_manager.get_async_database()
         doc_id = f"test_conflict_{uuid.uuid4().hex[:6]}"
         filename = f"conflict_{uuid.uuid4().hex[:6]}.pdf"
+        ws1_settings = await settings_manager.get_settings(ws1_id)
         await db.documents.insert_one({
             "id": doc_id,
             "filename": filename,
             "workspace_id": ws1_id,
             "minio_path": "any",
+            "status": "indexed",
+            "rag_config_hash": ws1_settings.get_rag_hash(),
             "shared_with": []
         })
         
