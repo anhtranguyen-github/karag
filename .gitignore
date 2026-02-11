@@ -32,6 +32,7 @@ dist/
 # Cache
 # ===================
 .cache/
+.ruff_cache/
 .turbo/
 .vercel/
 .netlify/
@@ -94,7 +95,7 @@ backend/app/tools/arxiv_downloader/downloads/
 # ===================
 .agent/
 .agents/
-.gemini/artifacts/
+.gemini/
 
 # ===================
 # Project Documentation
