@@ -57,6 +57,7 @@ export interface UploadArxivDocumentUploadArxivPostRequest {
 export interface UploadDocumentUploadPostRequest {
     file: Blob;
     workspaceId?: string;
+    strategy?: string | null;
 }
 
 /**
@@ -477,6 +478,10 @@ export class DocumentsApi extends runtime.BaseAPI {
 
         if (requestParameters['workspaceId'] != null) {
             queryParameters['workspace_id'] = requestParameters['workspaceId'];
+        }
+
+        if (requestParameters['strategy'] != null) {
+            queryParameters['strategy'] = requestParameters['strategy'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
