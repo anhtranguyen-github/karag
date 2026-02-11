@@ -7,6 +7,7 @@ apis/TasksApi.ts
 apis/ToolsApi.ts
 apis/WorkspacesApi.ts
 apis/index.ts
+docs/AppResponseListWorkspace.md
 docs/AppSettings.md
 docs/ChatApi.md
 docs/DocumentsApi.md
@@ -26,6 +27,7 @@ docs/WorkspaceStats.md
 docs/WorkspaceUpdate.md
 docs/WorkspacesApi.md
 index.ts
+models/AppResponseListWorkspace.ts
 models/AppSettings.ts
 models/HTTPValidationError.ts
 models/LocationInner.ts

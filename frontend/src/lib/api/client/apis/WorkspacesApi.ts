@@ -15,6 +15,7 @@
 
 import * as runtime from '../runtime';
 import type {
+  AppResponseListWorkspace,
   HTTPValidationError,
   Workspace,
   WorkspaceCreate,
@@ -22,6 +23,8 @@ import type {
   WorkspaceUpdate,
 } from '../models/index';
 import {
+    AppResponseListWorkspaceFromJSON,
+    AppResponseListWorkspaceToJSON,
     HTTPValidationErrorFromJSON,
     HTTPValidationErrorToJSON,
     WorkspaceFromJSON,
@@ -72,7 +75,7 @@ export class WorkspacesApi extends runtime.BaseAPI {
     /**
      * Create Workspace
      */
-    async createWorkspaceWorkspacesPostRaw(requestParameters: CreateWorkspaceWorkspacesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Workspace>> {
+    async createWorkspaceWorkspacesPostRaw(requestParameters: CreateWorkspaceWorkspacesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         if (requestParameters['workspaceCreate'] == null) {
             throw new runtime.RequiredError(
                 'workspaceCreate',
@@ -97,13 +100,17 @@ export class WorkspacesApi extends runtime.BaseAPI {
             body: WorkspaceCreateToJSON(requestParameters['workspaceCreate']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => WorkspaceFromJSON(jsonValue));
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
     }
 
     /**
      * Create Workspace
      */
-    async createWorkspaceWorkspacesPost(requestParameters: CreateWorkspaceWorkspacesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Workspace> {
+    async createWorkspaceWorkspacesPost(requestParameters: CreateWorkspaceWorkspacesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
         const response = await this.createWorkspaceWorkspacesPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -111,7 +118,7 @@ export class WorkspacesApi extends runtime.BaseAPI {
     /**
      * Create Workspace
      */
-    async createWorkspaceWorkspacesPost_1Raw(requestParameters: CreateWorkspaceWorkspacesPost0Request, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Workspace>> {
+    async createWorkspaceWorkspacesPost_1Raw(requestParameters: CreateWorkspaceWorkspacesPost0Request, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         if (requestParameters['workspaceCreate'] == null) {
             throw new runtime.RequiredError(
                 'workspaceCreate',
@@ -136,13 +143,17 @@ export class WorkspacesApi extends runtime.BaseAPI {
             body: WorkspaceCreateToJSON(requestParameters['workspaceCreate']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => WorkspaceFromJSON(jsonValue));
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
     }
 
     /**
      * Create Workspace
      */
-    async createWorkspaceWorkspacesPost_1(requestParameters: CreateWorkspaceWorkspacesPost0Request, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Workspace> {
+    async createWorkspaceWorkspacesPost_1(requestParameters: CreateWorkspaceWorkspacesPost0Request, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
         const response = await this.createWorkspaceWorkspacesPost_1Raw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -273,7 +284,7 @@ export class WorkspacesApi extends runtime.BaseAPI {
     /**
      * List Workspaces
      */
-    async listWorkspacesWorkspacesGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<Workspace>>> {
+    async listWorkspacesWorkspacesGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponseListWorkspace>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -288,13 +299,13 @@ export class WorkspacesApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(WorkspaceFromJSON));
+        return new runtime.JSONApiResponse(response, (jsonValue) => AppResponseListWorkspaceFromJSON(jsonValue));
     }
 
     /**
      * List Workspaces
      */
-    async listWorkspacesWorkspacesGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<Workspace>> {
+    async listWorkspacesWorkspacesGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponseListWorkspace> {
         const response = await this.listWorkspacesWorkspacesGetRaw(initOverrides);
         return await response.value();
     }
@@ -302,7 +313,7 @@ export class WorkspacesApi extends runtime.BaseAPI {
     /**
      * List Workspaces
      */
-    async listWorkspacesWorkspacesGet_2Raw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<Workspace>>> {
+    async listWorkspacesWorkspacesGet_2Raw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponseListWorkspace>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -317,13 +328,13 @@ export class WorkspacesApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(WorkspaceFromJSON));
+        return new runtime.JSONApiResponse(response, (jsonValue) => AppResponseListWorkspaceFromJSON(jsonValue));
     }
 
     /**
      * List Workspaces
      */
-    async listWorkspacesWorkspacesGet_2(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<Workspace>> {
+    async listWorkspacesWorkspacesGet_2(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponseListWorkspace> {
         const response = await this.listWorkspacesWorkspacesGet_2Raw(initOverrides);
         return await response.value();
     }

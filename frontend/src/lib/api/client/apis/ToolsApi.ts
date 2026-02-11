@@ -47,7 +47,7 @@ export class ToolsApi extends runtime.BaseAPI {
      * Register a new tool (Custom/MCP).
      * Add Tool
      */
-    async addToolToolsPostRaw(requestParameters: AddToolToolsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ToolDefinition>> {
+    async addToolToolsPostRaw(requestParameters: AddToolToolsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         if (requestParameters['toolDefinition'] == null) {
             throw new runtime.RequiredError(
                 'toolDefinition',
@@ -72,14 +72,18 @@ export class ToolsApi extends runtime.BaseAPI {
             body: ToolDefinitionToJSON(requestParameters['toolDefinition']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => ToolDefinitionFromJSON(jsonValue));
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
     }
 
     /**
      * Register a new tool (Custom/MCP).
      * Add Tool
      */
-    async addToolToolsPost(requestParameters: AddToolToolsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ToolDefinition> {
+    async addToolToolsPost(requestParameters: AddToolToolsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
         const response = await this.addToolToolsPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
