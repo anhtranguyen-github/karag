@@ -37,11 +37,20 @@ export interface GetDocumentDocumentsNameGetRequest {
     name: string;
 }
 
+export interface IndexDocumentDocumentsNameIndexPostRequest {
+    name: string;
+    workspaceId?: string;
+}
+
 export interface InspectDocumentDocumentsNameInspectGetRequest {
     name: string;
 }
 
 export interface ListDocumentsDocumentsGetRequest {
+    workspaceId?: string;
+}
+
+export interface UploadArxivDocumentUploadArxivPostRequest {
     workspaceId?: string;
 }
 
@@ -191,6 +200,53 @@ export class DocumentsApi extends runtime.BaseAPI {
     }
 
     /**
+     * Non-blocking indexing: returns a task_id immediately.  The actual embedding and vector storage runs in the background. Poll GET /tasks/{task_id} for progress.
+     * Index Document
+     */
+    async indexDocumentDocumentsNameIndexPostRaw(requestParameters: IndexDocumentDocumentsNameIndexPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        if (requestParameters['name'] == null) {
+            throw new runtime.RequiredError(
+                'name',
+                'Required parameter "name" was null or undefined when calling indexDocumentDocumentsNameIndexPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['workspaceId'] != null) {
+            queryParameters['workspace_id'] = requestParameters['workspaceId'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/documents/{name}/index`;
+        urlPath = urlPath.replace(`{${"name"}}`, encodeURIComponent(String(requestParameters['name'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Non-blocking indexing: returns a task_id immediately.  The actual embedding and vector storage runs in the background. Poll GET /tasks/{task_id} for progress.
+     * Index Document
+     */
+    async indexDocumentDocumentsNameIndexPost(requestParameters: IndexDocumentDocumentsNameIndexPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.indexDocumentDocumentsNameIndexPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Inspect Document
      */
     async inspectDocumentDocumentsNameInspectGetRaw(requestParameters: InspectDocumentDocumentsNameInspectGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
@@ -302,6 +358,40 @@ export class DocumentsApi extends runtime.BaseAPI {
     }
 
     /**
+     * List Vault Documents
+     */
+    async listVaultDocumentsVaultGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/vault`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * List Vault Documents
+     */
+    async listVaultDocumentsVaultGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.listVaultDocumentsVaultGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Non-blocking workspace operations (link, move, share).  Returns a task_id immediately for long-running operations (link, move with reindex). Poll GET /tasks/{task_id} for progress.
      * Update Document Workspaces
      */
     async updateDocumentWorkspacesDocumentsUpdateWorkspacesPostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
@@ -327,10 +417,48 @@ export class DocumentsApi extends runtime.BaseAPI {
     }
 
     /**
+     * Non-blocking workspace operations (link, move, share).  Returns a task_id immediately for long-running operations (link, move with reindex). Poll GET /tasks/{task_id} for progress.
      * Update Document Workspaces
      */
     async updateDocumentWorkspacesDocumentsUpdateWorkspacesPost(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
         const response = await this.updateDocumentWorkspacesDocumentsUpdateWorkspacesPostRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Upload Arxiv Document
+     */
+    async uploadArxivDocumentUploadArxivPostRaw(requestParameters: UploadArxivDocumentUploadArxivPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['workspaceId'] != null) {
+            queryParameters['workspace_id'] = requestParameters['workspaceId'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/upload-arxiv`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Upload Arxiv Document
+     */
+    async uploadArxivDocumentUploadArxivPost(requestParameters: UploadArxivDocumentUploadArxivPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.uploadArxivDocumentUploadArxivPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

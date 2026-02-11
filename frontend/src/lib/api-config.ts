@@ -17,6 +17,7 @@ export const API_ROUTES = {
     DOCUMENTS: `${API_BASE_URL}/documents`,
     DOCUMENTS_ALL: `${API_BASE_URL}/documents-all`,
     DOCUMENTS_UPDATE_WS: `${API_BASE_URL}/documents/update-workspaces`,
+    VAULT: `${API_BASE_URL}/vault`,
     DOCUMENT_GET: (name: string) => `${API_BASE_URL}/documents/${encodeURIComponent(name)}`,
     DOCUMENT_DELETE: (name: string) => `${API_BASE_URL}/documents/${encodeURIComponent(name)}`,
     UPLOAD: `${API_BASE_URL}/upload`,

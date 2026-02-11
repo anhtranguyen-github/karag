@@ -22,12 +22,25 @@ import {
     HTTPValidationErrorToJSON,
 } from '../models/index';
 
+export interface CancelTaskTasksTaskIdCancelPostRequest {
+    taskId: string;
+}
+
+export interface CleanupTasksTasksCleanupDeleteRequest {
+    olderThanHours?: number;
+}
+
 export interface GetTaskStatusTasksTaskIdGetRequest {
     taskId: string;
 }
 
 export interface ListTasksTasksGetRequest {
     type?: string;
+    workspaceId?: string;
+}
+
+export interface RetryTaskTasksTaskIdRetryPostRequest {
+    taskId: string;
 }
 
 /**
@@ -36,6 +49,89 @@ export interface ListTasksTasksGetRequest {
 export class TasksApi extends runtime.BaseAPI {
 
     /**
+     * Cancel a pending or processing task.
+     * Cancel Task
+     */
+    async cancelTaskTasksTaskIdCancelPostRaw(requestParameters: CancelTaskTasksTaskIdCancelPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        if (requestParameters['taskId'] == null) {
+            throw new runtime.RequiredError(
+                'taskId',
+                'Required parameter "taskId" was null or undefined when calling cancelTaskTasksTaskIdCancelPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/tasks/{task_id}/cancel`;
+        urlPath = urlPath.replace(`{${"task_id"}}`, encodeURIComponent(String(requestParameters['taskId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Cancel a pending or processing task.
+     * Cancel Task
+     */
+    async cancelTaskTasksTaskIdCancelPost(requestParameters: CancelTaskTasksTaskIdCancelPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.cancelTaskTasksTaskIdCancelPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Remove completed/failed tasks older than the given number of hours.
+     * Cleanup Tasks
+     */
+    async cleanupTasksTasksCleanupDeleteRaw(requestParameters: CleanupTasksTasksCleanupDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['olderThanHours'] != null) {
+            queryParameters['older_than_hours'] = requestParameters['olderThanHours'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/tasks/cleanup`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Remove completed/failed tasks older than the given number of hours.
+     * Cleanup Tasks
+     */
+    async cleanupTasksTasksCleanupDelete(requestParameters: CleanupTasksTasksCleanupDeleteRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.cleanupTasksTasksCleanupDeleteRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get the current status of a specific task.
      * Get Task Status
      */
     async getTaskStatusTasksTaskIdGetRaw(requestParameters: GetTaskStatusTasksTaskIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
@@ -69,6 +165,7 @@ export class TasksApi extends runtime.BaseAPI {
     }
 
     /**
+     * Get the current status of a specific task.
      * Get Task Status
      */
     async getTaskStatusTasksTaskIdGet(requestParameters: GetTaskStatusTasksTaskIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
@@ -77,6 +174,7 @@ export class TasksApi extends runtime.BaseAPI {
     }
 
     /**
+     * List tasks, optionally filtered by type and workspace.
      * List Tasks
      */
     async listTasksTasksGetRaw(requestParameters: ListTasksTasksGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
@@ -84,6 +182,10 @@ export class TasksApi extends runtime.BaseAPI {
 
         if (requestParameters['type'] != null) {
             queryParameters['type'] = requestParameters['type'];
+        }
+
+        if (requestParameters['workspaceId'] != null) {
+            queryParameters['workspace_id'] = requestParameters['workspaceId'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -106,10 +208,54 @@ export class TasksApi extends runtime.BaseAPI {
     }
 
     /**
+     * List tasks, optionally filtered by type and workspace.
      * List Tasks
      */
     async listTasksTasksGet(requestParameters: ListTasksTasksGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
         const response = await this.listTasksTasksGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Mark a failed task as retryable and re-dispatch it to background workers.
+     * Retry Task
+     */
+    async retryTaskTasksTaskIdRetryPostRaw(requestParameters: RetryTaskTasksTaskIdRetryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        if (requestParameters['taskId'] == null) {
+            throw new runtime.RequiredError(
+                'taskId',
+                'Required parameter "taskId" was null or undefined when calling retryTaskTasksTaskIdRetryPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/tasks/{task_id}/retry`;
+        urlPath = urlPath.replace(`{${"task_id"}}`, encodeURIComponent(String(requestParameters['taskId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Mark a failed task as retryable and re-dispatch it to background workers.
+     * Retry Task
+     */
+    async retryTaskTasksTaskIdRetryPost(requestParameters: RetryTaskTasksTaskIdRetryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.retryTaskTasksTaskIdRetryPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

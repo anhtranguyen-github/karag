@@ -8,12 +8,14 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "LangGraph Chatbot",
-  description: "AI Agent with Reasoning Capabilities",
+  title: "ScienChan — Intelligence Vault",
+  description: "Multi-Workspace RAG Chat & Document Analysis",
 };
 
 import { ErrorProvider } from "@/context/error-context";
 import { SearchProvider } from "@/context/search-context";
+import { TaskProvider } from "@/context/task-context";
+import { JobPanel } from "@/components/job-panel";
 
 export default function RootLayout({
   children,
@@ -27,7 +29,10 @@ export default function RootLayout({
       >
         <ErrorProvider>
           <SearchProvider>
-            {children}
+            <TaskProvider>
+              {children}
+              <JobPanel />
+            </TaskProvider>
           </SearchProvider>
         </ErrorProvider>
       </body>

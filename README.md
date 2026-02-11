@@ -40,7 +40,7 @@ Analytical summary of specific research projects.
   - **Reasoning**: Full chain-of-thought with detailed source citations.
 - **Global Search**: Unified search across documents, chat history, and workspaces.
 - **Advanced RAG Engines**: Support for various retrieval strategies including Vector search and Graph-based RAG.
-- **Document Ingestion**: Seamless ingestion of PDFs, Markdown, and text files with automated deduplication and global vault persistence.
+- **Document Ingestion**: Asynchronous, non-blocking ingestion of PDFs, Markdown, and ArXiv papers with background tracking, automated deduplication, and global vault persistence.
 - **Premium UI/UX**: Unified typography using the **Outfit** font and a dark-mode first design aesthetic.
 - **Provider Agnostic**: Configurable support for OpenAI, Anthropic, Ollama, and more.
 

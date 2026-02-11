@@ -164,12 +164,13 @@ start_backend() {
         exit 1
     fi
 
-    VENV_PYTHON="uv run"
+    VENV_PYTHON="uv run --project backend"
     echo -e "${CYAN}[SYSTEM] Using 'uv' for backend execution (Performance Mode)${NC}"
 
     if [ ! -d "backend/.venv" ]; then
         echo -e "${YELLOW}Initial setup: Synchronizing environment with uv...${NC}"
         uv sync --project backend
+        rm -rf backend/src # Prevent shadowing backend module
     fi
 
     if [ "$FORCE_CLEAN" = true ]; then
@@ -179,7 +180,8 @@ start_backend() {
     fi
     
     export PYTHONPATH=$PYTHONPATH:.
-    nohup "$VENV_PYTHON" backend/app/main.py > backend.log 2>&1 &
+    mkdir -p logs
+    nohup $VENV_PYTHON backend/app/main.py > logs/backend.log 2>&1 &
     B_PID=$!
     echo -n "Waiting for Backend..."
     count=0
@@ -188,7 +190,7 @@ start_backend() {
         sleep 1
         count=$((count+1))
         if ! ps -p $B_PID > /dev/null; then 
-            echo -e "${RED}\nBackend Died. Check backend.log${NC}"
+            echo -e "${RED}\nBackend Died. Check logs/backend.log${NC}"
             exit 1
         fi
         [ $count -ge 60 ] && { echo -e "${RED}\nTimeout.${NC}"; kill $B_PID; exit 1; }
@@ -208,7 +210,8 @@ start_frontend() {
     
     cd frontend
     [ ! -d "node_modules" ] && pnpm install
-    nohup pnpm run dev > ../frontend.log 2>&1 &
+    mkdir -p ../logs
+    nohup pnpm run dev > ../logs/frontend.log 2>&1 &
     F_PID=$!
     cd ..
     echo -n "Waiting..."
@@ -304,6 +307,7 @@ case "$COMMAND" in
         docker system prune -f
         kill_port $BACKEND_PORT
         kill_port $FRONTEND_PORT
+        rm -rf logs/
         rm -f backend.log frontend.log
         echo -e "${GREEN}Cleaned.${NC}"
         ;;

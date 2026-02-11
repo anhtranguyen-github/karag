@@ -1,0 +1,18 @@
+{
+    "llm_provider": "openai",
+    "llm_model": "gpt-4o",
+    "embedding_provider": "openai",
+    "embedding_model": "text-embedding-3-small",
+    "rag_engine": "basic",
+    "retrieval_mode": "hybrid",
+    "search_limit": 5,
+    "hybrid_alpha": 0.5,
+    "chunk_size": 800,
+    "chunk_overlap": 150,
+    "embedding_dim": 1536,
+    "neo4j_uri": null,
+    "neo4j_user": null,
+    "neo4j_password": null,
+    "theme": "dark",
+    "show_reasoning": true
+}

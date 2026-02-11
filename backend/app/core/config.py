@@ -42,6 +42,7 @@ class AISettings(BaseSettings):
     METRICS_ENABLED: bool = True  # Prometheus metrics at /metrics
     LOG_FORMAT: str = "json"  # "json" for production, "console" for dev
     LOG_LEVEL: str = "INFO"
+    LOG_FILE: Optional[str] = "logs/app.log"
     
     model_config = SettingsConfigDict(
         env_file=".env",
