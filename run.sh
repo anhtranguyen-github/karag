@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# ./run.sh turbo --llm openai --embedding openai --force-clean
+# ./run.sh clean
+
 # --- Configuration ---
 BACKEND_PORT=8000
 FRONTEND_PORT=3000

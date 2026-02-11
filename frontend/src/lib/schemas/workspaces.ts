@@ -1,12 +1,15 @@
 import { z } from 'zod';
 
 export const WorkspaceSchema = z.object({
-    id: z.string().length(8),
+    id: z.string(), // Backend uuid prefix might be <8 chars, let's relax length
     name: z.string().min(1, 'Name is required'),
-    embedding_dim: z.number().int().positive(),
-    rag_config_hash: z.string().optional(),
-    status: z.enum(['active', 'archived']).default('active'),
-    description: z.string().optional(),
+    description: z.string().nullable().optional(), // Backend sends null if None
+    stats: z.object({
+        thread_count: z.number().optional(),
+        doc_count: z.number().optional(),
+    }).optional().nullable(),
+    created_at: z.string().optional(),
+    updated_at: z.string().optional(),
 });
 
 export const CreateWorkspaceSchema = z.object({
