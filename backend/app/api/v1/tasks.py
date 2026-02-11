@@ -1,6 +1,7 @@
 from fastapi import APIRouter, BackgroundTasks
 from backend.app.services.task_service import task_service
 from backend.app.core.exceptions import NotFoundError
+from backend.app.schemas.base import AppResponse
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -9,7 +10,7 @@ router = APIRouter(prefix="/tasks", tags=["tasks"])
 async def list_tasks(type: str = None, workspace_id: str = None):
     """List tasks, optionally filtered by type and workspace."""
     tasks = await task_service.list_tasks(task_type=type, workspace_id=workspace_id)
-    return {"tasks": tasks}
+    return AppResponse.success_response(data=tasks)
 
 
 @router.get("/{task_id}")
@@ -18,7 +19,7 @@ async def get_task_status(task_id: str):
     task = await task_service.get_task(task_id)
     if not task:
         raise NotFoundError(f"Task '{task_id}' not found")
-    return task
+    return AppResponse.success_response(data=task)
 
 
 @router.post("/{task_id}/retry")
@@ -77,7 +78,7 @@ async def retry_task(task_id: str, background_tasks: BackgroundTasks):
     else:
         return {"status": "error", "message": f"Unknown task type: {task_type}"}
 
-    return {"status": "retrying", "task_id": task_id}
+    return AppResponse.success_response(data={"task_id": task_id}, message="Task retry initialized")
 
 
 @router.post("/{task_id}/cancel")
@@ -91,11 +92,11 @@ async def cancel_task(task_id: str):
         return {"status": "ignored", "message": f"Task already {task['status']}."}
 
     await task_service.cancel_task(task_id)
-    return {"status": "canceled", "task_id": task_id}
+    return AppResponse.success_response(data={"task_id": task_id}, message=f"Task {task_id} canceled")
 
 
 @router.delete("/cleanup")
 async def cleanup_tasks(older_than_hours: int = 24):
     """Remove completed/failed tasks older than the given number of hours."""
     await task_service.cleanup_old_tasks(older_than_hours)
-    return {"status": "cleaned"}
+    return AppResponse.success_response(message="Task logs pruned")

@@ -42,7 +42,6 @@ interface WorkspaceDetail {
         chunk_overlap: number;
         llm_provider: string;
         llm_model: string;
-        retrieval_mode: string;
     };
     threads: Thread[];
     documents: DocumentSummary[];
@@ -169,7 +168,6 @@ export default function WorkspaceOverviewPage() {
                         <ConfigItem label="LLM Provider" value={workspace.settings.llm_provider} />
                         <ConfigItem label="LLM Model" value={workspace.settings.llm_model} />
                         <ConfigItem label="Embedding" value={workspace.settings.embedding_model} />
-                        <ConfigItem label="Retrieval Mode" value={workspace.settings.retrieval_mode} />
                         <ConfigItem label="Chunk Size" value={`${workspace.settings.chunk_size} chars`} />
                         <ConfigItem label="Chunk Overlap" value={`${workspace.settings.chunk_overlap} chars`} />
                     </div>

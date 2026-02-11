@@ -72,7 +72,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
             const res = await fetch(API_ROUTES.TASKS);
             if (res.ok) {
                 const data = await res.json();
-                setTasks(data.tasks || []);
+                setTasks(data.data || []);
             }
         } catch (err) {
             // Silently fail polling to avoid UI noise

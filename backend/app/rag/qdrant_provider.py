@@ -112,23 +112,21 @@ class QdrantProvider:
         query_vector: List[float],
         query_text: str,
         limit: int = 5,
-        mode: str = "hybrid",
         alpha: float = 0.5,
         workspace_id: Optional[str] = None,
     ):
         """
-        Perform hybrid search with workspace-level isolation.
-        Filters by current workspace OR shared documents.
+        Perform unified hybrid search (Vector + Keyword) with workspace isolation.
+        Uses Reciprocal Rank Fusion (RRF) to consolidate distinct retrieval paths.
         """
         collection_name = await self.get_effective_collection(
             collection_name, workspace_id
         )
 
         with tracer.start_as_current_span(
-            "qdrant.hybrid_search",
+            "qdrant.search",
             attributes={
                 "qdrant.collection": collection_name,
-                "qdrant.mode": mode,
                 "qdrant.limit": limit,
                 "qdrant.alpha": alpha,
                 "workspace_id": workspace_id or "",
@@ -152,7 +150,7 @@ class QdrantProvider:
                     ]
                 )
 
-            # 1. Vector Search
+            # 1. Vector Search (Semantic)
             response = await self.client.query_points(
                 collection_name=collection_name,
                 query=query_vector,
@@ -162,7 +160,7 @@ class QdrantProvider:
             )
             vector_results = response.points
 
-            # 2. Text/Keyword Search
+            # 2. Text Search (Keyword/Exact)
             text_filter = filter_query or qmodels.Filter()
             if not text_filter.must:
                 text_filter.must = []
@@ -183,25 +181,15 @@ class QdrantProvider:
 
             duration = time.perf_counter() - start
             VECTOR_STORE_LATENCY.labels(
-                operation="hybrid_search", collection=collection_name
+                operation="search", collection=collection_name
             ).observe(duration)
 
             span.set_attribute("qdrant.vector_hits", len(vector_results))
             span.set_attribute("qdrant.text_hits", len(text_results))
             span.set_attribute("qdrant.duration_ms", round(duration * 1000, 2))
 
-            if mode == "vector":
-                return [
-                    {"id": hit.id, "payload": hit.payload, "score": hit.score}
-                    for hit in vector_results[:limit]
-                ]
-            elif mode == "keyword":
-                return [
-                    {"id": hit.id, "payload": hit.payload, "score": 1.0}
-                    for hit in text_results[:limit]
-                ]
-
-            # 3. Combine using Reciprocal Rank Fusion (RRF)
+            # 3. Combine results using Reciprocal Rank Fusion
+            # Consolidates both strategies into a single ranked list.
             return self._fuse_results(vector_results, text_results, limit)
 
     def _fuse_results(self, vector_hits, text_hits, limit, k=60):

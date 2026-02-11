@@ -86,7 +86,8 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
 
             const res = await fetch(url);
             if (res.ok) {
-                const data: BackendDocument[] = await res.json();
+                const payload = await res.json();
+                const data: BackendDocument[] = payload.data || [];
                 const mappedDocs = data.map((doc) => ({
                     id: doc.id,
                     name: doc.filename,
@@ -109,7 +110,8 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
         try {
             const res = await fetch((API_ROUTES as any).VAULT);
             if (res.ok) {
-                const data: BackendDocument[] = await res.json();
+                const payload = await res.json();
+                const data: BackendDocument[] = payload.data || [];
                 const mappedDocs = data.map((doc) => ({
                     id: doc.id,
                     name: doc.filename,
@@ -150,8 +152,8 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                 setIsVaultBrowserOpen(false);
                 // The job will appear in the global JobPanel — no need to block
             } else {
-                const data = await res.json();
-                showError("Link Failed", data.detail || 'Could not link document.');
+                const payload = await res.json();
+                showError("Link Failed", payload.message || 'Could not link document.');
             }
         } catch (err) {
             showError("Network Error", "Transmission interrupted.");
@@ -178,8 +180,8 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
             try {
                 const res = await fetch(API_ROUTES.WORKSPACES);
                 if (res.ok) {
-                    const data = await res.json();
-                    setWorkspaces(data);
+                    const payload = await res.json();
+                    setWorkspaces(payload.data || []);
                 }
             } catch (err) {
                 console.error('Failed to fetch workspaces', err);
@@ -211,8 +213,10 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                 body: formData,
             });
             if (res.ok) {
-                const data = await res.json();
-                if (data.duplicate?.is_duplicate) {
+                const payload = await res.json();
+                // Success branch - payload is AppResponse
+                const data = payload.data;
+                if (data?.duplicate?.is_duplicate) {
                     setDuplicateData({
                         id: data.duplicate.existing_id,
                         name: data.duplicate.existing_name,
@@ -221,16 +225,23 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                     });
                 }
             } else {
-                const data = await res.json();
+                const payload = await res.json();
                 let title = "Ingestion Rejected";
-                let message = data.detail || 'Upload failed';
+                let message = payload.message || 'Upload failed';
 
-                if (data.code === 'VALIDATION_ERROR') {
+                if (payload.code === 'VALIDATION_ERROR') {
                     title = "Invalid Filename";
-                    message = data.detail;
-                } else if (data.code === 'CONFLICT_ERROR') {
+                } else if (payload.code === 'CONFLICT_ERROR' || payload.code === 'DUPLICATE_DETECTED') {
                     title = "Duplicate Document";
-                    message = "A document with this name already exists in this workspace.";
+                    if (payload.code === 'DUPLICATE_DETECTED' && payload.data) {
+                        setDuplicateData({
+                            id: payload.data.existing_doc?.id,
+                            name: payload.data.existing_doc?.filename,
+                            workspace: payload.data.existing_doc?.workspace,
+                            is_duplicate: true
+                        });
+                        return; // Handle via modal
+                    }
                 }
 
                 setError(message);
@@ -263,8 +274,9 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
             if (res.ok) {
                 setIsArxivModalOpen(false);
                 setArxivUrl('');
-                const data = await res.json();
-                if (data.duplicate?.is_duplicate) {
+                const payload = await res.json();
+                const data = payload.data;
+                if (data?.duplicate?.is_duplicate) {
                     setDuplicateData({
                         id: data.duplicate.existing_id,
                         name: data.duplicate.existing_name,
@@ -273,8 +285,19 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                     });
                 }
             } else {
-                const data = await res.json();
-                showError("ArXiv Import Failed", data.detail || 'Failed to download paper', `Source: ${arxivUrl}`);
+                const payload = await res.json();
+                if (payload.code === 'DUPLICATE_DETECTED' && payload.data) {
+                    setIsArxivModalOpen(false);
+                    setArxivUrl('');
+                    setDuplicateData({
+                        id: payload.data.existing_doc?.id,
+                        name: payload.data.existing_doc?.filename,
+                        workspace: payload.data.existing_doc?.workspace,
+                        is_duplicate: true
+                    });
+                    return;
+                }
+                showError("ArXiv Import Failed", payload.message || 'Failed to download paper', `Source: ${arxivUrl}`);
             }
         } catch (err) {
             console.error('ArXiv error:', err);
@@ -303,8 +326,8 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                 setDuplicateData(null);
                 fetchDocuments();
             } else {
-                const data = await res.json();
-                showError("Link Failed", data.detail || 'Could not link existing document.');
+                const payload = await res.json();
+                showError("Link Failed", payload.message || 'Could not link existing document.');
             }
         } catch (err) {
             console.error('Link error:', err);
@@ -329,8 +352,8 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                 setDocuments((prev) => prev.filter((d) => d.name !== name));
                 setDeletingDoc(null);
             } else {
-                const data = await res.json();
-                showError("Operation Failed", data.detail || 'Document deletion failed.', `Resource: ${name}`);
+                const payload = await res.json();
+                showError("Operation Failed", payload.message || 'Document deletion failed.', `Resource: ${name}`);
             }
         } catch (err) {
             console.error('Failed to delete document', err);
@@ -360,8 +383,8 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                 setManagingDoc(null);
                 setShareTarget('');
             } else {
-                const data = await res.json();
-                showError("Transition Failed", data.detail || 'Workspace update failed.', `Document: ${managingDoc.name}`);
+                const payload = await res.json();
+                showError("Transition Failed", payload.message || 'Workspace update failed.', `Document: ${managingDoc.name}`);
             }
         } catch (err) {
             console.error('Failed to manage document', err);
@@ -377,17 +400,18 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
         try {
             const res = await fetch(API_ROUTES.DOCUMENT_GET(name));
             if (res.ok) {
-                const data = await res.json();
+                const payload = await res.json();
+                const data = payload.data;
                 setActiveSource({
                     id: 0,
-                    name: data.name,
+                    name: data.name || data.filename,
                     content: data.content
                 });
                 fetchDocuments(); // Refresh status/fragments after on-demand indexing
 
             } else {
-                const data = await res.json();
-                showError("Retrieval Failure", data.detail || 'Could not fetch document content.', `Source: ${name}`);
+                const payload = await res.json();
+                showError("Retrieval Failure", payload.message || 'Could not fetch document content.', `Source: ${name}`);
             }
         } catch (err) {
             console.error('Failed to view document', err);
@@ -406,8 +430,8 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                 method: 'POST'
             });
             if (!res.ok) {
-                const data = await res.json();
-                showError("Indexing Error", data.detail || 'Manual indexing failed.');
+                const payload = await res.json();
+                showError("Indexing Error", payload.message || 'Manual indexing failed.');
             }
             // Task created — progress visible in the persistent JobPanel
         } catch (err) {
