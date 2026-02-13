@@ -16,6 +16,8 @@ class AISettings(BaseSettings):
     EMBEDDING_PROVIDER: str = "openai"  # openai, voyage, local, ollama, vllm, llama-cpp
     EMBEDDING_MODEL: str = "text-embedding-3-small"
     VOYAGE_API_KEY: Optional[str] = None
+    COHERE_API_KEY: Optional[str] = None
+    JINA_API_KEY: Optional[str] = None
     LOCAL_EMBEDDING_MODEL: str = "BAAI/bge-large-en-v1.5"
     
     # RAG Configuration
