@@ -48,7 +48,7 @@ class RAGService:
                     chunk_overlap=settings.chunk_overlap,
                 )
             elif strategy == "markdown":
-                from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
+                from langchain_text_splitters import MarkdownHeaderTextSplitter
                 # 1. Split by header
                 headers_to_split_on = [
                     ("#", "Header 1"),
