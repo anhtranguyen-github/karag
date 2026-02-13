@@ -33,6 +33,9 @@ export const API_ROUTES = {
     TASKS: `${API_BASE_URL}/tasks/`,
     TASK_STATUS: (id: string) => `${API_BASE_URL}/tasks/${encodeURIComponent(id)}`,
     METRICS: `${API_BASE_URL}/metrics`,
+    EVAL_DATASETS: `${API_BASE_URL}/eval/datasets`,
+    EVAL_RUNS: `${API_BASE_URL}/eval/runs`,
+    EVAL_RUN_DETAIL: (id: string) => `${API_BASE_URL}/eval/runs/${encodeURIComponent(id)}`,
 };
 
 export const EXTERNAL_SERVICES = {

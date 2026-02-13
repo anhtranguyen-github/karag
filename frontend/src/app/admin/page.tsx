@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Cpu, Database, Activity, Zap, ShieldCheck, ArrowRight,
     Check, Loader2, AlertCircle, RefreshCw, Sliders, Eye,
-    ExternalLink, Layers, Server, Users, AlertTriangle, Info, Save
+    ExternalLink, Layers, Server, Users, AlertTriangle, Info, Save,
+    Target, PlayCircle, CheckCircle2, Plus
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSettings, useSettingsMetadata } from '@/hooks/use-settings';
@@ -13,13 +14,14 @@ import { PROVIDER_SETTING_KEYS } from '@/lib/constants';
 import { API_ROUTES, EXTERNAL_SERVICES } from '@/lib/api-config';
 import { cn } from '@/lib/utils';
 
-type AdminTab = 'overview' | 'providers' | 'settings' | 'observability';
+type AdminTab = 'overview' | 'providers' | 'settings' | 'observability' | 'evaluation';
 
 const TABS: { id: AdminTab; label: string; icon: React.ElementType }[] = [
     { id: 'overview', label: 'Overview', icon: ShieldCheck },
     { id: 'providers', label: 'AI Providers', icon: Cpu },
     { id: 'settings', label: 'Global Config', icon: Sliders },
     { id: 'observability', label: 'Observability', icon: Activity },
+    { id: 'evaluation', label: 'Evaluation', icon: Target },
 ];
 
 export default function AdminConsolePage() {
@@ -547,7 +549,183 @@ export default function AdminConsolePage() {
                         </div>
                     </motion.div>
                 )}
+                {activeTab === 'evaluation' && (
+                    <motion.div
+                        key="evaluation"
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -12 }}
+                        className="space-y-8"
+                    >
+                        <EvaluationDashboard />
+                    </motion.div>
+                )}
             </AnimatePresence>
         </div>
     );
 }
+
+function EvaluationDashboard() {
+    const [datasets, setDatasets] = useState<any[]>([]);
+    const [runs, setRuns] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isRunning, setIsRunning] = useState<string | null>(null);
+
+    const fetchData = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const [dsRes, runsRes] = await Promise.all([
+                fetch(API_ROUTES.EVAL_DATASETS),
+                fetch(API_ROUTES.EVAL_RUNS)
+            ]);
+            if (dsRes.ok) {
+                const dsData = await dsRes.json();
+                setDatasets(dsData.data || []);
+            }
+            if (runsRes.ok) {
+                const runsData = await runsRes.json();
+                setRuns(runsData.data || []);
+            }
+        } catch (error) {
+            console.error("Eval fetch failed", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchData();
+        const interval = setInterval(fetchData, 10000);
+        return () => clearInterval(interval);
+    }, [fetchData]);
+
+    const runEval = async (datasetId: string) => {
+        setIsRunning(datasetId);
+        try {
+            const res = await fetch(API_ROUTES.EVAL_RUNS, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dataset_id: datasetId })
+            });
+            if (res.ok) {
+                fetchData();
+            }
+        } catch (error) {
+            console.error("Eval run failed", error);
+        } finally {
+            setIsRunning(null);
+        }
+    };
+
+    if (isLoading && datasets.length === 0) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+            </div>
+        );
+    }
+
+    return (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left: Datasets */}
+            <div className="lg:col-span-1 space-y-6">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-caption font-black text-white flex items-center gap-2">
+                        <Database size={16} className="text-indigo-400" />
+                        Test Datasets
+                    </h3>
+                    <button className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 transition-all">
+                        <Plus size={16} />
+                    </button>
+                </div>
+
+                <div className="space-y-3">
+                    {datasets.length === 0 ? (
+                        <div className="p-8 rounded-2xl border border-dashed border-white/5 text-center space-y-3">
+                            <p className="text-[10px] text-gray-600 font-bold">No datasets found.</p>
+                            <button className="text-[10px] text-indigo-400 font-black hover:underline">Create Sample</button>
+                        </div>
+                    ) : datasets.map((ds) => (
+                        <div key={ds.id} className="p-4 rounded-2xl bg-[#121214] border border-white/5 group hover:border-white/10 transition-all">
+                            <div className="flex items-center justify-between mb-2">
+                                <h4 className="text-tiny font-black text-white">{ds.name}</h4>
+                                <span className="text-[9px] font-black text-gray-500 bg-white/5 px-2 py-0.5 rounded-lg border border-white/5">
+                                    {ds.test_cases?.length || 0} Cases
+                                </span>
+                            </div>
+                            <p className="text-[10px] text-gray-600 mb-4">Workspace: {ds.workspace_id}</p>
+                            <button
+                                onClick={() => runEval(ds.id)}
+                                disabled={isRunning === ds.id}
+                                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-indigo-500 text-black font-black text-[10px] hover:bg-indigo-400 transition-all disabled:opacity-50"
+                            >
+                                {isRunning === ds.id ? <Loader2 size={12} className="animate-spin" /> : <PlayCircle size={12} />}
+                                Run Evaluation
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Right: Runs */}
+            <div className="lg:col-span-2 space-y-6">
+                <h3 className="text-caption font-black text-white flex items-center gap-2">
+                    <Activity size={16} className="text-emerald-400" />
+                    Evaluation History
+                </h3>
+
+                <div className="space-y-3">
+                    {runs.length === 0 ? (
+                        <div className="p-12 rounded-2xl border border-dashed border-white/5 text-center">
+                            <p className="text-tiny text-gray-600 font-bold">No runs recorded.</p>
+                        </div>
+                    ) : runs.map((run) => (
+                        <div key={run.id} className="p-5 rounded-2xl bg-[#121214] border border-white/5 hover:border-white/10 transition-all">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className={cn(
+                                        "w-8 h-8 rounded-lg flex items-center justify-center",
+                                        run.status === 'completed' ? "bg-emerald-500/10 text-emerald-400" :
+                                            run.status === 'running' ? "bg-blue-500/10 text-blue-400" : "bg-red-500/10 text-red-400"
+                                    )}>
+                                        {run.status === 'completed' ? <CheckCircle2 size={16} /> :
+                                            run.status === 'running' ? <Loader2 size={16} className="animate-spin" /> : <AlertCircle size={16} />}
+                                    </div>
+                                    <div>
+                                        <div className="text-tiny font-black text-white">Run {run.id.slice(0, 8)}</div>
+                                        <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">{new Date(run.started_at).toLocaleString()}</div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    {run.overall_metrics && Object.entries(run.overall_metrics).map(([name, val]: [string, any]) => (
+                                        <div key={name} className="text-right">
+                                            <div className="text-[9px] font-black text-gray-600 uppercase">{name.replace('_', ' ')}</div>
+                                            <div className="text-tiny font-black text-white">{Number(val).toFixed(2)}</div>
+                                        </div>
+                                    ))}
+                                    <button className="p-2 rounded-xl bg-white/5 text-gray-500 hover:text-white transition-all">
+                                        <ArrowRight size={14} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Mini progress bar or status indicator */}
+                            <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                                <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: run.status === 'completed' ? '100%' : '30%' }}
+                                    className={cn(
+                                        "h-full transition-all duration-1000",
+                                        run.status === 'completed' ? "bg-emerald-500" :
+                                            run.status === 'running' ? "bg-blue-500" : "bg-red-500"
+                                    )}
+                                />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}
+

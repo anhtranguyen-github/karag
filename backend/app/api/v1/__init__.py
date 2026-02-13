@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from backend.app.api.v1 import chat, documents, workspaces, settings, tools, search, tasks
+from backend.app.api.v1 import chat, documents, workspaces, settings, tools, search, tasks, eval
 
 api_v1_router = APIRouter()
 
@@ -10,3 +10,4 @@ api_v1_router.include_router(settings.router)
 api_v1_router.include_router(tools.router)
 api_v1_router.include_router(search.router)
 api_v1_router.include_router(tasks.router)
+api_v1_router.include_router(eval.router, prefix="/eval", tags=["Evaluation"])
