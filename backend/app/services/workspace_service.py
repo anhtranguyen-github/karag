@@ -192,6 +192,8 @@ class WorkspaceService:
         ws = await db.workspaces.find_one({"id": workspace_id})
         if not ws:
             return None
+        if "_id" in ws:
+            del ws["_id"]
         
         threads = await db["thread_metadata"].find({"workspace_id": workspace_id}).sort("last_active", -1).to_list(100)
         for t in threads:
