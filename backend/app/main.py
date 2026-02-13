@@ -46,8 +46,19 @@ async def lifespan(app: FastAPI):
     from backend.app.services.task_service import task_service
     await task_service.cleanup_old_tasks(older_than_hours=24)
 
+    # Start Background Task Worker for resilience
+    from backend.app.services.task_worker import task_worker
+    await task_worker.start()
+
     logger.info("infra_init_complete", msg="Infrastructure ready.")
     yield
+    
+    # STOP worker on shutdown
+    await task_worker.stop()
+    
+    # Close Neo4j driver
+    from backend.app.core.neo4j import neo4j_manager
+    await neo4j_manager.close()
 
 
 def create_app() -> FastAPI:
