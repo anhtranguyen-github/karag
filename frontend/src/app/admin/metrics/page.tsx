@@ -9,6 +9,7 @@ export default function MetricsPage() {
     const [rawMetrics, setRawMetrics] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
     const fetchMetrics = async () => {
         setIsLoading(true);
@@ -18,6 +19,7 @@ export default function MetricsPage() {
                 const text = await res.text();
                 setRawMetrics(text);
                 setError(null);
+                setLastUpdated(new Date());
             } else {
                 setError('Prometheus metrics endpoint is unreachable or disabled.');
             }
@@ -53,9 +55,16 @@ export default function MetricsPage() {
             <header className="flex items-center justify-between">
                 <div>
                     <h1 className="text-h1 font-black uppercase tracking-tighter mb-2">System Metrics</h1>
-                    <p className="text-caption text-gray-500 max-w-xl">
-                        Real-time telemetry from the Prometheus exporter. Monitoring the four golden signals of the neural fabric.
-                    </p>
+                    <div className="flex items-center gap-3">
+                        <p className="text-caption text-gray-500 max-w-xl">
+                            Real-time telemetry from the Prometheus exporter. Monitoring the four golden signals of the neural fabric.
+                        </p>
+                        {lastUpdated && (
+                            <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded-md border border-white/5">
+                                Last Sync: {lastUpdated.toLocaleTimeString()}
+                            </span>
+                        )}
+                    </div>
                 </div>
                 <button
                     onClick={() => fetchMetrics()}
