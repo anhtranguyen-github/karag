@@ -115,6 +115,6 @@ class IndexingService:
             )
         except Exception as e:
             logger.error("background_index_failed", task_id=task_id, error=str(e), exc_info=True)
-            await task_service.update_task(
-                task_id, status="failed", message=str(e), error_code="INDEXING_FAILED"
+            await task_service.fail_with_retry(
+                task_id, error_message=str(e), error_code="INDEXING_FAILED"
             )
