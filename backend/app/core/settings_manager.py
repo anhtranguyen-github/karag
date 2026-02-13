@@ -46,6 +46,9 @@ class SettingsManager:
             "llm_model": os.getenv("LLM_MODEL"),
             "embedding_provider": os.getenv("EMBEDDING_PROVIDER"),
             "embedding_model": os.getenv("EMBEDDING_MODEL"),
+            "neo4j_uri": os.getenv("NEO4J_URI"),
+            "neo4j_user": os.getenv("NEO4J_USER"),
+            "neo4j_password": os.getenv("NEO4J_PASSWORD"),
         }
         
         # Merge: settings_data has priority over config defaults, but env_overrides has highest priority
@@ -54,6 +57,9 @@ class SettingsManager:
             "llm_model": ai_settings.LLM_MODEL,
             "embedding_provider": ai_settings.EMBEDDING_PROVIDER,
             "embedding_model": ai_settings.EMBEDDING_MODEL,
+            "neo4j_uri": ai_settings.NEO4J_URI,
+            "neo4j_user": ai_settings.NEO4J_USER,
+            "neo4j_password": ai_settings.NEO4J_PASSWORD,
         }
         merged_data.update(settings_data)
         merged_data.update({k: v for k, v in env_overrides.items() if v is not None})

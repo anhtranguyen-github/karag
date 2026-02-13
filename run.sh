@@ -136,12 +136,23 @@ fi
 
 start_infra() {
     echo -e "\n${BLUE}[INFRA] Starting core services...${NC}"
-    docker compose up -d qdrant mongodb minio
+    docker compose up -d qdrant mongodb minio neo4j
+    
     echo -n "Waiting for Qdrant..."
     count=0
     while ! curl -s http://localhost:6333/healthz > /dev/null; do
         echo -n "."
         sleep 1
+        count=$((count+1))
+        [ $count -ge $MAX_RETRIES ] && { echo -e "${RED}\nFailed.${NC}"; exit 1; }
+    done
+    echo -e "${GREEN} READY!${NC}"
+
+    echo -n "Waiting for Neo4j..."
+    count=0
+    while ! curl -s http://localhost:7474 > /dev/null; do
+        echo -n "."
+        sleep 2
         count=$((count+1))
         [ $count -ge $MAX_RETRIES ] && { echo -e "${RED}\nFailed.${NC}"; exit 1; }
     done

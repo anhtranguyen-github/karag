@@ -35,6 +35,11 @@ class AISettings(BaseSettings):
     MINIO_SECRET_KEY: str = "minioadmin"
     MINIO_SECURE: bool = False
     MINIO_BUCKET: str = "rag-docs"
+    
+    # Neo4j Configuration
+    NEO4J_URI: str = "bolt://localhost:7687"
+    NEO4J_USER: str = "neo4j"
+    NEO4J_PASSWORD: str = "neo4j_password"
 
     # Observability Configuration
     OTEL_ENABLED: bool = False  # Master switch for distributed tracing
