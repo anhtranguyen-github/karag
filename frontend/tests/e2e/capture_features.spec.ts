@@ -62,19 +62,19 @@ test.describe('Feature Capture with Mocks', () => {
     test('capture dashboard', async ({ page }) => {
         await page.goto('http://localhost:3000/');
         await page.waitForLoadState('networkidle');
-        await page.screenshot({ path: 'public/screenshots/workspaces_dashboard.png', fullPage: true });
+        await page.screenshot({ path: '../assets/screenshots/workspaces_dashboard.png', fullPage: true });
     });
 
     test('capture master vault', async ({ page }) => {
         await page.goto('http://localhost:3000/vault');
         await page.waitForLoadState('networkidle');
-        await page.screenshot({ path: 'public/screenshots/master_vault.png', fullPage: true });
+        await page.screenshot({ path: '../assets/screenshots/master_vault.png', fullPage: true });
     });
 
     test('capture workspace overview', async ({ page }) => {
         await page.goto('http://localhost:3000/workspaces/default');
         await page.waitForLoadState('networkidle');
-        await page.screenshot({ path: 'public/screenshots/workspace_overview.png', fullPage: true });
+        await page.screenshot({ path: '../assets/screenshots/workspace_overview.png', fullPage: true });
     });
 
     test('capture chat interface', async ({ page }) => {
@@ -88,12 +88,18 @@ test.describe('Feature Capture with Mocks', () => {
             await page.waitForTimeout(500); // Wait for animation
         }
 
-        await page.screenshot({ path: 'public/screenshots/chat_interface.png', fullPage: true });
+        await page.screenshot({ path: '../assets/screenshots/chat_interface.png', fullPage: true });
     });
 
     test('capture document management', async ({ page }) => {
         await page.goto('http://localhost:3000/workspaces/default/documents');
         await page.waitForLoadState('networkidle');
-        await page.screenshot({ path: 'public/screenshots/document_management.png', fullPage: true });
+        await page.screenshot({ path: '../assets/screenshots/document_management.png', fullPage: true });
+    });
+
+    test('capture admin panel', async ({ page }) => {
+        await page.goto('http://localhost:3000/admin');
+        await page.waitForLoadState('networkidle');
+        await page.screenshot({ path: '../assets/screenshots/admin_panel.png', fullPage: true });
     });
 });

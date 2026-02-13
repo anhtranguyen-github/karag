@@ -24,6 +24,10 @@ Granular control over paper ingestion and vector metadata.
 Analytical summary of specific research projects.
 ![Workspace Overview](assets/screenshots/workspace_overview.png)
 
+### Admin Console
+System-wide configuration, provider management, and observability dashboard.
+![Admin Panel](assets/screenshots/admin_panel.png)
+
 ![Version](https://img.shields.io/badge/version-2.0.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Next.js](https://img.shields.io/badge/frontend-Next.js%2015-black)
@@ -55,6 +59,18 @@ The project implements a robust **DevOps / CI/CD pipeline** via Jenkins:
 - **Dockerization**: Automated building of production-ready Docker images.
 
 See `Jenkinsfile` and `sonar-project.properties` for configuration details.
+
+## Operations & Monitoring
+
+ScienChan is built for production-grade observability and reliable operations:
+
+- **Structured Logging**: Uses `structlog` for JSON-formatted, context-rich logs across all services.
+- **Distributed Tracing**: Fully instrumented with **OpenTelemetry**. View transaction flows in **Jaeger**.
+- **Metrics**: Real-time system health and performance monitoring via **Prometheus**.
+- **Modular Runner**: The `run.sh` script provides a high-level CLI for managing the entire stack:
+    - **Turbo Mode**: Adaptive orchestration that prioritizes Cloud APIs to save local resources.
+    - **Self-Healing**: Automatically cleans stale locks, kills zombie processes, and validates environment integrity.
+- **On-Demand Indexing**: Neural vector indexing is triggered lazily, optimizing storage and compute costs for cold documents.
 
 ## Architecture
 
