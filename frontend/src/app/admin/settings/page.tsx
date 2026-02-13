@@ -9,7 +9,7 @@ import { PROVIDER_SETTING_KEYS } from '@/lib/constants';
 
 export default function GlobalSettingsPage() {
     const { settings, updateSettings, isLoading, refreshSettings } = useSettings();
-    const { metadata, isLoading: isLoadingMeta } = useSettingsMetadata();
+    const { metadata, isLoading: isLoadingMeta, error } = useSettingsMetadata();
     const [isSaving, setIsSaving] = useState<string | null>(null);
 
     const handleUpdate = async (key: string, value: string | number | boolean) => {
@@ -18,10 +18,30 @@ export default function GlobalSettingsPage() {
         setTimeout(() => setIsSaving(null), 1000);
     };
 
-    if (isLoading || isLoadingMeta || !settings || !metadata) {
+    if (isLoading || isLoadingMeta) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
                 <Loader2 className="w-12 h-12 text-indigo-500 animate-spin" />
+            </div>
+        );
+    }
+
+    if (error || !settings || !metadata) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center gap-6 p-10">
+                <div className="w-20 h-20 rounded-[2rem] bg-indigo-500/10 flex items-center justify-center text-indigo-500">
+                    <AlertCircle size={40} />
+                </div>
+                <div>
+                    <h2 className="text-h2 font-black uppercase tracking-tighter text-white mb-2">Sync Offline</h2>
+                    <p className="text-caption text-gray-500 max-w-md">{error || "The configuration kernel is currently unreachable."}</p>
+                </div>
+                <button
+                    onClick={() => { refreshSettings(); window.location.reload(); }}
+                    className="px-8 py-3 rounded-2xl bg-white/5 border border-white/10 text-caption font-bold text-white hover:bg-white/10 transition-all uppercase tracking-widest"
+                >
+                    Retry Handshake
+                </button>
             </div>
         );
     }

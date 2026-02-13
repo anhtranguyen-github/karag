@@ -23,19 +23,27 @@ export interface SettingMetadata {
 export function useSettingsMetadata() {
     const [metadata, setMetadata] = useState<Record<string, SettingMetadata> | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchMetadata = async () => {
+            setIsLoading(true);
             try {
                 const res = await fetch(API_ROUTES.SETTINGS_METADATA);
                 if (res.ok) {
                     const payload = await res.json();
                     if (payload.success) {
                         setMetadata(payload.data);
+                        setError(null);
+                    } else {
+                        setError(payload.message || 'Failed to parse metadata.');
                     }
+                } else {
+                    setError('Metadata service unreachable.');
                 }
             } catch (err) {
                 console.error('Failed to fetch settings metadata:', err);
+                setError('Connection failed.');
             } finally {
                 setIsLoading(false);
             }
@@ -43,7 +51,7 @@ export function useSettingsMetadata() {
         fetchMetadata();
     }, []);
 
-    return { metadata, isLoading };
+    return { metadata, isLoading, error };
 }
 
 export function useSettings(workspaceId?: string) {
@@ -52,6 +60,7 @@ export function useSettings(workspaceId?: string) {
     const { showError } = useError();
 
     const fetchSettings = useCallback(async () => {
+        setIsLoading(true);
         try {
             const url = workspaceId
                 ? `${API_ROUTES.SETTINGS}?workspace_id=${encodeURIComponent(workspaceId)}`

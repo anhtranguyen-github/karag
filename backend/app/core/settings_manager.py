@@ -2,7 +2,7 @@ import os
 import json
 import structlog
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Literal
 from backend.app.core.schemas import AppSettings
 from backend.app.core.config import ai_settings
 from backend.app.core.mongodb import mongodb_manager

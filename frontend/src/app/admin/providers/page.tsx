@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 
 export default function ProvidersPage() {
     const { settings, updateSettings, isLoading, refreshSettings } = useSettings();
-    const { metadata, isLoading: isLoadingMeta } = useSettingsMetadata();
+    const { metadata, isLoading: isLoadingMeta, error } = useSettingsMetadata();
     const [isSaving, setIsSaving] = useState<string | null>(null);
 
     const providerFields = [
@@ -24,10 +24,30 @@ export default function ProvidersPage() {
         setTimeout(() => setIsSaving(null), 1000);
     };
 
-    if (isLoading || isLoadingMeta || !settings || !metadata) {
+    if (isLoading || isLoadingMeta) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
                 <Loader2 className="w-12 h-12 text-indigo-500 animate-spin" />
+            </div>
+        );
+    }
+
+    if (error || !settings || !metadata) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center gap-6 p-10">
+                <div className="w-20 h-20 rounded-[2rem] bg-red-500/10 flex items-center justify-center text-red-500">
+                    <AlertCircle size={40} />
+                </div>
+                <div>
+                    <h2 className="text-h2 font-black uppercase tracking-tighter text-white mb-2">Protocol Failure</h2>
+                    <p className="text-caption text-gray-500 max-w-md">{error || "Neural settings synchronization failed."}</p>
+                </div>
+                <button
+                    onClick={() => { refreshSettings(); window.location.reload(); }}
+                    className="px-8 py-3 rounded-2xl bg-white/5 border border-white/10 text-caption font-bold text-white hover:bg-white/10 transition-all uppercase tracking-widest"
+                >
+                    Retry Core Sync
+                </button>
             </div>
         );
     }
@@ -74,7 +94,7 @@ export default function ProvidersPage() {
                         </div>
 
                         <div className="md:w-72 relative">
-                            {field.type === 'select' ? (
+                            {field.type === 'select' && metadata[field.key]?.options ? (
                                 <select
                                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-caption font-bold text-white focus:outline-none focus:ring-2 ring-indigo-500/50 appearance-none"
                                     value={settings[field.key as keyof typeof settings] as string}
