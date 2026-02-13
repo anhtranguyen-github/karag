@@ -24,7 +24,8 @@ async def test_default_workspace_exists():
         
         res = await ac.get("/workspaces/")
         assert res.status_code == 200
-        workspaces = res.json()
+        body = res.json()
+        workspaces = body["data"]
         assert any(ws["id"] == "default" for ws in workspaces)
         
         default_ws = next(ws for ws in workspaces if ws["id"] == "default")
@@ -41,12 +42,12 @@ async def test_default_workspace_protection():
         # Try to update
         res = await ac.patch("/workspaces/default", json={"name": "Hacked name"})
         assert res.status_code == 400
-        assert "cannot be edited" in res.json()["detail"]
+        assert "cannot be edited" in res.json()["message"]
         
         # Try to delete
         res = await ac.delete("/workspaces/default")
         assert res.status_code == 400
-        assert "Cannot delete default workspace" in res.json()["detail"]
+        assert "Cannot delete default workspace" in res.json()["message"]
 
 @pytest.mark.asyncio
 async def test_default_settings_fallback():

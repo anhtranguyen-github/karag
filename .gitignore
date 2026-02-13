@@ -99,10 +99,12 @@ backend/app/tools/arxiv_downloader/downloads/
 
 # ===================
 # Project Documentation
+# ===================
 /docs/ 
 /plans/
 /scripts/
 /test-resources/
+/assets/screenshots/
 TESTING_CONSTRAINTS_AND_BUGS.md
 
 # ===================
