@@ -25,43 +25,73 @@ async def retrieval_node(state: AgentState) -> Dict:
             "query_preview": last_message[:80],
         },
     ) as span:
-        logger.info(
-            "graph_retrieval_start",
-            workspace_id=workspace_id,
-            query_preview=last_message[:50],
-        )
-
+        # We perform initial search. Reranking will happen in the next node.
+        # This allows visibility into the multi-stage pipeline.
         results = await rag_service.search(
             query=last_message, workspace_id=workspace_id
         )
 
+        span.set_attribute("graph.initial_chunks", len(results))
+        
+        return {
+            "sources": results,
+            "reasoning_steps": ["Retrieved initial candidates from vector store"],
+        }
+
+
+async def rerank_node(state: AgentState) -> Dict:
+    """Refine and sort retrieved documents."""
+    workspace_id = state.get("workspace_id", "default")
+    last_message = state["messages"][-1].content
+    raw_results = state.get("sources", [])
+
+    if not raw_results:
+        return {"reasoning_steps": ["No candidates found to rerank"]}
+
+    from backend.app.core.settings_manager import settings_manager
+    from backend.app.providers.reranker import get_reranker
+    
+    settings = await settings_manager.get_settings(workspace_id)
+    reranker = await get_reranker(workspace_id)
+    
+    if not reranker:
+        # Fallback processing if reranker disabled
         context = []
         sources = []
-        for i, res in enumerate(results):
+        for i, res in enumerate(raw_results[:settings.search_limit]):
+            text = res["payload"]["text"]
+            source_name = res["payload"].get("source", "Unknown")
+            context.append(text)
+            sources.append({"id": i + 1, "name": source_name, "content": text})
+            
+        return {
+            "context": context,
+            "sources": sources,
+            "reasoning_steps": ["Skipped reranking (disabled)"],
+        }
+
+    with tracer.start_as_current_span("graph.rerank_node") as span:
+        reranked = await reranker.rerank(
+            query=last_message, 
+            documents=raw_results, 
+            top_k=settings.rerank_top_k
+        )
+        
+        context = []
+        sources = []
+        for i, res in enumerate(reranked):
             text = res["payload"]["text"]
             source_name = res["payload"].get("source", "Unknown")
             context.append(text)
             sources.append({"id": i + 1, "name": source_name, "content": text})
 
-        span.set_attribute("graph.chunks_retrieved", len(context))
-
-        engine_name = (
-            "Graph-Aware"
-            if results and results[0]["payload"].get("rag_engine") == "graph"
-            else "Basic Hybrid"
-        )
-
-        logger.info(
-            "graph_retrieval_complete",
-            engine=engine_name,
-            chunks_retrieved=len(context),
-            workspace_id=workspace_id,
-        )
+        span.set_attribute("graph.reranked_chunks", len(context))
+        plugin_name = type(reranker).__name__
 
         return {
             "context": context,
             "sources": sources,
-            "reasoning_steps": [f"Retrieved context using {engine_name} engine"],
+            "reasoning_steps": [f"Reranked documents using {plugin_name}"],
         }
 
 
