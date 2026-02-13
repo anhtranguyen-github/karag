@@ -165,7 +165,7 @@ export default function ChatPage() {
                         <div className="w-8 h-8 rounded-lg bg-blue-600/20 flex items-center justify-center">
                             <History size={18} className="text-blue-500" />
                         </div>
-                        <h3 className="text-caption font-bold text-white uppercase tracking-widest">Archive</h3>
+                        <h3 className="text-caption font-bold text-white  ">Archive</h3>
                     </div>
                     <button
                         onClick={() => setShowHistory(false)}
@@ -189,7 +189,7 @@ export default function ChatPage() {
                     {isLoadingThreads ? (
                         <div className="flex flex-col items-center justify-center py-12 gap-3 text-gray-500">
                             <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
-                            <span className="text-tiny font-medium uppercase tracking-tighter">Indexing Threads...</span>
+                            <span className="text-tiny font-medium  ">Indexing Threads...</span>
                         </div>
                     ) : threads.length === 0 ? (
                         <div className="text-center py-12 px-6">
@@ -262,7 +262,7 @@ export default function ChatPage() {
 
                         <div className="flex flex-col">
                             <h2 className="text-caption font-semibold text-white">Chat Session</h2>
-                            <p className="text-tiny text-gray-500 uppercase tracking-wider">Workspace: {workspaceId}</p>
+                            <p className="text-tiny text-gray-500  tracking-wider">Workspace: {workspaceId}</p>
                         </div>
                     </div>
 
@@ -391,7 +391,7 @@ export default function ChatPage() {
                                     )}
                                 </button>
                             </div>
-                            <p className="mt-3 text-tiny text-center text-gray-600 uppercase tracking-[0.2em] font-medium">
+                            <p className="mt-3 text-tiny text-center text-gray-600  tracking-[0.2em] font-medium">
                                 Press Enter to send • {modeOptions.find(o => o.id === mode)?.description}
                             </p>
                         </form>

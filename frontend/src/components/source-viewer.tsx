@@ -51,7 +51,7 @@ export function SourceViewer({ source, onClose }: { source: Source, onClose: () 
 
                 {/* Footer */}
                 <div className="p-4 px-8 border-t border-white/5 bg-white/2 flex justify-between items-center">
-                    <span className="text-tiny text-gray-500 uppercase tracking-widest">Reference Segment</span>
+                    <span className="text-tiny text-gray-500  ">Reference Segment</span>
                     <button
                         onClick={onClose}
                         className="text-tiny font-semibold text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1"

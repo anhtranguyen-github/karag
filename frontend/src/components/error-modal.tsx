@@ -41,7 +41,7 @@ export function ErrorModal({ isOpen, onClose, title = "System Notification", mes
                                 </div>
                                 <div>
                                     <h2 className="text-h3 font-bold text-white tracking-tight">{title}</h2>
-                                    <p className="text-tiny text-red-400 font-bold uppercase tracking-widest">Action Required</p>
+                                    <p className="text-tiny text-red-400 font-bold  ">Action Required</p>
                                 </div>
                             </div>
 

@@ -17,10 +17,10 @@ export default function VaultPage() {
                         <Database size={22} />
                     </div>
                     <div>
-                        <h2 className="text-h3 font-black tracking-tight uppercase">Knowledge Vault</h2>
+                        <h2 className="text-h3 font-black tracking-tight ">Knowledge Vault</h2>
                         <div className="flex items-center gap-2">
                             <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-                            <span className="text-tiny text-gray-500 font-bold uppercase tracking-widest">Isolated Repository: {workspaceId}</span>
+                            <span className="text-tiny text-gray-500 font-bold  ">Isolated Repository: {workspaceId}</span>
                         </div>
                     </div>
                 </div>
@@ -28,7 +28,7 @@ export default function VaultPage() {
                 <div className="flex gap-4">
                     <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/5 border border-white/5">
                         <Shield size={14} className="text-green-500" />
-                        <span className="text-tiny font-black text-gray-600 uppercase">S3 Encryption Active</span>
+                        <span className="text-tiny font-black text-gray-600 ">S3 Encryption Active</span>
                     </div>
                 </div>
             </header>
@@ -44,7 +44,7 @@ export default function VaultPage() {
                         >
                             <div className="flex items-center gap-3 text-gray-500">
                                 <Layers size={18} />
-                                <span className="text-tiny font-black uppercase tracking-[0.2em]">Neural Shards</span>
+                                <span className="text-tiny font-black  tracking-[0.2em]">Neural Shards</span>
                             </div>
                             <div className="text-h2 font-black text-white">INDEXED</div>
                             <div className="text-tiny text-gray-600 font-bold leading-relaxed">Cross-referenced via Qdrant vector isolation.</div>
@@ -58,7 +58,7 @@ export default function VaultPage() {
                         >
                             <div className="flex items-center gap-3 text-gray-500">
                                 <HardDrive size={18} />
-                                <span className="text-tiny font-black uppercase tracking-[0.2em]">Storage State</span>
+                                <span className="text-tiny font-black  tracking-[0.2em]">Storage State</span>
                             </div>
                             <div className="text-h2 font-black text-white">PERSISTED</div>
                             <div className="text-tiny text-gray-600 font-bold leading-relaxed">Versioned binary objects stored in MinIO.</div>
@@ -72,9 +72,9 @@ export default function VaultPage() {
                         >
                             <div className="flex items-center gap-3 text-indigo-400">
                                 <Database size={18} />
-                                <span className="text-tiny font-black uppercase tracking-[0.2em]">Vector Space</span>
+                                <span className="text-tiny font-black  tracking-[0.2em]">Vector Space</span>
                             </div>
-                            <div className="text-h2 font-black text-indigo-500 uppercase tracking-tighter">Isolated</div>
+                            <div className="text-h2 font-black text-indigo-500  ">Isolated</div>
                             <div className="text-tiny text-indigo-400/50 font-bold leading-relaxed">Workspace-scoped embedding namespace.</div>
                         </motion.div>
                     </div>
@@ -82,7 +82,7 @@ export default function VaultPage() {
                     {/* Main UI */}
                     <div className="bg-[#121214] border border-white/10 rounded-[2.5rem] shadow-2xl p-8 min-h-[500px]">
                         <div className="mb-8 flex items-center justify-between">
-                            <h3 className="text-h3 font-black uppercase tracking-tighter">Inventory Manager</h3>
+                            <h3 className="text-h3 font-black  ">Inventory Manager</h3>
                             <span className="px-3 py-1 rounded-lg bg-white/5 text-tiny font-bold text-gray-600 border border-white/5">DB REVISION: 1.04</span>
                         </div>
                         <KnowledgeBase workspaceId={workspaceId} />

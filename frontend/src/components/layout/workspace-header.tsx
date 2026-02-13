@@ -53,7 +53,7 @@ export function WorkspaceHeader({ onWorkspaceClick }: WorkspaceHeaderProps) {
                         <span className="text-caption font-semibold text-white">
                             {currentWorkspace?.name || 'Loading...'}
                         </span>
-                        <span className="text-tiny text-gray-500 uppercase">
+                        <span className="text-tiny text-gray-500 ">
                             {isDefault ? 'Default' : `ID: ${workspaceId}`}
                         </span>
                     </div>
@@ -68,7 +68,7 @@ export function WorkspaceHeader({ onWorkspaceClick }: WorkspaceHeaderProps) {
                     </div>
                     <div className="flex items-center gap-1 px-2 py-1 rounded bg-white/5">
                         <Zap size={12} />
-                        <span className="uppercase">{ragEngine}</span>
+                        <span className="">{ragEngine}</span>
                     </div>
                 </div>
             </div>
@@ -96,7 +96,7 @@ export function WorkspaceHeader({ onWorkspaceClick }: WorkspaceHeaderProps) {
             <div className="flex items-center gap-2">
                 <Link
                     href="/admin"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-tiny font-bold uppercase hover:bg-indigo-500/20 transition-all"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-tiny font-bold  hover:bg-indigo-500/20 transition-all"
                 >
                     <ShieldCheck size={14} />
                     Admin

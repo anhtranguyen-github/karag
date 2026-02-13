@@ -91,7 +91,7 @@ export default function AdminConsolePage() {
             {/* Header */}
             <header className="flex items-center justify-between flex-wrap gap-4">
                 <div>
-                    <h1 className="text-h1 font-black uppercase tracking-tighter mb-1">System Control</h1>
+                    <h1 className="text-h1 font-black   mb-1">System Control</h1>
                     <p className="text-caption text-gray-500 max-w-2xl">
                         Centralized orchestration for ScienChan&apos;s neural fabric. Configure, monitor, and audit.
                     </p>
@@ -112,7 +112,7 @@ export default function AdminConsolePage() {
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         className={cn(
-                            "flex items-center gap-2 px-5 py-2.5 rounded-xl text-tiny font-bold uppercase tracking-widest transition-all whitespace-nowrap relative",
+                            "flex items-center gap-2 px-5 py-2.5 rounded-xl text-tiny font-bold   transition-all whitespace-nowrap relative",
                             activeTab === tab.id
                                 ? "bg-white/10 text-white"
                                 : "text-gray-500 hover:text-gray-300 hover:bg-white/5"
@@ -160,7 +160,7 @@ export default function AdminConsolePage() {
                                         <stat.icon size={20} />
                                     </div>
                                     <div>
-                                        <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-0.5">{stat.label}</div>
+                                        <div className="text-[10px] font-black text-gray-500   mb-0.5">{stat.label}</div>
                                         <div className="text-caption font-black text-white truncate">{stat.value}</div>
                                     </div>
                                 </motion.div>
@@ -174,7 +174,7 @@ export default function AdminConsolePage() {
                                 <div className="absolute top-0 right-0 p-8 opacity-[0.02] transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform">
                                     <ShieldCheck size={180} />
                                 </div>
-                                <h3 className="text-caption font-black uppercase tracking-tighter mb-4">Security & Orchestration</h3>
+                                <h3 className="text-caption font-black   mb-4">Security & Orchestration</h3>
                                 <div className="space-y-3">
                                     {[
                                         { color: 'bg-emerald-500', title: 'RBAC Isolation Active', desc: 'Workspace-level data isolation enforced. No cross-tenant leakage.' },
@@ -194,7 +194,7 @@ export default function AdminConsolePage() {
 
                             {/* Active Config Summary */}
                             <div className="bg-[#121214] border border-white/5 rounded-2xl p-6">
-                                <h3 className="text-caption font-black uppercase tracking-tighter mb-4">Active Configuration</h3>
+                                <h3 className="text-caption font-black   mb-4">Active Configuration</h3>
                                 {settings ? (
                                     <div className="grid grid-cols-2 gap-3">
                                         {[
@@ -206,7 +206,7 @@ export default function AdminConsolePage() {
                                             { label: 'Reasoning', value: settings.show_reasoning ? 'Enabled' : 'Disabled' },
                                         ].map((item) => (
                                             <div key={item.label} className="p-3 rounded-xl bg-white/[0.02] border border-white/5">
-                                                <div className="text-[10px] font-black text-gray-600 uppercase tracking-widest">{item.label}</div>
+                                                <div className="text-[10px] font-black text-gray-600  ">{item.label}</div>
                                                 <div className="text-tiny font-bold text-white mt-0.5 truncate">{item.value}</div>
                                             </div>
                                         ))}
@@ -233,7 +233,7 @@ export default function AdminConsolePage() {
                                         <stat.icon size={18} />
                                     </div>
                                     <div>
-                                        <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{stat.label}</div>
+                                        <div className="text-[10px] font-black text-gray-500  ">{stat.label}</div>
                                         <div className="text-caption font-black text-white">{stat.value.toLocaleString()}</div>
                                     </div>
                                 </motion.div>
@@ -258,7 +258,7 @@ export default function AdminConsolePage() {
                             <div className="flex flex-col items-center justify-center min-h-[40vh] text-center gap-4">
                                 <AlertCircle size={40} className="text-red-500" />
                                 <p className="text-caption text-gray-500">{metaError || 'Provider sync failed.'}</p>
-                                <button onClick={() => { refreshMetadata(); refreshSettings(); }} className="px-6 py-2 rounded-xl bg-white/5 border border-white/10 text-tiny font-bold text-white uppercase tracking-widest hover:bg-white/10 transition-all">
+                                <button onClick={() => { refreshMetadata(); refreshSettings(); }} className="px-6 py-2 rounded-xl bg-white/5 border border-white/10 text-tiny font-bold text-white   hover:bg-white/10 transition-all">
                                     Retry
                                 </button>
                             </div>
@@ -277,9 +277,9 @@ export default function AdminConsolePage() {
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2">
-                                                    <h3 className="text-tiny font-black uppercase tracking-widest text-white">{field.label}</h3>
+                                                    <h3 className="text-tiny font-black   text-white">{field.label}</h3>
                                                     {metadata[field.key] && !metadata[field.key].mutable && (
-                                                        <span className="text-[9px] font-black uppercase tracking-widest text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">Fixed</span>
+                                                        <span className="text-[9px] font-black   text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">Fixed</span>
                                                     )}
                                                 </div>
                                                 <p className="text-[10px] text-gray-600 truncate">{metadata[field.key]?.description || 'Provider configuration.'}</p>
@@ -334,7 +334,7 @@ export default function AdminConsolePage() {
                             </div>
                             <div>
                                 <h4 className="text-tiny font-bold text-indigo-400 mb-1">Architectural Guardrails</h4>
-                                <p className="text-[10px] text-indigo-300/60 leading-relaxed font-bold uppercase tracking-widest">
+                                <p className="text-[10px] text-indigo-300/60 leading-relaxed font-bold  ">
                                     Immutable parameters require full environment rebuild via CLI. Fixed fields cannot be changed at runtime.
                                 </p>
                             </div>
@@ -382,7 +382,7 @@ export default function AdminConsolePage() {
                                                     <div className="flex items-center gap-2">
                                                         <h3 className="text-tiny font-bold text-white capitalize truncate">{key.replace(/_/g, ' ')}</h3>
                                                         {meta && !meta.mutable && (
-                                                            <span className="text-[9px] font-black uppercase tracking-widest text-amber-500 bg-amber-500/10 px-1 py-0.5 rounded border border-amber-500/20 shrink-0">Fixed</span>
+                                                            <span className="text-[9px] font-black   text-amber-500 bg-amber-500/10 px-1 py-0.5 rounded border border-amber-500/20 shrink-0">Fixed</span>
                                                         )}
                                                     </div>
                                                     <p className="text-[10px] text-gray-600 truncate">{meta?.description || 'System parameter.'}</p>
@@ -462,7 +462,7 @@ export default function AdminConsolePage() {
                                         <stat.icon size={18} />
                                     </div>
                                     <div>
-                                        <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{stat.label}</div>
+                                        <div className="text-[10px] font-black text-gray-500  ">{stat.label}</div>
                                         <div className="text-caption font-black text-white">{stat.value.toLocaleString()}</div>
                                     </div>
                                 </motion.div>
@@ -480,7 +480,7 @@ export default function AdminConsolePage() {
                                     <Zap size={24} />
                                 </div>
                                 <div>
-                                    <h3 className="text-caption font-black uppercase tracking-tighter mb-2">Distributed Tracing</h3>
+                                    <h3 className="text-caption font-black   mb-2">Distributed Tracing</h3>
                                     <p className="text-[10px] text-gray-500 leading-relaxed mb-4">
                                         OTEL-instrumented spans for RAG operations, embeddings, and LLM inference. Deep analysis via Jaeger.
                                     </p>
@@ -488,18 +488,18 @@ export default function AdminConsolePage() {
                                         href={EXTERNAL_SERVICES.JAEGER}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 text-black font-black uppercase tracking-widest text-[10px] hover:bg-amber-400 transition-all shadow-lg shadow-amber-900/20"
+                                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 text-black font-black   text-[10px] hover:bg-amber-400 transition-all shadow-lg shadow-amber-900/20"
                                     >
                                         Open Jaeger <ExternalLink size={12} />
                                     </a>
                                 </div>
                                 <div className="grid grid-cols-2 gap-3 mt-2">
                                     <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5">
-                                        <div className="text-[10px] font-black text-gray-600 uppercase tracking-widest">Service</div>
+                                        <div className="text-[10px] font-black text-gray-600  ">Service</div>
                                         <div className="text-tiny font-bold text-white">scienchan-backend</div>
                                     </div>
                                     <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5">
-                                        <div className="text-[10px] font-black text-gray-600 uppercase tracking-widest">Sample Rate</div>
+                                        <div className="text-[10px] font-black text-gray-600  ">Sample Rate</div>
                                         <div className="text-tiny font-bold text-white">100% (Debug)</div>
                                     </div>
                                 </div>
@@ -508,14 +508,14 @@ export default function AdminConsolePage() {
                             {/* Raw Metrics */}
                             <div className="bg-[#121214] border border-white/5 rounded-2xl p-6 overflow-hidden">
                                 <div className="flex items-center justify-between mb-4">
-                                    <h3 className="text-caption font-black uppercase tracking-tighter">Prometheus Export</h3>
+                                    <h3 className="text-caption font-black  ">Prometheus Export</h3>
                                     <div className="flex items-center gap-2">
                                         {lastMetricsSync && (
-                                            <span className="text-[9px] font-bold text-gray-600 uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded border border-white/5">
+                                            <span className="text-[9px] font-bold text-gray-600   bg-white/5 px-2 py-0.5 rounded border border-white/5">
                                                 {lastMetricsSync.toLocaleTimeString()}
                                             </span>
                                         )}
-                                        <div className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-black uppercase tracking-widest text-emerald-500">
+                                        <div className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-black   text-emerald-500">
                                             Live
                                         </div>
                                     </div>
@@ -539,7 +539,7 @@ export default function AdminConsolePage() {
                                 <div key={item.title} className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 space-y-2">
                                     <div className="flex items-center gap-2">
                                         <item.icon size={14} className={item.color} />
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-white">{item.title}</span>
+                                        <span className="text-[10px] font-black   text-white">{item.title}</span>
                                     </div>
                                     <p className="text-[10px] text-gray-500 leading-relaxed">{item.desc}</p>
                                 </div>

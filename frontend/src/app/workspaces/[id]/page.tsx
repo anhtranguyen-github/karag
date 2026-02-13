@@ -276,7 +276,7 @@ function StatCard({ label, value, icon: Icon, color }: { label: string; value: s
                 <Icon size={20} />
             </div>
             <div className="text-h3 font-bold text-white">{value}</div>
-            <div className="text-tiny text-gray-500 uppercase">{label}</div>
+            <div className="text-tiny text-gray-500 ">{label}</div>
         </div>
     );
 }
@@ -302,7 +302,7 @@ function ActionCard({ href, title, description, icon: Icon }: { href: string; ti
 function ConfigItem({ label, value }: { label: string; value: string }) {
     return (
         <div>
-            <div className="text-tiny text-gray-600 uppercase">{label}</div>
+            <div className="text-tiny text-gray-600 ">{label}</div>
             <div className="text-gray-300">{value}</div>
         </div>
     );

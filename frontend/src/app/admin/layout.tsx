@@ -19,16 +19,16 @@ export default function AdminLayout({
                             <ShieldCheck size={16} />
                         </div>
                         <div>
-                            <h2 className="text-tiny font-black tracking-tight uppercase text-white">Admin Console</h2>
+                            <h2 className="text-tiny font-black tracking-tight  text-white">Admin Console</h2>
                             <div className="flex items-center gap-1.5">
                                 <div className="w-1 h-1 rounded-full bg-indigo-500 animate-pulse" />
-                                <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">System Root</span>
+                                <span className="text-[9px] text-gray-500 font-bold  ">System Root</span>
                             </div>
                         </div>
                     </div>
                     <Link
                         href="/"
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-white hover:bg-white/5 transition-all"
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold   text-gray-500 hover:text-white hover:bg-white/5 transition-all"
                     >
                         <ArrowLeft size={12} />
                         Back to App

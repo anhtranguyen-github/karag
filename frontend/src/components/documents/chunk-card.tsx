@@ -25,7 +25,7 @@ export function ChunkCard({ chunk, className }: ChunkCardProps) {
                     <div className="w-6 h-6 rounded-md bg-blue-500/10 flex items-center justify-center text-blue-500 text-tiny font-bold">
                         #{chunk.index + 1}
                     </div>
-                    <span className="text-tiny text-gray-500 uppercase tracking-wider">
+                    <span className="text-tiny text-gray-500  tracking-wider">
                         ID: {chunk.id.slice(0, 8)}...
                     </span>
                 </div>
@@ -49,7 +49,7 @@ export function ChunkCard({ chunk, className }: ChunkCardProps) {
                         if (typeof value === 'object' || key === 'text' || key === 'doc_id' || key === 'index') return null;
                         return (
                             <div key={key} className="px-2 py-0.5 rounded bg-white/5 text-tiny text-gray-500 border border-white/5">
-                                <span className="text-gray-600 uppercase mr-1">{key}:</span>
+                                <span className="text-gray-600  mr-1">{key}:</span>
                                 {String(value)}
                             </div>
                         );

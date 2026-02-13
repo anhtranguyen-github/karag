@@ -299,7 +299,7 @@ function InfoCard({ label, value, highlight, mono }: { label: string; value: str
             "p-3 rounded-lg",
             highlight ? "bg-blue-500/10 border border-blue-500/20" : "bg-white/5"
         )}>
-            <div className="text-tiny text-gray-500 uppercase mb-1">{label}</div>
+            <div className="text-tiny text-gray-500  mb-1">{label}</div>
             <div className={cn(
                 "text-caption font-medium truncate",
                 highlight ? "text-blue-400" : "text-white",

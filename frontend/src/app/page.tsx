@@ -280,7 +280,7 @@ export default function HomePage() {
                        or just keep it visual but inactive if I don't add to schema.
                        Actually, let's just comment it out to focus on Zod form fields.
                    */}
-                  <div className="text-gray-500 text-tiny italic">Default: Basic Engine</div>
+                  <div className="text-gray-500 text-tiny ">Default: Basic Engine</div>
                 </div>
               </div>
 

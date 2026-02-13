@@ -120,7 +120,7 @@ export function GlobalSearch({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                     {isLoading ? (
                         <Loader2 className="w-5 h-5 animate-spin text-gray-600" />
                     ) : (
-                        <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-white/5 border border-white/5 text-tiny font-bold text-gray-500 uppercase tracking-widest">
+                        <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-white/5 border border-white/5 text-tiny font-bold text-gray-500  ">
                             <Command size={10} /> Esc
                         </div>
                     )}
@@ -132,7 +132,7 @@ export function GlobalSearch({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                             key={filter}
                             onClick={() => setActiveFilter(filter)}
                             className={cn(
-                                "px-3 py-1.5 rounded-xl text-tiny font-bold uppercase tracking-widest transition-all",
+                                "px-3 py-1.5 rounded-xl text-tiny font-bold   transition-all",
                                 activeFilter === filter
                                     ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
                                     : "text-gray-500 hover:text-gray-300 hover:bg-white/5"
@@ -161,7 +161,7 @@ export function GlobalSearch({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                         {/* Workspaces */}
                         {(activeFilter === 'all' || activeFilter === 'workspaces') && (results?.workspaces?.length ?? 0) > 0 && (
                             <section>
-                                <h3 className="px-4 py-2 text-tiny font-bold text-gray-600 uppercase tracking-widest">Environments</h3>
+                                <h3 className="px-4 py-2 text-tiny font-bold text-gray-600  ">Environments</h3>
                                 {results?.workspaces.map((ws) => (
                                     <button
                                         key={ws.id}
@@ -183,7 +183,7 @@ export function GlobalSearch({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                         {/* Threads */}
                         {(activeFilter === 'all' || activeFilter === 'threads') && (results?.threads?.length ?? 0) > 0 && (
                             <section>
-                                <h3 className="px-4 py-2 text-tiny font-bold text-gray-600 uppercase tracking-widest">Conversations</h3>
+                                <h3 className="px-4 py-2 text-tiny font-bold text-gray-600  ">Conversations</h3>
                                 {results?.threads.map((thread) => (
                                     <button
                                         key={thread.id}
@@ -197,7 +197,7 @@ export function GlobalSearch({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                                             <div className="font-bold text-white group-hover:text-blue-400 transition-colors truncate">{(thread.title as string)}</div>
                                             <div className="flex flex-wrap gap-1 mt-1">
                                                 {(thread.tags as string[])?.map((tag: string) => (
-                                                    <span key={tag} className="text-tiny px-1.5 py-0.5 rounded-md bg-white/5 text-gray-500 font-bold tracking-tighter uppercase whitespace-nowrap border border-white/5">
+                                                    <span key={tag} className="text-tiny px-1.5 py-0.5 rounded-md bg-white/5 text-gray-500 font-bold   whitespace-nowrap border border-white/5">
                                                         {tag}
                                                     </span>
                                                 ))}
@@ -211,7 +211,7 @@ export function GlobalSearch({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                         {/* Documents */}
                         {(activeFilter === 'all' || activeFilter === 'documents') && (results?.documents?.length ?? 0) > 0 && (
                             <section>
-                                <h3 className="px-4 py-2 text-tiny font-bold text-gray-600 uppercase tracking-widest">Resources</h3>
+                                <h3 className="px-4 py-2 text-tiny font-bold text-gray-600  ">Resources</h3>
                                 {results?.documents.map((doc) => (
                                     <button
                                         key={doc.id}
@@ -224,8 +224,8 @@ export function GlobalSearch({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                                         <div className="flex-1 overflow-hidden">
                                             <div className="font-bold text-white group-hover:text-purple-400 transition-colors truncate">{doc.name}</div>
                                             <div className="flex items-center gap-2 mt-1">
-                                                <span className="text-tiny font-bold text-gray-600 uppercase tracking-widest">{(doc.extension as string)}</span>
-                                                <span className="text-tiny font-bold text-indigo-500 uppercase tracking-widest">{(doc.workspace_id as string)}</span>
+                                                <span className="text-tiny font-bold text-gray-600  ">{(doc.extension as string)}</span>
+                                                <span className="text-tiny font-bold text-indigo-500  ">{(doc.workspace_id as string)}</span>
                                             </div>
                                         </div>
                                     </button>
