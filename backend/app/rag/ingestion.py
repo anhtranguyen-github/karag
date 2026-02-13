@@ -153,6 +153,16 @@ class IngestionPipeline:
                 extension=ext, stage="store"
             ).observe(store_duration)
 
+            # --- Stage 5: Graph Construction (Optional) ---
+            from backend.app.core.settings_manager import settings_manager
+            settings = await settings_manager.get_settings(workspace_id)
+            if settings.rag_engine == "graph":
+                from backend.app.services.graph_service import graph_service
+                # Process the first few chunks or a summary of the document for graph nodes
+                # For efficiency, we just send a sample of the text
+                sample_text = "\n".join([doc.page_content for doc in documents])
+                await graph_service.extract_and_store_graph(sample_text, workspace_id)
+
             # --- Pipeline Summary ---
             total_duration = time.perf_counter() - pipeline_start
             DOCUMENT_INGESTION_LATENCY.labels(
@@ -214,6 +224,14 @@ class IngestionPipeline:
             await qdrant.upsert_documents(
                 target_collection, vectors=embeddings, ids=ids, payloads=payloads
             )
+
+            # Optional Graph Extraction
+            from backend.app.core.settings_manager import settings_manager
+            settings = await settings_manager.get_settings(workspace_id)
+            if settings.rag_engine == "graph":
+                from backend.app.services.graph_service import graph_service
+                await graph_service.extract_and_store_graph(text, workspace_id)
+
             return len(chunks)
 
 
