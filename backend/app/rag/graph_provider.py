@@ -1,5 +1,6 @@
 import structlog
-from typing import List, Dict
+from typing import List, Dict, Any
+from backend.app.core.neo4j import neo4j_manager
 from backend.app.core.settings_manager import settings_manager
 from backend.app.rag.qdrant_provider import qdrant
 
@@ -19,38 +20,94 @@ class GraphProvider:
     ) -> List[Dict]:
         """
         Executes Graph-Aware RAG pipeline:
-        1. Query Neo4j for context (entities, relationships).
-        2. Use graph context to refine or expand the knowledge base search.
-        3. Execute Hybrid search in Qdrant with optional graph weights.
+        1. Query Neo4j for entities related to the query keywords.
+        2. Expand the search context via relationship traversal.
+        3. Execute Hybrid search in Qdrant with graph-boosted keywords.
         """
         settings = await settings_manager.get_settings(workspace_id)
         
-        # NOTE: In a real implementation, we would use settings.neo4j_uri etc here.
-        # For now, we simulate the 'Graph Expansion' step.
-        logger.info("graph_aware_retrieval", workspace_id=workspace_id, query_preview=query[:50])
+        # STEP 1: Extract potential entity names from query
+        # In a full implementation, this might use an LLM or NER model.
+        # For efficiency, we'll do a simple keyword match against graph nodes.
+        keywords = [word.strip(",.?!") for word in query.split() if len(word) > 3]
         
-        # STEP 1: Simulate Graph Lookup (Fetch related keywords or entity IDs)
-        # In Basic mode, we just do hybrid. In Graph mode, we might discover that 
-        # 'Query X' is related to 'Concept Y' via the graph.
+        logger.info("graph_search_start", workspace_id=workspace_id, keywords=keywords)
         
-        # STEP 2: Refine Search (e.g., add discovered entities to query text)
-        refined_query = query # + discovered_concepts_from_graph
+        # STEP 2: Query Neo4j for related nodes and their neighbors (Knowledge Expansion)
+        # Find nodes matching keywords for this specific workspace
+        cypher = """
+        MATCH (n:Entity)
+        WHERE n.workspace_id = $workspace_id 
+        AND any(word IN $keywords WHERE n.name CONTAINS word)
+        MATCH (n)-[r]-(neighbor:Entity)
+        RETURN n.name as entity, type(r) as relationship, neighbor.name as related_entity
+        LIMIT 20
+        """
         
-        # STEP 3: Execute Hybrid Search with the graph-refined context
-        # This keeps the output format UNIFIED (ranked chunks).
-        results = await qdrant.hybrid_search(
-            collection_name="knowledge_base",
-            query_vector=query_vector,
-            query_text=refined_query,
-            limit=limit,
-            alpha=settings.hybrid_alpha,
-            workspace_id=workspace_id
-        )
-        
-        # Add 'graph_context' metadata to payload for transparency if needed
-        for res in results:
-            res["payload"]["rag_engine"] = "graph"
+        try:
+            graph_context = await neo4j_manager.execute_query(
+                cypher, 
+                {"keywords": keywords, "workspace_id": workspace_id},
+                workspace_id=workspace_id
+            )
             
-        return results
+            # STEP 3: Build an expanded query string for Hybrid Search
+            discovered_concepts = []
+            for record in graph_context:
+                discovered_concepts.append(record["related_entity"])
+            
+            # De-duplicate
+            unique_concepts = list(set(discovered_concepts))
+            
+            # If we found graph context, enrich the text part of the search
+            refined_query = query
+            if unique_concepts:
+                # We add the graph concepts as a boost
+                refined_query = f"{query} {' '.join(unique_concepts[:5])}"
+                logger.info("graph_query_refined", original=query, refined=refined_query)
+            
+            # STEP 4: Final retrieval from Vector DB (ranked chunks)
+            results = await qdrant.hybrid_search(
+                collection_name="knowledge_base",
+                query_vector=query_vector,
+                query_text=refined_query,
+                limit=limit,
+                alpha=settings.hybrid_alpha,
+                workspace_id=workspace_id
+            )
+            
+            # Annotate results with graph metadata
+            for res in results:
+                res["payload"]["rag_engine"] = "graph"
+                if unique_concepts:
+                    res["payload"]["graph_boost"] = unique_concepts[:10]
+                    
+            return results
+
+        except Exception as e:
+            logger.error("graph_retrieval_failed", error=str(e), workspace_id=workspace_id)
+            # Fallback to basic search if Neo4j is down or fails
+            return await qdrant.hybrid_search(
+                collection_name="knowledge_base",
+                query_vector=query_vector,
+                query_text=query,
+                limit=limit,
+                alpha=settings.hybrid_alpha,
+                workspace_id=workspace_id
+            )
+
+    async def upsert_entities(self, entities: List[Dict[str, Any]], workspace_id: str):
+        """Insert or update entities and relationships in Neo4j."""
+        cypher = """
+        UNWIND $entities as ent
+        MERGE (n:Entity {name: ent.name, workspace_id: $workspace_id})
+        SET n.type = ent.type, n.last_updated = timestamp()
+        WITH n, ent
+        UNWIND ent.relationships as rel
+        MERGE (other:Entity {name: rel.target, workspace_id: $workspace_id})
+        MERGE (n)-[r:RELATED {type: rel.type}]->(other)
+        SET r.workspace_id = $workspace_id
+        """
+        await neo4j_manager.execute_query(cypher, {"entities": entities}, workspace_id=workspace_id)
 
 graph_provider = GraphProvider()
