@@ -2,7 +2,16 @@
 
 An advanced, multi-workspace RAG (Retrieval-Augmented Generation) chat application designed for deep document analysis and intelligent conversation.
 
+## System Showcase
 
+### User Experience
+![Dashboard](assets/screenshots/showcase_user_dashboard.png)
+![Workspace Chat](assets/screenshots/showcase_user_chat.png)
+![Master Vault](assets/screenshots/showcase_user_vault.png)
+
+### Admin Control Plane
+![System Overview](assets/screenshots/showcase_admin_overview.png)
+![Observability](assets/screenshots/showcase_admin_observability.png)
 
 ![Version](https://img.shields.io/badge/version-2.0.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)

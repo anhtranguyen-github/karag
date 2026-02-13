@@ -1,56 +1,61 @@
 
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 
 /**
- * Screenshot Capture from REAL Running Application
+ * Showcase Screenshot Capture (Real App)
  * 
- * These tests connect to the real backend (localhost:8000) and frontend (localhost:3000).
- * No mocks — all data comes from the actual running services.
+ * Captures key views for project showcase:
+ * - Admin Console (Overview, Observability)
+ * - User Experience (Dashboard, Chat, Vault)
  * 
  * Prerequisites: ./run.sh turbo must be running.
  */
-test.describe('Feature Capture (Real App)', () => {
+test.describe('Showcase Capture', () => {
 
-    test('capture dashboard', async ({ page }) => {
-        await page.setViewportSize({ width: 1280, height: 720 });
-        await page.goto('http://localhost:3000/', { waitUntil: 'networkidle', timeout: 30000 });
-        // Extra wait for animations to settle
-        await page.waitForTimeout(2000);
-        await page.screenshot({ path: '../assets/screenshots/workspaces_dashboard.png', fullPage: true });
-    });
+    // === USER FEATURES (3 Screens) ===
 
-    test('capture master vault', async ({ page }) => {
-        await page.setViewportSize({ width: 1280, height: 720 });
-        await page.goto('http://localhost:3000/vault', { waitUntil: 'networkidle', timeout: 30000 });
-        await page.waitForTimeout(2000);
-        await page.screenshot({ path: '../assets/screenshots/master_vault.png', fullPage: true });
-    });
-
-    test('capture workspace overview', async ({ page }) => {
-        await page.setViewportSize({ width: 1280, height: 720 });
-        await page.goto('http://localhost:3000/workspaces/default', { waitUntil: 'networkidle', timeout: 30000 });
-        await page.waitForTimeout(2000);
-        await page.screenshot({ path: '../assets/screenshots/workspace_overview.png', fullPage: true });
+    test('capture user dashboard', async ({ page }) => {
+        await page.setViewportSize({ width: 1440, height: 900 }); // High-res for showcase
+        await page.goto('http://localhost:3000/', { waitUntil: 'networkidle' });
+        await page.waitForTimeout(1000); // Animations
+        await page.screenshot({ path: '../assets/screenshots/showcase_user_dashboard.png', fullPage: true });
     });
 
     test('capture chat interface', async ({ page }) => {
-        await page.setViewportSize({ width: 1280, height: 720 });
-        await page.goto('http://localhost:3000/workspaces/default/chat', { waitUntil: 'networkidle', timeout: 30000 });
-        await page.waitForTimeout(2000);
-        await page.screenshot({ path: '../assets/screenshots/chat_interface.png', fullPage: true });
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await page.goto('http://localhost:3000/workspaces/default/chat', { waitUntil: 'networkidle' });
+        await page.waitForTimeout(1000);
+        await page.screenshot({ path: '../assets/screenshots/showcase_user_chat.png', fullPage: true });
     });
 
-    test('capture document management', async ({ page }) => {
-        await page.setViewportSize({ width: 1280, height: 720 });
-        await page.goto('http://localhost:3000/workspaces/default/documents', { waitUntil: 'networkidle', timeout: 30000 });
-        await page.waitForTimeout(2000);
-        await page.screenshot({ path: '../assets/screenshots/document_management.png', fullPage: true });
+    test('capture master vault', async ({ page }) => {
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await page.goto('http://localhost:3000/vault', { waitUntil: 'networkidle' });
+        await page.waitForTimeout(1000);
+        await page.screenshot({ path: '../assets/screenshots/showcase_user_vault.png', fullPage: true });
     });
 
-    test('capture admin panel', async ({ page }) => {
-        await page.setViewportSize({ width: 1280, height: 720 });
-        await page.goto('http://localhost:3000/admin', { waitUntil: 'networkidle', timeout: 30000 });
-        await page.waitForTimeout(2000);
-        await page.screenshot({ path: '../assets/screenshots/admin_panel.png', fullPage: true });
+    // === ADMIN CONSOLE (2 Screens) ===
+
+    test('capture admin overview', async ({ page }) => {
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await page.goto('http://localhost:3000/admin', { waitUntil: 'networkidle' });
+        await page.waitForTimeout(1000);
+
+        // Ensure Overview tab is active (default)
+        await page.screenshot({ path: '../assets/screenshots/showcase_admin_overview.png', fullPage: true });
     });
+
+    test('capture admin observability', async ({ page }) => {
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await page.goto('http://localhost:3000/admin', { waitUntil: 'networkidle' });
+        await page.waitForTimeout(1000);
+
+        // Click the Observability tab
+        await page.getByText('Observability').click();
+        await page.waitForTimeout(500); // Tab transition
+
+        await page.screenshot({ path: '../assets/screenshots/showcase_admin_observability.png', fullPage: true });
+    });
+
 });
