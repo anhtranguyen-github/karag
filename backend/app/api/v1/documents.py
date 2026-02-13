@@ -179,7 +179,8 @@ async def get_document(name: str):
 @router.delete("/documents/{name:path}")
 async def delete_document(name: str, workspace_id: str = "default", vault_delete: bool = False):
     await document_service.delete(name, workspace_id, vault_delete=vault_delete)
-    return AppResponse(
+    return AppResponse.success_response(
+        data={"name": name},
         code="DOCUMENT_DELETED",
         message=f"Document '{name}' deleted successfully."
     )

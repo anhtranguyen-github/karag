@@ -64,7 +64,7 @@ async def delete_workspace(workspace_id: str, vault_delete: bool = False):
     if workspace_id == "default":
         raise ValidationError("Cannot delete default workspace")
     await workspace_service.delete(workspace_id, vault_delete=vault_delete)
-    return AppResponse.success_response(message=f"Workspace {workspace_id} deleted")
+    return AppResponse.success_response(data={"id": workspace_id}, message=f"Workspace {workspace_id} deleted")
 
 @router.get("/{workspace_id}/details")
 async def get_workspace_details(workspace_id: str):
@@ -84,7 +84,7 @@ async def share_document(workspace_id: str, request: Request):
     
     from backend.app.services.document_service import document_service
     await document_service.update_workspaces(source_name, target_workspace_id, "share")
-    return AppResponse.success_response(message=f"Document {source_name} shared with {target_workspace_id}")
+    return AppResponse.success_response(data={"source_name": source_name, "target_workspace_id": target_workspace_id}, message=f"Document {source_name} shared with {target_workspace_id}")
 
 @router.get("/{workspace_id}/graph")
 async def get_workspace_graph(workspace_id: str):

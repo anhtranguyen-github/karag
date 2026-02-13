@@ -7,7 +7,7 @@ import { useWorkspaceContext } from '@/context/workspace-context';
 import { cn } from '@/lib/utils';
 import {
     Home, MessageSquare, FileText, Settings,
-    ChevronDown, Database, Zap
+    ChevronDown, Database, Zap, ShieldCheck
 } from 'lucide-react';
 
 interface WorkspaceHeaderProps {
@@ -95,10 +95,17 @@ export function WorkspaceHeader({ onWorkspaceClick }: WorkspaceHeaderProps) {
             {/* Right: Actions */}
             <div className="flex items-center gap-2">
                 <Link
+                    href="/admin"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-tiny font-bold uppercase hover:bg-indigo-500/20 transition-all"
+                >
+                    <ShieldCheck size={14} />
+                    Admin
+                </Link>
+                <Link
                     href="/"
                     className="text-tiny text-gray-500 hover:text-white px-3 py-1.5 rounded hover:bg-white/5 transition-all"
                 >
-                    Exit Workspace
+                    Exit
                 </Link>
             </div>
         </header>

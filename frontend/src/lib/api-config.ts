@@ -32,4 +32,10 @@ export const API_ROUTES = {
     SEARCH: `${API_BASE_URL}/search`,
     TASKS: `${API_BASE_URL}/tasks/`,
     TASK_STATUS: (id: string) => `${API_BASE_URL}/tasks/${encodeURIComponent(id)}`,
+    METRICS: `${API_BASE_URL}/metrics`,
+};
+
+export const EXTERNAL_SERVICES = {
+    JAEGER: process.env.NEXT_PUBLIC_JAEGER_URL || 'http://localhost:16686',
+    PROMETHEUS: process.env.NEXT_PUBLIC_PROMETHEUS_URL || 'http://localhost:9090',
 };

@@ -8,16 +8,20 @@ export const DocumentStatusSchema = z.enum([
 ]);
 
 export const DocumentSchema = z.object({
-    id: z.string(), // Relaxed length
+    id: z.string(),
     filename: z.string(),
+    name: z.string(), // Injected by backend facade
+    extension: z.string(),
     workspace_id: z.string(),
     content_hash: z.string(),
     rag_config_hash: z.string().nullable().optional(),
-    status: z.string(), // Relaxed enum for backend variation
+    status: z.string(),
     chunks: z.number().int().nullable().optional(),
     shared_with: z.string().array().optional().default([]),
-    created_at: z.string(), // Relaxed from strict datetime()
+    created_at: z.string(),
     updated_at: z.string(),
+    minio_path: z.string().optional(),
+    content_type: z.string().optional(),
     // Derived frontend fields
     is_shared: z.boolean().optional(),
     workspace_name: z.string().optional(),

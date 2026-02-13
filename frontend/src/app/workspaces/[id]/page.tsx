@@ -7,7 +7,7 @@ import {
     MessageSquare, FileText, Settings, Zap, Database,
     Clock, ArrowRight, Loader2, type LucideIcon
 } from 'lucide-react';
-import { API_BASE_URL } from '@/lib/api-config';
+import { API_ROUTES } from '@/lib/api-config';
 import { cn } from '@/lib/utils';
 
 interface Thread {
@@ -56,15 +56,22 @@ export default function WorkspaceOverviewPage() {
 
     useEffect(() => {
         const fetchWorkspace = async () => {
+            if (!workspaceId) return;
             setIsLoading(true);
             try {
-                const res = await fetch(`${API_BASE_URL}/workspaces/${workspaceId}/details`);
+                const res = await fetch(API_ROUTES.WORKSPACE_STATS(workspaceId));
                 if (res.ok) {
-                    const data = await res.json();
-                    setWorkspace(data);
+                    const result = await res.json();
+                    if (result.success && result.data) {
+                        setWorkspace(result.data);
+                    } else {
+                        console.error('API Error:', result.message);
+                    }
+                } else {
+                    console.error('HTTP Error:', res.status);
                 }
             } catch (err) {
-                console.error('Failed to fetch workspace', err);
+                console.error('Failed to fetch workspace:', err);
             } finally {
                 setIsLoading(false);
             }

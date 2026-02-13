@@ -9,13 +9,21 @@ export interface DocumentPoint {
 
 export interface Document {
     id: string;
-    name: string;
-    extension: string;
+    filename: string;
+    name: string;      // Compatibility field from backend facade
+    extension: string; // Compatibility field
     workspace_id: string;
+    content_hash: string;
+    rag_config_hash?: string | null;
+    status: string;
+    chunks?: number | null;
     shared_with: string[];
-    chunks: number;
-    status?: string;
-    points: DocumentPoint[];
+    created_at: string;
+    updated_at: string;
+    // Derived/Optional fields
+    is_shared?: boolean;
+    workspace_name?: string;
+    points?: DocumentPoint[];
 }
 
 export function useDocuments() {
@@ -121,7 +129,10 @@ export function useDocuments() {
         try {
             const res = await fetch(`${API_ROUTES.DOCUMENTS}/${encodeURIComponent(name)}/inspect`);
             if (res.ok) {
-                return await res.json();
+                const result = await res.json();
+                if (result.success && result.data) {
+                    return result.data;
+                }
             } else {
                 showError("Scan Failed", "Unable to retrieve low-level segment data.");
             }

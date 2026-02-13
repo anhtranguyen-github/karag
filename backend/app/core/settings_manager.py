@@ -95,15 +95,21 @@ class SettingsManager:
     def get_settings_metadata(self) -> Dict[str, Any]:
         """Discover settings metadata from the AppSettings schema."""
         metadata = {}
-        # model_fields is Pydantic V2. For V1 use .__fields__
-        # Assuming Pydantic V2 based on current ecosystem in this project
         for name, field in AppSettings.model_fields.items():
             extra = field.json_schema_extra or {}
-            metadata[name] = {
+            field_data = {
                 "mutable": extra.get("mutable", True),
                 "category": extra.get("category", "General"),
                 "description": field.description or ""
             }
+            
+            # Extract options from Literal if present
+            # Accessing the annotation of Pydantic V2 fields
+            annotation = field.annotation
+            if hasattr(annotation, "__origin__") and annotation.__origin__ is Literal:
+                field_data["options"] = list(annotation.__args__)
+            
+            metadata[name] = field_data
         return metadata
 
     async def update_settings(self, updates: Dict[str, Any], workspace_id: Optional[str] = None) -> AppSettings:

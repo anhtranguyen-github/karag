@@ -33,7 +33,11 @@ async def retry_task(task_id: str, background_tasks: BackgroundTasks):
         raise NotFoundError(f"Task '{task_id}' not found")
     
     if task["status"] != "failed":
-        return {"status": "ignored", "message": "Only failed tasks can be retried."}
+        return AppResponse.success_response(
+            code="IGNORED",
+            message="Only failed tasks can be retried.",
+            data={"current_status": task["status"]}
+        )
 
     task_type = task.get("type")
     metadata = task.get("metadata", {})
@@ -42,14 +46,17 @@ async def retry_task(task_id: str, background_tasks: BackgroundTasks):
     # Dispatch logic based on task type
     if task_type == "ingestion":
         # Ingestion requires original file content or download logic which isn't persisted
-        return {
-            "status": "error", 
-            "message": "Cannot retry ingestion tasks. Please upload the document again."
-        }
+        return AppResponse.business_failure(
+            code="RETRY_NOT_SUPPORTED",
+            message="Cannot retry ingestion tasks. Please upload the document again."
+        )
 
     elif task_type == "indexing":
         if not metadata.get("filename"):
-            return {"status": "error", "message": "Task metadata missing filename."}
+            return AppResponse.business_failure(
+                code="METADATA_MISSING",
+                message="Task metadata missing filename."
+            )
             
         await task_service.mark_retryable(task_id)
         background_tasks.add_task(
@@ -63,7 +70,10 @@ async def retry_task(task_id: str, background_tasks: BackgroundTasks):
     elif task_type == "workspace_op":
         # metadata['workspace_id'] stored the TARGET workspace ID in create_task call
         if not metadata.get("filename") or not metadata.get("workspace_id"):
-             return {"status": "error", "message": "Task metadata missing required fields."}
+             return AppResponse.business_failure(
+                 code="METADATA_MISSING",
+                 message="Task metadata missing required fields."
+             )
 
         await task_service.mark_retryable(task_id)
         background_tasks.add_task(
@@ -76,7 +86,10 @@ async def retry_task(task_id: str, background_tasks: BackgroundTasks):
         )
     
     else:
-        return {"status": "error", "message": f"Unknown task type: {task_type}"}
+        return AppResponse.business_failure(
+            code="UNKNOWN_TASK_TYPE",
+            message=f"Unknown task type: {task_type}"
+        )
 
     return AppResponse.success_response(data={"task_id": task_id}, message="Task retry initialized")
 
@@ -89,7 +102,11 @@ async def cancel_task(task_id: str):
         raise NotFoundError(f"Task '{task_id}' not found")
     
     if task["status"] in ["completed", "failed", "canceled"]:
-        return {"status": "ignored", "message": f"Task already {task['status']}."}
+        return AppResponse.success_response(
+            code="IGNORED",
+            message=f"Task already {task['status']}.",
+            data={"current_status": task["status"]}
+        )
 
     await task_service.cancel_task(task_id)
     return AppResponse.success_response(data={"task_id": task_id}, message=f"Task {task_id} canceled")
@@ -99,4 +116,4 @@ async def cancel_task(task_id: str):
 async def cleanup_tasks(older_than_hours: int = 24):
     """Remove completed/failed tasks older than the given number of hours."""
     await task_service.cleanup_old_tasks(older_than_hours)
-    return AppResponse.success_response(message="Task logs pruned")
+    return AppResponse.success_response(data=None, message=f"Task logs pruned (older than {older_than_hours}h)")

@@ -4,9 +4,10 @@ import { useError } from '@/context/error-context';
 
 export interface Thread {
     id: string;
-    title: string;
+    title?: string | null;
     has_thinking?: boolean;
     tags?: string[];
+    updated_at?: string;
 }
 
 export function useThreads(workspaceId: string = "default") {

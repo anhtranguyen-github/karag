@@ -7,7 +7,7 @@ import {
     FileText, Upload, Trash2, Share2, Search,
     Loader2, Grid, List, Network
 } from 'lucide-react';
-import { API_BASE_URL } from '@/lib/api-config';
+import { API_BASE_URL, API_ROUTES } from '@/lib/api-config';
 import { useError } from '@/context/error-context';
 import { cn } from '@/lib/utils';
 import { DocumentGraph } from '@/components/documents/document-graph';
@@ -47,10 +47,14 @@ export default function DocumentsPage() {
     const fetchDocuments = useCallback(async (showLoading = true) => {
         if (showLoading) setIsLoading(true);
         try {
-            const res = await fetch(`${API_BASE_URL}/documents?workspace_id=${workspaceId}`);
+            const res = await fetch(`${API_ROUTES.DOCUMENTS}?workspace_id=${encodeURIComponent(workspaceId)}`);
             if (res.ok) {
-                const data = await res.json();
-                setDocuments(data);
+                const result = await res.json();
+                if (result.success && result.data) {
+                    setDocuments(result.data);
+                } else {
+                    console.error('API Error:', result.message);
+                }
             }
         } catch (err) {
             console.error('Failed to fetch documents', err);
@@ -70,44 +74,47 @@ export default function DocumentsPage() {
     useEffect(() => {
         const pollTasks = async () => {
             try {
-                const res = await fetch(`${API_BASE_URL}/tasks/?type=ingestion`);
+                const res = await fetch(API_ROUTES.TASKS + `?type=ingestion`);
                 if (res.ok) {
-                    const data = await res.json();
+                    const result = await res.json();
+                    if (result.success && result.data && result.data.tasks) {
+                        const tasks = result.data.tasks;
 
-                    // Check for active failures we haven't shown yet
-                    const failedTasks = data.tasks.filter((t: any) =>
-                        t.status === 'failed' &&
-                        t.metadata.workspace_id === workspaceId &&
-                        !notifiedTasksRef.current.has(t.id)
-                    );
+                        // Check for active failures we haven't shown yet
+                        const failedTasks = tasks.filter((t: any) =>
+                            t.status === 'failed' &&
+                            t.metadata.workspace_id === workspaceId &&
+                            !notifiedTasksRef.current.has(t.id)
+                        );
 
-                    for (const task of failedTasks) {
-                        let displayTitle = "Ingestion Failed";
-                        let displayMessage = task.message || "The system encountered an error while processing this document.";
+                        for (const task of failedTasks) {
+                            let displayTitle = "Ingestion Failed";
+                            let displayMessage = task.message || "The system encountered an error while processing this document.";
 
-                        if (task.error_code === 'ILLEGAL_PATH') {
-                            displayTitle = "Invalid Filename";
-                            displayMessage = "The filename contains characters that are not allowed by the storage system.";
+                            if (task.error_code === 'ILLEGAL_PATH') {
+                                displayTitle = "Invalid Filename";
+                                displayMessage = "The filename contains characters that are not allowed by the storage system.";
+                            }
+
+                            showError(
+                                displayTitle,
+                                displayMessage,
+                                `File: ${task.metadata.filename || 'Unknown'}`
+                            );
+                            notifiedTasksRef.current.add(task.id);
                         }
 
-                        showError(
-                            displayTitle,
-                            displayMessage,
-                            `File: ${task.metadata.filename || 'Unknown'}`
+                        // Check for completions to refresh the list
+                        const hasJustCompleted = tasks.some((t: any) =>
+                            t.status === 'completed' &&
+                            t.progress === 100 &&
+                            t.metadata.workspace_id === workspaceId &&
+                            !notifiedTasksRef.current.has(t.id)
                         );
-                        notifiedTasksRef.current.add(task.id);
-                    }
 
-                    // Check for completions to refresh the list
-                    const hasJustCompleted = data.tasks.some((t: any) =>
-                        t.status === 'completed' &&
-                        t.progress === 100 &&
-                        t.metadata.workspace_id === workspaceId &&
-                        !notifiedTasksRef.current.has(t.id)
-                    );
-
-                    if (hasJustCompleted) {
-                        fetchDocuments(false);
+                        if (hasJustCompleted) {
+                            fetchDocuments(false);
+                        }
                     }
                 }
             } catch (err) {
@@ -142,7 +149,7 @@ export default function DocumentsPage() {
         formData.append('file', file);
 
         try {
-            let url = `${API_BASE_URL}/upload?workspace_id=${workspaceId}`;
+            let url = `${API_ROUTES.UPLOAD}?workspace_id=${encodeURIComponent(workspaceId)}`;
             if (strategy) url += `&strategy=${strategy}`;
 
             const res = await fetch(url, {
@@ -150,25 +157,25 @@ export default function DocumentsPage() {
                 body: formData,
             });
 
-            const data = await res.json();
+            const result = await res.json();
 
-            if (res.ok && data.success) {
+            if (res.ok && result.success) {
                 setIsDuplicateModalOpen(false);
                 setPendingFile(null);
                 setConflictData(null);
                 // Task is now handled by the polling effect
-            } else if (data.code === 'DUPLICATE_DETECTED') {
+            } else if (result.code === 'DUPLICATE_DETECTED') {
                 // Duplicate detected
-                setConflictData(data.data);
+                setConflictData(result.data);
                 setPendingFile(file);
                 setIsDuplicateModalOpen(true);
             } else {
                 let title = "Ingestion Rejected";
-                let message = data.message || data.detail || 'Upload failed';
+                let message = result.message || result.detail || 'Upload failed';
 
-                if (data.code === 'INVALID_FILENAME') {
+                if (result.code === 'INVALID_FILENAME') {
                     title = "Invalid Filename";
-                } else if (data.code === 'CONFLICT_ERROR') {
+                } else if (result.code === 'CONFLICT_ERROR') {
                     title = "Duplicate Document";
                 }
 
@@ -192,15 +199,15 @@ export default function DocumentsPage() {
         if (!confirm(`Are you sure you want to delete ${filename}?`)) return;
 
         try {
-            const res = await fetch(`${API_BASE_URL}/documents/${encodeURIComponent(filename)}?workspace_id=${workspaceId}`, {
+            const res = await fetch(`${API_ROUTES.DOCUMENTS}/${encodeURIComponent(filename)}?workspace_id=${encodeURIComponent(workspaceId)}`, {
                 method: 'DELETE',
             });
 
             if (res.ok) {
                 setDocuments(prev => prev.filter(doc => doc.filename !== filename));
             } else {
-                const error = await res.json();
-                showError("Delete Failed", error.detail || 'Could not delete document', `File: ${filename}`);
+                const result = await res.json();
+                showError("Delete Failed", result.message || 'Could not delete document', `File: ${filename}`);
             }
         } catch (err) {
             console.error('Delete error:', err);
@@ -277,24 +284,24 @@ export default function DocumentsPage() {
 
         setIsArxivLoading(true);
         try {
-            const res = await fetch(`${API_BASE_URL}/upload-arxiv?workspace_id=${workspaceId}`, {
+            const res = await fetch(`${API_BASE_URL}/upload-arxiv?workspace_id=${encodeURIComponent(workspaceId)}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ url: arxivUrl, strategy }),
             });
 
-            const data = await res.json();
+            const result = await res.json();
 
-            if (res.ok && data.success) {
+            if (res.ok && result.success) {
                 setIsArxivModalOpen(false);
                 setArxivUrl('');
                 setConflictData(null);
                 // Task is now handled by the polling effect
-            } else if (data.code === 'DUPLICATE_DETECTED') {
-                setConflictData(data.data);
+            } else if (result.code === 'DUPLICATE_DETECTED') {
+                setConflictData(result.data);
                 setIsDuplicateModalOpen(true);
             } else {
-                showError("ArXiv Import Failed", data.message || data.detail || 'Failed to download paper', `Source: ${arxivUrl}`);
+                showError("ArXiv Import Failed", result.message || 'Failed to download paper', `Source: ${arxivUrl}`);
             }
         } catch (err) {
             console.error('ArXiv error:', err);
