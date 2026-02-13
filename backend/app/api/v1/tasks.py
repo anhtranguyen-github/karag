@@ -7,9 +7,9 @@ router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
 @router.get("/")
-async def list_tasks(type: str = None, workspace_id: str = None):
+async def list_tasks(type: str = None, workspace_id: str = None, limit: int = 50):
     """List tasks, optionally filtered by type and workspace."""
-    tasks = await task_service.list_tasks(task_type=type, workspace_id=workspace_id)
+    tasks = await task_service.list_tasks(task_type=type, workspace_id=workspace_id, limit=limit)
     return AppResponse.success_response(data=tasks)
 
 

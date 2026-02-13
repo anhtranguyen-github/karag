@@ -8,15 +8,12 @@ from typing import List, Set
 from downloader import download_arxiv_paper
 
 def extract_content_from_pdf(pdf_path: str) -> str:
-    """Extracts text from the last part of the PDF where references usually are."""
+    """Extracts text from the entire PDF."""
     try:
         reader = pypdf.PdfReader(pdf_path)
-        num_pages = len(reader.pages)
         full_text = ""
-        # Typically references are in the last 20% or last 10 pages
-        start_page = max(0, num_pages - 10)
-        for i in range(start_page, num_pages):
-            full_text += reader.pages[i].extract_text() + "\n"
+        for page in reader.pages:
+            full_text += page.extract_text() + "\n"
         return full_text
     except Exception as e:
         print(f"Error reading PDF {pdf_path}: {e}")
@@ -24,12 +21,25 @@ def extract_content_from_pdf(pdf_path: str) -> str:
 
 def find_references_section(text: str) -> str:
     """Heuristic to find the start of the references section."""
-    patterns = [r'\nReferences\n', r'\nREFERENCES\n', r'\nBibliography\n']
+    # Common patterns for Reference section headers
+    patterns = [
+        r'\n\s*References\s*\n', 
+        r'\n\s*REFERENCES\s*\n', 
+        r'\n\s*Bibliography\s*\n',
+        r'\n\s*[0-9]*\.?\s*References\s*\n' # "10. References"
+    ]
+    
+    best_idx = -1
     for p in patterns:
-        match = re.search(p, text, re.IGNORECASE)
-        if match:
-            return text[match.start():]
-    return text # Fallback to full text if section not found
+        matches = list(re.finditer(p, text, re.IGNORECASE))
+        if matches:
+            # Take the last match position
+            best_idx = max(best_idx, matches[-1].start())
+    
+    if best_idx != -1:
+         return text[best_idx:]
+         
+    return text[-50000:] if len(text) > 50000 else text # Fallback to last chunk if not found
 
 def get_arxiv_ids(text: str) -> Set[str]:
     """Extracts arXiv IDs using common patterns."""
