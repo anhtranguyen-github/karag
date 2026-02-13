@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { useChat, Message } from '@/hooks/use-chat';
 import { useSettings } from '@/hooks/use-settings';
 import { cn } from '@/lib/utils';
-import { API_BASE_URL } from '@/lib/api-config';
+import { API_ROUTES } from '@/lib/api-config';
 import {
     Send, Bot, Loader2, Zap, Brain, MessageSquare,
     Plus, Trash2, History, X
@@ -17,7 +17,7 @@ type ChatMode = 'fast' | 'thinking' | 'reasoning';
 
 interface Thread {
     id: string;
-    title: string;
+    title?: string | null;
     last_active: string;
     message_count: number;
 }
@@ -53,13 +53,17 @@ export default function ChatPage() {
     const fetchThreads = useCallback(async () => {
         setIsLoadingThreads(true);
         try {
-            const res = await fetch(`${API_BASE_URL}/chat/threads?workspace_id=${workspaceId}`);
+            const res = await fetch(API_ROUTES.CHAT_THREADS + `?workspace_id=${encodeURIComponent(workspaceId)}`);
             if (res.ok) {
-                const data = await res.json();
-                setThreads(data.threads || []);
+                const result = await res.json();
+                if (result.success && result.data) {
+                    setThreads(result.data);
+                } else {
+                    console.error('API Error:', result.message);
+                }
             }
-        } catch {
-            // ignore
+        } catch (err) {
+            console.error('Failed to fetch threads:', err);
         } finally {
             setIsLoadingThreads(false);
         }
@@ -83,10 +87,12 @@ export default function ChatPage() {
     const deleteThread = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
         try {
-            await fetch(`${API_BASE_URL}/chat/threads/${id}`, { method: 'DELETE' });
-            setThreads(prev => prev.filter(t => t.id !== id));
-            if (threadId === id) {
-                clearChat();
+            const res = await fetch(API_ROUTES.THREAD_DELETE(id), { method: 'DELETE' });
+            if (res.ok) {
+                setThreads(prev => prev.filter(t => t.id !== id));
+                if (threadId === id) {
+                    clearChat();
+                }
             }
         } catch (err) {
             console.error('Failed to delete thread', err);

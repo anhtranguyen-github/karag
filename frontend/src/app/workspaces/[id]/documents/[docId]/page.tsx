@@ -7,7 +7,7 @@ import {
     Layers, Download,
     Loader2, AlertCircle, type LucideIcon
 } from 'lucide-react';
-import { API_BASE_URL } from '@/lib/api-config';
+import { API_BASE_URL, API_ROUTES } from '@/lib/api-config';
 import { cn } from '@/lib/utils';
 import { ChunkCard } from '@/components/documents/chunk-card';
 
@@ -58,10 +58,14 @@ export default function DocumentDetailPage() {
             setIsLoading(true);
             setError(null);
             try {
-                const res = await fetch(`${API_BASE_URL}/documents/${docId}?workspace_id=${workspaceId}`);
+                const res = await fetch(`${API_ROUTES.DOCUMENTS}/${encodeURIComponent(docId)}?workspace_id=${encodeURIComponent(workspaceId)}`);
                 if (!res.ok) throw new Error('Document not found');
-                const data = await res.json();
-                setDocument(data);
+                const result = await res.json();
+                if (result.success && result.data) {
+                    setDocument(result.data);
+                } else {
+                    throw new Error(result.message || 'Failed to load document');
+                }
             } catch (err: unknown) {
                 const errorMessage = err instanceof Error ? err.message : 'Unknown error';
                 setError(errorMessage);
@@ -77,10 +81,15 @@ export default function DocumentDetailPage() {
         const fetchChunks = async () => {
             setIsChunksLoading(true);
             try {
-                const res = await fetch(`${API_BASE_URL}/documents/${docId}/chunks?workspace_id=${workspaceId}`);
+                const res = await fetch(`${API_ROUTES.DOCUMENTS}/${encodeURIComponent(docId)}/chunks?workspace_id=${encodeURIComponent(workspaceId)}`);
                 if (res.ok) {
-                    const data = await res.json();
-                    setChunks(data);
+                    const result = await res.json();
+                    // Handle both raw array and AppResponse wrap
+                    if (Array.isArray(result)) {
+                        setChunks(result);
+                    } else if (result.success && Array.isArray(result.data)) {
+                        setChunks(result.data);
+                    }
                 }
             } catch (err) {
                 console.error('Failed to fetch chunks', err);

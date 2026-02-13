@@ -23,6 +23,8 @@ import { API_ROUTES } from '@/lib/api-config';
 import { SourceViewer } from '@/components/source-viewer';
 
 interface Document {
+    id: string;
+    filename: string;
     name: string;
     extension: string;
     chunks: number;
@@ -40,8 +42,10 @@ export default function KnowledgePage() {
         try {
             const res = await fetch(API_ROUTES.DOCUMENTS);
             if (res.ok) {
-                const data = await res.json();
-                setDocuments(data);
+                const result = await res.json();
+                if (result.success && result.data) {
+                    setDocuments(result.data);
+                }
             }
         } catch (err) {
             console.error('Failed to fetch documents', err);
@@ -73,8 +77,8 @@ export default function KnowledgePage() {
                 // Clear input
                 e.target.value = '';
             } else {
-                const data = await res.json();
-                console.error(data.detail || 'Upload failed');
+                const result = await res.json();
+                console.error(result.message || 'Upload failed');
             }
         } catch {
             console.error('Connection error occurred');
@@ -101,12 +105,15 @@ export default function KnowledgePage() {
         try {
             const res = await fetch(API_ROUTES.DOCUMENT_GET(name));
             if (res.ok) {
-                const data = await res.json();
-                setActiveSource({
-                    id: 0,
-                    name: data.name,
-                    content: data.content
-                });
+                const result = await res.json();
+                if (result.success && result.data) {
+                    const data = result.data;
+                    setActiveSource({
+                        id: 0,
+                        name: data.name || data.filename,
+                        content: data.content
+                    });
+                }
             }
         } catch (err) {
             console.error('Failed to view document', err);

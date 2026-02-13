@@ -5,16 +5,16 @@ import { useError } from '@/context/error-context';
 export interface Workspace {
     id: string;
     name: string;
-    description?: string;
+    description?: string | null;
     stats?: {
-        thread_count: number;
-        doc_count: number;
-    }
+        thread_count?: number;
+        doc_count?: number;
+    } | null;
 }
 
 export interface Thread {
     id: string;
-    title?: string;
+    title?: string | null;
     updated_at?: string;
 }
 
@@ -242,7 +242,10 @@ export function useWorkspaces() {
         try {
             const res = await fetch(API_ROUTES.WORKSPACE_STATS(id));
             if (res.ok) {
-                return await res.json();
+                const result = await res.json();
+                if (result.success && result.data) {
+                    return result.data;
+                }
             }
             return null;
         } catch (err) {

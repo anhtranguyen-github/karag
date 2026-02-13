@@ -39,12 +39,15 @@ export function DocumentGraph({ workspaceId }: { workspaceId: string }) {
             try {
                 const res = await fetch(`${API_BASE_URL}/workspaces/${workspaceId}/graph`);
                 if (res.ok) {
-                    const graphData = await res.json();
-                    // Map "edges" to "links" for the library
-                    setData({
-                        nodes: graphData.nodes,
-                        links: graphData.edges
-                    });
+                    const result = await res.json();
+                    if (result.success && result.data) {
+                        const graphData = result.data;
+                        // Map "edges" to "links" for the library
+                        setData({
+                            nodes: graphData.nodes || [],
+                            links: graphData.edges || []
+                        });
+                    }
                 }
             } catch (err) {
                 console.error('Failed to fetch graph data', err);

@@ -60,13 +60,19 @@ export default function DocumentsPage() {
         setInspectedPoints([]);
 
         try {
-            const [points, contentData] = await Promise.all([
+            const [points, contentRes] = await Promise.all([
                 inspectDocument(doc.name),
-                fetch(API_ROUTES.DOCUMENT_GET(doc.name)).then(res => res.ok ? res.json() : null)
+                fetch(API_ROUTES.DOCUMENT_GET(doc.name))
             ]);
 
             if (points) setInspectedPoints(points);
-            if (contentData) setDocumentContent(contentData.content);
+
+            if (contentRes.ok) {
+                const result = await contentRes.json();
+                if (result.success && result.data) {
+                    setDocumentContent(result.data.content);
+                }
+            }
         } catch (err) {
             console.error('Failed to load document details:', err);
         } finally {

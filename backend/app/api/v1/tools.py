@@ -47,7 +47,8 @@ async def delete_tool(tool_id: str):
         )
     
     tool_manager.delete_tool(tool_id)
-    return AppResponse(
+    return AppResponse.success_response(
+        data={"id": tool_id},
         code="TOOL_DELETED",
         message=f"Tool {tool_id} deleted"
     )

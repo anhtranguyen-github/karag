@@ -1,6 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import { SettingsManager } from '@/components/settings-manager';
 import { Wrench, Shield, Globe, Cpu, Zap, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -86,11 +87,12 @@ export default function KernelPage() {
                                 <p className="text-tiny text-indigo-400/60 font-medium">Access system-wide account and subscription nodes.</p>
                             </div>
                         </div>
-                        <button
+                        <Link
+                            href="/admin"
                             className="px-6 py-3 rounded-xl bg-[#0a0a0b] border border-indigo-500/20 text-indigo-400 font-black uppercase text-tiny tracking-widest hover:bg-indigo-500 hover:text-white transition-all active:scale-95 shadow-lg shadow-indigo-500/5"
                         >
                             Open Master Kernel
-                        </button>
+                        </Link>
                     </div>
                 </div>
             </main>

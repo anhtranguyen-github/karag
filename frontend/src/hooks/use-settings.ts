@@ -17,6 +17,7 @@ export interface SettingMetadata {
     mutable: boolean;
     category: string;
     description: string;
+    options?: string[];
 }
 
 export function useSettingsMetadata() {

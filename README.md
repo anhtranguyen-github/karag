@@ -40,9 +40,9 @@ Analytical summary of specific research projects.
   - **Reasoning**: Full chain-of-thought with detailed source citations.
 - **Global Search**: Unified search across documents, chat history, and workspaces.
 - **Advanced RAG Engines**: Support for various retrieval strategies including Vector search and Graph-based RAG.
-- **Document Ingestion**: Asynchronous, non-blocking ingestion of PDFs, Markdown, and ArXiv papers with background tracking, automated deduplication, and global vault persistence.
-- **Premium UI/UX**: Unified typography using the **Outfit** font and a dark-mode first design aesthetic.
-- **Provider Agnostic**: Configurable support for OpenAI, Anthropic, Ollama, and more.
+- **Admin Console**: Centralized system control center for managing providers (LLM/Embedding), global system parameters, real-time observability (Prometheus), and distributed tracing (Jaeger).
+- **On-Demand Neural Indexing**: Implemented lazy-loading for RAG ingestion. Vector indexing is triggered only when needed, reducing initial storage costs.
+- **Provider Agnostic**: Configurable support for OpenAI, Anthropic, Ollama, and more, with dynamic metadata discovery.
 
 ## CI/CD Pipeline
 

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useWorkspaces } from '@/hooks/use-workspaces';
 import {
   Plus, Search, FileText, MessageSquare,
-  Trash2, Loader2, AlertCircle, X, Zap, Database
+  Trash2, Loader2, AlertCircle, X, Zap, Database, ShieldCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -85,18 +85,25 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-3">
             <Link
+              href="/admin"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 text-indigo-400 text-caption font-medium transition-all"
+            >
+              <ShieldCheck size={16} />
+              Admin Console
+            </Link>
+            <Link
               href="/vault"
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 text-gray-300 text-caption font-medium transition-all"
             >
               <Database size={16} />
-              Intelligence Vault
+              Vault
             </Link>
             <button
               onClick={() => setShowCreateModal(true)}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-caption font-medium transition-all"
             >
               <Plus size={16} />
-              New Workspace
+              New
             </button>
           </div>
         </div>

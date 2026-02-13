@@ -103,9 +103,10 @@ def create_app() -> FastAPI:
         return JSONResponse(
             status_code=exc.status_code,
             content={
+                "success": False,
                 "code": exc.code,
-                "detail": exc.message,
-                "params": exc.params,
+                "message": exc.message,
+                "data": exc.params,
             },
         )
 
