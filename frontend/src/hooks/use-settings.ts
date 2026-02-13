@@ -25,33 +25,34 @@ export function useSettingsMetadata() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        const fetchMetadata = async () => {
-            setIsLoading(true);
-            try {
-                const res = await fetch(API_ROUTES.SETTINGS_METADATA);
-                if (res.ok) {
-                    const payload = await res.json();
-                    if (payload.success) {
-                        setMetadata(payload.data);
-                        setError(null);
-                    } else {
-                        setError(payload.message || 'Failed to parse metadata.');
-                    }
+    const fetchMetadata = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const res = await fetch(API_ROUTES.SETTINGS_METADATA);
+            if (res.ok) {
+                const payload = await res.json();
+                if (payload.success) {
+                    setMetadata(payload.data);
+                    setError(null);
                 } else {
-                    setError('Metadata service unreachable.');
+                    setError(payload.message || 'Failed to parse metadata.');
                 }
-            } catch (err) {
-                console.error('Failed to fetch settings metadata:', err);
-                setError('Connection failed.');
-            } finally {
-                setIsLoading(false);
+            } else {
+                setError('Metadata service unreachable.');
             }
-        };
-        fetchMetadata();
+        } catch (err) {
+            console.error('Failed to fetch settings metadata:', err);
+            setError('Connection failed.');
+        } finally {
+            setIsLoading(false);
+        }
     }, []);
 
-    return { metadata, isLoading, error };
+    useEffect(() => {
+        fetchMetadata();
+    }, [fetchMetadata]);
+
+    return { metadata, isLoading, error, refreshSettings: fetchMetadata };
 }
 
 export function useSettings(workspaceId?: string) {
