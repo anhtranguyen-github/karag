@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 
 export default function ProvidersPage() {
     const { settings, updateSettings, isLoading, refreshSettings } = useSettings();
-    const { metadata, isLoading: isLoadingMeta, error } = useSettingsMetadata();
+    const { metadata, isLoading: isLoadingMeta, error, refreshSettings: refreshMetadata } = useSettingsMetadata();
     const [isSaving, setIsSaving] = useState<string | null>(null);
 
     const providerFields = [
@@ -43,7 +43,7 @@ export default function ProvidersPage() {
                     <p className="text-caption text-gray-500 max-w-md">{error || "Neural settings synchronization failed."}</p>
                 </div>
                 <button
-                    onClick={() => { refreshSettings(); window.location.reload(); }}
+                    onClick={() => { refreshMetadata(); refreshSettings(); }}
                     className="px-8 py-3 rounded-2xl bg-white/5 border border-white/10 text-caption font-bold text-white hover:bg-white/10 transition-all uppercase tracking-widest"
                 >
                     Retry Core Sync
