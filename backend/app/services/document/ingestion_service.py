@@ -162,7 +162,6 @@ class IngestionService:
                 
                 cursor = db.documents.find({
                     "workspace_id": workspace_id, 
-                    # Escaping parentheses for regex: \( and \) needs double backslash in f-string or raw string logic
                     "filename": {"$regex": f"^{re.escape(name)} \\(\\d+\\){re.escape(ext)}$"}
                 })
                 existing = await cursor.to_list(1000)
@@ -190,6 +189,146 @@ class IngestionService:
                 "content_type": "application/pdf"
             }
 
+    async def import_url(self, url: str, workspace_id: str, strategy: Optional[str] = None) -> Dict:
+        """Fetch content from a URL and prepare for ingestion."""
+        with tracer.start_as_current_span(
+            "document.import_url",
+            attributes={"workspace_id": workspace_id, "url": url},
+        ):
+            import httpx
+            from urllib.parse import urlparse
+            
+            async with httpx.AsyncClient(follow_redirects=True) as client:
+                response = await client.get(url)
+                response.raise_for_status()
+                content = response.content
+                content_type = response.headers.get("content-type", "text/html").split(";")[0]
+
+            # Generate filename from URL
+            parsed = urlparse(url)
+            path = parsed.path.strip("/")
+            if not path:
+                filename = parsed.netloc.replace(".", "_") + ".html"
+            else:
+                filename = path.split("/")[-1]
+                if "." not in filename:
+                    filename += ".html"
+            
+            file_hash = hashlib.sha256(content).hexdigest()
+            db = mongodb_manager.get_async_database()
+            
+            existing_local = await db.documents.find_one({"workspace_id": workspace_id, "filename": filename})
+            existing_vault = await db.documents.find_one({"content_hash": file_hash})
+            
+            conflict_type = None
+            if existing_local and existing_vault and existing_local["id"] == existing_vault["id"]:
+                conflict_type = "exact_duplicate"
+            elif existing_local:
+                conflict_type = "name_collision"
+            elif existing_vault:
+                conflict_type = "content_collision"
+
+            if conflict_type and not strategy:
+                return {
+                    "status": "conflict",
+                    "code": "DUPLICATE_DETECTED",
+                    "message": f"URL Import Conflict: {conflict_type}",
+                    "params": {"type": conflict_type, "filename": filename, "suggested_name": filename}
+                }
+
+            task_id = await task_service.create_task("url_ingestion", {
+                "url": url,
+                "filename": filename,
+                "workspace_id": workspace_id
+            }, workspace_id=workspace_id)
+
+            return {
+                "status": "success",
+                "task_id": task_id,
+                "content": content,
+                "filename": filename,
+                "content_type": content_type
+            }
+
+    async def import_sitemap(self, sitemap_url: str, workspace_id: str) -> Dict:
+        """Start a background task to process a sitemap."""
+        with tracer.start_as_current_span(
+            "document.import_sitemap",
+            attributes={"workspace_id": workspace_id, "sitemap_url": sitemap_url},
+        ):
+            task_id = await task_service.create_task("sitemap_ingestion", {
+                "sitemap_url": sitemap_url,
+                "workspace_id": workspace_id
+            }, workspace_id=workspace_id)
+
+            return {
+                "status": "success",
+                "task_id": task_id,
+                "message": f"Sitemap ingestion started for {sitemap_url}"
+            }
+
+    async def import_directory(self, path: str, workspace_id: str) -> Dict:
+        """Start a background task to process a local directory."""
+        with tracer.start_as_current_span(
+            "document.import_directory",
+            attributes={"workspace_id": workspace_id, "path": path},
+        ):
+            if not os.path.isabs(path):
+                # For safety, we might want to restrict this or resolve it
+                path = os.path.abspath(path)
+
+            task_id = await task_service.create_task("directory_ingestion", {
+                "path": path,
+                "workspace_id": workspace_id
+            }, workspace_id=workspace_id)
+
+            return {
+                "status": "success",
+                "task_id": task_id,
+                "message": f"Directory ingestion started for {path}"
+            }
+
+    async def run_directory_background(self, task_id: str, path: str, workspace_id: str):
+        """Background runner for directory processing."""
+        from backend.app.rag.ingestion import ingestion_pipeline
+        try:
+            if await task_service.is_cancelled(task_id):
+                return
+            await task_service.update_task(task_id, status="processing", progress=10, message=f"Scanning {path}...")
+            
+            num_chunks = await ingestion_pipeline.process_directory(path, metadata={"workspace_id": workspace_id})
+            
+            await task_service.update_task(
+                task_id, status="completed", progress=100,
+                message=f"Directory processed. Created {num_chunks} fragments.",
+                result={"chunks": num_chunks}
+            )
+        except Exception as e:
+            logger.error("directory_ingestion_failed", task_id=task_id, error=str(e), exc_info=True)
+            await task_service.update_task(task_id, status="failed", message=str(e), error_code="DIRECTORY_FAILED")
+
+    async def run_sitemap_background(self, task_id: str, sitemap_url: str, workspace_id: str):
+        """Background runner for sitemap processing."""
+        from backend.app.rag.ingestion import ingestion_pipeline
+        try:
+            if await task_service.is_cancelled(task_id):
+                return
+            await task_service.update_task(task_id, status="processing", progress=10, message="Loading sitemap...")
+            
+            # Use the pipeline to process the sitemap (chunk, embed, store)
+            # Note: This version of sitemap ingestion directly indexes chunks.
+            # No 'file' is saved to Minio for the sitemap itself, but indexed fragments are created.
+            num_chunks = await ingestion_pipeline.process_sitemap(sitemap_url, metadata={"workspace_id": workspace_id})
+            
+            await task_service.update_task(
+                task_id, status="completed", progress=100,
+                message=f"Sitemap processed. Created {num_chunks} fragments.",
+                result={"chunks": num_chunks}
+            )
+        except Exception as e:
+            logger.error("sitemap_ingestion_failed", task_id=task_id, error=str(e), exc_info=True)
+            await task_service.update_task(task_id, status="failed", message=str(e), error_code="SITEMAP_FAILED")
+
     async def run_ingestion(self, task_id: str, safe_filename: str, content: bytes, content_type: str, workspace_id: str):
         """Phase 1: Storage and metadata."""
         try:
@@ -202,7 +341,8 @@ class IngestionService:
             extension = os.path.splitext(safe_filename)[1].lower() if safe_filename else ".tmp"
             minio_path = f"workspaces/{workspace_id}/documents/{doc_id}/v1/{safe_filename}"
             
-            minio_manager.upload_file(minio_path, content, content_type)
+            import io
+            await minio_manager.upload_file(minio_path, io.BytesIO(content), len(content), content_type)
             
             if await task_service.is_cancelled(task_id):
                 minio_manager.delete_file(minio_path)
@@ -238,7 +378,7 @@ class IngestionService:
                 result={"doc_id": doc_id, "filename": safe_filename}
             )
             from backend.app.core.telemetry import DOCUMENT_INGESTION_COUNT
-            DOCUMENT_INGESTION_COUNT.add(1, {"workspace_id": workspace_id, "status": "success"})
+            DOCUMENT_INGESTION_COUNT.labels(extension=extension, status="success").inc()
             
         except Exception as e:
             logger.error("ingestion_failed", task_id=task_id, error=str(e), exc_info=True)

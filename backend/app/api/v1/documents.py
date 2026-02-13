@@ -24,6 +24,9 @@ async def upload_document(
             document_service.run_ingestion,
             result["task_id"], result["filename"], result["content"], result["content_type"], workspace_id
         )
+        # Remove binary content from response to avoid UnicodeDecodeError in JSON serialization
+        if "content" in result:
+            del result["content"]
 
     return AppResponse.from_result(result)
 
@@ -51,7 +54,78 @@ async def upload_arxiv_document(
             document_service.run_ingestion,
             result["task_id"], result["filename"], result["content"], result["content_type"], workspace_id
         )
+        # Remove binary content from response
+        if "content" in result:
+            del result["content"]
 
+    return AppResponse.from_result(result)
+@router.post("/import-url")
+async def import_url_document(
+    background_tasks: BackgroundTasks,
+    request: Request,
+    workspace_id: str = "default"
+):
+    data = await request.json()
+    url = data.get("url")
+    strategy = data.get("strategy")
+    if not url:
+        return AppResponse.business_failure(
+            code="MISSING_URL",
+            message="URL is required"
+        )
+
+    result = await document_service.import_url(url, workspace_id, strategy=strategy)
+
+    if result["status"] == "success":
+        # Dispatch background task (Phase 1: Upload to Minio + MongoDB)
+        background_tasks.add_task(
+            document_service.run_ingestion,
+            result["task_id"], result["filename"], result["content"], result["content_type"], workspace_id
+        )
+        # Remove binary content from response
+        if "content" in result:
+            del result["content"]
+
+    return AppResponse.from_result(result)
+
+
+@router.post("/import-sitemap")
+async def import_sitemap_document(
+    background_tasks: BackgroundTasks,
+    request: Request,
+    workspace_id: str = "default"
+):
+    data = await request.json()
+    url = data.get("url")
+    if not url:
+        return AppResponse.business_failure(code="MISSING_URL", message="Sitemap URL is required")
+
+    result = await document_service.import_sitemap(url, workspace_id)
+    if result["status"] == "success":
+        background_tasks.add_task(
+            document_service.run_sitemap_background,
+            result["task_id"], url, workspace_id
+        )
+    return AppResponse.from_result(result)
+
+
+@router.post("/import-directory")
+async def import_directory_document(
+    background_tasks: BackgroundTasks,
+    request: Request,
+    workspace_id: str = "default"
+):
+    data = await request.json()
+    path = data.get("path")
+    if not path:
+        return AppResponse.business_failure(code="MISSING_PATH", message="Directory path is required")
+
+    result = await document_service.import_directory(path, workspace_id)
+    if result["status"] == "success":
+        background_tasks.add_task(
+            document_service.run_directory_background,
+            result["task_id"], path, workspace_id
+        )
     return AppResponse.from_result(result)
 
 

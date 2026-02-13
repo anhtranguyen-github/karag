@@ -40,9 +40,10 @@ class IngestionPipeline:
 
     async def process_file(self, file_path: str, metadata: Dict = None):
         """
-        Process various file types: PDF, TXT, MD, DOCX.
+        Process various file types: PDF, TXT, MD, DOCX, HTML.
         Automatically selects the appropriate loader based on extension.
         """
+        from langchain_community.document_loaders import BSHTMLLoader
         ext = os.path.splitext(file_path)[1].lower()
         workspace_id = (metadata or {}).get("workspace_id", "default")
         filename = (metadata or {}).get("filename", os.path.basename(file_path))
@@ -63,10 +64,12 @@ class IngestionPipeline:
             load_start = time.perf_counter()
             if ext == ".pdf":
                 loader = PyPDFLoader(file_path)
-            elif ext in [".txt", ".log", ".md"]:
+            elif ext in [".txt", ".log", ".md", ".py", ".js", ".ts", ".tsx", ".json", ".yaml", ".yml"]:
                 loader = TextLoader(file_path)
             elif ext == ".docx":
                 loader = Docx2txtLoader(file_path)
+            elif ext == ".html":
+                loader = BSHTMLLoader(file_path)
             else:
                 raise ValueError(f"Unsupported file extension: {ext}")
 
@@ -212,6 +215,152 @@ class IngestionPipeline:
                 target_collection, vectors=embeddings, ids=ids, payloads=payloads
             )
             return len(chunks)
+
+
+    async def process_url(self, url: str, metadata: Dict = None):
+        """
+        Process a web URL using WebBaseLoader.
+        """
+        from langchain_community.document_loaders import WebBaseLoader
+        workspace_id = (metadata or {}).get("workspace_id", "default")
+        
+        with tracer.start_as_current_span(
+            "ingestion.process_url",
+            attributes={
+                "ingestion.url": url,
+                "workspace_id": workspace_id,
+            },
+        ) as span:
+            pipeline_start = time.perf_counter()
+            target_collection, _ = await self.get_target_collection(workspace_id)
+
+            # --- Stage 1: Load ---
+            load_start = time.perf_counter()
+            loader = WebBaseLoader(url)
+            documents = loader.load()
+            load_duration = time.perf_counter() - load_start
+            
+            span.set_attribute("ingestion.pages_loaded", len(documents))
+
+            # --- Stage 2: Chunk ---
+            chunk_start = time.perf_counter()
+            all_chunks = []
+            for doc in documents:
+                chunks = await rag_service.chunk_text(
+                    doc.page_content, workspace_id=workspace_id
+                )
+                all_chunks.extend(chunks)
+
+            if not all_chunks:
+                return 0
+
+            # --- Stage 3: Embed ---
+            embed_start = time.perf_counter()
+            embeddings = await rag_service.get_embeddings(
+                all_chunks, workspace_id=workspace_id
+            )
+
+            # --- Stage 4: Store ---
+            ids = [str(uuid.uuid4()) for _ in all_chunks]
+            payloads = [
+                {
+                    **(metadata or {}),
+                    "text": chunk,
+                    "source": url,
+                    "extension": ".html",
+                    "index": i,
+                    "workspace_id": workspace_id,
+                }
+                for i, chunk in enumerate(all_chunks)
+            ]
+
+            await qdrant.upsert_documents(
+                target_collection, vectors=embeddings, ids=ids, payloads=payloads
+            )
+            
+            total_duration = time.perf_counter() - pipeline_start
+            logger.info(
+                "ingestion_url_complete",
+                url=url,
+                chunks=len(all_chunks),
+                total_ms=round(total_duration * 1000, 2),
+            )
+            return len(all_chunks)
+
+
+    async def process_sitemap(self, sitemap_url: str, metadata: Dict = None):
+        """
+        Process all URLs in a sitemap.
+        """
+        from langchain_community.document_loaders.sitemap import SitemapLoader
+        workspace_id = (metadata or {}).get("workspace_id", "default")
+        
+        with tracer.start_as_current_span(
+            "ingestion.process_sitemap",
+            attributes={
+                "ingestion.sitemap_url": sitemap_url,
+                "workspace_id": workspace_id,
+            },
+        ) as span:
+            # Note: SitemapLoader is synchronous and can be slow
+            loader = SitemapLoader(sitemap_url)
+            documents = loader.load()
+            
+            span.set_attribute("ingestion.urls_found", len(documents))
+            logger.info("ingestion_sitemap_loaded", url=sitemap_url, count=len(documents))
+            
+            total_chunks = 0
+            for doc in documents:
+                # We reuse process_text for each page to handle chunking/embedding/storing
+                chunks = await self.process_text(
+                    doc.page_content, 
+                    metadata={
+                        **(metadata or {}),
+                        "source": doc.metadata.get("source", sitemap_url),
+                        "title": doc.metadata.get("title", ""),
+                    }
+                )
+                total_chunks += chunks
+            
+            return total_chunks
+
+    async def process_directory(self, directory_path: str, metadata: Dict = None):
+        """
+        Recursively process all files in a directory.
+        """
+        workspace_id = (metadata or {}).get("workspace_id", "default")
+        
+        if not os.path.isdir(directory_path):
+            raise ValueError(f"Path is not a directory: {directory_path}")
+
+        ignore_dirs = {".git", "__pycache__", ".venv", "node_modules", ".next"}
+
+        with tracer.start_as_current_span(
+            "ingestion.process_directory",
+            attributes={
+                "ingestion.directory": directory_path,
+                "workspace_id": workspace_id,
+            },
+        ) as _:
+            total_chunks = 0
+            for root, dirs, files in os.walk(directory_path):
+                # Modify dirs in-place to skip ignored directories
+                dirs[:] = [d for d in dirs if d not in ignore_dirs]
+                
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    # Skip hidden files
+                    if file.startswith("."):
+                        continue
+                        
+                    try:
+                        chunks = await self.process_file(file_path, metadata=metadata)
+                        total_chunks += chunks
+                    except Exception as e:
+                        logger.error("directory_file_failed", path=file_path, error=str(e))
+                        continue
+            
+            return total_chunks
 
 
 ingestion_pipeline = IngestionPipeline()
