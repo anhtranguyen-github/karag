@@ -27,7 +27,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                 onClose ? "fixed inset-0 z-[100] bg-[#0a0a0b]/80 backdrop-blur-xl" : "h-[400px] w-full"
             )}>
                 <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
-                <span className="text-gray-500 text-tiny font-bold uppercase tracking-widest animate-pulse">Syncing Kernel Settings...</span>
+                <span className="text-gray-500 text-tiny font-bold   animate-pulse">Syncing Kernel Settings...</span>
             </div>
         );
     }
@@ -82,11 +82,11 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                         <Settings className="text-white w-7 h-7" />
                     </div>
                     <div>
-                        <h2 className="text-h3 font-black text-white tracking-tight uppercase">
+                        <h2 className="text-h3 font-black text-white tracking-tight ">
                             {workspaceName ? workspaceName : 'Core System'}
                         </h2>
                         <div className="flex items-center gap-2 mt-1">
-                            <span className="text-tiny font-bold text-gray-500 uppercase tracking-[0.2em]">Parameter Configuration</span>
+                            <span className="text-tiny font-bold text-gray-500  tracking-[0.2em]">Parameter Configuration</span>
                             <span className="w-1 h-1 rounded-full bg-gray-700" />
                             <code className="text-tiny text-indigo-400">ID: {workspaceId || 'GLOBAL'}</code>
                         </div>
@@ -117,7 +117,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                             )}
                         >
                             <tab.icon size={20} className={cn("shrink-0", activeTab === tab.id ? "text-black" : tab.color)} />
-                            <span className="text-tiny font-black uppercase tracking-widest">{tab.label}</span>
+                            <span className="text-tiny font-black  ">{tab.label}</span>
                             {activeTab === tab.id && (
                                 <motion.div
                                     layoutId="activeTabGlow"
@@ -130,7 +130,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                     <div className="mt-auto p-6 rounded-3xl bg-indigo-500/5 border border-indigo-500/10">
                         <div className="flex items-center gap-3 mb-3">
                             <Shield size={14} className="text-indigo-400" />
-                            <span className="text-tiny font-black text-indigo-400 uppercase tracking-widest">Security Mode</span>
+                            <span className="text-tiny font-black text-indigo-400  ">Security Mode</span>
                         </div>
                         <p className="text-tiny text-gray-600 leading-relaxed font-medium">
                             Structural settings are locked after workspace initialization to prevent vector drift.
@@ -154,12 +154,12 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                     <section className="space-y-6">
                                         <header className="flex items-center gap-3 pb-2 border-b border-white/5">
                                             <Zap size={14} className="text-amber-400" />
-                                            <h3 className="text-tiny font-black text-gray-500 uppercase tracking-[0.25em]">Response Engine</h3>
+                                            <h3 className="text-tiny font-black text-gray-500  tracking-[0.25em]">Response Engine</h3>
                                         </header>
 
                                         <div className="grid gap-6">
                                             <div className="space-y-3">
-                                                <label className="block text-tiny font-black text-gray-600 uppercase tracking-widest ml-1">AI Provider</label>
+                                                <label className="block text-tiny font-black text-gray-600   ml-1">AI Provider</label>
                                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                                     {['openai', 'anthropic', 'ollama', 'vllm', 'llama-cpp'].map((prov) => (
                                                         <button
@@ -167,7 +167,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                                             disabled={!isMutable('llm_provider')}
                                                             onClick={() => handleChange('llm_provider', prov)}
                                                             className={cn(
-                                                                "px-4 py-4 rounded-2xl border text-tiny font-black uppercase tracking-tighter transition-all",
+                                                                "px-4 py-4 rounded-2xl border text-tiny font-black   transition-all",
                                                                 current.llm_provider === prov
                                                                     ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-600/20"
                                                                     : "bg-[#0a0a0b] border-white/5 text-gray-600 hover:border-white/10 hover:text-gray-400",
@@ -181,7 +181,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                             </div>
 
                                             <div className="space-y-3">
-                                                <label className="block text-tiny font-black text-gray-600 uppercase tracking-widest ml-1">Target Model</label>
+                                                <label className="block text-tiny font-black text-gray-600   ml-1">Target Model</label>
                                                 <div className="relative group">
                                                     <Server className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-700 group-focus-within:text-blue-500 transition-colors" size={18} />
                                                     <input
@@ -203,11 +203,11 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                     <section className="space-y-6 pt-4 border-t border-white/5">
                                         <header className="flex items-center gap-3 pb-2 border-b border-white/5">
                                             <Database size={14} className="text-emerald-400" />
-                                            <h3 className="text-tiny font-black text-gray-500 uppercase tracking-[0.25em]">Vectorization</h3>
+                                            <h3 className="text-tiny font-black text-gray-500  tracking-[0.25em]">Vectorization</h3>
                                         </header>
 
                                         <div className="space-y-3">
-                                            <label className="block text-tiny font-black text-gray-600 uppercase tracking-widest ml-1">Embedding Logic</label>
+                                            <label className="block text-tiny font-black text-gray-600   ml-1">Embedding Logic</label>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                 {[
                                                     { id: 'openai', label: 'Cloud (OpenAI)', sub: 'Fast & Robust' },
@@ -229,7 +229,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                                             !isMutable('embedding_provider') && "cursor-not-allowed border-emerald-500/20 bg-emerald-500/5"
                                                         )}
                                                     >
-                                                        <div className={cn("text-tiny font-black uppercase tracking-tighter mb-1", current.embedding_provider === item.id ? "text-emerald-400" : "text-gray-400")}>
+                                                        <div className={cn("text-tiny font-black   mb-1", current.embedding_provider === item.id ? "text-emerald-400" : "text-gray-400")}>
                                                             {item.label}
                                                             {!isMutable('embedding_provider') && <Shield size={10} className="inline ml-2 opacity-50" />}
                                                         </div>
@@ -238,7 +238,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                                 ))}
                                             </div>
                                             {!isMutable('embedding_provider') && (
-                                                <p className="text-tiny text-gray-700 font-bold uppercase mt-2 px-2">
+                                                <p className="text-tiny text-gray-700 font-bold  mt-2 px-2">
                                                     Structured Vector Index is locked for consistency.
                                                 </p>
                                             )}
@@ -252,7 +252,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                     <section className="space-y-6">
                                         <header className="flex items-center gap-3 pb-2 border-b border-white/5">
                                             <Search size={14} className="text-indigo-400" />
-                                            <h3 className="text-tiny font-black text-gray-500 uppercase tracking-[0.25em]">Search Pipeline</h3>
+                                            <h3 className="text-tiny font-black text-gray-500  tracking-[0.25em]">Search Pipeline</h3>
                                         </header>
 
                                         <div className="space-y-4">
@@ -261,7 +261,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                                     <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center">
                                                         <Check size={16} className="text-indigo-400" />
                                                     </div>
-                                                    <h4 className="text-caption font-black text-white uppercase tracking-tight">Unified Neural Retrieval</h4>
+                                                    <h4 className="text-caption font-black text-white  tracking-tight">Unified Neural Retrieval</h4>
                                                 </div>
                                                 <p className="text-tiny text-gray-600 font-medium leading-relaxed">
                                                     The system automatically balances Semantic Vectors and Keyword indexes using Recruit Rank Fusion (RRF). Individual mode selection is deprecated in favor of a unified high-performance pipeline.
@@ -274,8 +274,8 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                         <div className="space-y-6">
                                             <div className="flex justify-between items-end">
                                                 <div className="space-y-1">
-                                                    <label className="text-tiny font-black text-gray-600 uppercase tracking-widest">Expansion Threshold</label>
-                                                    <p className="text-tiny text-gray-700 font-bold uppercase">Number of context chunks to retrieve</p>
+                                                    <label className="text-tiny font-black text-gray-600  ">Expansion Threshold</label>
+                                                    <p className="text-tiny text-gray-700 font-bold ">Number of context chunks to retrieve</p>
                                                 </div>
                                                 <span className="text-h3 font-black text-white">{current.search_limit}</span>
                                             </div>
@@ -291,8 +291,8 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                         <div className="space-y-6 p-8 rounded-[2rem] bg-indigo-500/5 border border-indigo-500/10">
                                             <div className="flex justify-between items-end">
                                                 <div className="space-y-1">
-                                                    <label className="text-tiny font-black text-indigo-400 uppercase tracking-widest">Hybrid Weighting (Alpha)</label>
-                                                    <p className="text-tiny text-indigo-400/50 font-bold uppercase">Balance Concept vs. Exact Matches</p>
+                                                    <label className="text-tiny font-black text-indigo-400  ">Hybrid Weighting (Alpha)</label>
+                                                    <p className="text-tiny text-indigo-400/50 font-bold ">Balance Concept vs. Exact Matches</p>
                                                 </div>
                                                 <span className="text-h3 font-black text-indigo-400">{current.hybrid_alpha}</span>
                                             </div>
@@ -303,7 +303,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                                 onChange={e => handleChange('hybrid_alpha', parseFloat(e.target.value))}
                                                 className="w-full h-1.5 bg-indigo-500/10 rounded-full appearance-none cursor-pointer accent-indigo-500"
                                             />
-                                            <div className="flex justify-between text-tiny font-black text-indigo-400/40 uppercase tracking-widest">
+                                            <div className="flex justify-between text-tiny font-black text-indigo-400/40  ">
                                                 <span>Strict Text</span>
                                                 <span>Semantic</span>
                                             </div>
@@ -317,7 +317,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                     <section className="space-y-6">
                                         <header className="flex items-center gap-3 pb-2 border-b border-white/5">
                                             <Layout size={14} className="text-purple-400" />
-                                            <h3 className="text-tiny font-black text-gray-500 uppercase tracking-[0.25em]">User Experience</h3>
+                                            <h3 className="text-tiny font-black text-gray-500  tracking-[0.25em]">User Experience</h3>
                                         </header>
 
                                         <div className="grid gap-4">
@@ -338,7 +338,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                                         <Brain size={24} />
                                                     </div>
                                                     <div className="text-left">
-                                                        <div className={cn("text-caption font-black uppercase tracking-tight mb-1", current.show_reasoning ? "text-purple-400" : "text-gray-400")}>
+                                                        <div className={cn("text-caption font-black  tracking-tight mb-1", current.show_reasoning ? "text-purple-400" : "text-gray-400")}>
                                                             Thinking Transparency
                                                         </div>
                                                         <div className="text-tiny text-gray-600 font-bold leading-relaxed max-w-[240px]">
@@ -366,14 +366,14 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
             <div className="px-10 py-8 border-t border-white/5 flex items-center justify-between bg-white/[0.01] shrink-0">
                 <div className="flex items-center gap-4 text-gray-600">
                     <ArrowRight size={14} className="animate-pulse" />
-                    <span className="text-tiny font-black uppercase tracking-widest">Kernel Ready</span>
+                    <span className="text-tiny font-black  ">Kernel Ready</span>
                 </div>
 
                 <div className="flex items-center gap-4">
                     {onClose && (
                         <button
                             onClick={onClose}
-                            className="px-6 py-4 text-tiny font-black uppercase tracking-widest text-gray-500 hover:text-white transition-colors"
+                            className="px-6 py-4 text-tiny font-black   text-gray-500 hover:text-white transition-colors"
                         >
                             Discard
                         </button>
@@ -381,7 +381,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                     <button
                         onClick={handleSave}
                         disabled={isSaving || Object.keys(localSettings).length === 0}
-                        className="group flex items-center gap-3 px-8 py-4 bg-white disabled:opacity-30 disabled:hover:scale-100 text-black text-tiny font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl hover:scale-105 active:scale-95 transition-all outline-none focus:ring-2 ring-indigo-500 ring-offset-2 ring-offset-[#121214]"
+                        className="group flex items-center gap-3 px-8 py-4 bg-white disabled:opacity-30 disabled:hover:scale-100 text-black text-tiny font-black  tracking-[0.2em] rounded-2xl shadow-2xl hover:scale-105 active:scale-95 transition-all outline-none focus:ring-2 ring-indigo-500 ring-offset-2 ring-offset-[#121214]"
                     >
                         {isSaving ? (
                             <Loader2 className="w-4 h-4 animate-spin" />

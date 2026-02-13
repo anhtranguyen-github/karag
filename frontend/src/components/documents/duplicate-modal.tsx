@@ -43,7 +43,7 @@ export function DuplicateModal({ isOpen, onClose, onResolve, conflict, isProcess
                     <AlertCircle className="text-red-500" size={24} />
                     <div>
                         <h2 className="text-h4 font-bold text-white">Duplicate Detected</h2>
-                        <p className="text-tiny text-red-500/80 font-medium uppercase tracking-wider">{conflict.type.replace('_', ' ')}</p>
+                        <p className="text-tiny text-red-500/80 font-medium  tracking-wider">{conflict.type.replace('_', ' ')}</p>
                     </div>
                 </div>
 

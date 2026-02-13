@@ -464,7 +464,7 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                     {documents.length === 0 && !isUploading && (
                         <div className="flex flex-col items-center justify-center py-10 opacity-20">
                             <Database size={24} className="mb-2" />
-                            <span className="text-tiny font-black uppercase tracking-widest text-center px-4 leading-relaxed">System Index Empty</span>
+                            <span className="text-tiny font-black   text-center px-4 leading-relaxed">System Index Empty</span>
                         </div>
                     )}
                 </div>
@@ -472,12 +472,12 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                 <div className="flex items-center gap-2 px-1 py-4 mt-2">
                     <button
                         onClick={() => setIsArxivModalOpen(true)}
-                        className="flex-1 group flex items-center justify-center gap-3 h-10 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/10 text-gray-500 hover:text-blue-400 transition-all text-tiny font-black uppercase tracking-widest"
+                        className="flex-1 group flex items-center justify-center gap-3 h-10 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/10 text-gray-500 hover:text-blue-400 transition-all text-tiny font-black  "
                     >
                         <Network size={14} className="group-hover:rotate-12 transition-transform" />
                         ArXiv
                     </button>
-                    <label className="cursor-pointer group flex items-center justify-center gap-3 h-10 w-10 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-dashed border-white/10 text-gray-500 hover:text-white transition-all text-tiny font-black uppercase tracking-widest">
+                    <label className="cursor-pointer group flex items-center justify-center gap-3 h-10 w-10 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-dashed border-white/10 text-gray-500 hover:text-white transition-all text-tiny font-black  ">
                         <Plus size={14} className="group-hover:rotate-90 transition-transform" />
                         <input type="file" className="hidden" onChange={handleUpload} disabled={isUploading} />
                     </label>
@@ -513,8 +513,8 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                                         <Network size={24} />
                                     </div>
                                     <div>
-                                        <h4 className="text-h3 font-black text-white uppercase tracking-tight">ArXiv Import</h4>
-                                        <p className="text-tiny text-gray-500 font-bold uppercase tracking-widest">Neural Source Acquisition</p>
+                                        <h4 className="text-h3 font-black text-white  tracking-tight">ArXiv Import</h4>
+                                        <p className="text-tiny text-gray-500 font-bold  ">Neural Source Acquisition</p>
                                     </div>
                                 </div>
                                 <button
@@ -527,7 +527,7 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
 
                             <div className="p-8 space-y-6">
                                 <div className="space-y-3">
-                                    <label className="text-tiny font-black text-gray-500 uppercase tracking-[0.2em] ml-1">Paper Link or ID</label>
+                                    <label className="text-tiny font-black text-gray-500  tracking-[0.2em] ml-1">Paper Link or ID</label>
                                     <input
                                         type="text"
                                         placeholder="https://arxiv.org/abs/1706.03762 or 1706.03762"
@@ -542,7 +542,7 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                                 <button
                                     onClick={handleArxivUpload}
                                     disabled={!arxivUrl || isArxivLoading}
-                                    className="w-full h-14 bg-white text-black hover:bg-gray-200 rounded-2xl font-black text-tiny uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
+                                    className="w-full h-14 bg-white text-black hover:bg-gray-200 rounded-2xl font-black text-tiny   transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
                                 >
                                     {isArxivLoading ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
                                     Initialize Acquisition
@@ -576,8 +576,8 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                                         <Database size={24} />
                                     </div>
                                     <div>
-                                        <h4 className="text-h3 font-black text-white uppercase tracking-tight">Vault Browser</h4>
-                                        <p className="text-tiny text-gray-500 font-bold uppercase tracking-widest">Select Intelligence to Link</p>
+                                        <h4 className="text-h3 font-black text-white  tracking-tight">Vault Browser</h4>
+                                        <p className="text-tiny text-gray-500 font-bold  ">Select Intelligence to Link</p>
                                     </div>
                                 </div>
                                 <button
@@ -592,12 +592,12 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                                 {isVaultLoading ? (
                                     <div className="flex flex-col items-center justify-center py-20 gap-4">
                                         <Loader2 size={32} className="animate-spin text-indigo-400" />
-                                        <span className="text-tiny font-black text-gray-600 uppercase tracking-widest">Scanning Global Vault...</span>
+                                        <span className="text-tiny font-black text-gray-600  ">Scanning Global Vault...</span>
                                     </div>
                                 ) : vaultDocuments.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-40">
                                         <Database size={48} className="text-gray-600" />
-                                        <span className="text-tiny font-black text-gray-600 uppercase tracking-widest">No New Entities Found</span>
+                                        <span className="text-tiny font-black text-gray-600  ">No New Entities Found</span>
                                     </div>
                                 ) : (
                                     vaultDocuments.map((doc) => (
@@ -607,14 +607,14 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                                                     <FileText size={18} className="text-gray-500 group-hover:text-indigo-400" />
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <span className="text-caption font-bold text-white uppercase tracking-tight">{doc.name}</span>
-                                                    <span className="text-tiny text-gray-500 uppercase font-medium">{doc.extension?.replace('.', '')} • FROM {doc.workspace_name}</span>
+                                                    <span className="text-caption font-bold text-white  tracking-tight">{doc.name}</span>
+                                                    <span className="text-tiny text-gray-500  font-medium">{doc.extension?.replace('.', '')} • FROM {doc.workspace_name}</span>
                                                 </div>
                                             </div>
                                             <button
                                                 onClick={() => handleLinkFromVault(doc)}
                                                 disabled={isLinking}
-                                                className="h-10 px-6 rounded-xl bg-white text-black hover:bg-gray-200 text-tiny font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                                                className="h-10 px-6 rounded-xl bg-white text-black hover:bg-gray-200 text-tiny font-black   transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
                                             >
                                                 {isLinking ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
                                                 Link
@@ -649,7 +649,7 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                                     <AlertTriangle size={40} className="text-indigo-400" />
                                 </div>
                                 <div className="space-y-3">
-                                    <h2 className="text-h2 font-black text-white uppercase tracking-tighter">Vault Match Detected</h2>
+                                    <h2 className="text-h2 font-black text-white  ">Vault Match Detected</h2>
                                     <p className="text-caption text-gray-500 font-medium leading-relaxed px-4">
                                         This document is already registered in the <span className="text-indigo-400 font-bold">Intelligence Vault</span>.
                                         Would you like to link the existing record to this workspace instead of creating a duplicate?
@@ -659,14 +659,14 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                                     <button
                                         onClick={handleConfirmLink}
                                         disabled={isLinking}
-                                        className="w-full h-16 bg-white text-black hover:bg-gray-200 rounded-[1.5rem] font-black text-tiny uppercase tracking-[0.2em] transition-all active:scale-95 flex items-center justify-center gap-3"
+                                        className="w-full h-16 bg-white text-black hover:bg-gray-200 rounded-[1.5rem] font-black text-tiny  tracking-[0.2em] transition-all active:scale-95 flex items-center justify-center gap-3"
                                     >
                                         {isLinking ? <Loader2 className="animate-spin" /> : <ArrowRightLeft size={18} />}
                                         Link Existing Entry
                                     </button>
                                     <button
                                         onClick={() => setDuplicateData(null)}
-                                        className="w-full h-16 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-[1.5rem] font-black text-tiny uppercase tracking-[0.2em] transition-all"
+                                        className="w-full h-16 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-[1.5rem] font-black text-tiny  tracking-[0.2em] transition-all"
                                     >
                                         Continue with New Upload
                                     </button>
@@ -683,9 +683,9 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                         <Database className="w-7 h-7 text-indigo-400" />
                     </div>
                     <div>
-                        <h3 className="text-h3 font-black text-white uppercase tracking-tight">Intelligence Vault</h3>
+                        <h3 className="text-h3 font-black text-white  tracking-tight">Intelligence Vault</h3>
                         <div className="flex items-center gap-2 mt-1">
-                            <span className="text-tiny font-bold text-gray-500 uppercase tracking-widest">Neural Vector Index</span>
+                            <span className="text-tiny font-bold text-gray-500  ">Neural Vector Index</span>
                             <span className="w-1 h-1 rounded-full bg-gray-700" />
                             <span className="text-tiny text-indigo-400">{documents.length} ENTITIES</span>
                         </div>
@@ -708,7 +708,7 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                 <div className="flex gap-2">
                     <button
                         onClick={() => setIsArxivModalOpen(true)}
-                        className="h-12 px-6 flex items-center gap-3 rounded-2xl bg-white/[0.05] border border-white/10 hover:bg-white/[0.1] text-white transition-all active:scale-95 text-tiny font-black uppercase tracking-widest"
+                        className="h-12 px-6 flex items-center gap-3 rounded-2xl bg-white/[0.05] border border-white/10 hover:bg-white/[0.1] text-white transition-all active:scale-95 text-tiny font-black  "
                     >
                         <Network size={14} className="text-blue-400" />
                         ArXiv
@@ -719,13 +719,13 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                                 fetchVaultDocuments();
                                 setIsVaultBrowserOpen(true);
                             }}
-                            className="h-12 px-6 flex items-center gap-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 text-indigo-400 transition-all active:scale-95 text-tiny font-black uppercase tracking-widest"
+                            className="h-12 px-6 flex items-center gap-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 text-indigo-400 transition-all active:scale-95 text-tiny font-black  "
                         >
                             <Database size={14} />
                             Vault
                         </button>
                     )}
-                    <label className="cursor-pointer h-12 px-6 flex items-center gap-3 rounded-2xl bg-white hover:bg-white/90 text-black shadow-xl transition-all active:scale-95 text-tiny font-black uppercase tracking-widest">
+                    <label className="cursor-pointer h-12 px-6 flex items-center gap-3 rounded-2xl bg-white hover:bg-white/90 text-black shadow-xl transition-all active:scale-95 text-tiny font-black  ">
                         <Upload size={14} />
                         Upload
                         <input type="file" className="hidden" onChange={handleUpload} disabled={isUploading} />
@@ -743,7 +743,7 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                         <Loader2 className="w-5 h-5 animate-spin text-indigo-400" />
                     </div>
                     <div className="flex-1">
-                        <div className="text-tiny font-black text-indigo-300 uppercase tracking-wider mb-1">Streaming to Server...</div>
+                        <div className="text-tiny font-black text-indigo-300  tracking-wider mb-1">Streaming to Server...</div>
                         <div className="w-full bg-indigo-500/10 h-1 rounded-full overflow-hidden">
                             <motion.div
                                 className="h-full bg-indigo-400"
@@ -771,10 +771,10 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                                     <div className="w-20 h-20 rounded-[2.5rem] bg-indigo-500/10 flex items-center justify-center mb-6">
                                         <Search size={40} />
                                     </div>
-                                    <h4 className="text-caption font-black uppercase tracking-[0.2em] mb-2">
+                                    <h4 className="text-caption font-black  tracking-[0.2em] mb-2">
                                         {searchQuery ? "No Matches Found" : "Vault Empty"}
                                     </h4>
-                                    <p className="text-tiny text-gray-500 uppercase font-bold tracking-widest">
+                                    <p className="text-tiny text-gray-500  font-bold ">
                                         {searchQuery ? "Refine your search parameters" : "No intelligence sources indexed"}
                                     </p>
                                 </div>
@@ -797,24 +797,24 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                                         <span
                                             data-testid="doc-name"
                                             data-doc-name={doc.name}
-                                            className="text-caption font-black text-white truncate max-w-[200px] uppercase tracking-tight"
+                                            className="text-caption font-black text-white truncate max-w-[200px]  tracking-tight"
                                         >
                                             {doc.name}
                                         </span>
                                         <div className="flex items-center gap-3 mt-1">
-                                            <span className="text-tiny text-gray-600 uppercase">{doc.extension?.replace('.', '') || 'FILE'}</span>
+                                            <span className="text-tiny text-gray-600 ">{doc.extension?.replace('.', '') || 'FILE'}</span>
                                             <span className="w-1 h-1 rounded-full bg-gray-800" />
                                             {doc.status === 'indexed' ? (
-                                                <span className="text-tiny text-indigo-400/50 font-black uppercase tracking-widest">{doc.chunks} Fragments</span>
+                                                <span className="text-tiny text-indigo-400/50 font-black  ">{doc.chunks} Fragments</span>
                                             ) : (
-                                                <span className="text-tiny text-amber-400/50 font-black uppercase tracking-widest flex items-center gap-2">
+                                                <span className="text-tiny text-amber-400/50 font-black   flex items-center gap-2">
                                                     Vault Persistence
                                                 </span>
                                             )}
                                             {isGlobal && (
                                                 <>
                                                     <span className="w-1 h-1 rounded-full bg-gray-800" />
-                                                    <span className="text-tiny px-2 py-0.5 rounded bg-white/5 text-gray-500 uppercase font-bold tracking-widest">
+                                                    <span className="text-tiny px-2 py-0.5 rounded bg-white/5 text-gray-500  font-bold ">
                                                         {doc.workspace_name}
                                                     </span>
                                                 </>
@@ -876,11 +876,11 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
 
             <div className="flex items-center justify-between pt-6 border-t border-white/5">
                 <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 text-tiny font-black text-emerald-500 uppercase tracking-widest">
+                    <div className="flex items-center gap-2 text-tiny font-black text-emerald-500  ">
                         <Shield className="w-3 h-3" />
                         Indexed
                     </div>
-                    <div className="flex items-center gap-2 text-tiny font-black text-blue-500 uppercase tracking-widest">
+                    <div className="flex items-center gap-2 text-tiny font-black text-blue-500  ">
                         <Filter className="w-3 h-3" />
                         Hybrid Active
                     </div>
@@ -888,7 +888,7 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
 
                 <Link
                     href="/"
-                    className="text-tiny font-black uppercase tracking-[0.2em] text-gray-600 hover:text-indigo-400 transition-colors flex items-center gap-2 group"
+                    className="text-tiny font-black  tracking-[0.2em] text-gray-600 hover:text-indigo-400 transition-colors flex items-center gap-2 group"
                 >
                     System Protocol v1.4
                     <ArrowRight size={10} className="group-hover:translate-x-1 transition-transform" />
@@ -917,8 +917,8 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                                         <ArrowRightLeft size={24} />
                                     </div>
                                     <div>
-                                        <h4 className="text-h3 font-black text-white uppercase tracking-tight">Lifecycle Manager</h4>
-                                        <p className="text-tiny text-gray-500 font-bold uppercase tracking-widest">Global Document Redistribution</p>
+                                        <h4 className="text-h3 font-black text-white  tracking-tight">Lifecycle Manager</h4>
+                                        <p className="text-tiny text-gray-500 font-bold  ">Global Document Redistribution</p>
                                     </div>
                                 </div>
                                 <button
@@ -931,7 +931,7 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
 
                             <div className="p-8 space-y-8">
                                 <div className="space-y-3">
-                                    <label className="text-tiny font-black text-gray-500 uppercase tracking-[0.2em] ml-1">Distribution Mode</label>
+                                    <label className="text-tiny font-black text-gray-500  tracking-[0.2em] ml-1">Distribution Mode</label>
                                     <div className="grid grid-cols-2 gap-4">
                                         <button
                                             onClick={() => setManageMode('share')}
@@ -944,7 +944,7 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                                                 <Layers size={18} />
                                                 {manageMode === 'share' && <div className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]" />}
                                             </div>
-                                            <span className="text-tiny font-black uppercase">Assign / Share</span>
+                                            <span className="text-tiny font-black ">Assign / Share</span>
                                             <span className="text-tiny font-medium leading-relaxed opacity-60">Map document to an additional workspace without removing the current index.</span>
                                         </button>
                                         <button
@@ -958,14 +958,14 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                                                 <ArrowRightLeft size={18} />
                                                 {manageMode === 'move' && <div className="w-2 h-2 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.8)]" />}
                                             </div>
-                                            <span className="text-tiny font-black uppercase">Transfer / Move</span>
+                                            <span className="text-tiny font-black ">Transfer / Move</span>
                                             <span className="text-tiny font-medium leading-relaxed opacity-60">Complete migration to target workspace with automated re-indexing and cleanup.</span>
                                         </button>
                                     </div>
                                 </div>
 
                                 <div className="space-y-3">
-                                    <label className="text-tiny font-black text-gray-500 uppercase tracking-[0.2em] ml-1">Target Cluster (Workspace)</label>
+                                    <label className="text-tiny font-black text-gray-500  tracking-[0.2em] ml-1">Target Cluster (Workspace)</label>
                                     <div className="flex gap-4">
                                         <div className="flex-1 relative group">
                                             <select
@@ -989,7 +989,7 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                                             onClick={handleManage}
                                             disabled={!shareTarget || isManaging}
                                             className={cn(
-                                                "h-14 px-8 rounded-2xl font-black text-tiny uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2",
+                                                "h-14 px-8 rounded-2xl font-black text-tiny   transition-all active:scale-95 flex items-center gap-2",
                                                 manageMode === 'move' ? "bg-orange-500 text-black hover:bg-orange-400" : "bg-indigo-500 text-white hover:bg-indigo-400"
                                             )}
                                         >
@@ -1022,7 +1022,7 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                                 <div className="w-20 h-20 rounded-[2.5rem] bg-red-500/10 flex items-center justify-center text-red-500 mx-auto mb-8 animate-pulse">
                                     <AlertTriangle size={40} />
                                 </div>
-                                <h4 className="text-h3 font-black text-white uppercase tracking-tighter mb-2">Destructive Operation Pending</h4>
+                                <h4 className="text-h3 font-black text-white   mb-2">Destructive Operation Pending</h4>
                                 <p className="text-tiny text-gray-500 leading-relaxed max-w-[280px] mx-auto font-medium mb-10">
                                     Please specify the scope of removal for <span className="text-white font-bold">{deletingDoc.name}</span>.
                                 </p>
@@ -1030,20 +1030,20 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                                 <div className="space-y-4">
                                     <button
                                         onClick={() => handleDelete(deletingDoc.name, false)}
-                                        className="w-full py-5 rounded-2xl bg-white/5 border border-white/5 text-white hover:bg-white/10 transition-all text-tiny font-black uppercase tracking-[0.2em]"
+                                        className="w-full py-5 rounded-2xl bg-white/5 border border-white/5 text-white hover:bg-white/10 transition-all text-tiny font-black  tracking-[0.2em]"
                                     >
                                         Remove from {deletingDoc.workspace_name || "Workspace"} only
                                     </button>
                                     <button
                                         onClick={() => handleDelete(deletingDoc.name, true)}
                                         data-testid="confirm-purge-btn"
-                                        className="w-full py-5 rounded-2xl bg-red-500 text-black hover:bg-red-400 transition-all text-tiny font-black uppercase tracking-[0.2em] shadow-xl shadow-red-500/20"
+                                        className="w-full py-5 rounded-2xl bg-red-500 text-black hover:bg-red-400 transition-all text-tiny font-black  tracking-[0.2em] shadow-xl shadow-red-500/20"
                                     >
                                         Purge Entirely from Global Vault
                                     </button>
                                     <button
                                         onClick={() => setDeletingDoc(null)}
-                                        className="w-full py-5 text-tiny text-gray-500 font-black uppercase tracking-widest hover:text-white transition-colors"
+                                        className="w-full py-5 text-tiny text-gray-500 font-black   hover:text-white transition-colors"
                                     >
                                         Abort Request
                                     </button>

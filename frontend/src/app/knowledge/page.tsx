@@ -162,7 +162,7 @@ export default function KnowledgePage() {
                     <div className="flex items-center gap-3">
                         <div className="px-4 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center gap-2">
                             <CheckCircle2 size={14} className="text-green-400" />
-                            <span className="text-tiny font-bold text-indigo-300 uppercase tracking-wider">Sync State: Active</span>
+                            <span className="text-tiny font-bold text-indigo-300  tracking-wider">Sync State: Active</span>
                         </div>
                     </div>
                 </header>
@@ -226,12 +226,12 @@ export default function KnowledgePage() {
                                                         {doc.name}
                                                     </h4>
                                                     <div className="flex items-center gap-3 mt-1.5">
-                                                        <span className="flex items-center gap-1.5 text-tiny font-bold text-gray-500 uppercase tracking-tighter">
+                                                        <span className="flex items-center gap-1.5 text-tiny font-bold text-gray-500  ">
                                                             <Database size={10} className="text-indigo-500/60" />
                                                             {doc.chunks} Fragments
                                                         </span>
                                                         <span className="w-1 h-1 rounded-full bg-white/10" />
-                                                        <span className="flex items-center gap-1.5 text-tiny font-bold text-gray-500 uppercase tracking-tighter">
+                                                        <span className="flex items-center gap-1.5 text-tiny font-bold text-gray-500  ">
                                                             <Clock size={10} className="text-indigo-500/60" />
                                                             Synced
                                                         </span>
@@ -306,12 +306,12 @@ export default function KnowledgePage() {
 
                         {/* Storage Stats */}
                         <div className="p-8 rounded-[2rem] bg-[#121214] border border-white/5 space-y-6 shadow-xl">
-                            <h4 className="text-caption font-bold uppercase tracking-widest text-indigo-400">Database Status</h4>
+                            <h4 className="text-caption font-bold   text-indigo-400">Database Status</h4>
 
                             <div className="space-y-4">
                                 <div className="flex justify-between items-end">
                                     <div className="space-y-1">
-                                        <p className="text-tiny text-gray-500 font-bold uppercase tracking-tighter">Total Documents</p>
+                                        <p className="text-tiny text-gray-500 font-bold  ">Total Documents</p>
                                         <p className="text-h3 font-bold">{documents.length}</p>
                                     </div>
                                     <div className="w-12 h-1 bg-indigo-500/20 rounded-full overflow-hidden">
@@ -321,7 +321,7 @@ export default function KnowledgePage() {
 
                                 <div className="flex justify-between items-end">
                                     <div className="space-y-1">
-                                        <p className="text-tiny text-gray-500 font-bold uppercase tracking-tighter">Vector Clusters</p>
+                                        <p className="text-tiny text-gray-500 font-bold  ">Vector Clusters</p>
                                         <p className="text-h3 font-bold">{documents.reduce((acc, d) => acc + d.chunks, 0)}</p>
                                     </div>
                                     <div className="w-12 h-1 bg-blue-500/20 rounded-full overflow-hidden">
@@ -333,7 +333,7 @@ export default function KnowledgePage() {
                             <div className="pt-6 border-t border-white/5">
                                 <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 flex items-start gap-3">
                                     <AlertCircle size={14} className="text-indigo-500 mt-1 shrink-0" />
-                                    <p className="text-tiny leading-relaxed text-gray-400 uppercase tracking-tight font-medium">
+                                    <p className="text-tiny leading-relaxed text-gray-400  tracking-tight font-medium">
                                         Auto-embedding is active. All uploaded content is processed through the <span className="text-gray-300">text-embedding-3-small</span> model.
                                     </p>
                                 </div>

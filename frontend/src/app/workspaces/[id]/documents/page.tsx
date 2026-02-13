@@ -483,7 +483,7 @@ export default function DocumentsPage() {
                 ) : viewMode === 'list' ? (
                     <table className="w-full">
                         <thead>
-                            <tr className="text-left text-tiny text-gray-500 uppercase border-b border-white/5">
+                            <tr className="text-left text-tiny text-gray-500  border-b border-white/5">
                                 <th className="pb-3 font-medium">Name</th>
                                 <th className="pb-3 font-medium">Type</th>
                                 <th className="pb-3 font-medium">Size</th>
@@ -509,7 +509,7 @@ export default function DocumentsPage() {
                                             )}
                                         </div>
                                     </td>
-                                    <td className="py-3 text-caption text-gray-400 uppercase">{doc.extension}</td>
+                                    <td className="py-3 text-caption text-gray-400 ">{doc.extension}</td>
                                     <td className="py-3 text-caption text-gray-400">{formatBytes(doc.size_bytes)}</td>
                                     <td className="py-3 text-caption text-gray-400">{doc.chunks}</td>
                                     <td className="py-3">

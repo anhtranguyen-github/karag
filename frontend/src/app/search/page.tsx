@@ -290,7 +290,7 @@ function SearchContent() {
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2">
                                                 <h3 className="font-medium text-white truncate">{result.title}</h3>
-                                                <span className="text-tiny text-gray-600 uppercase">{result.type}</span>
+                                                <span className="text-tiny text-gray-600 ">{result.type}</span>
                                             </div>
                                             <p className="text-caption text-gray-500 truncate">{result.snippet}</p>
                                             {result.workspace_id && result.type !== 'workspace' && (

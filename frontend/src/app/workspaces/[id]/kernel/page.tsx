@@ -22,10 +22,10 @@ export default function KernelPage() {
                         <Wrench size={22} />
                     </div>
                     <div>
-                        <h2 className="text-h3 font-black tracking-tight uppercase">System Kernel</h2>
+                        <h2 className="text-h3 font-black tracking-tight ">System Kernel</h2>
                         <div className="flex items-center gap-2">
                             <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
-                            <span className="text-tiny text-gray-500 font-bold uppercase tracking-widest">Architect Configuration • {currentWorkspace?.name || workspaceId}</span>
+                            <span className="text-tiny text-gray-500 font-bold  ">Architect Configuration • {currentWorkspace?.name || workspaceId}</span>
                         </div>
                     </div>
                 </div>
@@ -33,7 +33,7 @@ export default function KernelPage() {
                 <div className="flex gap-4">
                     <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/5 border border-white/5">
                         <Shield size={14} className="text-amber-500" />
-                        <span className="text-tiny font-black text-gray-600 uppercase">Core Lockdown Active</span>
+                        <span className="text-tiny font-black text-gray-600 ">Core Lockdown Active</span>
                     </div>
                 </div>
             </header>
@@ -58,8 +58,8 @@ export default function KernelPage() {
                                 <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                                     <stat.icon size={48} />
                                 </div>
-                                <div className="text-tiny font-black text-gray-600 uppercase tracking-widest leading-none">{stat.label}</div>
-                                <div className={cn("text-h3 font-black tracking-tighter leading-none", stat.color)}>{stat.value}</div>
+                                <div className="text-tiny font-black text-gray-600   leading-none">{stat.label}</div>
+                                <div className={cn("text-h3 font-black  leading-none", stat.color)}>{stat.value}</div>
                             </motion.div>
                         ))}
                     </div>
@@ -67,7 +67,7 @@ export default function KernelPage() {
                     {/* Main UI */}
                     <div className="bg-[#121214] border border-white/10 rounded-[3rem] shadow-2xl overflow-hidden h-[800px] flex flex-col">
                         <div className="p-10 border-b border-white/5 bg-gradient-to-r from-white/[0.01] to-transparent">
-                            <h3 className="text-h2 font-black uppercase tracking-tighter mb-2">Core Parameters</h3>
+                            <h3 className="text-h2 font-black   mb-2">Core Parameters</h3>
                             <p className="text-gray-500 text-caption font-medium leading-relaxed max-w-xl">
                                 Fine-tune the underlying LLM behavior, embedding strategies, and interface preferences. These changes apply to the <span className="text-white">current workspace context</span>.
                             </p>
@@ -83,13 +83,13 @@ export default function KernelPage() {
                         <div className="flex items-center gap-4">
                             <Zap size={24} className="text-indigo-500" />
                             <div>
-                                <h4 className="text-caption font-black uppercase tracking-tight text-white">Global Manifest Controls</h4>
+                                <h4 className="text-caption font-black  tracking-tight text-white">Global Manifest Controls</h4>
                                 <p className="text-tiny text-indigo-400/60 font-medium">Access system-wide account and subscription nodes.</p>
                             </div>
                         </div>
                         <Link
                             href="/admin"
-                            className="px-6 py-3 rounded-xl bg-[#0a0a0b] border border-indigo-500/20 text-indigo-400 font-black uppercase text-tiny tracking-widest hover:bg-indigo-500 hover:text-white transition-all active:scale-95 shadow-lg shadow-indigo-500/5"
+                            className="px-6 py-3 rounded-xl bg-[#0a0a0b] border border-indigo-500/20 text-indigo-400 font-black  text-tiny  hover:bg-indigo-500 hover:text-white transition-all active:scale-95 shadow-lg shadow-indigo-500/5"
                         >
                             Open Master Kernel
                         </Link>

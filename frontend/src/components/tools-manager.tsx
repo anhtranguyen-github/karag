@@ -49,11 +49,11 @@ export function ToolsManager({ onClose }: { onClose?: () => void }) {
                         <Hammer className="text-white w-7 h-7" />
                     </div>
                     <div>
-                        <h2 className="text-h3 font-black text-white tracking-tight uppercase">Capability Forge</h2>
+                        <h2 className="text-h3 font-black text-white tracking-tight ">Capability Forge</h2>
                         <div className="flex items-center gap-2 mt-1">
-                            <span className="text-tiny font-bold text-gray-500 uppercase tracking-[0.2em]">Tool Integration Layer</span>
+                            <span className="text-tiny font-bold text-gray-500  tracking-[0.2em]">Tool Integration Layer</span>
                             <span className="w-1 h-1 rounded-full bg-orange-500/50 animate-pulse" />
-                            <span className="text-tiny text-amber-400 uppercase">{tools.length} Active Modules</span>
+                            <span className="text-tiny text-amber-400 ">{tools.length} Active Modules</span>
                         </div>
                     </div>
                 </div>
@@ -79,11 +79,11 @@ export function ToolsManager({ onClose }: { onClose?: () => void }) {
                             className="space-y-8"
                         >
                             <div className="space-y-6">
-                                <h3 className="text-tiny font-black text-gray-500 uppercase tracking-[0.25em] border-b border-white/5 pb-2">Manifest New Module</h3>
+                                <h3 className="text-tiny font-black text-gray-500  tracking-[0.25em] border-b border-white/5 pb-2">Manifest New Module</h3>
 
                                 <div className="grid gap-6">
                                     <div className="space-y-3">
-                                        <label className="text-tiny font-black text-gray-600 uppercase tracking-widest ml-1">Internal Reference ID</label>
+                                        <label className="text-tiny font-black text-gray-600   ml-1">Internal Reference ID</label>
                                         <div className="relative group">
                                             <Terminal className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-700 group-focus-within:text-amber-500 transition-colors" size={18} />
                                             <input
@@ -96,7 +96,7 @@ export function ToolsManager({ onClose }: { onClose?: () => void }) {
                                     </div>
 
                                     <div className="space-y-3">
-                                        <label className="text-tiny font-black text-gray-600 uppercase tracking-widest ml-1">Display Name</label>
+                                        <label className="text-tiny font-black text-gray-600   ml-1">Display Name</label>
                                         <input
                                             placeholder="Architecture Optimizer"
                                             className="w-full bg-[#0a0a0b] border border-white/10 rounded-2xl px-6 py-5 text-caption text-white outline-none focus:ring-2 ring-amber-500/20 focus:border-amber-500/50 transition-all font-medium"
@@ -106,7 +106,7 @@ export function ToolsManager({ onClose }: { onClose?: () => void }) {
                                     </div>
 
                                     <div className="space-y-3">
-                                        <label className="text-tiny font-black text-gray-600 uppercase tracking-widest ml-1">Functional Description</label>
+                                        <label className="text-tiny font-black text-gray-600   ml-1">Functional Description</label>
                                         <textarea
                                             placeholder="Briefly explain what this module performs..."
                                             className="w-full bg-[#0a0a0b] border border-white/10 rounded-2xl px-6 py-5 text-caption text-white outline-none focus:ring-2 ring-amber-500/20 focus:border-amber-500/50 transition-all font-medium h-32 resize-none"
@@ -116,7 +116,7 @@ export function ToolsManager({ onClose }: { onClose?: () => void }) {
                                     </div>
 
                                     <div className="space-y-3">
-                                        <label className="text-tiny font-black text-gray-600 uppercase tracking-widest ml-1">Module Protocol</label>
+                                        <label className="text-tiny font-black text-gray-600   ml-1">Module Protocol</label>
                                         <div className="grid grid-cols-2 gap-4">
                                             {[
                                                 { id: 'custom', label: 'Architecture Hook', sub: 'Native API/Function' },
@@ -132,7 +132,7 @@ export function ToolsManager({ onClose }: { onClose?: () => void }) {
                                                             : "bg-[#0a0a0b] border-white/5 text-gray-600 hover:border-white/10"
                                                     )}
                                                 >
-                                                    <div className="text-tiny font-black uppercase tracking-tighter mb-1">{type.label}</div>
+                                                    <div className="text-tiny font-black   mb-1">{type.label}</div>
                                                     <div className={cn("text-tiny font-bold", newTool.type === type.id ? "text-amber-100/50" : "text-gray-700")}>{type.sub}</div>
                                                 </button>
                                             ))}
@@ -144,13 +144,13 @@ export function ToolsManager({ onClose }: { onClose?: () => void }) {
                             <div className="flex justify-end gap-4 pt-4">
                                 <button
                                     onClick={() => setIsAdding(false)}
-                                    className="px-6 py-4 text-tiny font-black uppercase tracking-widest text-gray-500 hover:text-white transition-colors"
+                                    className="px-6 py-4 text-tiny font-black   text-gray-500 hover:text-white transition-colors"
                                 >
                                     Discard
                                 </button>
                                 <button
                                     onClick={handleAdd}
-                                    className="px-10 py-4 bg-white text-black text-tiny font-black uppercase tracking-[0.2em] rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all"
+                                    className="px-10 py-4 bg-white text-black text-tiny font-black  tracking-[0.2em] rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all"
                                 >
                                     Seal Integration
                                 </button>
@@ -164,7 +164,7 @@ export function ToolsManager({ onClose }: { onClose?: () => void }) {
                             exit={{ opacity: 0, x: 20 }}
                             className="space-y-4"
                         >
-                            <h3 className="text-tiny font-black text-gray-500 uppercase tracking-[0.25em] border-b border-white/5 pb-2">Integrated Modules</h3>
+                            <h3 className="text-tiny font-black text-gray-500  tracking-[0.25em] border-b border-white/5 pb-2">Integrated Modules</h3>
                             <div className="grid gap-4">
                                 {tools.map(tool => (
                                     <div
@@ -187,9 +187,9 @@ export function ToolsManager({ onClose }: { onClose?: () => void }) {
                                             </div>
                                             <div>
                                                 <div className="flex items-center gap-3">
-                                                    <h4 className={cn("text-caption font-black uppercase tracking-tight", tool.enabled ? "text-black" : "text-gray-500")}>{tool.name}</h4>
+                                                    <h4 className={cn("text-caption font-black  tracking-tight", tool.enabled ? "text-black" : "text-gray-500")}>{tool.name}</h4>
                                                     <span className={cn(
-                                                        "text-tiny px-2 py-0.5 rounded-full font-black uppercase tracking-widest",
+                                                        "text-tiny px-2 py-0.5 rounded-full font-black  ",
                                                         tool.enabled ? "bg-black/5 text-black/40" : "bg-white/5 text-gray-700"
                                                     )}>
                                                         {tool.type}
@@ -238,7 +238,7 @@ export function ToolsManager({ onClose }: { onClose?: () => void }) {
                         <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
                             <Plus size={18} />
                         </div>
-                        <span className="text-tiny font-black uppercase tracking-[0.25em]">Forge New Capability Hook</span>
+                        <span className="text-tiny font-black  tracking-[0.25em]">Forge New Capability Hook</span>
                     </button>
                 </div>
             )}

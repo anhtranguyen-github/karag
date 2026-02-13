@@ -68,7 +68,7 @@ export function ChatMessage({ message, isLoading, onCitationClick }: ChatMessage
                             <div className="w-full mt-1 overflow-hidden transition-all duration-300">
                                 <button
                                     onClick={() => setIsExpanded(!isExpanded)}
-                                    className="flex items-center gap-2 text-indigo-400 font-bold uppercase tracking-tighter text-tiny hover:text-indigo-300 transition-colors py-1 focus:outline-none"
+                                    className="flex items-center gap-2 text-indigo-400 font-bold   text-tiny hover:text-indigo-300 transition-colors py-1 focus:outline-none"
                                 >
                                     <span>Thinking Process:</span>
                                     {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}

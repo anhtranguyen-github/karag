@@ -144,7 +144,7 @@ export function DocumentGraph({ workspaceId }: { workspaceId: string }) {
             <div className="absolute top-6 left-6 p-4 bg-black/40 backdrop-blur-xl rounded-xl border border-white/10 text-tiny text-gray-400 pointer-events-none select-none shadow-2xl">
                 <div className="flex items-center gap-2 mb-4">
                     <div className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_8px_#3b82f6]" />
-                    <h4 className="font-bold text-white uppercase tracking-[0.2em]">Semantic Topology</h4>
+                    <h4 className="font-bold text-white  tracking-[0.2em]">Semantic Topology</h4>
                 </div>
 
                 <div className="space-y-3">
@@ -170,7 +170,7 @@ export function DocumentGraph({ workspaceId }: { workspaceId: string }) {
             </div>
 
             {/* Controls hint */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 bg-white/5 backdrop-blur-md rounded-full border border-white/10 text-tiny text-gray-500 flex gap-4 pointer-events-none uppercase tracking-tighter">
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 bg-white/5 backdrop-blur-md rounded-full border border-white/10 text-tiny text-gray-500 flex gap-4 pointer-events-none  ">
                 <span>Left Click: Pan</span>
                 <span className="w-px h-3 bg-white/10" />
                 <span>Scroll: Zoom</span>

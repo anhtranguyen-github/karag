@@ -83,7 +83,7 @@ export function WorkspaceSwitcher({
                                     >
                                         <div className="flex flex-col items-start gap-0.5 overflow-hidden">
                                             <span className="text-caption font-medium truncate">{ws.name}</span>
-                                            <span className="text-tiny opacity-50 uppercase tracking-tighter">{ws.id}</span>
+                                            <span className="text-tiny opacity-50  ">{ws.id}</span>
                                         </div>
                                         {ws.id === currentWorkspace?.id && <Check size={14} />}
                                     </button>

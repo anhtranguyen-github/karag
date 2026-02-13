@@ -89,7 +89,7 @@ export function CitationModal({ source, onClose }: CitationModalProps) {
                     <div className="bg-[#1a1a1c] rounded-xl p-4 border border-white/5">
                         <div className="flex items-center gap-2 mb-3 pb-3 border-b border-white/5">
                             <FileText size={14} className="text-gray-500" />
-                            <span className="text-tiny font-semibold text-gray-400 uppercase">Source Content</span>
+                            <span className="text-tiny font-semibold text-gray-400 ">Source Content</span>
                         </div>
                         <div className="text-caption text-gray-300 leading-relaxed whitespace-pre-wrap">
                             {source.content}
@@ -124,7 +124,7 @@ function MetaItem({ icon: Icon, label, value }: { icon: LucideIcon; label: strin
         <div className="p-3 bg-white/5 rounded-lg">
             <div className="flex items-center gap-2 mb-1">
                 <Icon size={12} className="text-gray-500" />
-                <span className="text-tiny text-gray-500 uppercase">{label}</span>
+                <span className="text-tiny text-gray-500 ">{label}</span>
             </div>
             <span className="text-caption text-white font-medium truncate block">{value}</span>
         </div>

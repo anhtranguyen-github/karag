@@ -149,7 +149,7 @@ export default function DocumentsPage() {
                         <select
                             value={filterWorkspace}
                             onChange={(e) => setFilterWorkspace(e.target.value)}
-                            className="bg-[#121214] border border-white/5 rounded-2xl px-4 py-3 text-caption outline-none focus:ring-2 ring-indigo-500/20 transition-all text-gray-400 font-bold uppercase tracking-tighter"
+                            className="bg-[#121214] border border-white/5 rounded-2xl px-4 py-3 text-caption outline-none focus:ring-2 ring-indigo-500/20 transition-all text-gray-400 font-bold  "
                         >
                             <option value="all">Everywhere</option>
                             {workspaces.map(ws => (
@@ -160,7 +160,7 @@ export default function DocumentsPage() {
                         <select
                             value={filterExtension}
                             onChange={(e) => setFilterExtension(e.target.value)}
-                            className="bg-[#121214] border border-white/5 rounded-2xl px-4 py-3 text-caption outline-none focus:ring-2 ring-indigo-500/20 transition-all text-gray-400 font-bold uppercase tracking-tighter"
+                            className="bg-[#121214] border border-white/5 rounded-2xl px-4 py-3 text-caption outline-none focus:ring-2 ring-indigo-500/20 transition-all text-gray-400 font-bold  "
                         >
                             <option value="all">Formats</option>
                             {extensions.map(ext => (
@@ -171,7 +171,7 @@ export default function DocumentsPage() {
                         <select
                             value={filterStatus}
                             onChange={(e) => setFilterStatus(e.target.value)}
-                            className="bg-[#121214] border border-white/5 rounded-2xl px-4 py-3 text-caption outline-none focus:ring-2 ring-indigo-500/20 transition-all text-gray-400 font-bold uppercase tracking-tighter"
+                            className="bg-[#121214] border border-white/5 rounded-2xl px-4 py-3 text-caption outline-none focus:ring-2 ring-indigo-500/20 transition-all text-gray-400 font-bold  "
                         >
                             <option value="all">Health</option>
                             <option value="ready">Ready</option>
@@ -187,11 +187,11 @@ export default function DocumentsPage() {
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-white/[0.02] border-b border-white/5">
-                                    <th className="px-8 py-6 text-tiny font-black text-gray-500 uppercase tracking-[0.2em]">Document Name</th>
-                                    <th className="px-8 py-6 text-tiny font-black text-gray-500 uppercase tracking-[0.2em]">Primary Workspace</th>
-                                    <th className="px-8 py-6 text-tiny font-black text-gray-500 uppercase tracking-[0.2em]">Distribution</th>
-                                    <th className="px-8 py-6 text-tiny font-black text-gray-500 uppercase tracking-[0.2em]">Assets</th>
-                                    <th className="px-8 py-6 text-tiny font-black text-gray-500 uppercase tracking-[0.2em] text-right pr-12">Actions</th>
+                                    <th className="px-8 py-6 text-tiny font-black text-gray-500  tracking-[0.2em]">Document Name</th>
+                                    <th className="px-8 py-6 text-tiny font-black text-gray-500  tracking-[0.2em]">Primary Workspace</th>
+                                    <th className="px-8 py-6 text-tiny font-black text-gray-500  tracking-[0.2em]">Distribution</th>
+                                    <th className="px-8 py-6 text-tiny font-black text-gray-500  tracking-[0.2em]">Assets</th>
+                                    <th className="px-8 py-6 text-tiny font-black text-gray-500  tracking-[0.2em] text-right pr-12">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -226,11 +226,11 @@ export default function DocumentsPage() {
                                                             onClick={() => handleSelectDoc(doc)}
                                                             data-testid="doc-name"
                                                             data-doc-name={doc.name}
-                                                            className="font-bold text-caption text-gray-200 group-hover:text-indigo-400 transition-colors uppercase tracking-tight cursor-pointer"
+                                                            className="font-bold text-caption text-gray-200 group-hover:text-indigo-400 transition-colors  tracking-tight cursor-pointer"
                                                         >
                                                             {doc.name}
                                                         </div>
-                                                        <div className="text-tiny text-gray-600 mt-1 uppercase font-black tracking-widest">{doc.extension}</div>
+                                                        <div className="text-tiny text-gray-600 mt-1  font-black ">{doc.extension}</div>
                                                     </div>
                                                 </div>
                                             </td>
@@ -258,7 +258,7 @@ export default function DocumentsPage() {
                                                             )}
                                                         </div>
                                                     ) : (
-                                                        <div className="flex items-center gap-2 text-tiny text-gray-700 font-bold uppercase tracking-widest">
+                                                        <div className="flex items-center gap-2 text-tiny text-gray-700 font-bold  ">
                                                             <Globe size={10} />
                                                             Private
                                                         </div>
@@ -336,19 +336,19 @@ export default function DocumentsPage() {
                                     <Database size={32} />
                                 </div>
                                 <div className="flex-1">
-                                    <div className="flex items-center gap-3 text-tiny font-black text-gray-500 uppercase tracking-[0.2em] mb-1">
+                                    <div className="flex items-center gap-3 text-tiny font-black text-gray-500  tracking-[0.2em] mb-1">
                                         <span>Inventory ID: {selectedDoc.workspace_id}</span>
                                         <span className="opacity-20">•</span>
                                         <span className="text-indigo-400">Knowledge Asset</span>
                                     </div>
-                                    <h2 className="text-h3 font-black uppercase tracking-tight truncate max-w-2xl">{selectedDoc.name}</h2>
+                                    <h2 className="text-h3 font-black  tracking-tight truncate max-w-2xl">{selectedDoc.name}</h2>
                                 </div>
 
                                 <div className="flex bg-white/5 p-1 rounded-2xl border border-white/5">
                                     <button
                                         onClick={() => setActiveTab('segments')}
                                         className={cn(
-                                            "px-6 py-2.5 rounded-xl text-tiny font-black uppercase tracking-widest transition-all",
+                                            "px-6 py-2.5 rounded-xl text-tiny font-black   transition-all",
                                             activeTab === 'segments' ? "bg-indigo-600 text-white shadow-lg" : "text-gray-500 hover:text-gray-300"
                                         )}
                                     >
@@ -357,7 +357,7 @@ export default function DocumentsPage() {
                                     <button
                                         onClick={() => setActiveTab('source')}
                                         className={cn(
-                                            "px-6 py-2.5 rounded-xl text-tiny font-black uppercase tracking-widest transition-all",
+                                            "px-6 py-2.5 rounded-xl text-tiny font-black   transition-all",
                                             activeTab === 'source' ? "bg-indigo-600 text-white shadow-lg" : "text-gray-500 hover:text-gray-300"
                                         )}
                                     >
@@ -371,27 +371,27 @@ export default function DocumentsPage() {
                                 {loadingInspect ? (
                                     <div className="flex-1 flex flex-col items-center justify-center grayscale opacity-50">
                                         <div className="w-10 h-10 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-4" />
-                                        <div className="text-tiny font-black uppercase tracking-widest text-gray-600">Reconstructing Data Layer...</div>
+                                        <div className="text-tiny font-black   text-gray-600">Reconstructing Data Layer...</div>
                                     </div>
                                 ) : activeTab === 'segments' ? (
                                     <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar lg:grid lg:grid-cols-2 gap-4 pb-10">
                                         {inspectedPoints.map(point => (
                                             <div key={point.id} className="bg-[#0a0a0b]/50 border border-white/5 rounded-[2rem] p-6 text-tiny mb-4 h-fit">
                                                 <div className="flex items-center justify-between mb-4 pb-4 border-b border-white/5">
-                                                    <span className="text-indigo-500 font-bold tracking-tighter">Point ID: {String(point.id).slice(0, 16)}...</span>
-                                                    <span className="bg-indigo-500/10 px-2 py-0.5 rounded text-tiny text-indigo-400 font-black uppercase tracking-widest">
+                                                    <span className="text-indigo-500 font-bold ">Point ID: {String(point.id).slice(0, 16)}...</span>
+                                                    <span className="bg-indigo-500/10 px-2 py-0.5 rounded text-tiny text-indigo-400 font-black  ">
                                                         Dim: {point.vector_size}
                                                     </span>
                                                 </div>
                                                 <div className="space-y-4">
                                                     <div>
-                                                        <div className="text-tiny font-black text-gray-600 uppercase tracking-widest mb-2 pr-2">Vector Preview</div>
+                                                        <div className="text-tiny font-black text-gray-600   mb-2 pr-2">Vector Preview</div>
                                                         <div className="bg-[#121214] p-3 rounded-xl text-indigo-300/60 overflow-x-auto whitespace-nowrap text-tiny">
                                                             [{point.vector_preview.map((v: number) => v.toFixed(4)).join(', ')} ... ]
                                                         </div>
                                                     </div>
                                                     <div>
-                                                        <div className="text-tiny font-black text-gray-600 uppercase tracking-widest mb-2 pr-2">Payload Content</div>
+                                                        <div className="text-tiny font-black text-gray-600   mb-2 pr-2">Payload Content</div>
                                                         <div className="bg-[#121214] p-4 rounded-xl text-gray-400 leading-relaxed max-h-32 overflow-y-auto custom-scrollbar whitespace-pre-wrap">
                                                             {point.payload.text || 'No text content'}
                                                         </div>
@@ -403,8 +403,8 @@ export default function DocumentsPage() {
                                 ) : (
                                     <div className="flex-1 flex flex-col overflow-hidden bg-[#0a0a0b]/50 border border-white/5 rounded-[2rem] p-8">
                                         <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/5">
-                                            <div className="text-tiny font-black text-gray-500 uppercase tracking-widest">Global Asset Buffer</div>
-                                            <div className="text-tiny font-bold text-indigo-400 uppercase tracking-widest">UTF-8 Encoded</div>
+                                            <div className="text-tiny font-black text-gray-500  ">Global Asset Buffer</div>
+                                            <div className="text-tiny font-bold text-indigo-400  ">UTF-8 Encoded</div>
                                         </div>
                                         <div className="flex-1 overflow-y-auto custom-scrollbar text-caption text-gray-400 leading-relaxed whitespace-pre-wrap pr-4 pb-10">
                                             {documentContent || 'No source content available for this document.'}
@@ -432,7 +432,7 @@ export default function DocumentsPage() {
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
                             className="relative w-full max-w-md bg-[#121214] border border-white/10 rounded-[2.5rem] p-10 shadow-2xl"
                         >
-                            <h2 className="text-h3 font-black mb-2 uppercase tracking-tight">
+                            <h2 className="text-h3 font-black mb-2  tracking-tight">
                                 {actionDoc.type === 'move' ? 'Move Document' : 'Share Document'}
                             </h2>
                             <p className="text-gray-500 text-caption mb-8">
@@ -496,7 +496,7 @@ export default function DocumentsPage() {
                             <div className="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500 mb-6">
                                 <AlertCircle size={32} />
                             </div>
-                            <h2 className="text-h3 font-black mb-2 uppercase tracking-tight">Delete Document?</h2>
+                            <h2 className="text-h3 font-black mb-2  tracking-tight">Delete Document?</h2>
                             <p className="text-gray-500 text-caption mb-8 leading-relaxed">
                                 You are removing <span className="text-white font-bold">{deletingDoc.name}</span> from the current workspace context.
                             </p>
@@ -513,7 +513,7 @@ export default function DocumentsPage() {
                                     <Trash2 size={12} />
                                 </div>
                                 <div className="text-left">
-                                    <div className="text-tiny font-black uppercase text-gray-400 group-hover:text-white transition-colors">Apply Global Purge</div>
+                                    <div className="text-tiny font-black  text-gray-400 group-hover:text-white transition-colors">Apply Global Purge</div>
                                     <div className="text-tiny text-gray-600">Permanently erase from the central vault storage</div>
                                 </div>
                             </div>
@@ -526,7 +526,7 @@ export default function DocumentsPage() {
                                         setIsVaultDeleteChecked(false);
                                     }}
                                     data-testid="confirm-purge-btn"
-                                    className="w-full py-4 rounded-2xl bg-red-600 text-white font-black uppercase tracking-widest hover:bg-red-500 active:scale-95 transition-all shadow-xl shadow-red-600/20"
+                                    className="w-full py-4 rounded-2xl bg-red-600 text-white font-black   hover:bg-red-500 active:scale-95 transition-all shadow-xl shadow-red-600/20"
                                 >
                                     Confirm Deletion
                                 </button>
@@ -561,11 +561,11 @@ export default function DocumentsPage() {
                                 <Database size={48} />
                             </div>
 
-                            <div className="inline-block px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-tiny font-black uppercase tracking-widest mb-6">
+                            <div className="inline-block px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-tiny font-black   mb-6">
                                 Architecture Mismatch Detected
                             </div>
 
-                            <h2 className="text-h2 font-black mb-4 uppercase tracking-tighter leading-none">
+                            <h2 className="text-h2 font-black mb-4   leading-none">
                                 Embedding Collision
                             </h2>
 
@@ -576,7 +576,7 @@ export default function DocumentsPage() {
                             <div className="flex flex-col gap-4">
                                 <button
                                     onClick={() => handleAction(conflictData.target_id, true)}
-                                    className="w-full py-5 rounded-[2rem] bg-indigo-600 text-white font-black uppercase tracking-[0.2em] hover:bg-indigo-500 active:scale-95 transition-all shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-3 group"
+                                    className="w-full py-5 rounded-[2rem] bg-indigo-600 text-white font-black  tracking-[0.2em] hover:bg-indigo-500 active:scale-95 transition-all shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-3 group"
                                 >
                                     Launch Re-index
                                     <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
@@ -591,9 +591,9 @@ export default function DocumentsPage() {
                             </div>
 
                             <div className="mt-8 pt-8 border-t border-white/5 flex items-center justify-center gap-6 opacity-30">
-                                <span className="text-tiny font-bold uppercase tracking-widest">Qdrant v1.12</span>
+                                <span className="text-tiny font-bold  ">Qdrant v1.12</span>
                                 <div className="w-1 h-1 rounded-full bg-gray-600" />
-                                <span className="text-tiny font-bold uppercase tracking-widest">Vector isolation active</span>
+                                <span className="text-tiny font-bold  ">Vector isolation active</span>
                             </div>
                         </motion.div>
                     </div>
