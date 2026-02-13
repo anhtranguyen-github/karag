@@ -33,6 +33,7 @@ class TaskService:
             "id": task_id,
             "type": task_type,
             "status": "pending",
+            "priority": metadata.get("priority", 1) if metadata else 1, # Default priority 1
             "progress": 0,
             "message": "Initializing...",
             "error_code": None,
@@ -41,6 +42,9 @@ class TaskService:
             "result": None,
             "created_at": now,
             "updated_at": now,
+            "retry_count": 0,
+            "max_retries": metadata.get("max_retries", 3) if metadata else 3,
+            "next_retry_at": None,
         }
         await db[self.COLLECTION].insert_one(record)
         logger.info("task_created", task_id=task_id, task_type=task_type)
@@ -101,7 +105,7 @@ class TaskService:
         if not include_completed:
             query["status"] = {"$in": ["pending", "processing"]}
 
-        cursor = db[self.COLLECTION].find(query).sort("created_at", -1).limit(limit)
+        cursor = db[self.COLLECTION].find(query).sort([("priority", -1), ("created_at", -1)]).limit(limit)
         tasks = await cursor.to_list(length=limit)
         for t in tasks:
             if "_id" in t:
@@ -134,6 +138,37 @@ class TaskService:
         task = await self.get_task(task_id)
         # Check specific status or if task was deleted
         return not task or task.get("status") == "canceled"
+
+    async def fail_with_retry(self, task_id: str, error_message: str, error_code: str):
+        """Handle task failure with potential automatic retry."""
+        task = await self.get_task(task_id)
+        if not task:
+            return
+
+        retry_count = task.get("retry_count", 0)
+        max_retries = task.get("max_retries", 3)
+
+        if retry_count < max_retries:
+            next_count = retry_count + 1
+            # Exponential backoff: 30s, 2m, 10m
+            backoff_seconds = (2 ** next_count) * 30
+            next_retry = (datetime.utcnow() + timedelta(seconds=backoff_seconds)).isoformat()
+            
+            await self.update_task(
+                task_id, 
+                status="pending",
+                message=f"Attempt {next_count} failed: {error_message}. Retrying at {next_retry}",
+                metadata={"retry_count": next_count, "next_retry_at": next_retry}
+            )
+            logger.info("task_retry_scheduled", task_id=task_id, attempt=next_count, backoff=backoff_seconds)
+        else:
+            await self.update_task(
+                task_id, 
+                status="failed", 
+                error_code=error_code, 
+                message=f"Failed after {max_retries} retries: {error_message}"
+            )
+            logger.error("task_failed_permanently", task_id=task_id, error=error_message)
 
 
 task_service = TaskService()
