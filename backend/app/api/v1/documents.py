@@ -77,10 +77,10 @@ async def import_url_document(
     result = await document_service.import_url(url, workspace_id, strategy=strategy)
 
     if result["status"] == "success":
-        # Dispatch background task (Phase 1: Upload to Minio + MongoDB)
+        # Dispatch background task (Phase 0: Fetch URL in background)
         background_tasks.add_task(
-            document_service.run_ingestion,
-            result["task_id"], result["filename"], result["content"], result["content_type"], workspace_id
+            document_service.run_url_ingestion_background,
+            result["task_id"], url, result["filename"], workspace_id, strategy
         )
         # Remove binary content from response
         if "content" in result:
@@ -126,6 +126,46 @@ async def import_directory_document(
             document_service.run_directory_background,
             result["task_id"], path, workspace_id
         )
+    return AppResponse.from_result(result)
+
+
+@router.post("/import-github")
+async def import_github_document(
+    background_tasks: BackgroundTasks,
+    request: Request,
+    workspace_id: str = "default"
+):
+    data = await request.json()
+    url = data.get("url")
+    branch = data.get("branch", "main")
+    if not url:
+        return AppResponse.business_failure(code="MISSING_URL", message="GitHub URL is required")
+
+    result = await document_service.import_github(url, workspace_id, branch)
+    if result["status"] == "success":
+        background_tasks.add_task(
+            document_service.run_github_background,
+            result["task_id"], url, branch, workspace_id
+        )
+    return AppResponse.from_result(result)
+
+
+@router.post("/import-audio")
+async def import_audio_document(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    workspace_id: str = "default"
+):
+    result = await document_service.import_audio(file, workspace_id)
+    if result["status"] == "success":
+        background_tasks.add_task(
+            document_service.run_audio_background,
+            result["task_id"], result["filename"], result["content"], workspace_id
+        )
+        # Remove binary content from response
+        if "content" in result:
+            del result["content"]
+            
     return AppResponse.from_result(result)
 
 
