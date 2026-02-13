@@ -44,8 +44,23 @@ class AppSettings(BaseModel):
         description="Weight between vector and keyword scores",
         json_schema_extra={"mutable": True, "category": "Search Tuning"}
     )
+    reranker_provider: Literal["none", "cohere", "jina", "local"] = Field(
+        default="none",
+        description="Reranking model provider",
+        json_schema_extra={"mutable": True, "category": "Search Tuning"}
+    )
+    rerank_top_k: int = Field(
+        default=3, ge=1, le=10,
+        description="Number of results to keep after reranking",
+        json_schema_extra={"mutable": True, "category": "Search Tuning"}
+    )
     
     # RAG Config (Immutable - affects document splitting and vector dimensionality)
+    chunking_strategy: Literal["recursive", "token", "markdown", "latex", "semantic"] = Field(
+        default="recursive",
+        description="Text splitting strategy",
+        json_schema_extra={"mutable": False, "category": "Indexing"}
+    )
     chunk_size: int = Field(
         default=800, ge=100, le=2000,
         json_schema_extra={"mutable": False, "category": "Indexing"}
@@ -89,7 +104,7 @@ class AppSettings(BaseModel):
     def get_rag_hash(self) -> str:
         """Generate a hash based on core RAG parameters affecting embeddings."""
         import hashlib
-        config_str = f"{self.embedding_provider}|{self.embedding_model}|{self.chunk_size}|{self.chunk_overlap}|{self.embedding_dim}|{self.rag_engine}"
+        config_str = f"{self.embedding_provider}|{self.embedding_model}|{self.chunking_strategy}|{self.chunk_size}|{self.chunk_overlap}|{self.embedding_dim}|{self.rag_engine}"
         return hashlib.sha256(config_str.encode()).hexdigest()[:12]
 
 class DocumentMetadata(BaseModel):

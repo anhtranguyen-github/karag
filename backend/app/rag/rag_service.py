@@ -19,27 +19,76 @@ class RAGService:
     async def chunk_text(
         self, text: str, workspace_id: Optional[str] = None
     ) -> List[str]:
-        """Split text into chunks using hierarchical recursive splitting."""
+        """Split text into chunks using selected strategy."""
         from backend.app.core.settings_manager import settings_manager
 
         settings = await settings_manager.get_settings(workspace_id)
+        strategy = settings.chunking_strategy
 
         with tracer.start_as_current_span(
             "rag.chunk_text",
             attributes={
                 "chunk_size": settings.chunk_size,
                 "chunk_overlap": settings.chunk_overlap,
+                "chunking_strategy": strategy,
                 "workspace_id": workspace_id or "default",
             },
         ) as span:
-            splitter = RecursiveCharacterTextSplitter(
-                chunk_size=settings.chunk_size,
-                chunk_overlap=settings.chunk_overlap,
-                separators=["\n\n", "\n", ". ", "! ", "? ", "; ", " ", ""],
-                add_start_index=True,
-            )
-            # Clean text first
-            text = " ".join(text.split())
+            if strategy == "recursive":
+                splitter = RecursiveCharacterTextSplitter(
+                    chunk_size=settings.chunk_size,
+                    chunk_overlap=settings.chunk_overlap,
+                    separators=["\n\n", "\n", ". ", "! ", "? ", "; ", " ", ""],
+                    add_start_index=True,
+                )
+            elif strategy == "token":
+                from langchain_text_splitters import TokenTextSplitter
+                splitter = TokenTextSplitter(
+                    chunk_size=settings.chunk_size,
+                    chunk_overlap=settings.chunk_overlap,
+                )
+            elif strategy == "markdown":
+                from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
+                # 1. Split by header
+                headers_to_split_on = [
+                    ("#", "Header 1"),
+                    ("##", "Header 2"),
+                    ("###", "Header 3"),
+                ]
+                markdown_splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers_to_split_on)
+                md_header_splits = markdown_splitter.split_text(text)
+                
+                # 2. Further split by recursive if chunks are still too large
+                text_splitter = RecursiveCharacterTextSplitter(
+                    chunk_size=settings.chunk_size, chunk_overlap=settings.chunk_overlap
+                )
+                splits = text_splitter.split_documents(md_header_splits)
+                return [doc.page_content for doc in splits]
+            elif strategy == "latex":
+                from langchain_text_splitters import LatexTextSplitter
+                splitter = LatexTextSplitter(
+                    chunk_size=settings.chunk_size,
+                    chunk_overlap=settings.chunk_overlap,
+                )
+            elif strategy == "semantic":
+                from langchain_experimental.text_splitter import SemanticChunker
+                provider = await get_embeddings(workspace_id)
+                # semantic chunker takes embedding model
+                splitter = SemanticChunker(provider)
+                # it splits by passing text directly
+                chunks = splitter.split_text(text)
+                return chunks
+            else:
+                # Fallback to character splitter
+                splitter = RecursiveCharacterTextSplitter(
+                    chunk_size=settings.chunk_size,
+                    chunk_overlap=settings.chunk_overlap,
+                )
+
+            # Clean text first if recursive
+            if strategy == "recursive":
+                text = " ".join(text.split())
+            
             chunks = splitter.split_text(text)
 
             span.set_attribute("rag.num_chunks", len(chunks))
@@ -49,6 +98,7 @@ class RAGService:
                 num_chunks=len(chunks),
                 text_length=len(text),
                 workspace_id=workspace_id,
+                strategy=strategy,
             )
             return chunks
 
@@ -146,6 +196,21 @@ class RAGService:
                     alpha=settings.hybrid_alpha,
                     workspace_id=workspace_id,
                 )
+
+            # 3. Optional Reranking
+            from backend.app.providers.reranker import get_reranker
+            reranker = await get_reranker(workspace_id)
+            if reranker and results:
+                rerank_start = time.perf_counter()
+                results = await reranker.rerank(
+                    query=query, 
+                    documents=results, 
+                    top_k=settings.rerank_top_k
+                )
+                rerank_duration = time.perf_counter() - rerank_start
+                span.set_attribute("rag.rerank_duration_ms", round(rerank_duration * 1000, 2))
+                span.set_attribute("rag.reranker", type(reranker).__name__)
+                logger.info("rag_rerank_complete", provider=type(reranker).__name__, duration_ms=round(rerank_duration * 1000, 2))
 
             duration = time.perf_counter() - start
 
