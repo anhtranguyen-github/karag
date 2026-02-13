@@ -9,7 +9,7 @@ import { PROVIDER_SETTING_KEYS } from '@/lib/constants';
 
 export default function GlobalSettingsPage() {
     const { settings, updateSettings, isLoading, refreshSettings } = useSettings();
-    const { metadata, isLoading: isLoadingMeta, error } = useSettingsMetadata();
+    const { metadata, isLoading: isLoadingMeta, error, refreshSettings: refreshMetadata } = useSettingsMetadata();
     const [isSaving, setIsSaving] = useState<string | null>(null);
 
     const handleUpdate = async (key: string, value: string | number | boolean) => {
@@ -37,7 +37,7 @@ export default function GlobalSettingsPage() {
                     <p className="text-caption text-gray-500 max-w-md">{error || "The configuration kernel is currently unreachable."}</p>
                 </div>
                 <button
-                    onClick={() => { refreshSettings(); window.location.reload(); }}
+                    onClick={() => { refreshMetadata(); refreshSettings(); }}
                     className="px-8 py-3 rounded-2xl bg-white/5 border border-white/10 text-caption font-bold text-white hover:bg-white/10 transition-all uppercase tracking-widest"
                 >
                     Retry Handshake
