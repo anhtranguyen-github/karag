@@ -61,7 +61,7 @@ test.describe('Showcase Capture', () => {
 
     test('capture workspace wizard', async ({ page }) => {
         await page.goto('http://localhost:3000/', { waitUntil: 'networkidle' });
-        await page.getByRole('button', { name: 'New' }).click();
+        await page.getByRole('button', { name: 'New' }).click({ force: true });
         await page.waitForTimeout(800);
         await page.screenshot({ path: '../assets/screenshots/ws_02_wizard.png' });
     });
@@ -79,6 +79,18 @@ test.describe('Showcase Capture', () => {
         await page.waitForTimeout(800);
         await page.screenshot({ path: '../assets/screenshots/ux_02_arxiv_modal.png' });
         await page.screenshot({ path: '../assets/screenshots/arxiv_01_upload.png' });
+    });
+
+    test('capture active chat', async ({ page }) => {
+        await page.goto('http://localhost:3000/workspaces/default/chat', { waitUntil: 'networkidle' });
+        // Use a more generic selector for the chat input if placeholder varies
+        const input = page.getByRole('textbox');
+        await input.click();
+        await input.fill('Summarize the key findings of the uploaded papers.');
+        await page.keyboard.press('Enter');
+        // Wait for some response to appear (streaming)
+        await page.waitForTimeout(4000);
+        await page.screenshot({ path: '../assets/screenshots/ux_04_rag_chat_active.png', fullPage: true });
     });
 
     test('capture unified search', async ({ page }) => {
