@@ -113,16 +113,24 @@ class MinioManager:
     def get_presigned_url(self, object_name: str, expires_hours: int = 1):
         """Generate a presigned URL for preview/download."""
         try:
-            url = self.client.get_presigned_url(
-                "GET",
+            # Using integer seconds for 'expires' is most compatible
+            url = self.client.presigned_get_object(
                 ai_settings.MINIO_BUCKET,
                 object_name,
                 expires=expires_hours * 3600,
             )
+            
+            # Rewrite internal Docker hostname to localhost for host-based client access
+            if "ai-minio" in url:
+                url = url.replace("ai-minio", "localhost")
+                
             return url
-        except S3Error as e:
+        except Exception as e:
             logger.error(
-                "minio_presigned_url_error", object=object_name, error=str(e)
+                "minio_presigned_url_error", 
+                object=object_name, 
+                error=str(e),
+                error_type=type(e).__name__
             )
             return None
 

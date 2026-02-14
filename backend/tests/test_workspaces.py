@@ -32,7 +32,7 @@ async def test_workspace_crud():
         new_name = f"Updated {uuid.uuid4().hex[:6]}"
         update_res = await ac.patch(f"/workspaces/{ws_id}", json={"name": new_name, "description": "New Desc"})
         assert update_res.status_code == 200
-        assert update_res.json()["name"] == new_name
+        assert update_res.json()["data"]["name"] == new_name
         
         # 4. Delete
         del_res = await ac.delete(f"/workspaces/{ws_id}")
@@ -75,12 +75,12 @@ async def test_workspace_isolation():
         # Verify isolation
         res1 = await ac.get(f"/chat/threads?workspace_id={ws1_id}")
         assert res1.status_code == 200
-        threads1 = res1.json()["threads"]
+        threads1 = res1.json()["data"]
         assert any(t["id"] == thread_id for t in threads1)
         
         res2 = await ac.get(f"/chat/threads?workspace_id={ws2_id}")
         assert res2.status_code == 200
-        threads2 = res2.json()["threads"]
+        threads2 = res2.json()["data"]
         assert not any(t["id"] == thread_id for t in threads2)
 
 @pytest.mark.asyncio
@@ -95,4 +95,4 @@ async def test_document_listing_isolation():
         # Listing should be empty for a new workspace
         res = await ac.get(f"/documents?workspace_id={ws1_id}")
         assert res.status_code == 200
-        assert len(res.json()) == 0
+        assert len(res.json()["data"]) == 0
