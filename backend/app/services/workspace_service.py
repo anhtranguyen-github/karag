@@ -91,7 +91,14 @@ class WorkspaceService:
         await db.workspaces.insert_one(workspace)
 
         # Persist RAG settings via SettingsManager
-        rag_fields = ["rag_engine", "embedding_provider", "embedding_model", "embedding_dim", "chunk_size", "chunk_overlap", "neo4j_uri", "neo4j_user"]
+        # We include all possible fields from WorkspaceCreate to initialize the workspace config
+        rag_fields = [
+            "rag_engine", "embedding_provider", "embedding_model", "embedding_dim", 
+            "chunk_size", "chunk_overlap", "neo4j_uri", "neo4j_user", "neo4j_password",
+            "search_limit", "recall_k", "hybrid_alpha", "graph_enabled",
+            "reranker_enabled", "reranker_provider", "rerank_top_k",
+            "agentic_enabled", "llm_provider", "llm_model", "temperature"
+        ]
         settings_to_apply = {k: data[k] for k in rag_fields if k in data}
         
         # We bypass update_settings to avoid immutability check during initial creation

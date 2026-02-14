@@ -18,12 +18,19 @@ class GraphService:
         chunk_size = 4000
         text_chunks = [text[i:i + chunk_size] for i in range(0, len(text), chunk_size)]
         
-        all_entities = []
-        
+        import asyncio
+        tasks = []
         for i, chunk in enumerate(text_chunks):
-            logger.debug("extracting_graph_chunk", chunk_index=i, total_chunks=len(text_chunks), workspace_id=workspace_id)
-            chunk_entities = await self._extract_chunk(chunk, workspace_id)
-            all_entities.extend(chunk_entities)
+            logger.debug("queueing_graph_chunk", chunk_index=i, total_chunks=len(text_chunks), workspace_id=workspace_id)
+            tasks.append(self._extract_chunk(chunk, workspace_id))
+        
+        # Extract all chunks in parallel
+        results = await asyncio.gather(*tasks)
+        
+        all_entities = []
+        for chunk_entities in results:
+            if chunk_entities:
+                all_entities.extend(chunk_entities)
             
         if not all_entities:
             return

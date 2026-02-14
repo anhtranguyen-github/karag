@@ -18,7 +18,21 @@ workflow.add_node("summarize", summarize_node)
 # 3. Define Edges
 workflow.add_edge(START, "retrieve")
 workflow.add_edge("retrieve", "rerank")
-workflow.add_edge("rerank", "reason")
+
+def should_reason(state: AgentState):
+    """Router to decide if we should use the agentic reasoning loop."""
+    if state.get("agentic_enabled", True):
+        return "reason"
+    return "generate"
+
+workflow.add_conditional_edges(
+    "rerank",
+    should_reason,
+    {
+        "reason": "reason",
+        "generate": "generate"
+    }
+)
 
 def should_continue(state: AgentState):
     """Router to decide between tools and final generation."""
@@ -56,10 +70,29 @@ workflow.add_conditional_edges(
 
 workflow.add_edge("summarize", END)
 
-from langgraph.checkpoint.mongodb import MongoDBSaver
-from backend.app.core.config import ai_settings
-from backend.app.core.mongodb import mongodb_manager
+# 4. Compile with Persistence (Lazy loaded)
+_app = None
 
-# 4. Compile with Persistence
-checkpointer = MongoDBSaver(mongodb_manager.client, db_name=ai_settings.MONGO_DB)
-app = workflow.compile(checkpointer=checkpointer)
+def get_graph_app():
+    global _app
+    if _app is None:
+        from langgraph.checkpoint.mongodb import MongoDBSaver
+        from backend.app.core.config import ai_settings
+        from backend.app.core.mongodb import mongodb_manager
+        
+        # Compile with Persistence
+        checkpointer = MongoDBSaver(mongodb_manager.client, db_name=ai_settings.MONGO_DB)
+        _app = workflow.compile(checkpointer=checkpointer)
+    return _app
+
+# For backward compatibility with existing imports
+# We create a proxy that calls get_graph_app() or just use the function
+class AppProxy:
+    async def ainvoke(self, *args, **kwargs):
+        app = get_graph_app()
+        return await app.ainvoke(*args, **kwargs)
+    
+    def __getattr__(self, name):
+        return getattr(get_graph_app(), name)
+
+app = AppProxy()

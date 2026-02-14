@@ -158,9 +158,8 @@ class IngestionPipeline:
             settings = await settings_manager.get_settings(workspace_id)
             if settings.rag_engine == "graph":
                 from backend.app.services.graph_service import graph_service
-                # Process the first few chunks or a summary of the document for graph nodes
-                # For efficiency, we just send a sample of the text
-                sample_text = "\n".join([doc.page_content for doc in documents])
+                # Use the first ~20,000 characters to extract core graph entities/relations efficiently
+                sample_text = "\n".join([doc.page_content for doc in documents])[:20000]
                 await graph_service.extract_and_store_graph(sample_text, workspace_id)
 
             # --- Pipeline Summary ---
