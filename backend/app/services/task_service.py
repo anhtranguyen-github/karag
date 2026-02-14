@@ -170,5 +170,41 @@ class TaskService:
             )
             logger.error("task_failed_permanently", task_id=task_id, error=error_message)
 
+    # ── Resilience ──────────────────────────────────────────
+    async def reset_running_tasks_on_startup(self):
+        """Reset tasks stuck in 'processing' state during startup."""
+        db = mongodb_manager.get_async_database()
+        result = await db[self.COLLECTION].update_many(
+            {"status": "processing"},
+            {"$set": {
+                "status": "failed",
+                "error_code": "SYSTEM_RESTART",
+                "message": "Task interrupted by system restart.",
+                "updated_at": datetime.utcnow().isoformat()
+            }}
+        )
+        if result.modified_count > 0:
+            logger.info("tasks_reset_on_startup", count=result.modified_count)
+
+    async def timeout_stuck_tasks(self, timeout_minutes: int = 60):
+        """Fail tasks that have been processing for too long."""
+        db = mongodb_manager.get_async_database()
+        cutoff = (datetime.utcnow() - timedelta(minutes=timeout_minutes)).isoformat()
+        
+        result = await db[self.COLLECTION].update_many(
+            {
+                "status": "processing",
+                "updated_at": {"$lt": cutoff}
+            },
+            {"$set": {
+                "status": "failed",
+                "error_code": "TIMEOUT",
+                "message": f"Task timed out after {timeout_minutes} minutes.",
+                "updated_at": datetime.utcnow().isoformat()
+            }}
+        )
+        if result.modified_count > 0:
+            logger.info("tasks_timed_out", count=result.modified_count, cutoff=cutoff)
+
 
 task_service = TaskService()

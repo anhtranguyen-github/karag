@@ -19,7 +19,12 @@ class StorageService:
         if not doc:
             return None
         
-        return minio_manager.get_file(doc["minio_path"])
+        minio_path = doc.get("minio_path")
+        if not minio_path:
+            logger.error("missing_minio_path", doc_id=doc.get("id"))
+            return None
+        
+        return minio_manager.get_file(minio_path)
 
     async def delete(self, name: str, workspace_id: str, vault_delete: bool = False):
         db = mongodb_manager.get_async_database()
