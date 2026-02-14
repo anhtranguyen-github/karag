@@ -29,6 +29,7 @@ dependencies = [
     "opentelemetry-instrumentation-fastapi>=0.60b1",
     "opentelemetry-instrumentation-httpx>=0.60b1",
     "opentelemetry-sdk>=1.39.1",
+    "playwright>=1.58.0",
     "prometheus-client>=0.24.1",
     "pydantic>=2.12.5",
     "pydantic-settings>=2.12.0",

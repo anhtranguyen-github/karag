@@ -12,6 +12,15 @@ from backend.app.core.error_codes import AppErrorCode
 from .base import logger, tracer
 
 class IngestionService:
+    def _sanitize_filename(self, filename: str, max_length: int = 150) -> str:
+        """Sanitize filename by removing illegal chars and truncating."""
+        from backend.app.core.constants import ILLEGAL_NAME_CHARS
+        clean_name = "".join(c for c in filename if c not in ILLEGAL_NAME_CHARS)
+        name, ext = os.path.splitext(clean_name)
+        if len(clean_name) > max_length:
+            return f"{name[:max_length-10]}{ext}"
+        return clean_name
+
     async def upload(self, file: UploadFile, workspace_id: str, strategy: Optional[str] = None) -> Dict:
         """Process and prepare a new document for ingestion."""
         with tracer.start_as_current_span(
@@ -19,16 +28,8 @@ class IngestionService:
             attributes={"workspace_id": workspace_id},
         ) as _:
             db = mongodb_manager.get_async_database()
-            from backend.app.core.constants import ILLEGAL_NAME_CHARS
-            original_filename = file.filename or "unnamed_file"
-            found_chars = [c for c in ILLEGAL_NAME_CHARS if c in original_filename]
-            if found_chars:
-                return {
-                    "status": "error",
-                    "code": "INVALID_FILENAME",
-                    "message": f"Filename contains illegal characters: {' '.join(found_chars)}. Please remove them and try again.",
-                    "params": {"illegal": found_chars}
-                }
+            original_filename = self._sanitize_filename(file.filename or "unnamed_file")
+            
 
             content = await file.read()
             file_hash = hashlib.sha256(content).hexdigest()

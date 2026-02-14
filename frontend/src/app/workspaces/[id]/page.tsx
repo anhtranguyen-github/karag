@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
     MessageSquare, FileText, Settings, Zap, Database,
-    Clock, ArrowRight, Loader2, type LucideIcon
+    Clock, ArrowRight, ArrowLeft, Loader2, type LucideIcon
 } from 'lucide-react';
 import { API_ROUTES } from '@/lib/api-config';
 import { cn } from '@/lib/utils';
@@ -64,11 +64,7 @@ export default function WorkspaceOverviewPage() {
                     const result = await res.json();
                     if (result.success && result.data) {
                         setWorkspace(result.data);
-                    } else {
-                        console.error('API Error:', result.message);
                     }
-                } else {
-                    console.error('HTTP Error:', res.status);
                 }
             } catch (err) {
                 console.error('Failed to fetch workspace:', err);
@@ -91,8 +87,22 @@ export default function WorkspaceOverviewPage() {
 
     if (!workspace) {
         return (
-            <div className="flex-1 flex items-center justify-center">
-                <p className="text-gray-400">Workspace not found</p>
+            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+                <div className="w-20 h-20 rounded-[2.5rem] bg-red-500/10 flex items-center justify-center mb-6 text-red-500">
+                    <Database size={40} />
+                </div>
+                <h1 className="text-h3 font-black text-white mb-2">Workspace Not Found</h1>
+                <p className="text-gray-500 max-w-md mb-8">
+                    The workspace you're looking for doesn't exist or you don't have access to it.
+                    Check the URL or return to the dashboard.
+                </p>
+                <Link
+                    href="/"
+                    className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-black font-black text-tiny hover:bg-gray-200 transition-all active:scale-95"
+                >
+                    <ArrowLeft size={16} />
+                    Back to Dashboard
+                </Link>
             </div>
         );
     }

@@ -797,7 +797,8 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                                         <span
                                             data-testid="doc-name"
                                             data-doc-name={doc.name}
-                                            className="text-caption font-black text-white truncate max-w-[200px]  tracking-tight"
+                                            className="text-caption font-black text-white truncate max-w-[400px]  tracking-tight"
+                                            title={doc.name}
                                         >
                                             {doc.name}
                                         </span>

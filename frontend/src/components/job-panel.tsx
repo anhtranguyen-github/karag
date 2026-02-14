@@ -109,7 +109,10 @@ function TaskRow({ task, onDismiss, onRetry, onCancel }: TaskRowProps) {
                     <div className="text-[11px] font-bold text-white/80 truncate  tracking-wider">
                         {getTaskLabel(task)}
                     </div>
-                    <div className={cn("text-[10px] truncate mt-0.5", getStatusColor(task.status))}>
+                    <div
+                        className={cn("text-[10px] truncate mt-0.5", getStatusColor(task.status))}
+                        title={task.message}
+                    >
                         {task.message}
                     </div>
                 </div>
