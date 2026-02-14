@@ -18,6 +18,9 @@ async def retrieval_node(state: AgentState) -> Dict:
     workspace_id = state.get("workspace_id", "default")
     last_message = state["messages"][-1].content
 
+    from backend.app.core.settings_manager import settings_manager
+    settings = await settings_manager.get_settings(workspace_id)
+
     with tracer.start_as_current_span(
         "graph.retrieval_node",
         attributes={
@@ -28,13 +31,16 @@ async def retrieval_node(state: AgentState) -> Dict:
         # We perform initial search. Reranking will happen in the next node.
         # This allows visibility into the multi-stage pipeline.
         results = await rag_service.search(
-            query=last_message, workspace_id=workspace_id
+            query=last_message, 
+            workspace_id=workspace_id,
+            limit=settings.search_limit * 2 # Retrieve more for reranking
         )
 
         span.set_attribute("graph.initial_chunks", len(results))
         
         return {
             "sources": results,
+            "agentic_enabled": settings.agentic_enabled,
             "reasoning_steps": ["Retrieved initial candidates from vector store"],
         }
 
@@ -52,7 +58,10 @@ async def rerank_node(state: AgentState) -> Dict:
     from backend.app.providers.reranker import get_reranker
     
     settings = await settings_manager.get_settings(workspace_id)
-    reranker = await get_reranker(workspace_id)
+    
+    reranker = None
+    if settings.reranker_enabled:
+        reranker = await get_reranker(workspace_id)
     
     if not reranker:
         # Fallback processing if reranker disabled
@@ -201,12 +210,16 @@ async def reason_node(state: AgentState, config: RunnableConfig) -> Dict:
 
 async def generate_node(state: AgentState) -> Dict:
     """Synthesize the final answer."""
+    workspace_id = state.get("workspace_id", "default")
+    
     with tracer.start_as_current_span("graph.generate_node"):
         final_steps = state.get("reasoning_steps", []) + [
             "Synthesizing final response"
         ]
 
         last_msg = state["messages"][-1]
+        
+        # If we already have an AIMessage (from reason_node), just append metadata
         if isinstance(last_msg, AIMessage):
             updated_msg = AIMessage(
                 content=last_msg.content,
@@ -214,11 +227,29 @@ async def generate_node(state: AgentState) -> Dict:
                 additional_kwargs={
                     **last_msg.additional_kwargs,
                     "reasoning_steps": final_steps,
+                    "sources": state.get("sources", [])
                 },
             )
             return {"messages": [updated_msg], "reasoning_steps": final_steps}
 
-        return {"reasoning_steps": final_steps}
+        # Otherwise (non-agentic flow), generate the response now
+        from backend.app.core.settings_manager import settings_manager
+        settings = await settings_manager.get_settings(workspace_id)
+        llm = await get_llm(workspace_id)
+        
+        context_str = "\n\n".join(state.get("context", []))
+        system_prompt = settings.system_prompt
+        
+        full_system = f"{system_prompt}\n\nContext:\n{context_str}"
+        
+        response = await llm.ainvoke([
+            SystemMessage(content=full_system)
+        ] + state["messages"])
+        
+        response.additional_kwargs["reasoning_steps"] = final_steps
+        response.additional_kwargs["sources"] = state.get("sources", [])
+        
+        return {"messages": [response], "reasoning_steps": final_steps}
 
 
 async def summarize_node(state: AgentState) -> Dict:

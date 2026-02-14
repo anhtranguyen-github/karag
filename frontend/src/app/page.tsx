@@ -9,10 +9,8 @@ import {
   Trash2, Loader2, AlertCircle, X, Zap, Database, ShieldCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { CreateWorkspaceSchema, CreateWorkspaceInput } from '@/lib/schemas/workspaces';
+import { CreateWorkspaceInput } from '@/lib/schemas/workspaces';
+import { WorkspaceWizard } from '@/components/workspace-wizard';
 
 export default function HomePage() {
   const router = useRouter();
@@ -20,20 +18,8 @@ export default function HomePage() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  // Removed manual newWorkspace state
   const [isCreating, setIsCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  const form = useForm<CreateWorkspaceInput>({
-    resolver: zodResolver(CreateWorkspaceSchema) as any,
-    defaultValues: {
-      name: '',
-      description: '',
-      embedding_dim: 1536,
-    }
-  });
-
-  const { register, handleSubmit, formState: { errors }, reset } = form;
 
   const filteredWorkspaces = workspaces.filter(ws =>
     ws.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -42,20 +28,11 @@ export default function HomePage() {
   const onSubmit = async (data: CreateWorkspaceInput) => {
     setIsCreating(true);
     try {
-      // rag_engine was manual, let's keep it manual or add to schema.
-      // For now, I'll pass 'basic' or handle it if schema excludes it.
-      // Actually, CreateWorkspaceSchema DOES NOT have rag_engine in workspaces.ts I created.
-      // I should update schema or pass it.
-
-      const result = await createWorkspace({
-        ...data,
-        rag_engine: 'basic' // Default or state managed nearby
-      });
+      const result = await createWorkspace(data);
 
       if (result.success && result.workspace) {
         router.push(`/workspaces/${result.workspace.id}`);
         setShowCreateModal(false);
-        reset();
       }
     } finally {
       setIsCreating(false);
@@ -217,98 +194,13 @@ export default function HomePage() {
         )}
       </main>
 
-      {/* Create Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-            onClick={() => setShowCreateModal(false)}
-          />
-          <div className="relative bg-[#0f0f10] border border-white/10 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
-            <div className="p-4 border-b border-white/10 flex items-center justify-between">
-              <h3 className="text-h3 font-bold text-white">Create Workspace</h3>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center"
-              >
-                <X size={16} className="text-gray-400" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit(onSubmit)} className="p-4 space-y-4">
-              <div>
-                <label className="block text-caption text-gray-400 mb-2">Workspace Name *</label>
-                <input
-                  type="text"
-                  {...register('name')}
-                  placeholder="e.g., Project Research"
-                  className={cn(
-                    "w-full px-4 py-3 rounded-lg bg-white/5 border text-caption focus:outline-none focus:ring-2 ring-blue-500/50",
-                    errors.name ? "border-red-500/50" : "border-white/10"
-                  )}
-                  autoFocus
-                />
-                {errors.name && (
-                  <p className="text-red-400 text-tiny mt-1">{errors.name.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-caption text-gray-400 mb-2">Description</label>
-                <textarea
-                  {...register('description')}
-                  placeholder="Optional description..."
-                  rows={2}
-                  className={cn(
-                    "w-full px-4 py-3 rounded-lg bg-white/5 border text-caption focus:outline-none focus:ring-2 ring-blue-500/50 resize-none",
-                    errors.description ? "border-red-500/50" : "border-white/10"
-                  )}
-                />
-                {errors.description && (
-                  <p className="text-red-400 text-tiny mt-1">{errors.description.message}</p>
-                )}
-              </div>
-
-              {/* RAG Engine Selection - Keeping manual for now as schema doesn't cover it strictly yet, or we can omit from validation */}
-              <div>
-                <label className="block text-caption text-gray-400 mb-2">RAG Engine</label>
-                <div className="flex gap-3">
-                  {/* Simplified for now, passing static 'basic' in onSubmit. 
-                       If we want selection, we should manage it or add to schema.
-                       For strictness, let's keep it simple or use Controller.
-                       Since implementation is just an example, I'll remove selection to simplify 
-                       or just keep it visual but inactive if I don't add to schema.
-                       Actually, let's just comment it out to focus on Zod form fields.
-                   */}
-                  <div className="text-gray-500 text-tiny ">Default: Basic Engine</div>
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-4 py-3 rounded-lg bg-white/5 hover:bg-white/10 text-caption font-medium text-gray-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isCreating}
-                  className="flex-1 px-4 py-3 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-caption font-medium flex items-center justify-center gap-2"
-                >
-                  {isCreating ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
-                    <Plus size={16} />
-                  )}
-                  Create
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Create Wizard */}
+      <WorkspaceWizard
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSubmit={onSubmit}
+        isCreating={isCreating}
+      />
     </div>
   );
 }

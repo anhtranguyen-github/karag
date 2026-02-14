@@ -25,12 +25,39 @@ class WorkspaceDetail(Workspace):
 class WorkspaceCreate(BaseModel):
     name: str
     description: Optional[str] = None
-    rag_engine: Literal["basic", "graph"] = "basic"
+    
+    # Node 1: Embedding
     embedding_provider: Optional[str] = "openai"
     embedding_model: Optional[str] = "text-embedding-3-small"
     embedding_dim: Optional[int] = 1536
+    
+    # Node 2: Retrieval
+    rag_engine: Literal["basic", "graph"] = "basic"
+    search_limit: Optional[int] = 5
+    recall_k: Optional[int] = 20
+    hybrid_alpha: Optional[float] = 0.5
+    
+    # Node 3: Graph
+    graph_enabled: Optional[bool] = True
+    
+    # Node 4: Reranking
+    reranker_enabled: Optional[bool] = False
+    reranker_provider: Optional[str] = "none"
+    rerank_top_k: Optional[int] = 3
+    
+    # Node 5: Agentic
+    agentic_enabled: Optional[bool] = True
+    
+    # Node 6: Generation
+    llm_provider: Optional[str] = "openai"
+    llm_model: Optional[str] = "gpt-4o"
+    temperature: Optional[float] = 0.7
+    
+    # Node 7: Ingestion
     chunk_size: Optional[int] = 800
     chunk_overlap: Optional[int] = 150
+    
+    # Backend / System
     neo4j_uri: Optional[str] = None
     neo4j_user: Optional[str] = None
     neo4j_password: Optional[str] = None

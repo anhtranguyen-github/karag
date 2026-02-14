@@ -29,3 +29,6 @@ class AgentState(TypedDict):
     
     # Structured sources for citations
     sources: List[dict]
+    
+    # Flags for dynamic routing
+    agentic_enabled: bool
