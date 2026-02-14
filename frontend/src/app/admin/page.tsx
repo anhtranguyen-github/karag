@@ -693,7 +693,7 @@ function EvaluationDashboard() {
                                     </div>
                                     <div>
                                         <div className="text-tiny font-black text-white">Run {run.id.slice(0, 8)}</div>
-                                        <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">{new Date(run.started_at).toLocaleString()}</div>
+                                        <div className="text-[9px] text-gray-500 font-bold">{new Date(run.started_at).toLocaleString()}</div>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-4">

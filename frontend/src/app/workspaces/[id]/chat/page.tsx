@@ -262,7 +262,7 @@ export default function ChatPage() {
 
                         <div className="flex flex-col">
                             <h2 className="text-caption font-semibold text-white">Chat Session</h2>
-                            <p className="text-tiny text-gray-500  tracking-wider">Workspace: {workspaceId}</p>
+                            <p className="text-tiny text-gray-500">Workspace: {workspaceId}</p>
                         </div>
                     </div>
 
