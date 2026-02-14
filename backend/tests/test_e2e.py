@@ -23,8 +23,14 @@ async def async_client():
 @pytest.mark.asyncio
 async def test_e2e_document_flow(async_client):
     """Test full flow: Upload -> List -> Delete."""
-    mock_upload_tuple = ("task-123", b"test content", "test.txt", "text/plain")
-    with patch("backend.app.api.v1.documents.document_service.upload", new=AsyncMock(return_value=mock_upload_tuple)):
+    mock_upload_dict = {
+        "status": "success",
+        "task_id": "task-123",
+        "filename": "test.txt",
+        "content_type": "text/plain",
+        "content": b"test content"
+    }
+    with patch("backend.app.api.v1.documents.document_service.upload", new=AsyncMock(return_value=mock_upload_dict)):
         files = {'file': ('test.txt', io.BytesIO(b"test content"), 'text/plain')}
         res = await async_client.post("/upload", files=files, params={"workspace_id": "e2e_test"})
         assert res.status_code == 200
@@ -38,4 +44,4 @@ async def test_e2e_chat_threads(async_client):
         
         res = await async_client.get("/chat/threads", params={"workspace_id": "e2e_ws"})
         assert res.status_code == 200
-        assert len(res.json()["threads"]) >= 1
+        assert len(res.json()["data"]) >= 1

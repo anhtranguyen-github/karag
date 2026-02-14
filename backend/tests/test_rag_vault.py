@@ -77,9 +77,10 @@ async def test_document_sharing_dimension_conflict(mocker):
         }
         res = await ac.post("/documents/update-workspaces", json=payload)
         
-        # Should return 409 Conflict
-        assert res.status_code == 409
-        assert "Incompatible Workspace" in res.json()["detail"]
+        # Should return 200 OK (Auto-Link)
+        assert res.status_code == 200, res.text
+        assert res.json()["success"] is True
+        assert "started in background" in res.json()["message"]
 
 @pytest.mark.asyncio
 async def test_vault_delete_logic(mocker):

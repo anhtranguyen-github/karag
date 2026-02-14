@@ -1,5 +1,6 @@
 from typing import Optional
 from fastapi import APIRouter, Request, UploadFile, File, BackgroundTasks
+from fastapi.encoders import jsonable_encoder
 from backend.app.services.document_service import document_service
 from backend.app.services.task_service import task_service
 
@@ -246,20 +247,7 @@ async def update_document_workspaces(
     if not name or not target_workspace_id:
         raise ValidationError("Name and target_workspace_id are required")
 
-    # Early validation for Incompatible Workspaces (Domain Conflict)
-    if not force_reindex and action in ["move", "share"]:
-        from backend.app.core.settings_manager import settings_manager
-        from backend.app.core.exceptions import ConflictError
-        
-        doc = await document_service.get_by_id_or_name(name)
-        if doc and doc.get("status") == "indexed":
-            target_settings = await settings_manager.get_settings(target_workspace_id)
-            target_rag_hash = target_settings.get_rag_hash()
-            if doc.get("rag_config_hash") != target_rag_hash:
-                raise ConflictError(
-                    message=f"Incompatible Workspace: Target RAG config ({target_rag_hash}) differs from Document ({doc.get('rag_config_hash')})",
-                    params={"type": "rag_mismatch", "expected": doc.get("rag_config_hash"), "actual": target_rag_hash}
-                )
+
 
     task_id = await task_service.create_task("workspace_op", {
         "filename": name,
@@ -316,7 +304,7 @@ async def get_document(name: str):
                 doc["content"] = None
                 doc["error"] = "Content decoding failed"
 
-    return AppResponse.success_response(data=doc)
+    return AppResponse.success_response(data=jsonable_encoder(doc))
 
 
 @router.delete("/documents/{name:path}")

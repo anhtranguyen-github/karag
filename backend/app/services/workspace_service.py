@@ -174,6 +174,10 @@ class WorkspaceService:
         )
         if not result:
             raise NotFoundError(f"Workspace {workspace_id} not found.")
+        
+        if "_id" in result:
+            del result["_id"]
+            
         return result
 
     @staticmethod

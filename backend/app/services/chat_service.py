@@ -210,7 +210,7 @@ class ChatService:
 
                 try:
                     if kind == "on_chain_end" and name in [
-                        "retrieve",
+                        "rerank",
                         "reason",
                         "generate",
                     ]:

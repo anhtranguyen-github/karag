@@ -74,6 +74,20 @@ class OrchestrationService:
 
         is_config_compatible = res.get("rag_config_hash") == target_rag_hash
         
+        # Auto-Fork Logic: If sharing is requested but configs differ, switch to "link"
+        if action == "share" and not is_config_compatible:
+            logger.info("auto_forking_share_to_link", document=name, target_workspace=target_workspace_id, reason="rag_mismatch")
+            await task_service.update_task(
+                task_id, 
+                message=f"RAG configuration mismatch detected. Automatically linking (forking) document to workspace '{target_workspace_id}' instead of sharing."
+            )
+            # Recursively call with action="link"
+            return await self.update_workspaces(name, target_workspace_id, action="link", force_reindex=False, task_id=task_id)
+
+        # Enforce re-index for Move if incompatible
+        if action == "move" and not is_config_compatible:
+             force_reindex = True
+
         if not is_config_compatible and not force_reindex:
             raise ConflictError(
                 message=f"Incompatible Workspace: Target RAG config ({target_rag_hash}) differs from Document ({res.get('rag_config_hash')})",

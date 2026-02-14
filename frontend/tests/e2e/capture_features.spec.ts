@@ -20,33 +20,33 @@ test.describe('Showcase Capture', () => {
     test('capture user dashboard', async ({ page }) => {
         await page.goto('http://localhost:3000/', { waitUntil: 'networkidle' });
         await page.waitForTimeout(1000);
-        await page.screenshot({ path: '../assets/screenshots/showcase_user_dashboard.png', fullPage: true });
-        await page.screenshot({ path: '../assets/screenshots/ws_01_dashboard.png', fullPage: true });
+        await page.screenshot({ path: '/home/tra01/project/karag/assets/screenshots/showcase_user_dashboard.png', fullPage: true });
+        await page.screenshot({ path: '/home/tra01/project/karag/assets/screenshots/ws_01_dashboard.png', fullPage: true });
     });
 
     test('capture chat interface', async ({ page }) => {
         await page.goto('http://localhost:3000/workspaces/default/chat', { waitUntil: 'networkidle' });
         await page.waitForTimeout(1000);
-        await page.screenshot({ path: '../assets/screenshots/showcase_user_chat.png', fullPage: true });
-        await page.screenshot({ path: '../assets/screenshots/ux_01_empty_chat.png', fullPage: true });
+        await page.screenshot({ path: '/home/tra01/project/karag/assets/screenshots/showcase_user_chat.png', fullPage: true });
+        await page.screenshot({ path: '/home/tra01/project/karag/assets/screenshots/ux_01_empty_chat.png', fullPage: true });
     });
 
     test('capture master vault', async ({ page }) => {
         await page.goto('http://localhost:3000/vault', { waitUntil: 'networkidle' });
         await page.waitForTimeout(1000);
-        await page.screenshot({ path: '../assets/screenshots/showcase_user_vault.png', fullPage: true });
+        await page.screenshot({ path: '/home/tra01/project/karag/assets/screenshots/showcase_user_vault.png', fullPage: true });
     });
 
     test('capture document management', async ({ page }) => {
         await page.goto('http://localhost:3000/workspaces/default/documents', { waitUntil: 'load' });
         await page.waitForTimeout(3000);
-        await page.screenshot({ path: '../assets/screenshots/showcase_user_documents.png', fullPage: true });
+        await page.screenshot({ path: '/home/tra01/project/karag/assets/screenshots/showcase_user_documents.png', fullPage: true });
     });
 
     test('capture admin overview', async ({ page }) => {
         await page.goto('http://localhost:3000/admin', { waitUntil: 'networkidle' });
         await page.waitForTimeout(1000);
-        await page.screenshot({ path: '../assets/screenshots/showcase_admin_overview.png', fullPage: true });
+        await page.screenshot({ path: '/home/tra01/project/karag/assets/screenshots/showcase_admin_overview.png', fullPage: true });
     });
 
     test('capture admin observability', async ({ page }) => {
@@ -54,7 +54,7 @@ test.describe('Showcase Capture', () => {
         await page.waitForTimeout(1000);
         await page.getByText('Observability').click();
         await page.waitForTimeout(500);
-        await page.screenshot({ path: '../assets/screenshots/showcase_admin_observability.png', fullPage: true });
+        await page.screenshot({ path: '/home/tra01/project/karag/assets/screenshots/showcase_admin_observability.png', fullPage: true });
     });
 
     // === SCENARIOS ===
@@ -63,22 +63,22 @@ test.describe('Showcase Capture', () => {
         await page.goto('http://localhost:3000/', { waitUntil: 'networkidle' });
         await page.getByRole('button', { name: 'New' }).click({ force: true });
         await page.waitForTimeout(800);
-        await page.screenshot({ path: '../assets/screenshots/ws_02_wizard.png' });
+        await page.screenshot({ path: '/home/tra01/project/karag/assets/screenshots/ws_02_wizard.png' });
     });
 
     test('capture workspace settings', async ({ page }) => {
         await page.goto('http://localhost:3000/workspaces/default', { waitUntil: 'networkidle' });
         await page.getByRole('link', { name: 'Settings Configure RAG and' }).click();
         await page.waitForTimeout(1000);
-        await page.screenshot({ path: '../assets/screenshots/ws_03_settings.png' });
+        await page.screenshot({ path: '/home/tra01/project/karag/assets/screenshots/ws_03_settings.png' });
     });
 
     test('capture arxiv modal', async ({ page }) => {
         await page.goto('http://localhost:3000/workspaces/default/documents', { waitUntil: 'networkidle' });
         await page.getByText('From ArXiv').click();
         await page.waitForTimeout(800);
-        await page.screenshot({ path: '../assets/screenshots/ux_02_arxiv_modal.png' });
-        await page.screenshot({ path: '../assets/screenshots/arxiv_01_upload.png' });
+        await page.screenshot({ path: '/home/tra01/project/karag/assets/screenshots/ux_02_arxiv_modal.png' });
+        await page.screenshot({ path: '/home/tra01/project/karag/assets/screenshots/arxiv_01_upload.png' });
     });
 
     test('capture active chat', async ({ page }) => {
@@ -90,14 +90,14 @@ test.describe('Showcase Capture', () => {
         await page.keyboard.press('Enter');
         // Wait for some response to appear (streaming)
         await page.waitForTimeout(4000);
-        await page.screenshot({ path: '../assets/screenshots/ux_04_rag_chat_active.png', fullPage: true });
+        await page.screenshot({ path: '/home/tra01/project/karag/assets/screenshots/ux_04_rag_chat_active.png', fullPage: true });
     });
 
     test('capture unified search', async ({ page }) => {
         await page.goto('http://localhost:3000/', { waitUntil: 'networkidle' });
         await page.keyboard.press('/');
         await page.waitForTimeout(800);
-        await page.screenshot({ path: '../assets/screenshots/ux_05_unified_search.png' });
+        await page.screenshot({ path: '/home/tra01/project/karag/assets/screenshots/ux_05_unified_search.png' });
     });
 
     test('capture arxiv workflow', async ({ page }) => {
@@ -109,7 +109,7 @@ test.describe('Showcase Capture', () => {
         await page.waitForTimeout(2000);
         await page.goto('http://localhost:3000/vault', { waitUntil: 'networkidle' });
         await page.waitForTimeout(1000);
-        await page.screenshot({ path: '../assets/screenshots/arxiv_step_02_vault.png', fullPage: true });
+        await page.screenshot({ path: '/home/tra01/project/karag/assets/screenshots/arxiv_step_02_vault.png', fullPage: true });
         await page.goto('http://localhost:3000/workspaces/default/chat', { waitUntil: 'networkidle' });
         // Use a more generic selector for the chat input if placeholder varies
         const input = page.getByRole('textbox');
@@ -117,16 +117,16 @@ test.describe('Showcase Capture', () => {
         await input.fill('What is TinyLlama?');
         await page.keyboard.press('Enter');
         await page.waitForTimeout(4000);
-        await page.screenshot({ path: '../assets/screenshots/arxiv_step_01_chat.png', fullPage: true });
+        await page.screenshot({ path: '/home/tra01/project/karag/assets/screenshots/arxiv_step_01_chat.png', fullPage: true });
         await page.goto('http://localhost:3000/workspaces/default/documents', { waitUntil: 'networkidle' });
         await page.locator('tbody tr').first().click();
         await page.waitForTimeout(1000);
-        await page.screenshot({ path: '../assets/screenshots/arxiv_step_03_details.png', fullPage: true });
+        await page.screenshot({ path: '/home/tra01/project/karag/assets/screenshots/arxiv_step_03_details.png', fullPage: true });
         await page.goto('http://localhost:3000/workspaces/default/documents', { waitUntil: 'networkidle' });
         await page.keyboard.press('/');
         await page.keyboard.type('llama');
         await page.waitForTimeout(1000);
-        await page.screenshot({ path: '../assets/screenshots/arxiv_step_04_search.png', fullPage: true });
+        await page.screenshot({ path: '/home/tra01/project/karag/assets/screenshots/arxiv_step_04_search.png', fullPage: true });
     });
 
     test('capture job panel', async ({ page }) => {
@@ -136,6 +136,6 @@ test.describe('Showcase Capture', () => {
         await page.getByRole('button', { name: 'Import Paper' }).click();
         await page.goto('http://localhost:3000/vault', { waitUntil: 'networkidle' });
         await page.waitForTimeout(1000);
-        await page.screenshot({ path: '../assets/screenshots/ux_03_job_panel.png', fullPage: true });
+        await page.screenshot({ path: '/home/tra01/project/karag/assets/screenshots/ux_03_job_panel.png', fullPage: true });
     });
 });

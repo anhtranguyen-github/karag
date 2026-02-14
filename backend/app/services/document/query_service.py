@@ -87,7 +87,7 @@ class QueryService:
         
         results = await qdrant.client.scroll(
             collection_name=collection,
-            scroll_filter={"must": [{"key": "source_name", "match": {"value": doc["filename"]}}]},
+            scroll_filter={"must": [{"key": "source", "match": {"value": doc["filename"]}}]},
             limit=limit,
             with_payload=True,
             with_vectors=False
@@ -107,7 +107,7 @@ class QueryService:
         
         count_res = await qdrant.client.count(
             collection_name=collection,
-            count_filter={"must": [{"key": "source_name", "match": {"value": doc["filename"]}}]}
+            count_filter={"must": [{"key": "source", "match": {"value": doc["filename"]}}]}
         )
         
         return {
