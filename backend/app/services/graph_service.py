@@ -44,31 +44,46 @@ class GraphService:
         llm = await get_llm(workspace_id)
         
         prompt = f"""
-        Extract a knowledge graph from the FOLLOWING TEXT SEGMENT. 
-        Identify main entities (Person, Organization, Concept, Technology, Event) and their relationships.
-        
-        Rules:
-        1. Only extract significant entities mentions.
-        2. Keep relationship types simple (e.g., 'RelatedTo', 'PartOf', 'WorksAt', 'Uses').
+        Extract a Knowledge Graph from the TEXT below. Focus on semantic relationships that define "who does what", "how things relate", and "core concepts".
         
         Text:
         {text}
         
-        Return ONLY a raw JSON list of objects:
+        Identify:
+        1. Entities: [Person, Organization, Concept, Technology, Event, Location]
+        2. Relationships: Descriptive directed links between two entities.
+        
+        Formatting Rules:
+        - Use Title Case for entity names.
+        - Merge near-duplicates (e.g., "AI" and "Artificial Intelligence" -> "Artificial Intelligence").
+        - Relationship types should be upper-snake-case (e.g., "PART_OF", "DEPENDS_ON").
+        
+        Return exactly a JSON list in this format:
         [
           {{
             "name": "Entity Name",
-            "type": "Concept/Person",
+            "type": "Concept",
             "relationships": [
-              {{"target": "Other Entity", "type": "DependsOn"}}
+              {{"target": "Other Entity", "type": "RELATES_TO"}}
             ]
           }}
         ]
+        
+        If no meaningful entities are found, return [].
+        Return ONLY the JSON. No markdown tags.
         """
         try:
             response = await llm.ainvoke(prompt)
-            content = response.content.replace("```json", "").replace("```", "").strip()
-            return json.loads(content)
+            content = response.content.strip()
+            # Clean up potential markdown formatting
+            if content.startswith("```"):
+                content = content.replace("```json", "").replace("```", "").strip()
+            
+            # Basic validation
+            data = json.loads(content)
+            if not isinstance(data, list):
+                return []
+            return data
         except Exception as e:
             logger.warning("chunk_extraction_failed", error=str(e), workspace_id=workspace_id)
             return []

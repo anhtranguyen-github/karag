@@ -3,6 +3,7 @@ from typing import List, Dict, Any
 from backend.app.core.neo4j import neo4j_manager
 from backend.app.core.settings_manager import settings_manager
 from backend.app.rag.qdrant_provider import qdrant
+from backend.app.providers.llm import get_llm
 
 logger = structlog.get_logger(__name__)
 
@@ -26,22 +27,34 @@ class GraphProvider:
         """
         settings = await settings_manager.get_settings(workspace_id)
         
-        # STEP 1: Extract potential entity names from query
-        # In a full implementation, this might use an LLM or NER model.
-        # For efficiency, we'll do a simple keyword match against graph nodes.
-        keywords = [word.strip(",.?!") for word in query.split() if len(word) > 3]
+        # STEP 1: Extract potential entity names from query using LLM
+        llm = await get_llm(workspace_id)
+        extraction_prompt = f"""
+        Extract the MOSY IMPORTANT entities (nouns, concepts, technologies) from the user query.
+        Query: {query}
+        Return ONLY a comma-separated list of entities. Maximum 5.
+        """
+        try:
+            extraction_res = await llm.ainvoke(extraction_prompt)
+            keywords = [k.strip() for k in extraction_res.content.split(",") if len(k.strip()) > 2]
+        except Exception:
+            # Fallback to simple split
+            keywords = [word.strip(",.?!") for word in query.split() if len(word) > 3]
         
-        logger.info("graph_search_start", workspace_id=workspace_id, keywords=keywords)
+        logger.info("graph_search_entities", workspace_id=workspace_id, extracted_keywords=keywords)
         
         # STEP 2: Query Neo4j for related nodes and their neighbors (Knowledge Expansion)
         # Find nodes matching keywords for this specific workspace
+        # We use =~ for partial case-insensitive match
         cypher = """
+        UNWIND $keywords as word
         MATCH (n:Entity)
         WHERE n.workspace_id = $workspace_id 
-        AND any(word IN $keywords WHERE n.name CONTAINS word)
+        AND n.name =~ ('(?i).*' + word + '.*')
+        WITH n
         MATCH (n)-[r]-(neighbor:Entity)
         RETURN n.name as entity, type(r) as relationship, neighbor.name as related_entity
-        LIMIT 20
+        LIMIT 30
         """
         
         try:
@@ -63,8 +76,9 @@ class GraphProvider:
             refined_query = query
             if unique_concepts:
                 # We add the graph concepts as a boost
-                refined_query = f"{query} {' '.join(unique_concepts[:5])}"
-                logger.info("graph_query_refined", original=query, refined=refined_query)
+                boost_str = " ".join(unique_concepts[:10])
+                refined_query = f"{query} {boost_str}"
+                logger.info("graph_query_refined", original=query, refined=refined_query, concepts_found=len(unique_concepts))
             
             # STEP 4: Final retrieval from Vector DB (ranked chunks)
             results = await qdrant.hybrid_search(
