@@ -35,6 +35,14 @@ test.describe('Showcase Capture', () => {
         await page.screenshot({ path: '../assets/screenshots/showcase_user_vault.png', fullPage: true });
     });
 
+    test('capture document management', async ({ page }) => {
+        await page.setViewportSize({ width: 1440, height: 900 });
+        // Use 'load' or just navigate and wait for a specific element if needed
+        await page.goto('http://localhost:3000/workspaces/default/documents', { waitUntil: 'load' });
+        await page.waitForTimeout(3000); // Give it extra time to render components
+        await page.screenshot({ path: '../assets/screenshots/showcase_user_documents.png', fullPage: true });
+    });
+
     // === ADMIN CONSOLE (2 Screens) ===
 
     test('capture admin overview', async ({ page }) => {
