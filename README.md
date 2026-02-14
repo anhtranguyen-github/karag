@@ -7,6 +7,7 @@ An advanced, multi-workspace RAG (Retrieval-Augmented Generation) chat applicati
 ### User Experience
 ![Dashboard](assets/screenshots/showcase_user_dashboard.png)
 ![Workspace Chat](assets/screenshots/showcase_user_chat.png)
+![Document Management](assets/screenshots/showcase_user_documents.png)
 ![Master Vault](assets/screenshots/showcase_user_vault.png)
 
 ### Admin Control Plane
