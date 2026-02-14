@@ -26,6 +26,7 @@ interface DocumentDetail {
     created_at: string;
     updated_at: string;
     shared_with: string[];
+    download_url?: string;
     // Derived from workspace settings
     embedding_model?: string;
     embedding_dim?: number;
@@ -153,10 +154,22 @@ export default function DocumentDetailPage() {
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <button className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-caption flex items-center gap-2">
-                        <Download size={16} />
-                        Download
-                    </button>
+                    {document.download_url ? (
+                        <a
+                            href={document.download_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-caption flex items-center gap-2 text-white no-underline transition-colors"
+                        >
+                            <Download size={16} />
+                            Download
+                        </a>
+                    ) : (
+                        <button disabled className="px-4 py-2 rounded-lg bg-white/5 opacity-50 cursor-not-allowed text-caption flex items-center gap-2 text-gray-500">
+                            <Download size={16} />
+                            Download
+                        </button>
+                    )}
                 </div>
             </header>
 

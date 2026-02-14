@@ -281,12 +281,41 @@ async def update_document_workspaces(
 
 @router.get("/documents/{name:path}")
 async def get_document(name: str):
+    from backend.app.core.minio import minio_manager
+    from backend.app.core.config import ai_settings
+
     doc = await document_service.get_by_id_or_name(name)
     if not doc:
         raise NotFoundError(f"Document '{name}' not found")
 
-    content = await document_service.get_content(name)
-    doc["content"] = content
+    # Always generate presigned URL for direct access/download
+    minio_path = doc.get("minio_path")
+    if minio_path:
+        # Remove bucket prefix if present
+        bucket_prefix = f"{ai_settings.MINIO_BUCKET}/"
+        object_name = minio_path
+        if object_name.startswith(bucket_prefix):
+            object_name = object_name[len(bucket_prefix):]
+            
+        doc["download_url"] = minio_manager.get_presigned_url(object_name)
+
+    # Determine availability of inline parsed text content
+    content_type = doc.get("content_type", "application/octet-stream")
+    # Treat as binary if it matches known binary types
+    is_binary = any(t in content_type for t in ["image/", "audio/", "video/", "application/pdf", "application/zip", "application/octet-stream"])
+    
+    if is_binary:
+        doc["content"] = None # Do not return binary bytes in JSON
+    else:
+        # Text based content: decode and return inline
+        content_bytes = await document_service.get_content(name)
+        if content_bytes:
+            try:
+                doc["content"] = content_bytes.decode("utf-8")
+            except UnicodeDecodeError:
+                doc["content"] = None
+                doc["error"] = "Content decoding failed"
+
     return AppResponse.success_response(data=doc)
 
 
