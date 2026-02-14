@@ -162,7 +162,7 @@ export default function KnowledgePage() {
                     <div className="flex items-center gap-3">
                         <div className="px-4 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center gap-2">
                             <CheckCircle2 size={14} className="text-green-400" />
-                            <span className="text-tiny font-bold text-indigo-300  tracking-wider">Sync State: Active</span>
+                            <span className="text-tiny font-bold text-indigo-300">Sync State: Active</span>
                         </div>
                     </div>
                 </header>

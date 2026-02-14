@@ -743,7 +743,7 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                         <Loader2 className="w-5 h-5 animate-spin text-indigo-400" />
                     </div>
                     <div className="flex-1">
-                        <div className="text-tiny font-black text-indigo-300  tracking-wider mb-1">Streaming to Server...</div>
+                        <div className="text-tiny font-black text-indigo-300 mb-1">Streaming to Server...</div>
                         <div className="w-full bg-indigo-500/10 h-1 rounded-full overflow-hidden">
                             <motion.div
                                 className="h-full bg-indigo-400"
@@ -771,7 +771,7 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                                     <div className="w-20 h-20 rounded-[2.5rem] bg-indigo-500/10 flex items-center justify-center mb-6">
                                         <Search size={40} />
                                     </div>
-                                    <h4 className="text-caption font-black  tracking-[0.2em] mb-2">
+                                    <h4 className="text-caption font-black mb-2">
                                         {searchQuery ? "No Matches Found" : "Vault Empty"}
                                     </h4>
                                     <p className="text-tiny text-gray-500  font-bold ">
@@ -803,7 +803,7 @@ export function KnowledgeBase({ workspaceId = "default", isSidebar = false, isGl
                                             {doc.name}
                                         </span>
                                         <div className="flex items-center gap-3 mt-1">
-                                            <span className="text-tiny text-gray-600 ">{doc.extension?.replace('.', '') || 'FILE'}</span>
+                                            <span className="text-tiny text-gray-600 ">{doc.extension?.replace('.', '') || 'File'}</span>
                                             <span className="w-1 h-1 rounded-full bg-gray-800" />
                                             {doc.status === 'indexed' ? (
                                                 <span className="text-tiny text-indigo-400/50 font-black  ">{doc.chunks} Fragments</span>

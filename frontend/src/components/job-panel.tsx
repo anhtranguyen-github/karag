@@ -106,7 +106,7 @@ function TaskRow({ task, onDismiss, onRetry, onCancel }: TaskRowProps) {
 
                 {/* Label + Message */}
                 <div className="flex-1 min-w-0">
-                    <div className="text-[11px] font-bold text-white/80 truncate  tracking-wider">
+                    <div className="text-[11px] font-bold text-white/80 truncate">
                         {getTaskLabel(task)}
                     </div>
                     <div
@@ -221,7 +221,7 @@ export function JobPanel() {
                         ) : (
                             <CheckCircle2 size={16} className="text-emerald-400" />
                         )}
-                        <span className="text-[11px] font-bold text-white/80  tracking-wider">
+                        <span className="text-[11px] font-bold text-white/80">
                             {hasActiveWork
                                 ? `${activeTasks.length} task${activeTasks.length !== 1 ? 's' : ''} running`
                                 : failedTasks.length > 0
