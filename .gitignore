@@ -104,7 +104,7 @@ backend/app/tools/arxiv_downloader/downloads/
 /plans/
 /scripts/
 /test-resources/
-/assets/screenshots/
+# /assets/screenshots/ - Tracked for README showcase
 TESTING_CONSTRAINTS_AND_BUGS.md
 
 # ===================
