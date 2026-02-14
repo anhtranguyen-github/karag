@@ -220,39 +220,68 @@ class WorkspaceService:
 
     @staticmethod
     async def get_graph_data(workspace_id: str) -> Dict:
-        """Generate a semantic graph of documents within a workspace."""
-        centroids = await qdrant.get_document_centroids(workspace_id)
+        """Generate a semantic graph of documents and entities within a workspace."""
+        from backend.app.core.settings_manager import settings_manager
+        settings = await settings_manager.get_settings(workspace_id)
         
         nodes = []
+        edges = []
+        
+        # 1. Document Nodes (Always show document-level relationships)
+        centroids = await qdrant.get_document_centroids(workspace_id)
         for doc_id, data in centroids.items():
             nodes.append({
                 "id": doc_id,
                 "name": data["name"],
-                "val": 10,
-                "type": "document"
+                "val": 15,
+                "type": "document",
+                "color": "#4f46e5"
             })
             
         import numpy as np
-        edges = []
         doc_ids = list(centroids.keys())
-        
-        # O(N^2) but N is small for a workspace
         for i in range(len(doc_ids)):
             for j in range(i + 1, len(doc_ids)):
                 id1, id2 = doc_ids[i], doc_ids[j]
-                v1 = np.array(centroids[id1]["vector"])
-                v2 = np.array(centroids[id2]["vector"])
-                
-                # Cosine similarity
+                v1, v2 = np.array(centroids[id1]["vector"]), np.array(centroids[id2]["vector"])
                 sim = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
-                
-                if sim > 0.75: # Moderate similarity threshold for graph visualization
-                    edges.append({
-                        "source": id1,
-                        "target": id2,
-                        "value": float(sim),
-                        "distance": float(1.0 - sim) # Used for layout distance
-                    })
+                if sim > 0.8: 
+                    edges.append({"source": id1, "target": id2, "value": float(sim), "type": "SIMILAR_TO"})
+
+        # 2. Knowledge Graph Nodes (Neo4j)
+        if settings.rag_engine == "graph":
+            from backend.app.core.neo4j import neo4j_manager
+            cypher = """
+            MATCH (n:Entity {workspace_id: $workspace_id})
+            OPTIONAL MATCH (n)-[r]->(m:Entity {workspace_id: $workspace_id})
+            RETURN n.name as name, n.type as type, m.name as target, type(r) as rel_type
+            LIMIT 100
+            """
+            try:
+                records = await neo4j_manager.execute_query(cypher, {"workspace_id": workspace_id}, workspace_id=workspace_id)
+                entities = {}
+                for rec in records:
+                    name = rec["name"]
+                    if name not in entities:
+                        entities[name] = rec["type"]
+                        nodes.append({
+                            "id": f"entity_{name}",
+                            "name": name,
+                            "val": 8,
+                            "type": "entity",
+                            "entity_type": rec["type"],
+                            "color": "#f59e0b"
+                        })
+                    
+                    if rec["target"] and rec["rel_type"]:
+                        edges.append({
+                            "source": f"entity_{name}",
+                            "target": f"entity_{rec['target']}",
+                            "value": 1.0,
+                            "type": rec["rel_type"]
+                        })
+            except Exception:
+                pass # Fail gracefully if Neo4j is down
         
         return {"nodes": nodes, "edges": edges}
 
