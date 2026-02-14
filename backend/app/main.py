@@ -44,6 +44,7 @@ async def lifespan(app: FastAPI):
 
     # Cleanup old completed/failed tasks
     from backend.app.services.task_service import task_service
+    await task_service.reset_running_tasks_on_startup()
     await task_service.cleanup_old_tasks(older_than_hours=24)
 
     # Start Background Task Worker for resilience

@@ -33,6 +33,8 @@ class TaskWorker:
         while self._running:
             try:
                 await self._process_pending_tasks()
+                # Check for stuck processing tasks (e.g. if a worker died without updating status)
+                await task_service.timeout_stuck_tasks(timeout_minutes=60)
             except Exception as e:
                 logger.error("task_worker_loop_error", error=str(e), exc_info=True)
             

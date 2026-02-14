@@ -88,6 +88,11 @@ class MinioManager:
 
     def get_file(self, object_name: str):
         """Get file content."""
+        # Strip bucket prefix if present (stored minio_path format: bucket/filename)
+        bucket_prefix = f"{ai_settings.MINIO_BUCKET}/"
+        if object_name.startswith(bucket_prefix):
+            object_name = object_name[len(bucket_prefix):]
+
         with tracer.start_as_current_span(
             "minio.get_file",
             attributes={"minio.object": object_name},
@@ -97,7 +102,7 @@ class MinioManager:
                     ai_settings.MINIO_BUCKET, object_name
                 )
                 return response.read()
-            except S3Error as e:
+            except Exception as e:
                 logger.error("minio_download_error", object=object_name, error=str(e))
                 return None
             finally:
