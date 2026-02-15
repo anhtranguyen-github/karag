@@ -135,7 +135,7 @@ export class ToolsApi extends runtime.BaseAPI {
      * List all available tools and their status.
      * List Tools
      */
-    async listToolsToolsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<ToolDefinition>>> {
+    async listToolsToolsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -150,14 +150,18 @@ export class ToolsApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(ToolDefinitionFromJSON));
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
     }
 
     /**
      * List all available tools and their status.
      * List Tools
      */
-    async listToolsToolsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ToolDefinition>> {
+    async listToolsToolsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
         const response = await this.listToolsToolsGetRaw(initOverrides);
         return await response.value();
     }
@@ -166,7 +170,7 @@ export class ToolsApi extends runtime.BaseAPI {
      * Enable or disable a tool.
      * Toggle Tool
      */
-    async toggleToolToolsToolIdTogglePostRaw(requestParameters: ToggleToolToolsToolIdTogglePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ToolDefinition>> {
+    async toggleToolToolsToolIdTogglePostRaw(requestParameters: ToggleToolToolsToolIdTogglePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         if (requestParameters['toolId'] == null) {
             throw new runtime.RequiredError(
                 'toolId',
@@ -200,14 +204,18 @@ export class ToolsApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => ToolDefinitionFromJSON(jsonValue));
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
     }
 
     /**
      * Enable or disable a tool.
      * Toggle Tool
      */
-    async toggleToolToolsToolIdTogglePost(requestParameters: ToggleToolToolsToolIdTogglePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ToolDefinition> {
+    async toggleToolToolsToolIdTogglePost(requestParameters: ToggleToolToolsToolIdTogglePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
         const response = await this.toggleToolToolsToolIdTogglePostRaw(requestParameters, initOverrides);
         return await response.value();
     }

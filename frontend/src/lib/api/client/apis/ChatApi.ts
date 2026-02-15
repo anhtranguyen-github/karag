@@ -31,7 +31,7 @@ export interface GetChatHistoryChatHistoryThreadIdGetRequest {
 }
 
 export interface ListChatThreadsChatThreadsGetRequest {
-    workspaceId?: string;
+    workspaceId: string;
 }
 
 export interface UpdateThreadTitleChatThreadsThreadIdTitlePatchRequest {
@@ -162,6 +162,13 @@ export class ChatApi extends runtime.BaseAPI {
      * List Chat Threads
      */
     async listChatThreadsChatThreadsGetRaw(requestParameters: ListChatThreadsChatThreadsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        if (requestParameters['workspaceId'] == null) {
+            throw new runtime.RequiredError(
+                'workspaceId',
+                'Required parameter "workspaceId" was null or undefined when calling listChatThreadsChatThreadsGet().'
+            );
+        }
+
         const queryParameters: any = {};
 
         if (requestParameters['workspaceId'] != null) {
@@ -190,7 +197,7 @@ export class ChatApi extends runtime.BaseAPI {
     /**
      * List Chat Threads
      */
-    async listChatThreadsChatThreadsGet(requestParameters: ListChatThreadsChatThreadsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+    async listChatThreadsChatThreadsGet(requestParameters: ListChatThreadsChatThreadsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
         const response = await this.listChatThreadsChatThreadsGetRaw(requestParameters, initOverrides);
         return await response.value();
     }

@@ -76,10 +76,9 @@
           {
             "name": "workspace_id",
             "in": "query",
-            "required": false,
+            "required": true,
             "schema": {
               "type": "string",
-              "default": "default",
               "title": "Workspace Id"
             }
           }
@@ -219,7 +218,7 @@
             "required": false,
             "schema": {
               "type": "string",
-              "default": "default",
+              "default": "vault",
               "title": "Workspace Id"
             }
           },
@@ -286,11 +285,226 @@
             "required": false,
             "schema": {
               "type": "string",
-              "default": "default",
+              "default": "vault",
               "title": "Workspace Id"
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/import-url": {
+      "post": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Import Url Document",
+        "operationId": "import_url_document_import_url_post",
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "vault",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/import-sitemap": {
+      "post": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Import Sitemap Document",
+        "operationId": "import_sitemap_document_import_sitemap_post",
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "vault",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/import-directory": {
+      "post": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Import Directory Document",
+        "operationId": "import_directory_document_import_directory_post",
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "vault",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/import-github": {
+      "post": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Import Github Document",
+        "operationId": "import_github_document_import_github_post",
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "vault",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/import-audio": {
+      "post": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Import Audio Document",
+        "operationId": "import_audio_document_import_audio_post",
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "vault",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_import_audio_document_import_audio_post"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -327,7 +541,7 @@
             "required": false,
             "schema": {
               "type": "string",
-              "default": "default",
+              "default": "vault",
               "title": "Workspace Id"
             }
           }
@@ -466,7 +680,7 @@
             "required": false,
             "schema": {
               "type": "string",
-              "default": "default",
+              "default": "vault",
               "title": "Workspace Id"
             }
           }
@@ -553,6 +767,26 @@
         }
       }
     },
+    "/documents/sync-workspaces": {
+      "post": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Sync Document Workspaces",
+        "description": "Manually trigger reconciliation of orphaned document-workspace links.",
+        "operationId": "sync_document_workspaces_documents_sync_workspaces_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/documents/{name}": {
       "get": {
         "tags": [
@@ -614,7 +848,7 @@
             "required": false,
             "schema": {
               "type": "string",
-              "default": "default",
+              "default": "vault",
               "title": "Workspace Id"
             }
           },
@@ -800,9 +1034,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Workspace"
-                }
+                "schema": {}
               }
             }
           },
@@ -890,9 +1122,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WorkspaceDetail"
-                }
+                "schema": {}
               }
             }
           },
@@ -1020,9 +1250,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppSettings"
-                }
+                "schema": {}
               }
             }
           },
@@ -1080,9 +1308,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppSettings"
-                }
+                "schema": {}
               }
             }
           },
@@ -1093,6 +1319,26 @@
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/settings/metadata": {
+      "get": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "Get Settings Metadata",
+        "description": "Get metadata describing setting field properties and editability.",
+        "operationId": "get_settings_metadata_settings_metadata_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
               }
             }
           }
@@ -1112,13 +1358,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/ToolDefinition"
-                  },
-                  "type": "array",
-                  "title": "Response List Tools Tools  Get"
-                }
+                "schema": {}
               }
             }
           }
@@ -1196,9 +1436,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ToolDefinition"
-                }
+                "schema": {}
               }
             }
           },
@@ -1301,7 +1539,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/AppResponse"
+                }
               }
             }
           },
@@ -1343,6 +1583,16 @@
             "schema": {
               "type": "string",
               "title": "Workspace Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limit"
             }
           }
         ],
@@ -1532,10 +1782,240 @@
           }
         }
       }
+    },
+    "/eval/datasets": {
+      "post": {
+        "tags": [
+          "Evaluation"
+        ],
+        "summary": "Create Dataset",
+        "operationId": "create_dataset_eval_datasets_post",
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "default",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Evaluation"
+        ],
+        "summary": "List Datasets",
+        "operationId": "list_datasets_eval_datasets_get",
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "default",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/eval/runs": {
+      "post": {
+        "tags": [
+          "Evaluation"
+        ],
+        "summary": "Run Evaluation",
+        "operationId": "run_evaluation_eval_runs_post",
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "default",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Evaluation"
+        ],
+        "summary": "List Runs",
+        "operationId": "list_runs_eval_runs_get",
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "default",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/eval/runs/{run_id}": {
+      "get": {
+        "tags": [
+          "Evaluation"
+        ],
+        "summary": "Get Run",
+        "operationId": "get_run_eval_runs__run_id__get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AppResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "default": true
+          },
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "default": "SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": "Operation completed successfully"
+          },
+          "data": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "title": "AppResponse"
+      },
       "AppResponse_List_Workspace__": {
         "properties": {
           "success": {
@@ -1571,152 +2051,19 @@
         "type": "object",
         "title": "AppResponse[List[Workspace]]"
       },
-      "AppSettings": {
+      "Body_import_audio_document_import_audio_post": {
         "properties": {
-          "llm_provider": {
+          "file": {
             "type": "string",
-            "enum": [
-              "openai",
-              "anthropic",
-              "ollama",
-              "vllm",
-              "llama-cpp"
-            ],
-            "title": "Llm Provider",
-            "description": "LLM Provider",
-            "default": "openai"
-          },
-          "llm_model": {
-            "type": "string",
-            "title": "Llm Model",
-            "description": "Model name",
-            "default": "gpt-4o"
-          },
-          "embedding_provider": {
-            "type": "string",
-            "enum": [
-              "openai",
-              "voyage",
-              "local",
-              "ollama",
-              "vllm",
-              "llama-cpp"
-            ],
-            "title": "Embedding Provider",
-            "description": "Embedding Provider",
-            "default": "openai"
-          },
-          "embedding_model": {
-            "type": "string",
-            "title": "Embedding Model",
-            "description": "Embedding model name",
-            "default": "text-embedding-3-small"
-          },
-          "rag_engine": {
-            "type": "string",
-            "enum": [
-              "basic",
-              "graph"
-            ],
-            "title": "Rag Engine",
-            "description": "Selected workspace engine",
-            "default": "basic"
-          },
-          "retrieval_mode": {
-            "type": "string",
-            "enum": [
-              "hybrid",
-              "vector",
-              "keyword"
-            ],
-            "title": "Retrieval Mode",
-            "description": "Search strategy",
-            "default": "hybrid"
-          },
-          "search_limit": {
-            "type": "integer",
-            "maximum": 20.0,
-            "minimum": 1.0,
-            "title": "Search Limit",
-            "description": "Top-K results",
-            "default": 5
-          },
-          "hybrid_alpha": {
-            "type": "number",
-            "maximum": 1.0,
-            "minimum": 0.0,
-            "title": "Hybrid Alpha",
-            "description": "Weight between vector and keyword",
-            "default": 0.5
-          },
-          "chunk_size": {
-            "type": "integer",
-            "maximum": 2000.0,
-            "minimum": 100.0,
-            "title": "Chunk Size",
-            "default": 800
-          },
-          "chunk_overlap": {
-            "type": "integer",
-            "maximum": 500.0,
-            "minimum": 0.0,
-            "title": "Chunk Overlap",
-            "default": 150
-          },
-          "embedding_dim": {
-            "type": "integer",
-            "title": "Embedding Dim",
-            "description": "Fixed dimension for vector consistency",
-            "default": 1536
-          },
-          "neo4j_uri": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Neo4J Uri"
-          },
-          "neo4j_user": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Neo4J User"
-          },
-          "neo4j_password": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Neo4J Password"
-          },
-          "theme": {
-            "type": "string",
-            "title": "Theme",
-            "description": "App theme",
-            "default": "dark"
-          },
-          "show_reasoning": {
-            "type": "boolean",
-            "title": "Show Reasoning",
-            "description": "Toggle reasoning steps visibility",
-            "default": true
+            "format": "binary",
+            "title": "File"
           }
         },
         "type": "object",
-        "title": "AppSettings"
+        "required": [
+          "file"
+        ],
+        "title": "Body_import_audio_document_import_audio_post"
       },
       "Body_upload_document_upload_post": {
         "properties": {
@@ -1887,15 +2234,6 @@
             ],
             "title": "Description"
           },
-          "rag_engine": {
-            "type": "string",
-            "enum": [
-              "basic",
-              "graph"
-            ],
-            "title": "Rag Engine",
-            "default": "basic"
-          },
           "embedding_provider": {
             "anyOf": [
               {
@@ -1931,6 +2269,147 @@
             ],
             "title": "Embedding Dim",
             "default": 1536
+          },
+          "rag_engine": {
+            "type": "string",
+            "enum": [
+              "basic",
+              "graph"
+            ],
+            "title": "Rag Engine",
+            "default": "basic"
+          },
+          "search_limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search Limit",
+            "default": 5
+          },
+          "recall_k": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recall K",
+            "default": 20
+          },
+          "hybrid_alpha": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hybrid Alpha",
+            "default": 0.5
+          },
+          "graph_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Graph Enabled",
+            "default": true
+          },
+          "reranker_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reranker Enabled",
+            "default": false
+          },
+          "reranker_provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reranker Provider",
+            "default": "none"
+          },
+          "rerank_top_k": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerank Top K",
+            "default": 3
+          },
+          "agentic_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agentic Enabled",
+            "default": true
+          },
+          "llm_provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm Provider",
+            "default": "openai"
+          },
+          "llm_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm Model",
+            "default": "gpt-4o"
+          },
+          "temperature": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature",
+            "default": 0.7
           },
           "chunk_size": {
             "anyOf": [
@@ -1995,75 +2474,6 @@
           "name"
         ],
         "title": "WorkspaceCreate"
-      },
-      "WorkspaceDetail": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description"
-          },
-          "stats": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/WorkspaceStats"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "threads": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "type": "array",
-            "title": "Threads",
-            "default": []
-          },
-          "documents": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "type": "array",
-            "title": "Documents",
-            "default": []
-          },
-          "settings": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Settings"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "name"
-        ],
-        "title": "WorkspaceDetail"
       },
       "WorkspaceStats": {
         "properties": {

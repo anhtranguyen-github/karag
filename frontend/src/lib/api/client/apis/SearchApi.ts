@@ -15,9 +15,12 @@
 
 import * as runtime from '../runtime';
 import type {
+  AppResponse,
   HTTPValidationError,
 } from '../models/index';
 import {
+    AppResponseFromJSON,
+    AppResponseToJSON,
     HTTPValidationErrorFromJSON,
     HTTPValidationErrorToJSON,
 } from '../models/index';
@@ -36,7 +39,7 @@ export class SearchApi extends runtime.BaseAPI {
      * Perform a unified search across all architectural entities.
      * Global Search
      */
-    async globalSearchSearchGetRaw(requestParameters: GlobalSearchSearchGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async globalSearchSearchGetRaw(requestParameters: GlobalSearchSearchGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponse>> {
         if (requestParameters['q'] == null) {
             throw new runtime.RequiredError(
                 'q',
@@ -66,18 +69,14 @@ export class SearchApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        if (this.isJsonMime(response.headers.get('content-type'))) {
-            return new runtime.JSONApiResponse<any>(response);
-        } else {
-            return new runtime.TextApiResponse(response) as any;
-        }
+        return new runtime.JSONApiResponse(response, (jsonValue) => AppResponseFromJSON(jsonValue));
     }
 
     /**
      * Perform a unified search across all architectural entities.
      * Global Search
      */
-    async globalSearchSearchGet(requestParameters: GlobalSearchSearchGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+    async globalSearchSearchGet(requestParameters: GlobalSearchSearchGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponse> {
         const response = await this.globalSearchSearchGetRaw(requestParameters, initOverrides);
         return await response.value();
     }

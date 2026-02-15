@@ -17,9 +17,7 @@ import * as runtime from '../runtime';
 import type {
   AppResponseListWorkspace,
   HTTPValidationError,
-  Workspace,
   WorkspaceCreate,
-  WorkspaceDetail,
   WorkspaceUpdate,
 } from '../models/index';
 import {
@@ -27,12 +25,8 @@ import {
     AppResponseListWorkspaceToJSON,
     HTTPValidationErrorFromJSON,
     HTTPValidationErrorToJSON,
-    WorkspaceFromJSON,
-    WorkspaceToJSON,
     WorkspaceCreateFromJSON,
     WorkspaceCreateToJSON,
-    WorkspaceDetailFromJSON,
-    WorkspaceDetailToJSON,
     WorkspaceUpdateFromJSON,
     WorkspaceUpdateToJSON,
 } from '../models/index';
@@ -206,7 +200,7 @@ export class WorkspacesApi extends runtime.BaseAPI {
     /**
      * Get Workspace Details
      */
-    async getWorkspaceDetailsWorkspacesWorkspaceIdDetailsGetRaw(requestParameters: GetWorkspaceDetailsWorkspacesWorkspaceIdDetailsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WorkspaceDetail>> {
+    async getWorkspaceDetailsWorkspacesWorkspaceIdDetailsGetRaw(requestParameters: GetWorkspaceDetailsWorkspacesWorkspaceIdDetailsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         if (requestParameters['workspaceId'] == null) {
             throw new runtime.RequiredError(
                 'workspaceId',
@@ -229,13 +223,17 @@ export class WorkspacesApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => WorkspaceDetailFromJSON(jsonValue));
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
     }
 
     /**
      * Get Workspace Details
      */
-    async getWorkspaceDetailsWorkspacesWorkspaceIdDetailsGet(requestParameters: GetWorkspaceDetailsWorkspacesWorkspaceIdDetailsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WorkspaceDetail> {
+    async getWorkspaceDetailsWorkspacesWorkspaceIdDetailsGet(requestParameters: GetWorkspaceDetailsWorkspacesWorkspaceIdDetailsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
         const response = await this.getWorkspaceDetailsWorkspacesWorkspaceIdDetailsGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -383,7 +381,7 @@ export class WorkspacesApi extends runtime.BaseAPI {
     /**
      * Update Workspace
      */
-    async updateWorkspaceWorkspacesWorkspaceIdPatchRaw(requestParameters: UpdateWorkspaceWorkspacesWorkspaceIdPatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Workspace>> {
+    async updateWorkspaceWorkspacesWorkspaceIdPatchRaw(requestParameters: UpdateWorkspaceWorkspacesWorkspaceIdPatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         if (requestParameters['workspaceId'] == null) {
             throw new runtime.RequiredError(
                 'workspaceId',
@@ -416,13 +414,17 @@ export class WorkspacesApi extends runtime.BaseAPI {
             body: WorkspaceUpdateToJSON(requestParameters['workspaceUpdate']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => WorkspaceFromJSON(jsonValue));
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
     }
 
     /**
      * Update Workspace
      */
-    async updateWorkspaceWorkspacesWorkspaceIdPatch(requestParameters: UpdateWorkspaceWorkspacesWorkspaceIdPatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Workspace> {
+    async updateWorkspaceWorkspacesWorkspaceIdPatch(requestParameters: UpdateWorkspaceWorkspacesWorkspaceIdPatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
         const response = await this.updateWorkspaceWorkspacesWorkspaceIdPatchRaw(requestParameters, initOverrides);
         return await response.value();
     }

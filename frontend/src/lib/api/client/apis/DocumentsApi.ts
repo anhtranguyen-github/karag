@@ -37,6 +37,27 @@ export interface GetDocumentDocumentsNameGetRequest {
     name: string;
 }
 
+export interface ImportAudioDocumentImportAudioPostRequest {
+    file: Blob;
+    workspaceId?: string;
+}
+
+export interface ImportDirectoryDocumentImportDirectoryPostRequest {
+    workspaceId?: string;
+}
+
+export interface ImportGithubDocumentImportGithubPostRequest {
+    workspaceId?: string;
+}
+
+export interface ImportSitemapDocumentImportSitemapPostRequest {
+    workspaceId?: string;
+}
+
+export interface ImportUrlDocumentImportUrlPostRequest {
+    workspaceId?: string;
+}
+
 export interface IndexDocumentDocumentsNameIndexPostRequest {
     name: string;
     workspaceId?: string;
@@ -197,6 +218,219 @@ export class DocumentsApi extends runtime.BaseAPI {
      */
     async getDocumentDocumentsNameGet(requestParameters: GetDocumentDocumentsNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
         const response = await this.getDocumentDocumentsNameGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Import Audio Document
+     */
+    async importAudioDocumentImportAudioPostRaw(requestParameters: ImportAudioDocumentImportAudioPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        if (requestParameters['file'] == null) {
+            throw new runtime.RequiredError(
+                'file',
+                'Required parameter "file" was null or undefined when calling importAudioDocumentImportAudioPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['workspaceId'] != null) {
+            queryParameters['workspace_id'] = requestParameters['workspaceId'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        const consumes: runtime.Consume[] = [
+            { contentType: 'multipart/form-data' },
+        ];
+        // @ts-ignore: canConsumeForm may be unused
+        const canConsumeForm = runtime.canConsumeForm(consumes);
+
+        let formParams: { append(param: string, value: any): any };
+        let useForm = false;
+        // use FormData to transmit files using content-type "multipart/form-data"
+        useForm = canConsumeForm;
+        if (useForm) {
+            formParams = new FormData();
+        } else {
+            formParams = new URLSearchParams();
+        }
+
+        if (requestParameters['file'] != null) {
+            formParams.append('file', requestParameters['file'] as any);
+        }
+
+
+        let urlPath = `/import-audio`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: formParams,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Import Audio Document
+     */
+    async importAudioDocumentImportAudioPost(requestParameters: ImportAudioDocumentImportAudioPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.importAudioDocumentImportAudioPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Import Directory Document
+     */
+    async importDirectoryDocumentImportDirectoryPostRaw(requestParameters: ImportDirectoryDocumentImportDirectoryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['workspaceId'] != null) {
+            queryParameters['workspace_id'] = requestParameters['workspaceId'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/import-directory`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Import Directory Document
+     */
+    async importDirectoryDocumentImportDirectoryPost(requestParameters: ImportDirectoryDocumentImportDirectoryPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.importDirectoryDocumentImportDirectoryPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Import Github Document
+     */
+    async importGithubDocumentImportGithubPostRaw(requestParameters: ImportGithubDocumentImportGithubPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['workspaceId'] != null) {
+            queryParameters['workspace_id'] = requestParameters['workspaceId'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/import-github`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Import Github Document
+     */
+    async importGithubDocumentImportGithubPost(requestParameters: ImportGithubDocumentImportGithubPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.importGithubDocumentImportGithubPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Import Sitemap Document
+     */
+    async importSitemapDocumentImportSitemapPostRaw(requestParameters: ImportSitemapDocumentImportSitemapPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['workspaceId'] != null) {
+            queryParameters['workspace_id'] = requestParameters['workspaceId'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/import-sitemap`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Import Sitemap Document
+     */
+    async importSitemapDocumentImportSitemapPost(requestParameters: ImportSitemapDocumentImportSitemapPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.importSitemapDocumentImportSitemapPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Import Url Document
+     */
+    async importUrlDocumentImportUrlPostRaw(requestParameters: ImportUrlDocumentImportUrlPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['workspaceId'] != null) {
+            queryParameters['workspace_id'] = requestParameters['workspaceId'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/import-url`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Import Url Document
+     */
+    async importUrlDocumentImportUrlPost(requestParameters: ImportUrlDocumentImportUrlPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.importUrlDocumentImportUrlPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -388,6 +622,41 @@ export class DocumentsApi extends runtime.BaseAPI {
      */
     async listVaultDocumentsVaultGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
         const response = await this.listVaultDocumentsVaultGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Manually trigger reconciliation of orphaned document-workspace links.
+     * Sync Document Workspaces
+     */
+    async syncDocumentWorkspacesDocumentsSyncWorkspacesPostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/documents/sync-workspaces`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Manually trigger reconciliation of orphaned document-workspace links.
+     * Sync Document Workspaces
+     */
+    async syncDocumentWorkspacesDocumentsSyncWorkspacesPost(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.syncDocumentWorkspacesDocumentsSyncWorkspacesPostRaw(initOverrides);
         return await response.value();
     }
 

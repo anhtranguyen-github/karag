@@ -15,12 +15,9 @@
 
 import * as runtime from '../runtime';
 import type {
-  AppSettings,
   HTTPValidationError,
 } from '../models/index';
 import {
-    AppSettingsFromJSON,
-    AppSettingsToJSON,
     HTTPValidationErrorFromJSON,
     HTTPValidationErrorToJSON,
 } from '../models/index';
@@ -40,10 +37,45 @@ export interface UpdateSettingsSettingsPatchRequest {
 export class SettingsApi extends runtime.BaseAPI {
 
     /**
+     * Get metadata describing setting field properties and editability.
+     * Get Settings Metadata
+     */
+    async getSettingsMetadataSettingsMetadataGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/settings/metadata`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Get metadata describing setting field properties and editability.
+     * Get Settings Metadata
+     */
+    async getSettingsMetadataSettingsMetadataGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.getSettingsMetadataSettingsMetadataGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Get settings for a specific workspace or global defaults.
      * Get Settings
      */
-    async getSettingsSettingsGetRaw(requestParameters: GetSettingsSettingsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppSettings>> {
+    async getSettingsSettingsGetRaw(requestParameters: GetSettingsSettingsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         const queryParameters: any = {};
 
         if (requestParameters['workspaceId'] != null) {
@@ -62,14 +94,18 @@ export class SettingsApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => AppSettingsFromJSON(jsonValue));
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
     }
 
     /**
      * Get settings for a specific workspace or global defaults.
      * Get Settings
      */
-    async getSettingsSettingsGet(requestParameters: GetSettingsSettingsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppSettings> {
+    async getSettingsSettingsGet(requestParameters: GetSettingsSettingsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
         const response = await this.getSettingsSettingsGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -78,7 +114,7 @@ export class SettingsApi extends runtime.BaseAPI {
      * Update settings for a specific workspace or global defaults.
      * Update Settings
      */
-    async updateSettingsSettingsPatchRaw(requestParameters: UpdateSettingsSettingsPatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppSettings>> {
+    async updateSettingsSettingsPatchRaw(requestParameters: UpdateSettingsSettingsPatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         if (requestParameters['requestBody'] == null) {
             throw new runtime.RequiredError(
                 'requestBody',
@@ -107,14 +143,18 @@ export class SettingsApi extends runtime.BaseAPI {
             body: requestParameters['requestBody'],
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => AppSettingsFromJSON(jsonValue));
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
     }
 
     /**
      * Update settings for a specific workspace or global defaults.
      * Update Settings
      */
-    async updateSettingsSettingsPatch(requestParameters: UpdateSettingsSettingsPatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppSettings> {
+    async updateSettingsSettingsPatch(requestParameters: UpdateSettingsSettingsPatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
         const response = await this.updateSettingsSettingsPatchRaw(requestParameters, initOverrides);
         return await response.value();
     }

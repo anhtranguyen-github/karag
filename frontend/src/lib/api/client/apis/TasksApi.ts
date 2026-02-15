@@ -37,6 +37,7 @@ export interface GetTaskStatusTasksTaskIdGetRequest {
 export interface ListTasksTasksGetRequest {
     type?: string;
     workspaceId?: string;
+    limit?: number;
 }
 
 export interface RetryTaskTasksTaskIdRetryPostRequest {
@@ -186,6 +187,10 @@ export class TasksApi extends runtime.BaseAPI {
 
         if (requestParameters['workspaceId'] != null) {
             queryParameters['workspace_id'] = requestParameters['workspaceId'];
+        }
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
