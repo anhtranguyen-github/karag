@@ -1,6 +1,6 @@
 from typing import List, Optional, Literal
 from fastapi import APIRouter, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from backend.app.services.workspace_service import workspace_service
 from backend.app.core.exceptions import ValidationError, NotFoundError
 from backend.app.schemas.base import AppResponse
