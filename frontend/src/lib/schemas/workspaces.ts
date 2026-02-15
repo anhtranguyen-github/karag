@@ -12,7 +12,7 @@ export const WorkspaceSchema = z.object({
     updated_at: z.string().optional(),
 });
 
-export const CreateWorkspaceSchema = z.object({
+export const BaseCreateWorkspaceSchema = z.object({
     name: z.string()
         .min(1, 'Name is required')
         .max(50, 'Name must be 50 characters or less')
@@ -50,6 +50,24 @@ export const CreateWorkspaceSchema = z.object({
     chunk_size: z.number().int().min(100).max(4000).default(800),
     chunk_overlap: z.number().int().min(0).max(1000).default(150),
 });
+
+export const CreateWorkspaceSchema = BaseCreateWorkspaceSchema
+    .superRefine((data, ctx) => {
+        if (data.reranker_enabled && data.reranker_provider === 'none') {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Reranker provider is required when reranking is enabled",
+                path: ["reranker_provider"]
+            });
+        }
+        if (data.rag_engine === 'graph' && !data.graph_enabled) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Graph Node must be enabled to use Graph RAG Engine",
+                path: ["graph_enabled"]
+            });
+        }
+    });
 
 export type Workspace = z.infer<typeof WorkspaceSchema>;
 export type CreateWorkspaceInput = z.infer<typeof CreateWorkspaceSchema>;
