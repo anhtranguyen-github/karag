@@ -26,7 +26,7 @@ async def test_create_workspace_with_rag_engine():
             "neo4j_uri": "bolt://test:7687"
         })
         assert res.status_code == 200
-        ws_id = res.json()["id"]
+        ws_id = res.json()["data"]["id"]
         
         # Verify settings
         from backend.app.core.settings_manager import settings_manager
@@ -44,7 +44,7 @@ async def test_rag_engine_immutability():
             "name": ws_name,
             "rag_engine": "basic"
         })
-        ws_id = res.json()["id"]
+        ws_id = res.json()["data"]["id"]
         
         # Try to update rag_engine to graph along with a valid name change
         update_res = await ac.patch(f"/workspaces/{ws_id}", json={
@@ -57,7 +57,7 @@ async def test_rag_engine_immutability():
         from backend.app.core.settings_manager import settings_manager
         settings = await settings_manager.get_settings(ws_id)
         assert settings.rag_engine == "basic"
-        assert update_res.json()["name"] == f"{ws_name} Updated"
+        assert update_res.json()["data"]["name"] == f"{ws_name} Updated"
 
 @pytest.mark.asyncio
 async def test_rag_service_search_branching(mocker):

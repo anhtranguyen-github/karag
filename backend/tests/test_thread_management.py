@@ -66,4 +66,4 @@ async def test_thread_api_endpoints(mocker):
         
         res = await ac.get("/chat/threads", params={"workspace_id": "default"})
         assert res.status_code == 200
-        assert len(res.json()["threads"]) >= 1
+        assert len(res.json()["data"]) >= 1
