@@ -8,8 +8,12 @@ from fastapi import UploadFile
 from backend.app.core.mongodb import mongodb_manager
 from backend.app.core.minio import minio_manager
 from backend.app.services.task_service import task_service
+from backend.app.core.exceptions import ValidationError
 from backend.app.core.error_codes import AppErrorCode
 from .base import logger, tracer
+
+MAX_FILE_SIZE = 50_000_000  # 50MB
+ALLOWED_EXTENSIONS = {'.pdf', '.txt', '.md', '.docx', '.html', '.csv', '.json'}
 
 class IngestionService:
     def _sanitize_filename(self, filename: str, max_length: int = 150) -> str:
@@ -32,8 +36,15 @@ class IngestionService:
             
 
             content = await file.read()
+            if len(content) > MAX_FILE_SIZE:
+                raise ValidationError(f"File size exceeds maximum limit of {MAX_FILE_SIZE // 1_000_000}MB")
+
             file_hash = hashlib.sha256(content).hexdigest()
             file_type = file.content_type
+            
+            ext = os.path.splitext(original_filename)[1].lower()
+            if ext not in ALLOWED_EXTENSIONS:
+                 raise ValidationError(f"File extension '{ext}' is not allowed. Allowed: {', '.join(ALLOWED_EXTENSIONS)}")
             
             existing_local_name = await db.documents.find_one({"workspace_id": workspace_id, "filename": original_filename})
             existing_vault_doc = await db.documents.find_one({"content_hash": file_hash})
@@ -164,6 +175,9 @@ class IngestionService:
             
             # Generate filename from URL for initial task creation
             parsed = urlparse(url)
+            if parsed.scheme not in ('http', 'https'):
+                raise ValidationError("Invalid URL scheme. Only HTTP and HTTPS are supported.")
+
             path = parsed.path.strip("/")
             if not path:
                 filename = parsed.netloc.replace(".", "_") + ".html"
