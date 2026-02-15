@@ -23,44 +23,51 @@ class WorkspaceDetail(Workspace):
     settings: Optional[dict] = None
 
 class WorkspaceCreate(BaseModel):
-    name: str
-    description: Optional[str] = None
+    name: str = Field(..., min_length=1, max_length=50, pattern=r'^[\w\s.-]+$')
+    description: Optional[str] = Field(None, max_length=200)
     
     # Node 1: Embedding
-    embedding_provider: Optional[str] = "openai"
-    embedding_model: Optional[str] = "text-embedding-3-small"
-    embedding_dim: Optional[int] = 1536
+    embedding_provider: str = "openai"
+    embedding_model: str = "text-embedding-3-small"
+    embedding_dim: int = 1536
     
     # Node 2: Retrieval
     rag_engine: Literal["basic", "graph"] = "basic"
-    search_limit: Optional[int] = 5
-    recall_k: Optional[int] = 20
-    hybrid_alpha: Optional[float] = 0.5
+    search_limit: int = Field(5, ge=1, le=50)
+    recall_k: int = Field(20, ge=1, le=100)
+    hybrid_alpha: float = Field(0.5, ge=0.0, le=1.0)
     
     # Node 3: Graph
-    graph_enabled: Optional[bool] = True
+    graph_enabled: bool = True
     
     # Node 4: Reranking
-    reranker_enabled: Optional[bool] = False
-    reranker_provider: Optional[str] = "none"
-    rerank_top_k: Optional[int] = 3
+    reranker_enabled: bool = False
+    reranker_provider: str = "none"
+    rerank_top_k: int = Field(3, ge=1, le=15)
     
     # Node 5: Agentic
-    agentic_enabled: Optional[bool] = True
+    agentic_enabled: bool = True
     
     # Node 6: Generation
-    llm_provider: Optional[str] = "openai"
-    llm_model: Optional[str] = "gpt-4o"
-    temperature: Optional[float] = 0.7
+    llm_provider: str = "openai"
+    llm_model: str = "gpt-4o"
+    temperature: float = Field(0.7, ge=0.0, le=2.0)
     
     # Node 7: Ingestion
-    chunk_size: Optional[int] = 800
-    chunk_overlap: Optional[int] = 150
+    chunk_size: int = Field(800, ge=100, le=4000)
+    chunk_overlap: int = Field(150, ge=0, le=1000)
     
     # Backend / System
     neo4j_uri: Optional[str] = None
     neo4j_user: Optional[str] = None
     neo4j_password: Optional[str] = None
+
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError('Name cannot be empty or whitespace only')
+        return v.strip()
 
 class WorkspaceUpdate(BaseModel):
     name: Optional[str] = None
@@ -88,8 +95,6 @@ async def update_workspace(workspace_id: str, ws: WorkspaceUpdate):
 
 @router.delete("/{workspace_id}")
 async def delete_workspace(workspace_id: str, vault_delete: bool = False):
-    if workspace_id == "default":
-        raise ValidationError("Cannot delete default workspace")
     await workspace_service.delete(workspace_id, vault_delete=vault_delete)
     return AppResponse.success_response(data={"id": workspace_id}, message=f"Workspace {workspace_id} deleted")
 
