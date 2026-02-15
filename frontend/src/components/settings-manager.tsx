@@ -8,11 +8,14 @@ import {
     ArrowRight, Check, Sliders, Server
 } from 'lucide-react';
 import { useSettings, AppSettings, useSettingsMetadata } from '@/hooks/use-settings';
+import { AppSettingsSchema } from '@/lib/schemas/settings';
 import { cn } from '@/lib/utils';
+import { useError } from '@/context/error-context';
 
 export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClose?: () => void, workspaceId?: string, workspaceName?: string }) {
     const { settings, updateSettings, isLoading: isSettingsLoading } = useSettings(workspaceId);
     const { metadata, isLoading: isMetadataLoading } = useSettingsMetadata();
+    const { showError } = useError();
 
     const [localSettings, setLocalSettings] = useState<Partial<AppSettings>>({});
     const [isSaving, setIsSaving] = useState(false);
@@ -39,6 +42,13 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
     };
 
     const handleSave = async () => {
+        const validation = AppSettingsSchema.safeParse(current);
+        if (!validation.success) {
+            const errorMsg = validation.error.errors.map(e => e.message).join("\n");
+            showError("Invalid Settings", errorMsg);
+            return;
+        }
+
         setIsSaving(true);
         try {
             await updateSettings(localSettings);

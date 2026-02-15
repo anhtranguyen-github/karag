@@ -9,6 +9,7 @@ import {
     Globe, Link2, Github, Folder, Music, Info,
     HardDrive, Calendar, Clock, ChevronRight
 } from 'lucide-react';
+import { API_BASE_URL } from '@/lib/api-config';
 import Link from 'next/link';
 import { API_ROUTES } from '@/lib/api-config';
 import { SourceViewer } from '@/components/source-viewer';
@@ -17,6 +18,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useError } from '@/context/error-context';
 import { getIllegalCharsFound } from '@/lib/constants';
 import { useTasks } from '@/context/task-context';
+
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+const ALLOWED_EXTENSIONS = ['pdf', 'txt', 'md', 'docx', 'html', 'csv', 'json'];
 
 interface Document {
     id?: string;
@@ -223,6 +227,19 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
 
         if (!file) return;
 
+        // Validation: File Size
+        if (file.size > MAX_FILE_SIZE) {
+            showError("File Too Large", `File size must be under ${MAX_FILE_SIZE / 1024 / 1024}MB.`);
+            return;
+        }
+
+        // Validation: Extension
+        const ext = file.name.split('.').pop()?.toLowerCase();
+        if (!ext || !ALLOWED_EXTENSIONS.includes(ext)) {
+            showError("Invalid File Type", `Allowed formats: ${ALLOWED_EXTENSIONS.join(', ')}`);
+            return;
+        }
+
         // Optimistic Validation
         const found = getIllegalCharsFound(file.name);
         if (found.length > 0) {
@@ -260,7 +277,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                 let message = payload.message || 'Upload failed';
 
                 if (payload.code === 'VALIDATION_ERROR') {
-                    title = "Invalid Filename";
+                    title = "Validation Error";
                 } else if (payload.code === 'CONFLICT_ERROR' || payload.code === 'DUPLICATE_DETECTED') {
                     title = "Duplicate Document";
                     if (payload.code === 'DUPLICATE_DETECTED' && payload.data) {
@@ -288,6 +305,17 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
 
     const handleImport = async (type: string) => {
         if (!importUrl && type !== 'directory') return;
+
+        // Validation: URL Format
+        if (type === 'url' || type === 'sitemap' || type === 'github') {
+            try {
+                new URL(importUrl);
+            } catch (e) {
+                showError("Invalid URL", "Please provide a valid HTTP/HTTPS URL.");
+                return;
+            }
+        }
+
         setIsUploading(true);
         try {
             let url = '';
