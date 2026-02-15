@@ -14,7 +14,7 @@ router = APIRouter(tags=["documents"])
 async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    workspace_id: str = "default",
+    workspace_id: str = "vault",
     strategy: Optional[str] = None
 ):
     result = await document_service.upload(file, workspace_id, strategy=strategy)
@@ -36,7 +36,7 @@ async def upload_document(
 async def upload_arxiv_document(
     background_tasks: BackgroundTasks,
     request: Request,
-    workspace_id: str = "default"
+    workspace_id: str = "vault"
 ):
     data = await request.json()
     arxiv_url = data.get("url")
@@ -64,7 +64,7 @@ async def upload_arxiv_document(
 async def import_url_document(
     background_tasks: BackgroundTasks,
     request: Request,
-    workspace_id: str = "default"
+    workspace_id: str = "vault"
 ):
     data = await request.json()
     url = data.get("url")
@@ -94,7 +94,7 @@ async def import_url_document(
 async def import_sitemap_document(
     background_tasks: BackgroundTasks,
     request: Request,
-    workspace_id: str = "default"
+    workspace_id: str = "vault"
 ):
     data = await request.json()
     url = data.get("url")
@@ -114,7 +114,7 @@ async def import_sitemap_document(
 async def import_directory_document(
     background_tasks: BackgroundTasks,
     request: Request,
-    workspace_id: str = "default"
+    workspace_id: str = "vault"
 ):
     data = await request.json()
     path = data.get("path")
@@ -134,7 +134,7 @@ async def import_directory_document(
 async def import_github_document(
     background_tasks: BackgroundTasks,
     request: Request,
-    workspace_id: str = "default"
+    workspace_id: str = "vault"
 ):
     data = await request.json()
     url = data.get("url")
@@ -155,7 +155,7 @@ async def import_github_document(
 async def import_audio_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    workspace_id: str = "default"
+    workspace_id: str = "vault"
 ):
     result = await document_service.import_audio(file, workspace_id)
     if result["status"] == "success":
@@ -171,7 +171,7 @@ async def import_audio_document(
 
 
 @router.get("/documents")
-async def list_documents(workspace_id: str = "default"):
+async def list_documents(workspace_id: str = "vault"):
     docs = await document_service.list_by_workspace(workspace_id)
     return AppResponse.success_response(data=docs)
 
@@ -198,7 +198,7 @@ async def get_document_chunks(name: str, limit: int = 100):
 async def index_document(
     background_tasks: BackgroundTasks,
     name: str,
-    workspace_id: str = "default"
+    workspace_id: str = "vault"
 ):
     """Non-blocking indexing: returns a task_id immediately.
 
@@ -265,6 +265,16 @@ async def update_document_workspaces(
         message=f"Document {action} operation started in background."
     )
 
+
+@router.post("/documents/sync-workspaces")
+async def sync_document_workspaces():
+    """Manually trigger reconciliation of orphaned document-workspace links."""
+    result = await document_service.sync_workspaces()
+    return AppResponse.success_response(
+        data=result,
+        message=f"Reconciliation complete. Fixed {result['repaired_direct']} direct orphans."
+    )
+
 # --- Generic Document Operations ---
 
 @router.get("/documents/{name:path}")
@@ -308,7 +318,7 @@ async def get_document(name: str):
 
 
 @router.delete("/documents/{name:path}")
-async def delete_document(name: str, workspace_id: str = "default", vault_delete: bool = False):
+async def delete_document(name: str, workspace_id: str = "vault", vault_delete: bool = False):
     await document_service.delete(name, workspace_id, vault_delete=vault_delete)
     return AppResponse.success_response(
         data={"name": name},

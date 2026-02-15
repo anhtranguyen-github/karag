@@ -75,15 +75,11 @@ export function useWorkspaces() {
             const found = payload.data.find(ws => ws.id === savedWsId);
             if (found) {
                 setCurrentWorkspace(found);
+            } else if (payload.data.length > 0) {
+                setCurrentWorkspace(payload.data[0]);
+                localStorage.setItem('currentWorkspaceId', payload.data[0].id);
             } else {
-                const defaultWs = payload.data.find(ws => ws.id === 'default');
-                if (defaultWs) {
-                    setCurrentWorkspace(defaultWs);
-                    localStorage.setItem('currentWorkspaceId', defaultWs.id);
-                } else if (payload.data.length > 0) {
-                    setCurrentWorkspace(payload.data[0]);
-                    localStorage.setItem('currentWorkspaceId', payload.data[0].id);
-                }
+                setCurrentWorkspace(null);
             }
         } catch (err) {
             console.error('Failed to fetch workspaces:', err);

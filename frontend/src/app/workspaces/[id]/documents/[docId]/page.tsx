@@ -21,8 +21,9 @@ interface DocumentDetail {
     current_version: number;
     content_hash: string;
     rag_config_hash: string;
-    size_bytes: number;
-    chunks: number;
+    size_bytes?: number;
+    size?: number; // Backend compatibility
+    chunks?: number;
     created_at: string;
     updated_at: string;
     shared_with: string[];
@@ -202,8 +203,8 @@ export default function DocumentDetailPage() {
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <InfoCard label="Filename" value={document.filename} />
                                 <InfoCard label="Extension" value={document.extension?.toUpperCase() || 'N/A'} />
-                                <InfoCard label="Size" value={formatBytes(document.size_bytes)} />
-                                <InfoCard label="Version" value={`v${document.current_version}`} />
+                                <InfoCard label="Size" value={formatBytes(document.size_bytes || document.size || 0)} />
+                                <InfoCard label="Version" value={`v${document.current_version || 1}`} />
                             </div>
                         </Section>
 
@@ -222,7 +223,7 @@ export default function DocumentDetailPage() {
                         {/* Embedding Info - CRITICAL */}
                         <Section title="Embedding & RAG Configuration" icon={Layers}>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <InfoCard label="Total Chunks" value={document.chunks.toString()} />
+                                <InfoCard label="Total Chunks" value={document.chunks?.toString() || '0'} />
                                 <InfoCard
                                     label="Chunk Size"
                                     value={document.chunk_size ? `${document.chunk_size} chars` : 'Default'}
@@ -260,7 +261,7 @@ export default function DocumentDetailPage() {
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-h3 font-semibold text-white flex items-center gap-2">
                                 <Layers size={18} className="text-blue-500" />
-                                Index Chunks ({document.chunks})
+                                Index Chunks ({document.chunks || 0})
                             </h2>
                             <div className="text-tiny text-gray-500 bg-white/5 px-2 py-1 rounded border border-white/5">
                                 Showing first {chunks.length} chunks

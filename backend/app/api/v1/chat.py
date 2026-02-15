@@ -15,7 +15,7 @@ async def get_chat_history(thread_id: str):
     return AppResponse.success_response(data=history)
 
 @router.get("/threads")
-async def list_chat_threads(workspace_id: str = "default"):
+async def list_chat_threads(workspace_id: str):
     threads = await chat_service.list_threads(workspace_id)
     return AppResponse.success_response(data=threads)
 
@@ -37,8 +37,8 @@ async def delete_thread(thread_id: str):
 async def chat_stream(request: Request):
     data = await request.json()
     message = data.get("message")
-    thread_id = data.get("thread_id", "default")
-    workspace_id = data.get("workspace_id", "default")
+    thread_id = data.get("thread_id")
+    workspace_id = data.get("workspace_id")
     
     # Spawn title generation in background
     asyncio.create_task(chat_service.generate_title(message, thread_id, workspace_id))

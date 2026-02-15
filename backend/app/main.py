@@ -38,10 +38,6 @@ async def lifespan(app: FastAPI):
     logger.info("vector_init", msg=f"Ensuring active collection: {coll_name} (Dim: {target_dim})")
     await qdrant.create_collection(coll_name, target_dim)
 
-    # Ensure default workspace exists
-    logger.info("workspace_init", msg="Ensuring default workspace...")
-    await workspace_service.ensure_default_workspace()
-
     # Cleanup old completed/failed tasks
     from backend.app.services.task_service import task_service
     await task_service.reset_running_tasks_on_startup()

@@ -300,6 +300,7 @@ class IngestionService:
                 "filename": safe_filename,
                 "extension": extension,
                 "content_type": content_type,
+                "size": len(content),
                 "minio_path": minio_path,
                 "content_hash": file_hash,
                 "status": "uploaded",
@@ -315,11 +316,24 @@ class IngestionService:
                 minio_manager.delete_file(minio_path)
                 return
 
-            await task_service.update_task(
-                task_id, status="completed", progress=100,
-                message=f"Document '{safe_filename}' saved to vault.",
-                result={"doc_id": doc_id, "filename": safe_filename}
-            )
+            # AUTO-INDEX: If workspace is not vault, proceed to Phase 2 immediately
+            if workspace_id != "vault":
+                await task_service.update_task(task_id, progress=60, message="Neural infrastructure: Indexing...")
+                from .indexing_service import indexing_service
+                num_chunks = await indexing_service.index_document(doc_id, workspace_id, task_id=task_id)
+                
+                await task_service.update_task(
+                    task_id, status="completed", progress=100,
+                    message=f"Ingestion complete: '{safe_filename}' indexed ({num_chunks} fragments).",
+                    result={"doc_id": doc_id, "filename": safe_filename, "chunks": num_chunks}
+                )
+            else:
+                await task_service.update_task(
+                    task_id, status="completed", progress=100,
+                    message=f"Document '{safe_filename}' saved to vault.",
+                    result={"doc_id": doc_id, "filename": safe_filename}
+                )
+
             from backend.app.core.telemetry import DOCUMENT_INGESTION_COUNT
             DOCUMENT_INGESTION_COUNT.labels(extension=extension, status="success").inc()
             

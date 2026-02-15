@@ -1,11 +1,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { X, FileText } from 'lucide-react';
+import { X, FileText, AlertTriangle } from 'lucide-react';
 
 interface Source {
     id: number;
     name: string;
-    content: string;
+    content: string | null;
+    download_url?: string;
 }
 
 export function SourceViewer({ source, onClose }: { source: Source, onClose: () => void }) {
@@ -39,22 +40,47 @@ export function SourceViewer({ source, onClose }: { source: Source, onClose: () 
 
                 {/* Content */}
                 <div className="p-8 overflow-y-auto flex-1 custom-scrollbar">
-                    <div className="prose prose-invert max-w-none">
-                        <div
-                            data-testid="source-content"
-                            className="text-gray-300 leading-relaxed whitespace-pre-wrap text-caption md:text-body"
-                        >
-                            {source.content}
+                    {source.content ? (
+                        <div className="prose prose-invert max-w-none">
+                            <div
+                                data-testid="source-content"
+                                className="text-gray-300 leading-relaxed whitespace-pre-wrap text-caption md:text-body"
+                            >
+                                {source.content}
+                            </div>
                         </div>
-                    </div>
+                    ) : source.download_url ? (
+                        <div className="flex flex-col items-center justify-center h-full gap-6 py-12">
+                            <div className="w-20 h-20 rounded-[2.5rem] bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+                                <FileText size={40} />
+                            </div>
+                            <div className="text-center space-y-2">
+                                <h4 className="text-caption font-black text-white">Full Document Access</h4>
+                                <p className="text-tiny text-gray-500 font-bold max-w-xs">This document type requires external viewing or direct access via signed URL.</p>
+                            </div>
+                            <a
+                                href={source.download_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="h-12 px-8 flex items-center gap-3 rounded-2xl bg-white text-black hover:bg-gray-200 transition-all font-black text-tiny tracking-widest active:scale-95 shadow-xl shadow-white/5"
+                            >
+                                OPEN DOCUMENT
+                            </a>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center h-full gap-4 opacity-40">
+                            <AlertTriangle size={48} className="text-gray-600" />
+                            <span className="text-tiny font-black text-gray-600">Content Unavailable</span>
+                        </div>
+                    )}
                 </div>
 
                 {/* Footer */}
                 <div className="p-4 px-8 border-t border-white/5 bg-white/2 flex justify-between items-center">
-                    <span className="text-tiny text-gray-500  ">Reference Segment</span>
+                    <span className="text-tiny text-gray-500  ">Vault Document Reference</span>
                     <button
                         onClick={onClose}
-                        className="text-tiny font-semibold text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1"
+                        className="text-tiny font-semibold text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1"
                     >
                         Close Preview
                     </button>

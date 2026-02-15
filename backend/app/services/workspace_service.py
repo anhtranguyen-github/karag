@@ -118,29 +118,7 @@ class WorkspaceService:
         }
 
     @staticmethod
-    async def ensure_default_workspace():
-        """Ensure the 'default' workspace exists in MongoDB."""
-        db = mongodb_manager.get_async_database()
-        existing = await db.workspaces.find_one({"id": "default"})
-        if not existing:
-            new_ws = {
-                "id": "default", 
-                "name": "Default Workspace", 
-                "description": "The system fallback workspace. Cannot be deleted or edited."
-            }
-            await db.workspaces.insert_one(new_ws)
-            
-            # Initialize default settings if missing
-            from backend.app.core.settings_manager import settings_manager
-            await settings_manager.get_settings("default")
-            
-        return existing or new_ws
-
-    @staticmethod
     async def update(workspace_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        if workspace_id == "default":
-            raise ValidationError("The 'default' workspace is a system fallback and cannot be edited.")
-            
         db = mongodb_manager.get_async_database()
 
         # Enforce Immutability of RAG Engine
@@ -182,9 +160,6 @@ class WorkspaceService:
 
     @staticmethod
     async def delete(workspace_id: str, vault_delete: bool = False):
-        if workspace_id == "default":
-            raise ValueError("The 'default' workspace is a system fallback and cannot be deleted.")
-            
         db = mongodb_manager.get_async_database()
         
         # 1. Handle associated documents

@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CreateWorkspaceInput } from '@/lib/schemas/workspaces';
-import { WorkspaceWizard } from '@/components/workspace-wizard';
+import { CreateWorkspaceModal } from '@/components/create-workspace-modal';
 
 export default function HomePage() {
   const router = useRouter();
@@ -41,7 +41,6 @@ export default function HomePage() {
 
 
   const handleDelete = async (id: string) => {
-    if (id === 'default') return;
     setDeletingId(id);
     await deleteWorkspace(id);
     setDeletingId(null);
@@ -139,45 +138,39 @@ export default function HomePage() {
                 <div className="p-4 border-b border-white/5">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "w-10 h-10 rounded-lg flex items-center justify-center text-caption font-bold",
-                        ws.id === 'default' ? "bg-gray-600" : "bg-blue-600"
-                      )}>
+                      <div className="w-10 h-10 rounded-lg flex items-center justify-center text-caption font-bold bg-blue-600">
                         {ws.name[0].toUpperCase()}
                       </div>
                       <div>
                         <h3 className="font-medium text-white">{ws.name}</h3>
-                        <p className="text-tiny text-gray-500">
-                          {ws.id === 'default' ? 'System Default' : `ID: ${ws.id}`}
-                        </p>
+                        <p className="text-tiny text-gray-500">ID: {ws.id}</p>
                       </div>
                     </div>
-
-                    {/* Actions - only show for non-default */}
-                    {ws.id !== 'default' && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleDelete(ws.id); }}
-                        disabled={deletingId === ws.id}
-                        className="p-2 rounded-lg opacity-0 group-hover:opacity-100 bg-white/5 hover:bg-red-500/20 text-gray-500 hover:text-red-400 transition-all"
-                        title="Delete workspace"
-                      >
-                        {deletingId === ws.id ? (
-                          <Loader2 size={14} className="animate-spin" />
-                        ) : (
-                          <Trash2 size={14} />
-                        )}
-                      </button>
-                    )}
+                    {/* Actions */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDelete(ws.id); }}
+                      disabled={deletingId === ws.id}
+                      className="p-2 rounded-lg opacity-0 group-hover:opacity-100 bg-white/5 hover:bg-red-500/20 text-gray-500 hover:text-red-400 transition-all"
+                      title="Delete workspace"
+                    >
+                      {deletingId === ws.id ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={14} />
+                      )}
+                    </button>
                   </div>
                 </div>
 
                 {/* Card Body */}
-                <div className="p-4">
-                  {ws.description && (
-                    <p className="text-caption text-gray-400 mb-3 line-clamp-2">{ws.description}</p>
-                  )}
+                < div className="p-4" >
+                  {
+                    ws.description && (
+                      <p className="text-caption text-gray-400 mb-3 line-clamp-2">{ws.description}</p>
+                    )
+                  }
 
-                  <div className="flex items-center gap-4 text-tiny text-gray-500">
+                  < div className="flex items-center gap-4 text-tiny text-gray-500" >
                     <span className="flex items-center gap-1">
                       <FileText size={12} />
                       {ws.stats?.doc_count || 0} docs
@@ -188,19 +181,20 @@ export default function HomePage() {
                     </span>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              </div >
+            ))
+            }
+          </div >
         )}
-      </main>
+      </main >
 
-      {/* Create Wizard */}
-      <WorkspaceWizard
+      {/* Create Modal */}
+      < CreateWorkspaceModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onSubmit={onSubmit}
         isCreating={isCreating}
       />
-    </div>
+    </div >
   );
 }
