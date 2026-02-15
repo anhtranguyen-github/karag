@@ -62,7 +62,7 @@ describe('WorkspaceHeader', () => {
     it('has exit workspace link', () => {
         renderWithProvider(<WorkspaceHeader />);
 
-        expect(screen.getByText('Exit Workspace')).toBeInTheDocument();
+        expect(screen.getByText('Exit')).toBeInTheDocument();
     });
 
     it('calls onWorkspaceClick when switcher button clicked', async () => {

@@ -21,6 +21,11 @@ vi.mock('@/hooks/use-settings', () => ({
     }),
 }));
 
+vi.mock('next/navigation', () => ({
+    useParams: () => ({ id: 'test-workspace' }),
+    usePathname: () => '/workspaces/test-workspace/chat',
+}));
+
 // Import after mocks
 import ChatPage from '@/app/workspaces/[id]/chat/page';
 
