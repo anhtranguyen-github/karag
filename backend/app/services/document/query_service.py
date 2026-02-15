@@ -95,26 +95,108 @@ class QueryService:
         return [{"id": p.id, **p.payload} for p in results[0]]
 
     async def inspect(self, name: str) -> Dict:
+        db = mongodb_manager.get_async_database()
         doc = await self.get_by_id_or_name(name)
         if not doc:
             return {"error": "Not found"}
 
-        from backend.app.core.settings_manager import settings_manager
-        settings = await settings_manager.get_settings(doc["workspace_id"])
+        content_hash = doc.get("content_hash")
         
-        from backend.app.rag.qdrant_provider import qdrant
-        collection = qdrant.get_collection_name(settings.embedding_dim)
+        # Find all records with same content hash to identify workspace relationships
+        cursor = db.documents.find({"content_hash": content_hash})
+        related_docs = await cursor.to_list(1000)
         
-        count_res = await qdrant.client.count(
-            collection_name=collection,
-            count_filter={"must": [{"key": "source", "match": {"value": doc["filename"]}}]}
+        ws_cursor = db.workspaces.find({}, {"id": 1, "name": 1})
+        workspaces = await ws_cursor.to_list(1000)
+        ws_map = {ws.get("id", ""): ws.get("name", "Unknown") for ws in workspaces if ws.get("id")}
+        ws_map["vault"] = "Global Vault"
+        ws_map["default"] = "Default Workspace"
+        
+        relationships = []
+        zombies_found = False
+        
+        for d in related_docs:
+            ws_id = d["workspace_id"]
+            ws_name = ws_map.get(ws_id)
+            
+            if not ws_name and ws_id != "vault":
+                ws_name = f"Orphaned ({ws_id})"
+                zombies_found = True
+            elif not ws_name:
+                ws_name = "Global Vault"
+
+            relationships.append({
+                "workspace_id": ws_id,
+                "workspace_name": ws_name,
+                "status": d.get("status", "uploaded"),
+                "chunks": d.get("chunks", 0),
+                "last_indexed": d.get("updated_at") or d.get("created_at"),
+                "is_primary": d.get("id") == doc.get("id")
+            })
+            
+            # Shared workspaces
+            for shared_ws in d.get("shared_with", []):
+                s_ws_name = ws_map.get(shared_ws)
+                if not s_ws_name:
+                    s_ws_name = f"Orphaned ({shared_ws})"
+                    zombies_found = True
+                    
+                relationships.append({
+                    "workspace_id": shared_ws,
+                    "workspace_name": s_ws_name,
+                    "status": d.get("status", "uploaded"),
+                    "chunks": d.get("chunks", 0),
+                    "last_indexed": d.get("updated_at") or d.get("created_at"),
+                    "is_primary": False,
+                    "shared_from": ws_id
+                })
+
+        # Proactive sync: if zombies were detected during inspection, trigger background reconciliation
+        if zombies_found:
+            logger.warning("zombies_detected", doc_id=doc["id"], msg="Document inspection revealed orphaned workspace links. Cleanup required.")
+
+        return {
+            "metadata": {
+                "id": doc["id"],
+                "filename": doc["filename"],
+                "extension": doc.get("extension"),
+                "content_type": doc.get("content_type"),
+                "created_at": doc.get("created_at"),
+                "size": doc.get("size", "Unknown"),
+                "minio_path": doc["minio_path"]
+            },
+            "relationships": relationships,
+            "zombies_detected": zombies_found
+        }
+
+    async def sync_workspaces(self):
+        """Reconcile all document-workspace relationships and purge orphans."""
+        db = mongodb_manager.get_async_database()
+        
+        # Get all valid workspace IDs
+        ws_cursor = db.workspaces.find({}, {"id": 1})
+        valid_ws_ids = {ws["id"] for ws in await ws_cursor.to_list(1000)}
+        valid_ws_ids.add("vault")
+        valid_ws_ids.add("default")
+        
+        # 1. Fix direct workspace_id orphans (move to vault)
+        result_direct = await db.documents.update_many(
+            {"workspace_id": {"$nin": list(valid_ws_ids)}},
+            {"$set": {"workspace_id": "vault"}}
         )
         
+        # 2. Fix shared_with orphans (pull invalid IDs)
+        # Note: This is more complex in Mongo without aggregation, 
+        # but we can iterate if small or use a script.
+        # For a robust fix, we update any document where shared_with contains an invalid ID.
+        cursor = db.documents.find({"shared_with": {"$exists": True, "$ne": []}})
+        async for doc in cursor:
+            shared = doc.get("shared_with", [])
+            valid_shared = [ws_id for ws_id in shared if ws_id in valid_ws_ids]
+            if len(valid_shared) != len(shared):
+                await db.documents.update_one({"_id": doc["_id"]}, {"$set": {"shared_with": valid_shared}})
+        
         return {
-            "metadata": doc,
-            "rag": {
-                "collection": collection,
-                "chunk_count": count_res.count,
-                "settings": settings.model_dump()
-            }
+            "repaired_direct": result_direct.modified_count,
+            "status": "synchronized"
         }

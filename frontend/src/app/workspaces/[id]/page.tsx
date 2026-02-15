@@ -118,11 +118,6 @@ export default function WorkspaceOverviewPage() {
                             {workspace.description || `Workspace ID: ${workspace.id}`}
                         </p>
                     </div>
-                    {workspace.id === 'default' && (
-                        <span className="px-3 py-1 rounded-full bg-gray-500/20 text-gray-400 text-tiny font-medium">
-                            System Default
-                        </span>
-                    )}
                 </div>
 
                 {/* Stats Grid */}

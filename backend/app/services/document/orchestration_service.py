@@ -6,6 +6,7 @@ from backend.app.core.exceptions import NotFoundError, ConflictError, Validation
 from backend.app.services.task_service import task_service
 from backend.app.rag.qdrant_provider import qdrant
 from qdrant_client.http import models as qmodels
+from .indexing_service import indexing_service
 from .base import logger
 
 class OrchestrationService:
@@ -69,7 +70,7 @@ class OrchestrationService:
             new_doc["updated_at"] = new_doc["created_at"]
             
             await db.documents.insert_one(new_doc)
-            await self.index_document(new_id, target_workspace_id, task_id=task_id)
+            await indexing_service.index_document(new_id, target_workspace_id, task_id=task_id)
             return
 
         is_config_compatible = res.get("rag_config_hash") == target_rag_hash
@@ -95,7 +96,7 @@ class OrchestrationService:
             )
 
         if force_reindex or (not is_config_compatible) or res["status"] != "indexed":
-            await self.index_document(res["id"], target_workspace_id, force=(force_reindex or not is_config_compatible), task_id=task_id)
+            await indexing_service.index_document(res["id"], target_workspace_id, force=(force_reindex or not is_config_compatible), task_id=task_id)
             res = await db.documents.find_one({"id": res["id"]})
 
         if action == "move":

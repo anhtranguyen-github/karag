@@ -118,3 +118,5 @@ class IndexingService:
             await task_service.fail_with_retry(
                 task_id, error_message=str(e), error_code="INDEXING_FAILED"
             )
+
+indexing_service = IndexingService()
