@@ -47,10 +47,10 @@ describe('Workspace Navigation Integration', () => {
         vi.clearAllMocks();
     });
 
-    it('navigates to workspace when card clicked', () => {
+    it('navigates to workspace when card clicked', async () => {
         render(<HomePage />);
 
-        const defaultWorkspaceCard = screen.getByText('Default Workspace').closest('div')?.parentElement;
+        const defaultWorkspaceCard = (await screen.findByText('Default Workspace')).closest('div')?.parentElement;
         if (defaultWorkspaceCard) {
             fireEvent.click(defaultWorkspaceCard);
         }
@@ -64,24 +64,32 @@ describe('Workspace Navigation Integration', () => {
         render(<HomePage />);
 
         // Open modal
-        const createButton = screen.getByRole('button', { name: /New Workspace/i });
+        const createButton = screen.getByRole('button', { name: /New/i });
         fireEvent.click(createButton);
 
         // Fill form
-        const nameInput = screen.getByPlaceholderText('e.g., Project Research');
+        const nameInput = screen.getByLabelText(/Workspace Name/i);
         fireEvent.change(nameInput, { target: { value: 'New Workspace' } });
+        fireEvent.blur(nameInput);
 
 
         // Submit
-        const submitButton = screen.getByRole('button', { name: /Create$/i });
-        fireEvent.click(submitButton);
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /PROCEED TO CONFIRMATION/i })).not.toBeDisabled();
+        }, { timeout: 3000 });
+        fireEvent.click(screen.getByRole('button', { name: /PROCEED TO CONFIRMATION/i }));
 
         await waitFor(() => {
-            expect(mockCreateWorkspace).toHaveBeenCalledWith({
+            expect(screen.getByRole('button', { name: /DEPLOY WORKSPACE/i })).toBeInTheDocument();
+        });
+        fireEvent.click(screen.getByRole('button', { name: /DEPLOY WORKSPACE/i }));
+
+        await waitFor(() => {
+            expect(mockCreateWorkspace).toHaveBeenCalledWith(expect.objectContaining({
                 name: 'New Workspace',
                 description: '',
                 rag_engine: 'basic'
-            });
+            }));
         });
     });
 
@@ -91,9 +99,18 @@ describe('Workspace Navigation Integration', () => {
         render(<HomePage />);
 
         // Open modal and create
-        fireEvent.click(screen.getByRole('button', { name: /New Workspace/i }));
-        fireEvent.change(screen.getByPlaceholderText('e.g., Project Research'), { target: { value: 'Quick Test' } });
-        fireEvent.click(screen.getByRole('button', { name: /Create$/i }));
+        fireEvent.click(screen.getByRole('button', { name: /New/i }));
+        fireEvent.change(await screen.findByLabelText(/Workspace Name/i), { target: { value: 'Quick Test' } });
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /PROCEED TO CONFIRMATION/i })).not.toBeDisabled();
+        });
+        fireEvent.click(screen.getByRole('button', { name: /PROCEED TO CONFIRMATION/i }));
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /DEPLOY WORKSPACE/i })).toBeInTheDocument();
+        });
+        fireEvent.click(screen.getByRole('button', { name: /DEPLOY WORKSPACE/i }));
 
         await waitFor(() => {
             expect(mockRouterPush).toHaveBeenCalledWith('/workspaces/new-ws-123');
@@ -105,22 +122,30 @@ describe('Workspace Navigation Integration', () => {
 
         render(<HomePage />);
 
-        fireEvent.click(screen.getByRole('button', { name: /New Workspace/i }));
-        fireEvent.change(screen.getByPlaceholderText('e.g., Project Research'), { target: { value: 'Graph WS' } });
+        fireEvent.click(screen.getByRole('button', { name: /New/i }));
+        fireEvent.change(await screen.findByLabelText(/Workspace Name/i), { target: { value: 'Graph WS' } });
 
 
         // Select Graph engine
-        const graphButton = screen.getByRole('button', { name: /Graph/i });
-        fireEvent.click(graphButton);
-
-        fireEvent.click(screen.getByRole('button', { name: /Create$/i }));
+        const ragSelect = await screen.findByLabelText(/Search Mode/i);
+        fireEvent.change(ragSelect, { target: { value: 'graph' } });
 
         await waitFor(() => {
-            expect(mockCreateWorkspace).toHaveBeenCalledWith({
+            expect(screen.getByRole('button', { name: /PROCEED TO CONFIRMATION/i })).not.toBeDisabled();
+        });
+        fireEvent.click(screen.getByRole('button', { name: /PROCEED TO CONFIRMATION/i }));
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /DEPLOY WORKSPACE/i })).toBeInTheDocument();
+        });
+        fireEvent.click(screen.getByRole('button', { name: /DEPLOY WORKSPACE/i }));
+
+        await waitFor(() => {
+            expect(mockCreateWorkspace).toHaveBeenCalledWith(expect.objectContaining({
                 name: 'Graph WS',
                 description: '',
                 rag_engine: 'graph'
-            });
+            }));
         });
     });
 });
@@ -150,7 +175,7 @@ describe('Workspace Header Navigation Integration', () => {
             </WorkspaceProvider>
         );
 
-        const exitLink = screen.getByText('Exit Workspace');
+        const exitLink = screen.getByText('Exit');
         expect(exitLink).toBeInTheDocument();
         expect(exitLink.closest('a')).toHaveAttribute('href', '/');
     });

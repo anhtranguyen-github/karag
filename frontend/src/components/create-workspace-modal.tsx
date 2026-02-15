@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    X, Zap, Database, Search, Share2, Cpu, 
+    X, Zap, Database, Search, Share2, Cpu,
     CheckCircle2, Info, AlertTriangle, ChevronRight,
     Layers, BarChart3, Settings2
 } from 'lucide-react';
@@ -47,6 +47,7 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSubmit, isCreating }: 
     const [isConfirmed, setIsConfirmed] = useState(false);
 
     const form = useForm<CreateWorkspaceInput>({
+        mode: 'all',
         resolver: zodResolver(CreateWorkspaceSchema) as any,
         defaultValues: {
             name: '',
@@ -62,8 +63,9 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSubmit, isCreating }: 
             chunk_overlap: 150,
             rag_engine: 'basic',
             search_limit: 5,
+            recall_k: 20,
             hybrid_alpha: 0.5,
-            graph_enabled: false,
+            graph_enabled: true,
             reranker_enabled: false,
             reranker_provider: 'none',
             rerank_top_k: 3
@@ -77,29 +79,38 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSubmit, isCreating }: 
     const selectedRerankProvider = watch('reranker_provider');
 
     // Sync models when provider changes
+    // Sync models when provider changes
     useEffect(() => {
         const prov = LLM_PROVIDERS.find(p => p.id === selectedLLMProvider);
         if (prov && prov.models.length > 0) {
-            setValue('llm_model', prov.models[0]);
+            setValue('llm_model', prov.models[0], { shouldValidate: true });
         }
     }, [selectedLLMProvider, setValue]);
 
     useEffect(() => {
         const prov = EMBEDDING_PROVIDERS.find(p => p.id === selectedEMBProvider);
         if (prov && prov.models.length > 0) {
-            setValue('embedding_model', prov.models[0].name);
-            setValue('embedding_dim', prov.models[0].dim);
+            setValue('embedding_model', prov.models[0].name, { shouldValidate: true });
+            setValue('embedding_dim', prov.models[0].dim, { shouldValidate: true });
         }
     }, [selectedEMBProvider, setValue]);
 
     // Handle re-ranker toggle sync
     useEffect(() => {
         if (selectedRerankProvider === 'none') {
-            setValue('reranker_enabled', false);
+            setValue('reranker_enabled', false, { shouldValidate: true });
         } else {
-            setValue('reranker_enabled', true);
+            setValue('reranker_enabled', true, { shouldValidate: true });
         }
     }, [selectedRerankProvider, setValue]);
+
+    // Handle graph engine sync
+    const selectedRagEngine = watch('rag_engine');
+    useEffect(() => {
+        if (selectedRagEngine === 'graph') {
+            setValue('graph_enabled', true, { shouldValidate: true });
+        }
+    }, [selectedRagEngine, setValue]);
 
     if (!isOpen) return null;
 
@@ -144,34 +155,34 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSubmit, isCreating }: 
 
                         <div className="space-y-6">
                             <h4 className="text-tiny font-black text-gray-400 uppercase tracking-widest border-b border-white/5 pb-2">Active Pipeline</h4>
-                            
-                            <WorkflowStep 
-                                icon={Database} 
-                                label="Source Ingestion" 
+
+                            <WorkflowStep
+                                icon={Database}
+                                label="Source Ingestion"
                                 value={`${currentValues.chunk_size} chars / ${currentValues.chunk_overlap} overlap`}
                                 status="immutable"
                             />
-                            <WorkflowStep 
-                                icon={Layers} 
-                                label="Embedding" 
+                            <WorkflowStep
+                                icon={Layers}
+                                label="Embedding"
                                 value={`${currentValues.embedding_provider} / ${currentValues.embedding_model}`}
                                 status="immutable"
                             />
-                            <WorkflowStep 
-                                icon={Search} 
-                                label="Retrieval" 
+                            <WorkflowStep
+                                icon={Search}
+                                label="Retrieval"
                                 value={currentValues.rag_engine === 'graph' ? 'Hybrid + Knowledge Graph' : 'Hybrid Vector/Keyword'}
                             />
                             {currentValues.reranker_enabled && (
-                                <WorkflowStep 
-                                    icon={BarChart3} 
-                                    label="Re-ranking" 
+                                <WorkflowStep
+                                    icon={BarChart3}
+                                    label="Re-ranking"
                                     value={`${currentValues.reranker_provider} (top ${currentValues.rerank_top_k})`}
                                 />
                             )}
-                            <WorkflowStep 
-                                icon={Zap} 
-                                label="Synthesis" 
+                            <WorkflowStep
+                                icon={Zap}
+                                label="Synthesis"
                                 value={`${currentValues.llm_provider} / ${currentValues.llm_model}`}
                             />
                         </div>
@@ -196,7 +207,7 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSubmit, isCreating }: 
                             <h2 className="text-h3 font-black text-white tracking-tight">Design New Workspace</h2>
                             <p className="text-caption text-gray-500 font-bold">Configure your neural infrastructure</p>
                         </div>
-                        <button 
+                        <button
                             onClick={onClose}
                             className="w-10 h-10 rounded-2xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all text-gray-400 hover:text-white"
                         >
@@ -208,7 +219,7 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSubmit, isCreating }: 
                     <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
                         <AnimatePresence mode="wait">
                             {!isConfirmed ? (
-                                <motion.form 
+                                <motion.form
                                     key="form"
                                     initial={{ opacity: 0, x: -20 }}
                                     animate={{ opacity: 1, x: 0 }}
@@ -219,9 +230,10 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSubmit, isCreating }: 
                                     <FormSection title="1. Identity & Scope" icon={Settings2}>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                             <div className="space-y-2">
-                                                <label className="text-tiny font-black text-gray-400 uppercase tracking-widest ml-1">Workspace Name</label>
+                                                <label htmlFor="ws-name" className="text-tiny font-black text-gray-400 uppercase tracking-widest ml-1">Workspace Name</label>
                                                 <input
                                                     {...register('name')}
+                                                    id="ws-name"
                                                     placeholder="e.g., Enterprise Brain"
                                                     className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-caption focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder:text-gray-700 font-bold"
                                                 />
@@ -296,8 +308,10 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSubmit, isCreating }: 
                                                                 const prov = EMBEDDING_PROVIDERS.find(p => p.id === selectedEMBProvider);
                                                                 const model = prov?.models.find(m => m.name === modelName);
                                                                 if (model) {
-                                                                    setValue('embedding_model', model.name);
-                                                                    setValue('embedding_dim', model.dim);
+                                                                    if (model) {
+                                                                        setValue('embedding_model', model.name, { shouldValidate: true });
+                                                                        setValue('embedding_dim', model.dim, { shouldValidate: true });
+                                                                    }
                                                                 }
                                                             }}
                                                             className="w-full bg-[#161618] border border-white/10 rounded-2xl px-5 py-4 text-caption outline-none focus:ring-2 focus:ring-indigo-500/50 font-bold"
@@ -316,7 +330,7 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSubmit, isCreating }: 
                                     <FormSection title="3. Workflow Nodes" icon={Layers}>
                                         <div className="space-y-6">
                                             {/* Search Node (Required) */}
-                                            <NodeToggleCard 
+                                            <NodeToggleCard
                                                 title="Search Node"
                                                 icon={Search}
                                                 description="Primary retrieval engine for context discovery."
@@ -324,9 +338,10 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSubmit, isCreating }: 
                                             >
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-1">
                                                     <div className="space-y-2">
-                                                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Search Mode</label>
-                                                        <select 
+                                                        <label htmlFor="rag-engine" className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Search Mode</label>
+                                                        <select
                                                             {...register('rag_engine')}
+                                                            id="rag-engine"
                                                             className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-tiny outline-none font-bold"
                                                         >
                                                             <option value="basic">Basic Hybrid (Vector + Keyword)</option>
@@ -335,7 +350,7 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSubmit, isCreating }: 
                                                     </div>
                                                     <div className="space-y-2">
                                                         <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Top-K Limit</label>
-                                                        <input 
+                                                        <input
                                                             type="number"
                                                             {...register('search_limit', { valueAsNumber: true })}
                                                             className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-tiny outline-none font-bold"
@@ -345,25 +360,25 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSubmit, isCreating }: 
                                             </NodeToggleCard>
 
                                             {/* Re-ranking Node (Optional) */}
-                                            <NodeToggleCard 
+                                            <NodeToggleCard
                                                 title="Re-ranking Node"
                                                 icon={BarChart3}
                                                 description="Neural refinement of retrieved chunks to improve precision."
                                                 status="optional"
                                                 enabled={watch('reranker_enabled')}
-                                                onToggle={(val) => {
-                                                    setValue('reranker_enabled', val);
+                                                onToggle={(val: boolean) => {
+                                                    setValue('reranker_enabled', val, { shouldValidate: true });
                                                     if (val && selectedRerankProvider === 'none') {
-                                                        setValue('reranker_provider', 'cohere');
+                                                        setValue('reranker_provider', 'cohere', { shouldValidate: true });
                                                     } else if (!val) {
-                                                        setValue('reranker_provider', 'none');
+                                                        setValue('reranker_provider', 'none', { shouldValidate: true });
                                                     }
                                                 }}
                                             >
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-1">
                                                     <div className="space-y-2">
                                                         <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Rerank Provider</label>
-                                                        <select 
+                                                        <select
                                                             {...register('reranker_provider')}
                                                             className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-tiny outline-none font-bold"
                                                         >
@@ -372,7 +387,7 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSubmit, isCreating }: 
                                                     </div>
                                                     <div className="space-y-2">
                                                         <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Final Selection (K)</label>
-                                                        <input 
+                                                        <input
                                                             type="number"
                                                             {...register('rerank_top_k', { valueAsNumber: true })}
                                                             className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-tiny outline-none font-bold"
@@ -382,15 +397,15 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSubmit, isCreating }: 
                                             </NodeToggleCard>
 
                                             {/* Knowledge Node (Optional) */}
-                                            <NodeToggleCard 
+                                            <NodeToggleCard
                                                 title="Knowledge Graph Node"
                                                 icon={Share2}
                                                 description="Entity-relationship discovery and structural grounding."
                                                 status="optional"
                                                 enabled={watch('graph_enabled')}
-                                                onToggle={(val) => {
-                                                    setValue('graph_enabled', val);
-                                                    if (val) setValue('rag_engine', 'graph');
+                                                onToggle={(val: boolean) => {
+                                                    setValue('graph_enabled', val, { shouldValidate: true });
+                                                    if (val) setValue('rag_engine', 'graph', { shouldValidate: true });
                                                 }}
                                             >
                                                 <div className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/10">
@@ -403,7 +418,7 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSubmit, isCreating }: 
                                     </FormSection>
                                 </motion.form>
                             ) : (
-                                <motion.div 
+                                <motion.div
                                     key="confirmation"
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
@@ -415,8 +430,8 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSubmit, isCreating }: 
                                     <div className="max-w-md space-y-4">
                                         <h2 className="text-h2 font-black text-white">Confirm Architecture</h2>
                                         <p className="text-caption text-gray-500 font-bold leading-relaxed">
-                                            You are about to provision <span className="text-white">"{currentValues.name}"</span> with a 
-                                            <span className="text-indigo-400"> {currentValues.rag_engine}</span> retrieval pipeline 
+                                            You are about to provision <span className="text-white">"{currentValues.name}"</span> with a
+                                            <span className="text-indigo-400"> {currentValues.rag_engine}</span> retrieval pipeline
                                             powered by <span className="text-amber-400">{currentValues.llm_model}</span>.
                                         </p>
                                     </div>
@@ -444,14 +459,14 @@ export function CreateWorkspaceModal({ isOpen, onClose, onSubmit, isCreating }: 
                         >
                             {isConfirmed ? 'REVISE CONFIG' : 'CANCEL'}
                         </button>
-                        
+
                         <button
                             onClick={handleSubmit(handleFormSubmit)}
                             disabled={isCreating || (!isValid && !isConfirmed)}
                             className={cn(
                                 "flex items-center gap-3 px-10 py-4 rounded-2xl text-tiny font-black tracking-widest transition-all",
-                                isConfirmed 
-                                    ? "bg-indigo-600 hover:bg-indigo-500 text-white shadow-xl shadow-indigo-600/30" 
+                                isConfirmed
+                                    ? "bg-indigo-600 hover:bg-indigo-500 text-white shadow-xl shadow-indigo-600/30"
                                     : "bg-white text-black hover:bg-gray-200"
                             )}
                         >

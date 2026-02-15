@@ -103,8 +103,8 @@ export function useWorkspaces() {
     // Kept inside for compatibility during migration if needed, but best practice is top.
 
     const validateWorkspaceName = async (name: string) => {
-        const { CreateWorkspaceSchema } = await import('@/lib/schemas/workspaces');
-        const result = CreateWorkspaceSchema.shape.name.safeParse(name);
+        const { BaseCreateWorkspaceSchema } = await import('@/lib/schemas/workspaces');
+        const result = BaseCreateWorkspaceSchema.shape.name.safeParse(name);
         return result.success ? null : result.error.errors[0].message;
     };
 
@@ -175,8 +175,8 @@ export function useWorkspaces() {
     };
 
     const updateWorkspace = async (id: string, name: string, description?: string) => {
-        const { CreateWorkspaceSchema } = await import('@/lib/schemas/workspaces');
-        const nameValidation = CreateWorkspaceSchema.shape.name.safeParse(name);
+        const { BaseCreateWorkspaceSchema } = await import('@/lib/schemas/workspaces');
+        const nameValidation = BaseCreateWorkspaceSchema.shape.name.safeParse(name);
 
         if (!nameValidation.success) {
             showError("Invalid Input", nameValidation.error.errors[0].message);
