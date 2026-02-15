@@ -163,7 +163,7 @@ export default function WorkspaceOverviewPage() {
                         icon={FileText}
                     />
                     <ActionCard
-                        href={`/workspaces/${workspaceId}/settings`}
+                        href={`/workspaces/${workspaceId}/kernel`}
                         title="Settings"
                         description="Configure RAG and LLM options"
                         icon={Settings}
