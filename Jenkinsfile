@@ -89,6 +89,21 @@ pipeline {
             }
         }
 
+        stage('API Contract Security Audit') {
+            steps {
+                echo 'Auditing API contract for path-based parameters...'
+                sh '''
+                    # Fail if any path parameter uses the generic ":path" type (Forbidden by security policy)
+                    if grep -q ":path}" frontend/src/lib/api/openapi.json; then
+                        echo "CRITICAL: Path traversal vulnerability surface detected in openapi.json!"
+                        grep ":path}" frontend/src/lib/api/openapi.json
+                        exit 1
+                    fi
+                    echo "API contract audit passed."
+                '''
+            }
+        }
+
         stage('Infrastructure Scanning') {
             steps {
                 echo 'Scanning repository for IaC security issues with Checkov...'

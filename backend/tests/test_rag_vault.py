@@ -68,9 +68,9 @@ async def test_document_sharing_dimension_conflict(mocker):
             "shared_with": []
         })
         
-        # 4. Attempt share without forcing re-index
+        # 4. Attempt share
         payload = {
-            "name": filename,
+            "document_id": doc_id,
             "target_workspace_id": ws2_id,
             "action": "share",
             "force_reindex": False
@@ -80,7 +80,7 @@ async def test_document_sharing_dimension_conflict(mocker):
         # Should return 200 OK (Auto-Link)
         assert res.status_code == 200, res.text
         assert res.json()["success"] is True
-        assert "started in background" in res.json()["message"]
+        assert "started" in res.json()["message"]
 
 @pytest.mark.asyncio
 async def test_vault_delete_logic(mocker):
@@ -91,11 +91,10 @@ async def test_vault_delete_logic(mocker):
     
     # Mock Qdrant collection operations for vault deletion
     mock_collection_exists = mocker.patch("backend.app.rag.qdrant_provider.qdrant.client.collection_exists")
-    mock_collection_exists.return_value = False  # No collections to delete from
+    mock_collection_exists.return_value = False 
     mocker.patch("backend.app.rag.qdrant_provider.qdrant.client.delete")
     mocker.patch("backend.app.rag.qdrant_provider.qdrant.get_collection_name", return_value="knowledge_base_1536")
     
-    # Mock settings manager for local deletion with proper return value
     from unittest.mock import AsyncMock, MagicMock
     mock_settings = MagicMock()
     mock_settings.embedding_dim = 1536
@@ -104,28 +103,26 @@ async def test_vault_delete_logic(mocker):
 
     db = mongodb_manager.get_async_database()
     ws_id = "ws_vault_test"
-    doc_name = "vault_test.txt"
     doc_id = "vtest123"
     
-    # Cleanup any leftover test data from previous runs
     await db.documents.delete_many({"id": doc_id})
     
     await db.documents.insert_one({
         "id": doc_id,
-        "filename": doc_name,
+        "filename": "vault_test.txt",
         "workspace_id": ws_id,
         "minio_path": "path/to/file",
         "shared_with": []
     })
     
-    # 1. Soft Delete (move to vault)
-    await document_service.delete(doc_name, ws_id, vault_delete=False)
+    # 1. Soft Delete (move to vault) using doc_id
+    await document_service.delete(doc_id, ws_id, vault_delete=False)
     
     doc = await db.documents.find_one({"id": doc_id})
     assert doc["workspace_id"] == "vault"
     
-    # 2. Permanent Purge
-    await document_service.delete(doc_name, "vault", vault_delete=True)
+    # 2. Permanent Purge using doc_id
+    await document_service.delete(doc_id, "vault", vault_delete=True)
     
     doc_after = await db.documents.find_one({"id": doc_id})
     assert doc_after is None

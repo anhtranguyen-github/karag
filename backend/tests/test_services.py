@@ -88,7 +88,8 @@ async def test_document_service_delete(mocker):
     mock_qdrant_client.delete = AsyncMock()
     mocker.patch("backend.app.services.document.storage_service.qdrant.client", mock_qdrant_client)
     
-    await document_service.delete("test.pdf", "default", vault_delete=True)
+    await document_service.delete("doc-123", "default", vault_delete=True)
     
+    # Assertions should remain the same as they check the internal cleanup logic
     mock_minio.assert_called_once_with("ws/doc/v1/test.pdf")
     mock_col.delete_many.assert_called_once_with({"minio_path": "ws/doc/v1/test.pdf"})

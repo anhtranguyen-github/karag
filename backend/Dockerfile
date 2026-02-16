@@ -29,8 +29,14 @@ RUN uv pip install --no-cache -r requirements.txt
 # Copy backend application code
 COPY --chown=appuser:appuser backend/app ./backend/app
 
+# Create internal data directory and set permissions
+RUN mkdir -p /app/backend/data && chown -R appuser:appuser /app/backend/data
+
 # Switch to non-root user
 USER appuser
+
+# Define volume for persistent data (Settings, Tools, Local cache)
+VOLUME ["/app/backend/data"]
 
 # Expose the application port
 EXPOSE 8000
