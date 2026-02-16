@@ -50,6 +50,9 @@ class AISettings(BaseSettings):
     LOG_FORMAT: str = "json"  # "json" for production, "console" for dev
     LOG_LEVEL: str = "INFO"
     LOG_FILE: Optional[str] = "logs/app.log"
+
+    # API Configuration
+    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
     
     model_config = SettingsConfigDict(
         env_file=".env",

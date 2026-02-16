@@ -37,11 +37,12 @@ pipeline {
                 echo 'Running backend unit tests with pytest...'
                 sh '''
                     # Create virtual environment and install dependencies
-                    python3 -m venv .venv
+                    curl -LsSf https://astral.sh/uv/install.sh | sh
+                    . $HOME/.cargo/env
+                    uv venv .venv
                     . .venv/bin/activate
-                    pip install --upgrade pip
-                    pip install -r backend/requirements.txt
-                    pip install pytest pytest-asyncio
+                    uv pip install -r backend/requirements.txt
+                    uv pip install pytest pytest-asyncio
                     
                     # Run pytest and fail immediately if any test fails
                     export PYTHONPATH=$PYTHONPATH:.

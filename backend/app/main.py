@@ -74,7 +74,7 @@ def create_app() -> FastAPI:
     # CORS must be added last so it's the outermost layer (handles errors from other middleware)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+        allow_origins=ai_settings.CORS_ORIGINS,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

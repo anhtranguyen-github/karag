@@ -149,7 +149,7 @@ The project includes a comprehensive test suite across the stack.
 ### Backend Tests
 ```bash
 cd backend
-pytest
+uv run python -m pytest
 ```
 
 ### Frontend Tests

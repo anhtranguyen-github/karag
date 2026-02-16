@@ -1,0 +1,57 @@
+controller:
+  image:
+    repository: registry.k8s.io/ingress-nginx/controller
+    # Pinned stable version
+    tag: "v1.11.2"
+    digest: sha256:d886981fde8e349280145f65f6068e42f9da8f504443f11467beaccc6133ef44
+    runAsUser: 101
+
+  # Resource requests and limits for scalability and stability
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 90Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+
+  metrics:
+    enabled: true
+    service:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "10254"
+
+  config:
+    # --- Performance ---
+    # Long timeouts for LLM streaming responses
+    proxy-read-timeout: "3600"
+    proxy-send-timeout: "3600"
+    # --- Tracing (OpenTelemetry) ---
+    enable-opentelemetry: "true"
+    otlp-collector-host: "ai-jaeger-collector.observability"
+    otlp-collector-port: "4317"
+    otlp-service-name: "scienchan-ingress"
+
+    # --- Security ---
+    client-max-body-size: "50m"
+    # Enable WAF-like protection for common exploits including path traversal
+    enable-modsecurity: "true"
+    enable-owasp-core-rules: "true"
+    # Disable unsafe HTTP methods (TRACE, TRACK, CONNECT)
+    use-forwarded-headers: "true"
+    compute-full-forwarded-for: "true"
+    # Block TRACE/TRACK which are commonly used for XSS/Cookie theft
+    config-backend-server-tokens: "false"
+    
+    ssl-protocols: "TLSv1.2 TLSv1.3"
+
+    
+  # Service account with least-privilege RBAC is default in Ingress-Nginx
