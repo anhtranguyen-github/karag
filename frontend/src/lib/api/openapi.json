@@ -394,47 +394,6 @@
         }
       }
     },
-    "/import-directory": {
-      "post": {
-        "tags": [
-          "documents"
-        ],
-        "summary": "Import Directory Document",
-        "operationId": "import_directory_document_import_directory_post",
-        "parameters": [
-          {
-            "name": "workspace_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "vault",
-              "title": "Workspace Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/import-github": {
       "post": {
         "tags": [
@@ -606,21 +565,21 @@
         }
       }
     },
-    "/documents/{name}/chunks": {
+    "/documents/{document_id}/chunks": {
       "get": {
         "tags": [
           "documents"
         ],
         "summary": "Get Document Chunks",
-        "operationId": "get_document_chunks_documents__name__chunks_get",
+        "operationId": "get_document_chunks_documents__document_id__chunks_get",
         "parameters": [
           {
-            "name": "name",
+            "name": "document_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Name"
+              "title": "Document Id"
             }
           },
           {
@@ -656,22 +615,22 @@
         }
       }
     },
-    "/documents/{name}/index": {
+    "/documents/{document_id}/index": {
       "post": {
         "tags": [
           "documents"
         ],
         "summary": "Index Document",
-        "description": "Non-blocking indexing: returns a task_id immediately.\n\nThe actual embedding and vector storage runs in the background.\nPoll GET /tasks/{task_id} for progress.",
-        "operationId": "index_document_documents__name__index_post",
+        "description": "Non-blocking indexing triggered by document ID.",
+        "operationId": "index_document_documents__document_id__index_post",
         "parameters": [
           {
-            "name": "name",
+            "name": "document_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Name"
+              "title": "Document Id"
             }
           },
           {
@@ -707,21 +666,21 @@
         }
       }
     },
-    "/documents/{name}/inspect": {
+    "/documents/{document_id}/inspect": {
       "get": {
         "tags": [
           "documents"
         ],
         "summary": "Inspect Document",
-        "operationId": "inspect_document_documents__name__inspect_get",
+        "operationId": "inspect_document_documents__document_id__inspect_get",
         "parameters": [
           {
-            "name": "name",
+            "name": "document_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Name"
+              "title": "Document Id"
             }
           }
         ],
@@ -753,7 +712,7 @@
           "documents"
         ],
         "summary": "Update Document Workspaces",
-        "description": "Non-blocking workspace operations (link, move, share).\n\nReturns a task_id immediately for long-running operations (link, move with reindex).\nPoll GET /tasks/{task_id} for progress.",
+        "description": "Workspace operations using internal IDs.",
         "operationId": "update_document_workspaces_documents_update_workspaces_post",
         "responses": {
           "200": {
@@ -773,7 +732,6 @@
           "documents"
         ],
         "summary": "Sync Document Workspaces",
-        "description": "Manually trigger reconciliation of orphaned document-workspace links.",
         "operationId": "sync_document_workspaces_documents_sync_workspaces_post",
         "responses": {
           "200": {
@@ -787,21 +745,21 @@
         }
       }
     },
-    "/documents/{name}": {
+    "/documents/{document_id}": {
       "get": {
         "tags": [
           "documents"
         ],
         "summary": "Get Document",
-        "operationId": "get_document_documents__name__get",
+        "operationId": "get_document_documents__document_id__get",
         "parameters": [
           {
-            "name": "name",
+            "name": "document_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Name"
+              "title": "Document Id"
             }
           }
         ],
@@ -831,15 +789,15 @@
           "documents"
         ],
         "summary": "Delete Document",
-        "operationId": "delete_document_documents__name__delete",
+        "operationId": "delete_document_documents__document_id__delete",
         "parameters": [
           {
-            "name": "name",
+            "name": "document_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Name"
+              "title": "Document Id"
             }
           },
           {
@@ -2221,12 +2179,16 @@
         "properties": {
           "name": {
             "type": "string",
+            "maxLength": 50,
+            "minLength": 1,
+            "pattern": "^[\\w\\s.-]+$",
             "title": "Name"
           },
           "description": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 200
               },
               {
                 "type": "null"
@@ -2235,38 +2197,17 @@
             "title": "Description"
           },
           "embedding_provider": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Embedding Provider",
             "default": "openai"
           },
           "embedding_model": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Embedding Model",
             "default": "text-embedding-3-small"
           },
           "embedding_dim": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "integer",
             "title": "Embedding Dim",
             "default": 1536
           },
@@ -2280,158 +2221,81 @@
             "default": "basic"
           },
           "search_limit": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "integer",
+            "maximum": 50.0,
+            "minimum": 1.0,
             "title": "Search Limit",
             "default": 5
           },
           "recall_k": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
             "title": "Recall K",
             "default": 20
           },
           "hybrid_alpha": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
             "title": "Hybrid Alpha",
             "default": 0.5
           },
           "graph_enabled": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "boolean",
             "title": "Graph Enabled",
             "default": true
           },
           "reranker_enabled": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "boolean",
             "title": "Reranker Enabled",
             "default": false
           },
           "reranker_provider": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Reranker Provider",
             "default": "none"
           },
           "rerank_top_k": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "integer",
+            "maximum": 15.0,
+            "minimum": 1.0,
             "title": "Rerank Top K",
             "default": 3
           },
           "agentic_enabled": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "boolean",
             "title": "Agentic Enabled",
             "default": true
           },
           "llm_provider": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Llm Provider",
             "default": "openai"
           },
           "llm_model": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Llm Model",
             "default": "gpt-4o"
           },
           "temperature": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "number",
+            "maximum": 2.0,
+            "minimum": 0.0,
             "title": "Temperature",
             "default": 0.7
           },
           "chunk_size": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "integer",
+            "maximum": 4000.0,
+            "minimum": 100.0,
             "title": "Chunk Size",
             "default": 800
           },
           "chunk_overlap": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "integer",
+            "maximum": 1000.0,
+            "minimum": 0.0,
             "title": "Chunk Overlap",
             "default": 150
           },

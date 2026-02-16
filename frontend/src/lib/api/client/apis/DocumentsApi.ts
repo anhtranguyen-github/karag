@@ -22,27 +22,23 @@ import {
     HTTPValidationErrorToJSON,
 } from '../models/index';
 
-export interface DeleteDocumentDocumentsNameDeleteRequest {
-    name: string;
+export interface DeleteDocumentDocumentsDocumentIdDeleteRequest {
+    documentId: string;
     workspaceId?: string;
     vaultDelete?: boolean;
 }
 
-export interface GetDocumentChunksDocumentsNameChunksGetRequest {
-    name: string;
+export interface GetDocumentChunksDocumentsDocumentIdChunksGetRequest {
+    documentId: string;
     limit?: number;
 }
 
-export interface GetDocumentDocumentsNameGetRequest {
-    name: string;
+export interface GetDocumentDocumentsDocumentIdGetRequest {
+    documentId: string;
 }
 
 export interface ImportAudioDocumentImportAudioPostRequest {
     file: Blob;
-    workspaceId?: string;
-}
-
-export interface ImportDirectoryDocumentImportDirectoryPostRequest {
     workspaceId?: string;
 }
 
@@ -58,13 +54,13 @@ export interface ImportUrlDocumentImportUrlPostRequest {
     workspaceId?: string;
 }
 
-export interface IndexDocumentDocumentsNameIndexPostRequest {
-    name: string;
+export interface IndexDocumentDocumentsDocumentIdIndexPostRequest {
+    documentId: string;
     workspaceId?: string;
 }
 
-export interface InspectDocumentDocumentsNameInspectGetRequest {
-    name: string;
+export interface InspectDocumentDocumentsDocumentIdInspectGetRequest {
+    documentId: string;
 }
 
 export interface ListDocumentsDocumentsGetRequest {
@@ -89,11 +85,11 @@ export class DocumentsApi extends runtime.BaseAPI {
     /**
      * Delete Document
      */
-    async deleteDocumentDocumentsNameDeleteRaw(requestParameters: DeleteDocumentDocumentsNameDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
-        if (requestParameters['name'] == null) {
+    async deleteDocumentDocumentsDocumentIdDeleteRaw(requestParameters: DeleteDocumentDocumentsDocumentIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        if (requestParameters['documentId'] == null) {
             throw new runtime.RequiredError(
-                'name',
-                'Required parameter "name" was null or undefined when calling deleteDocumentDocumentsNameDelete().'
+                'documentId',
+                'Required parameter "documentId" was null or undefined when calling deleteDocumentDocumentsDocumentIdDelete().'
             );
         }
 
@@ -110,8 +106,8 @@ export class DocumentsApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
 
-        let urlPath = `/documents/{name}`;
-        urlPath = urlPath.replace(`{${"name"}}`, encodeURIComponent(String(requestParameters['name'])));
+        let urlPath = `/documents/{document_id}`;
+        urlPath = urlPath.replace(`{${"document_id"}}`, encodeURIComponent(String(requestParameters['documentId'])));
 
         const response = await this.request({
             path: urlPath,
@@ -130,19 +126,19 @@ export class DocumentsApi extends runtime.BaseAPI {
     /**
      * Delete Document
      */
-    async deleteDocumentDocumentsNameDelete(requestParameters: DeleteDocumentDocumentsNameDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.deleteDocumentDocumentsNameDeleteRaw(requestParameters, initOverrides);
+    async deleteDocumentDocumentsDocumentIdDelete(requestParameters: DeleteDocumentDocumentsDocumentIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.deleteDocumentDocumentsDocumentIdDeleteRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
      * Get Document Chunks
      */
-    async getDocumentChunksDocumentsNameChunksGetRaw(requestParameters: GetDocumentChunksDocumentsNameChunksGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
-        if (requestParameters['name'] == null) {
+    async getDocumentChunksDocumentsDocumentIdChunksGetRaw(requestParameters: GetDocumentChunksDocumentsDocumentIdChunksGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        if (requestParameters['documentId'] == null) {
             throw new runtime.RequiredError(
-                'name',
-                'Required parameter "name" was null or undefined when calling getDocumentChunksDocumentsNameChunksGet().'
+                'documentId',
+                'Required parameter "documentId" was null or undefined when calling getDocumentChunksDocumentsDocumentIdChunksGet().'
             );
         }
 
@@ -155,8 +151,8 @@ export class DocumentsApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
 
-        let urlPath = `/documents/{name}/chunks`;
-        urlPath = urlPath.replace(`{${"name"}}`, encodeURIComponent(String(requestParameters['name'])));
+        let urlPath = `/documents/{document_id}/chunks`;
+        urlPath = urlPath.replace(`{${"document_id"}}`, encodeURIComponent(String(requestParameters['documentId'])));
 
         const response = await this.request({
             path: urlPath,
@@ -175,19 +171,19 @@ export class DocumentsApi extends runtime.BaseAPI {
     /**
      * Get Document Chunks
      */
-    async getDocumentChunksDocumentsNameChunksGet(requestParameters: GetDocumentChunksDocumentsNameChunksGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.getDocumentChunksDocumentsNameChunksGetRaw(requestParameters, initOverrides);
+    async getDocumentChunksDocumentsDocumentIdChunksGet(requestParameters: GetDocumentChunksDocumentsDocumentIdChunksGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.getDocumentChunksDocumentsDocumentIdChunksGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
      * Get Document
      */
-    async getDocumentDocumentsNameGetRaw(requestParameters: GetDocumentDocumentsNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
-        if (requestParameters['name'] == null) {
+    async getDocumentDocumentsDocumentIdGetRaw(requestParameters: GetDocumentDocumentsDocumentIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        if (requestParameters['documentId'] == null) {
             throw new runtime.RequiredError(
-                'name',
-                'Required parameter "name" was null or undefined when calling getDocumentDocumentsNameGet().'
+                'documentId',
+                'Required parameter "documentId" was null or undefined when calling getDocumentDocumentsDocumentIdGet().'
             );
         }
 
@@ -196,8 +192,8 @@ export class DocumentsApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
 
-        let urlPath = `/documents/{name}`;
-        urlPath = urlPath.replace(`{${"name"}}`, encodeURIComponent(String(requestParameters['name'])));
+        let urlPath = `/documents/{document_id}`;
+        urlPath = urlPath.replace(`{${"document_id"}}`, encodeURIComponent(String(requestParameters['documentId'])));
 
         const response = await this.request({
             path: urlPath,
@@ -216,8 +212,8 @@ export class DocumentsApi extends runtime.BaseAPI {
     /**
      * Get Document
      */
-    async getDocumentDocumentsNameGet(requestParameters: GetDocumentDocumentsNameGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.getDocumentDocumentsNameGetRaw(requestParameters, initOverrides);
+    async getDocumentDocumentsDocumentIdGet(requestParameters: GetDocumentDocumentsDocumentIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.getDocumentDocumentsDocumentIdGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -283,43 +279,6 @@ export class DocumentsApi extends runtime.BaseAPI {
      */
     async importAudioDocumentImportAudioPost(requestParameters: ImportAudioDocumentImportAudioPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
         const response = await this.importAudioDocumentImportAudioPostRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Import Directory Document
-     */
-    async importDirectoryDocumentImportDirectoryPostRaw(requestParameters: ImportDirectoryDocumentImportDirectoryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
-        const queryParameters: any = {};
-
-        if (requestParameters['workspaceId'] != null) {
-            queryParameters['workspace_id'] = requestParameters['workspaceId'];
-        }
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-
-        let urlPath = `/import-directory`;
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        if (this.isJsonMime(response.headers.get('content-type'))) {
-            return new runtime.JSONApiResponse<any>(response);
-        } else {
-            return new runtime.TextApiResponse(response) as any;
-        }
-    }
-
-    /**
-     * Import Directory Document
-     */
-    async importDirectoryDocumentImportDirectoryPost(requestParameters: ImportDirectoryDocumentImportDirectoryPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.importDirectoryDocumentImportDirectoryPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -435,14 +394,14 @@ export class DocumentsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Non-blocking indexing: returns a task_id immediately.  The actual embedding and vector storage runs in the background. Poll GET /tasks/{task_id} for progress.
+     * Non-blocking indexing triggered by document ID.
      * Index Document
      */
-    async indexDocumentDocumentsNameIndexPostRaw(requestParameters: IndexDocumentDocumentsNameIndexPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
-        if (requestParameters['name'] == null) {
+    async indexDocumentDocumentsDocumentIdIndexPostRaw(requestParameters: IndexDocumentDocumentsDocumentIdIndexPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        if (requestParameters['documentId'] == null) {
             throw new runtime.RequiredError(
-                'name',
-                'Required parameter "name" was null or undefined when calling indexDocumentDocumentsNameIndexPost().'
+                'documentId',
+                'Required parameter "documentId" was null or undefined when calling indexDocumentDocumentsDocumentIdIndexPost().'
             );
         }
 
@@ -455,8 +414,8 @@ export class DocumentsApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
 
-        let urlPath = `/documents/{name}/index`;
-        urlPath = urlPath.replace(`{${"name"}}`, encodeURIComponent(String(requestParameters['name'])));
+        let urlPath = `/documents/{document_id}/index`;
+        urlPath = urlPath.replace(`{${"document_id"}}`, encodeURIComponent(String(requestParameters['documentId'])));
 
         const response = await this.request({
             path: urlPath,
@@ -473,22 +432,22 @@ export class DocumentsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Non-blocking indexing: returns a task_id immediately.  The actual embedding and vector storage runs in the background. Poll GET /tasks/{task_id} for progress.
+     * Non-blocking indexing triggered by document ID.
      * Index Document
      */
-    async indexDocumentDocumentsNameIndexPost(requestParameters: IndexDocumentDocumentsNameIndexPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.indexDocumentDocumentsNameIndexPostRaw(requestParameters, initOverrides);
+    async indexDocumentDocumentsDocumentIdIndexPost(requestParameters: IndexDocumentDocumentsDocumentIdIndexPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.indexDocumentDocumentsDocumentIdIndexPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
      * Inspect Document
      */
-    async inspectDocumentDocumentsNameInspectGetRaw(requestParameters: InspectDocumentDocumentsNameInspectGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
-        if (requestParameters['name'] == null) {
+    async inspectDocumentDocumentsDocumentIdInspectGetRaw(requestParameters: InspectDocumentDocumentsDocumentIdInspectGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        if (requestParameters['documentId'] == null) {
             throw new runtime.RequiredError(
-                'name',
-                'Required parameter "name" was null or undefined when calling inspectDocumentDocumentsNameInspectGet().'
+                'documentId',
+                'Required parameter "documentId" was null or undefined when calling inspectDocumentDocumentsDocumentIdInspectGet().'
             );
         }
 
@@ -497,8 +456,8 @@ export class DocumentsApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
 
-        let urlPath = `/documents/{name}/inspect`;
-        urlPath = urlPath.replace(`{${"name"}}`, encodeURIComponent(String(requestParameters['name'])));
+        let urlPath = `/documents/{document_id}/inspect`;
+        urlPath = urlPath.replace(`{${"document_id"}}`, encodeURIComponent(String(requestParameters['documentId'])));
 
         const response = await this.request({
             path: urlPath,
@@ -517,8 +476,8 @@ export class DocumentsApi extends runtime.BaseAPI {
     /**
      * Inspect Document
      */
-    async inspectDocumentDocumentsNameInspectGet(requestParameters: InspectDocumentDocumentsNameInspectGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.inspectDocumentDocumentsNameInspectGetRaw(requestParameters, initOverrides);
+    async inspectDocumentDocumentsDocumentIdInspectGet(requestParameters: InspectDocumentDocumentsDocumentIdInspectGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.inspectDocumentDocumentsDocumentIdInspectGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -626,7 +585,6 @@ export class DocumentsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Manually trigger reconciliation of orphaned document-workspace links.
      * Sync Document Workspaces
      */
     async syncDocumentWorkspacesDocumentsSyncWorkspacesPostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
@@ -652,7 +610,6 @@ export class DocumentsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Manually trigger reconciliation of orphaned document-workspace links.
      * Sync Document Workspaces
      */
     async syncDocumentWorkspacesDocumentsSyncWorkspacesPost(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
@@ -661,7 +618,7 @@ export class DocumentsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Non-blocking workspace operations (link, move, share).  Returns a task_id immediately for long-running operations (link, move with reindex). Poll GET /tasks/{task_id} for progress.
+     * Workspace operations using internal IDs.
      * Update Document Workspaces
      */
     async updateDocumentWorkspacesDocumentsUpdateWorkspacesPostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
@@ -687,7 +644,7 @@ export class DocumentsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Non-blocking workspace operations (link, move, share).  Returns a task_id immediately for long-running operations (link, move with reindex). Poll GET /tasks/{task_id} for progress.
+     * Workspace operations using internal IDs.
      * Update Document Workspaces
      */
     async updateDocumentWorkspacesDocumentsUpdateWorkspacesPost(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
