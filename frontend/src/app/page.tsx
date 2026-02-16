@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useWorkspaces } from '@/hooks/use-workspaces';
 import {
   Plus, Search, FileText, MessageSquare,
-  Trash2, Loader2, AlertCircle, X, Zap, Database, ShieldCheck
-} from 'lucide-react';
+  Trash2, Loader2, AlertCircle, Database, ShieldCheck
+} from "lucide-react";
 import { cn } from '@/lib/utils';
 import { CreateWorkspaceInput } from '@/lib/schemas/workspaces';
 import { CreateWorkspaceModal } from '@/components/create-workspace-modal';

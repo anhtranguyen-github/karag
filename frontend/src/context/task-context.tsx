@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { API_ROUTES } from '@/lib/api-config';
 
 export interface TaskItem {
@@ -42,7 +42,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     const [tasks, setTasks] = useState<TaskItem[]>([]);
     const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
     const [isStorageLoaded, setIsStorageLoaded] = useState(false);
-    const notifiedFailures = useRef<Set<string>>(new Set());
+    const [now, setNow] = useState(0);
 
     // Load dismissed IDs from localStorage on mount
     useEffect(() => {
@@ -67,6 +67,13 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
         }
     }, [dismissedIds, isStorageLoaded]);
 
+    // Update 'now' periodically to keep filters fresh
+    useEffect(() => {
+        setNow(Date.now());
+        const interval = setInterval(() => setNow(Date.now()), 10000);
+        return () => clearInterval(interval);
+    }, []);
+
     const fetchTasks = useCallback(async () => {
         try {
             const res = await fetch(API_ROUTES.TASKS);
@@ -87,21 +94,22 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     }, [fetchTasks]);
 
     // Derived filtered lists
-    const activeTasks = tasks.filter(
+    const activeTasks = useMemo(() => tasks.filter(
         t => (t.status === 'pending' || t.status === 'processing') && !dismissedIds.has(t.id)
-    );
+    ), [tasks, dismissedIds]);
 
-    const recentCompletedTasks = tasks.filter(t => {
-        if (t.status !== 'completed' || dismissedIds.has(t.id)) return false;
-        // Show completed tasks from the last 60 seconds
-        const updatedAt = new Date(t.updated_at).getTime();
-        const now = Date.now();
-        return (now - updatedAt) < 60000;
-    });
+    const recentCompletedTasks = useMemo(() => {
+        return tasks.filter(t => {
+            if (t.status !== 'completed' || dismissedIds.has(t.id)) return false;
+            // Show completed tasks from the last 60 seconds
+            const updatedAt = new Date(t.updated_at).getTime();
+            return (now - updatedAt) < 60000;
+        });
+    }, [tasks, dismissedIds, now]);
 
-    const failedTasks = tasks.filter(
+    const failedTasks = useMemo(() => tasks.filter(
         t => t.status === 'failed' && !dismissedIds.has(t.id)
-    );
+    ), [tasks, dismissedIds]);
 
     const hasActiveWork = activeTasks.length > 0;
 

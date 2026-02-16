@@ -5,10 +5,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Cpu, Database, Activity, Zap, ShieldCheck, ArrowRight,
     Check, Loader2, AlertCircle, RefreshCw, Sliders, Eye,
-    ExternalLink, Layers, Server, Users, AlertTriangle, Info, Save,
+    ExternalLink, Layers, Server, Users, AlertTriangle, Info,
     Target, PlayCircle, CheckCircle2, Plus
 } from 'lucide-react';
-import Link from 'next/link';
 import { useSettings, useSettingsMetadata } from '@/hooks/use-settings';
 import { PROVIDER_SETTING_KEYS } from '@/lib/constants';
 import { API_ROUTES, EXTERNAL_SERVICES } from '@/lib/api-config';
