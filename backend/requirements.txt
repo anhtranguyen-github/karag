@@ -8,6 +8,7 @@ langchain-voyageai
 langchain-community
 qdrant-client
 python-dotenv
+python-multipart
 pydantic
 pydantic-settings
 httpx
@@ -20,6 +21,7 @@ torch
 sentence-transformers
 voyageai
 motor
+neo4j
 langgraph-checkpoint-mongodb
 arxiv
 minio
