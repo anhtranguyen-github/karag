@@ -130,15 +130,28 @@ class ChatService:
                 ):
                     return
 
-                llm = await get_llm(workspace_id)
-                prompt = (
-                    f"Analyze the following user message and provide a catchy title (2-4 words) "
-                    f"and up to 5 relevant short tags for categorization. "
-                    f"Return ONLY a valid JSON object with keys 'title' (string) and 'tags' (list of strings).\n"
-                    f"Message: {message}"
+                from backend.app.core.prompt_manager import prompt_manager
+                sys_tem = prompt_manager.get_prompt("title_generator.system", version="v1")
+                user_msg = prompt_manager.format_prompt(
+                    prompt_manager.get_prompt("title_generator.user", version="v1"),
+                    message=message
                 )
 
-                response = await llm.ainvoke(prompt)
+                response = await llm.ainvoke([
+                    SystemMessage(content=sys_tem),
+                    HumanMessage(content=user_msg)
+                ])
+
+                # Record usage
+                usage = getattr(response, "usage_metadata", {})
+                if usage:
+                    from backend.app.core.telemetry import record_llm_usage
+                    record_llm_usage(
+                        provider=type(llm).__name__,
+                        model=getattr(llm, "model_name", getattr(llm, "model", "unknown")),
+                        prompt_tokens=usage.get("input_tokens", 0),
+                        completion_tokens=usage.get("output_tokens", 0)
+                    )
                 content = response.content.strip()
 
                 if content.startswith("```json"):

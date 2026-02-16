@@ -17,9 +17,45 @@ class QdrantProvider:
             host=ai_settings.QDRANT_HOST, port=ai_settings.QDRANT_PORT
         )
 
-    def get_collection_name(self, vector_size: int = 1536) -> str:
-        """Standardized naming for dimension-specific collections."""
-        return f"knowledge_base_{vector_size}"
+    async def get_system_info(self):
+        """Get global status of the vector store."""
+        try:
+            collections_resp = await self.client.get_collections()
+            collections = []
+            for c in collections_resp.collections:
+                info = await self.client.get_collection(c.name)
+                # handle both named and simple models
+                collections.append({
+                    "name": c.name,
+                    "status": str(info.status),
+                    "points_count": info.points_count,
+                    "segments_count": info.segments_count,
+                    "config": {
+                        "vector_size": info.config.params.vectors.size if hasattr(info.config.params, 'vectors') else 0,
+                        "distance": str(info.config.params.vectors.distance) if hasattr(info.config.params, 'vectors') else "N/A",
+                    }
+                })
+            return {
+                "collections": collections,
+                "host": ai_settings.QDRANT_HOST,
+                "port": ai_settings.QDRANT_PORT,
+            }
+        except Exception as e:
+            logger.error("qdrant_status_failed", error=str(e))
+            return {"error": str(e)}
+
+    async def get_collection_name(self, workspace_id: Optional[str] = None) -> str:
+        """
+        Deterministic naming based on embedding model and chunking strategy.
+        kb_{hash}_{dim}
+        """
+        from backend.app.core.settings_manager import settings_manager
+        settings = await settings_manager.get_settings(workspace_id)
+        
+        cfg_hash = settings.get_rag_hash()
+        dim = settings.embedding_dim
+        
+        return f"kb_{cfg_hash}_{dim}"
 
     async def create_collection(
         self, collection_name: str, vector_size: int = 1536
@@ -90,20 +126,7 @@ class QdrantProvider:
         self, collection_name: str, workspace_id: Optional[str] = None
     ):
         if collection_name == "knowledge_base":
-            if workspace_id:
-                try:
-                    from backend.app.core.settings_manager import settings_manager
-
-                    settings = await settings_manager.get_settings(workspace_id)
-                    return self.get_collection_name(settings.embedding_dim)
-                except Exception:
-                    from backend.app.core.settings_manager import settings_manager
-                    global_settings = settings_manager.get_global_settings()
-                    return self.get_collection_name(global_settings.embedding_dim)
-            
-            from backend.app.core.settings_manager import settings_manager
-            global_settings = settings_manager.get_global_settings()
-            return self.get_collection_name(global_settings.embedding_dim)
+            return await self.get_collection_name(workspace_id)
         return collection_name
 
     async def hybrid_search(

@@ -3,7 +3,7 @@
 :root {
   --background: #0a0a0b;
   --foreground: #f8fafc;
-  
+
   /* Typography Scale */
   --font-size-h1: 2.5rem;
   --font-size-h2: 2rem;
@@ -11,7 +11,7 @@
   --font-size-body: 1rem;
   --font-size-caption: 0.8125rem;
   --font-size-tiny: 0.6875rem;
-  
+
   /* Line Heights */
   --leading-tight: 1.2;
   --leading-base: 1.5;
@@ -22,7 +22,7 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-outfit), Inter, system-ui, sans-serif;
-  
+
   /* Custom typography classes in theme */
   --text-h1: var(--font-size-h1);
   --text-h2: var(--font-size-h2);
@@ -46,13 +46,82 @@ body {
   font-style: normal !important;
 }
 
-i, em {
+i,
+em {
   font-style: normal !important;
 }
 
 /* Typography Base Styles */
-h1 { font-size: var(--font-size-h1); font-weight: 900; line-height: var(--leading-tight); letter-spacing: -0.05em; }
-h2 { font-size: var(--font-size-h2); font-weight: 800; line-height: var(--leading-tight); letter-spacing: -0.04em; }
-h3 { font-size: var(--font-size-h3); font-weight: 700; line-height: var(--leading-tight); letter-spacing: -0.03em; }
-p { font-size: var(--font-size-body); line-height: var(--leading-base); color: rgba(255, 255, 255, 0.7); }
-span, div { line-height: var(--leading-base); }
+h1 {
+  font-size: var(--font-size-h1);
+  font-weight: 900;
+  line-height: var(--leading-tight);
+  letter-spacing: -0.05em;
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+  font-weight: 800;
+  line-height: var(--leading-tight);
+  letter-spacing: -0.04em;
+}
+
+h3 {
+  font-size: var(--font-size-h3);
+  font-weight: 700;
+  line-height: var(--leading-tight);
+  letter-spacing: -0.03em;
+}
+
+p {
+  font-size: var(--font-size-body);
+  line-height: var(--leading-base);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+span,
+div {
+  line-height: var(--leading-base);
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  border: 4px solid transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Animations */
+@keyframes pulse-glow {
+  0% {
+    opacity: 0.5;
+    filter: blur(4px);
+  }
+
+  50% {
+    opacity: 0.8;
+    filter: blur(6px);
+  }
+
+  100% {
+    opacity: 0.5;
+    filter: blur(4px);
+  }
+}
+
+.animate-glow {
+  animation: pulse-glow 3s infinite ease-in-out;
+}

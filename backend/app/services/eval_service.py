@@ -73,21 +73,44 @@ class EvalService:
                 
                 actual_answer = output["messages"][-1].content
                 # Context is usually stored in the state
-                actual_sources = [s["name"] for s in output.get("sources", [])]
+                sources = output.get("sources", [])
+                actual_source_ids = [s["name"] for s in sources]
+                context_texts = [s.get("content", "") for s in sources]
+                full_context = "\n\n".join(context_texts)
                 
-                # 2. Simple Metrics (for now)
-                # Later we can add LLM-as-a-judge here
+                # 2. LLM-as-a-Judge: Faithfulness (Faithfulness Check)
+                from backend.app.core.prompt_manager import prompt_manager
+                eval_llm = await get_llm(dataset.workspace_id)
+                
+                faith_sys = prompt_manager.get_prompt("evaluator.faithfulness.system", version="v1")
+                faith_user = prompt_manager.format_prompt(
+                    prompt_manager.get_prompt("evaluator.faithfulness.user", version="v1"),
+                    context=full_context[:4000], # Cap context for eval
+                    answer=actual_answer
+                )
+                
+                faith_resp = await eval_llm.ainvoke([
+                    HumanMessage(content=f"{faith_sys}\n\n{faith_user}")
+                ])
+                
+                try:
+                    faith_score = float(faith_resp.content.strip())
+                except ValueError:
+                    faith_score = 0.5 # Fallback on parse error
+                
+                # 3. Aggregate Metrics
                 metrics = {
-                    "retrieval_count": float(len(actual_sources)),
-                    "answer_length": float(len(actual_answer))
+                    "retrieval_count": float(len(actual_source_ids)),
+                    "answer_length": float(len(actual_answer)),
+                    "faithfulness": faith_score
                 }
                 
                 results.append(EvalResult(
                     test_case=test_case,
                     actual_answer=actual_answer,
-                    actual_source_ids=actual_sources,
+                    actual_source_ids=actual_source_ids,
                     metrics=metrics,
-                    success=True
+                    success=faith_score > 0.7
                 ))
             
             # Summary metrics

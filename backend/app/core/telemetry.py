@@ -118,6 +118,32 @@ ACTIVE_STREAMS = Gauge(
     "Number of currently active SSE chat streams",
 )
 
+LLM_TOKEN_USAGE = Counter(
+    "llm_tokens_total",
+    "Total LLM tokens consumed",
+    ["provider", "model", "token_type"], # token_type = prompt or completion
+)
+
+
+def record_llm_usage(
+    provider: str,
+    model: str,
+    prompt_tokens: int,
+    completion_tokens: int,
+) -> None:
+    """Record LLM token usage to both OpenTelemetry and Prometheus."""
+    span = trace.get_current_span()
+    if span.is_recording():
+        span.set_attribute("llm.provider", provider)
+        span.set_attribute("llm.model", model)
+        span.set_attribute("llm.usage.prompt_tokens", prompt_tokens)
+        span.set_attribute("llm.usage.completion_tokens", completion_tokens)
+        span.set_attribute("llm.usage.total_tokens", prompt_tokens + completion_tokens)
+
+    # Prometheus metrics
+    LLM_TOKEN_USAGE.labels(provider=provider, model=model, token_type="prompt").inc(prompt_tokens)
+    LLM_TOKEN_USAGE.labels(provider=provider, model=model, token_type="completion").inc(completion_tokens)
+
 
 def configure_logging(log_format: str = "json", log_level: str = "INFO") -> None:
     """

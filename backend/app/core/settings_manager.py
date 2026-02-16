@@ -16,9 +16,12 @@ logger = structlog.get_logger(__name__)
 DATA_DIR = Path("/home/tra01/project/karag/backend/data")
 
 class SettingsManager:
-    def __init__(self, config_file: str = "settings.json"):
+    def __init__(self, config_file: str = "settings.json", config_path: Optional[Path] = None):
         # INTERNAL ONLY: Controlled mapping to data directory
-        self.config_path = DATA_DIR / config_file
+        if config_path:
+            self.config_path = Path(config_path)
+        else:
+            self.config_path = DATA_DIR / config_file
 
 
         self._global_settings: AppSettings = self._load_initial_settings()

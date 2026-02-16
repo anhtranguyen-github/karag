@@ -31,7 +31,8 @@ class IngestionPipeline:
         from backend.app.core.settings_manager import settings_manager
 
         settings = await settings_manager.get_settings(workspace_id)
-        return qdrant.get_collection_name(settings.embedding_dim), settings.embedding_dim
+        coll_name = await qdrant.get_collection_name(workspace_id=workspace_id)
+        return coll_name, settings.embedding_dim
 
     async def initialize(self, workspace_id: str = "default"):
         """Ensure the workspace's target collection exists."""

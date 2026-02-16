@@ -42,22 +42,31 @@ async def get_llm(workspace_id: Optional[str] = None):
             workspace_id=workspace_id or "default",
         )
 
+        # Core configuration for reliability
+        common_kwargs = {
+            "max_retries": 2,
+            "request_timeout": 30, # timeout in seconds
+        }
+
         if provider == "openai":
             llm = ChatOpenAI(
                 model=model,
                 api_key=ai_settings.OPENAI_API_KEY,
                 streaming=True,
+                **common_kwargs
             )
         elif provider == "anthropic":
             llm = ChatAnthropic(
                 model=model,
                 api_key=ai_settings.ANTHROPIC_API_KEY,
                 streaming=True,
+                **common_kwargs
             )
         elif provider == "ollama":
             llm = ChatOllama(
                 model=model,
                 base_url=ai_settings.OLLAMA_BASE_URL,
+                **common_kwargs
             )
         elif provider == "vllm":
             llm = ChatOpenAI(
@@ -65,6 +74,7 @@ async def get_llm(workspace_id: Optional[str] = None):
                 api_key="EMPTY",
                 base_url=ai_settings.VLLM_BASE_URL,
                 streaming=True,
+                **common_kwargs
             )
         elif provider == "llama-cpp":
             llm = ChatOpenAI(
@@ -72,9 +82,22 @@ async def get_llm(workspace_id: Optional[str] = None):
                 api_key="EMPTY",
                 base_url=ai_settings.LLAMACPP_BASE_URL,
                 streaming=True,
+                **common_kwargs
             )
         else:
             raise ValueError(f"Unsupported LLM provider: {provider}")
+
+        # --- PRODUCTION FALLBACK STRATEGY ---
+        # If the primary provider (e.g. OpenAI) fails, we can fallback 
+        # to a local instance to maintain service availability.
+        if provider != "ollama" and ai_settings.OLLAMA_BASE_URL:
+            fallback_llm = ChatOllama(
+                model="llama3:latest", # Hardcoded fallback target
+                base_url=ai_settings.OLLAMA_BASE_URL,
+                **common_kwargs
+            )
+            llm = llm.with_fallbacks([fallback_llm])
+            logger.info("llm_fallback_configured", primary=provider, secondary="ollama")
 
         duration = time.perf_counter() - start
         LLM_REQUEST_LATENCY.labels(provider=provider, operation="init").observe(duration)

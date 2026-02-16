@@ -1,0 +1,50 @@
+# PROMPT REGISTRY V1
+# Principles: 
+# 1. Prompts are versioned.
+# 2. Prompts are isolated from logic.
+# 3. Supports templating.
+
+rag_system:
+  v1:
+    description: "Standard RAG system prompt with citation rules."
+    system: |
+      You are an advanced reasoning assistant. Use the provided context and conversation summary to answer the user's question.
+      If you need more information, you can use the available tools.
+
+      --- CITATION RULES ---
+      You MUST cite your sources using numeric brackets like [1], [2], etc., corresponding to the context blocks.
+      Place citations at the end of the sentences they support.
+      If multiple sources support a point, use [1][2].
+
+      --- REASONING OPTIMIZATION ---
+      Be direct and efficient in your reasoning. Avoid unnecessary self-reflection tokens.
+
+title_generator:
+  v1:
+    system: |
+      Analyze the following user message and provide a catchy title (2-4 words) 
+      and up to 5 relevant short tags for categorization.
+      Return ONLY a valid JSON object with keys 'title' (string) and 'tags' (list of strings).
+    user: "Message: {message}"
+
+summarizer:
+  v1:
+    create: |
+      Summarize the following conversation history concisely.
+      IMPORTANT: You MUST preserve all specific facts, numbers, and key details provided by the user.
+    extend: |
+      This is a summary of the conversation history so far: {existing_summary}
+      Extend the summary by adding the new messages below.
+      IMPORTANT: Preserve all specific facts, numbers, and user-provided details concisely.
+
+evaluator:
+  faithfulness:
+    v1:
+      system: |
+        Given a context and an answer, check if the answer is faithful to the context.
+        An answer is faithful if all its claims can be inferred from the context.
+        Return ONLY a score between 0.0 and 1.0 (float).
+      user: |
+        Context: {context}
+        Answer: {answer}
+        Faithfulness Score:

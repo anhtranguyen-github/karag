@@ -7,10 +7,17 @@ from backend.app.services.task_service import task_service
 from backend.app.core.exceptions import ValidationError, NotFoundError
 from backend.app.schemas.base import AppResponse
 
+from backend.app.schemas.documents import (
+    ArxivUploadRequest, 
+    UrlImportRequest, 
+    SitemapImportRequest, 
+    GitHubImportRequest,
+    WorkspaceUpdate
+)
+
 router = APIRouter(tags=["documents"])
 
-
-@router.post("/upload")
+@router.post("/upload", response_model=AppResponse)
 async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
@@ -20,114 +27,79 @@ async def upload_document(
     result = await document_service.upload(file, workspace_id, strategy=strategy)
     
     if result["status"] == "success":
-        # Dispatch background task
         background_tasks.add_task(
             document_service.run_ingestion,
             result["task_id"], result["filename"], result["content"], result["content_type"], workspace_id
         )
-        # Remove binary content from response to avoid UnicodeDecodeError in JSON serialization
         if "content" in result:
             del result["content"]
 
     return AppResponse.from_result(result)
 
-
-@router.post("/upload-arxiv")
+@router.post("/upload-arxiv", response_model=AppResponse)
 async def upload_arxiv_document(
     background_tasks: BackgroundTasks,
-    request: Request,
+    payload: ArxivUploadRequest,
     workspace_id: str = "vault"
 ):
-    data = await request.json()
-    arxiv_url = data.get("url")
-    strategy = data.get("strategy")
-    if not arxiv_url:
-        return AppResponse.business_failure(
-            code="MISSING_URL",
-            message="arXiv URL or ID is required"
-        )
-
-    result = await document_service.upload_arxiv(arxiv_url, workspace_id, strategy=strategy)
+    result = await document_service.upload_arxiv(payload.url, workspace_id, strategy=payload.strategy)
 
     if result["status"] == "success":
-        # Dispatch background task
         background_tasks.add_task(
             document_service.run_ingestion,
             result["task_id"], result["filename"], result["content"], result["content_type"], workspace_id
         )
-        # Remove binary content from response
         if "content" in result:
             del result["content"]
 
     return AppResponse.from_result(result)
-@router.post("/import-url")
+
+@router.post("/import-url", response_model=AppResponse)
 async def import_url_document(
     background_tasks: BackgroundTasks,
-    request: Request,
+    payload: UrlImportRequest,
     workspace_id: str = "vault"
 ):
-    data = await request.json()
-    url = data.get("url")
-    strategy = data.get("strategy")
-    if not url:
-        return AppResponse.business_failure(
-            code="MISSING_URL",
-            message="URL is required"
-        )
-
-    result = await document_service.import_url(url, workspace_id, strategy=strategy)
+    url_str = str(payload.url)
+    result = await document_service.import_url(url_str, workspace_id, strategy=payload.strategy)
 
     if result["status"] == "success":
-        # Dispatch background task (Phase 0: Fetch URL in background)
         background_tasks.add_task(
             document_service.run_url_ingestion_background,
-            result["task_id"], url, result["filename"], workspace_id, strategy
+            result["task_id"], url_str, result["filename"], workspace_id, payload.strategy
         )
-        # Remove binary content from response
         if "content" in result:
             del result["content"]
 
     return AppResponse.from_result(result)
 
-
-@router.post("/import-sitemap")
+@router.post("/import-sitemap", response_model=AppResponse)
 async def import_sitemap_document(
     background_tasks: BackgroundTasks,
-    request: Request,
+    payload: SitemapImportRequest,
     workspace_id: str = "vault"
 ):
-    data = await request.json()
-    url = data.get("url")
-    if not url:
-        return AppResponse.business_failure(code="MISSING_URL", message="Sitemap URL is required")
-
-    result = await document_service.import_sitemap(url, workspace_id)
+    url_str = str(payload.url)
+    result = await document_service.import_sitemap(url_str, workspace_id)
     if result["status"] == "success":
         background_tasks.add_task(
             document_service.run_sitemap_background,
-            result["task_id"], url, workspace_id
+            result["task_id"], url_str, workspace_id
         )
     return AppResponse.from_result(result)
 
-
-
-@router.post("/import-github")
+@router.post("/import-github", response_model=AppResponse)
 async def import_github_document(
     background_tasks: BackgroundTasks,
-    request: Request,
+    payload: GitHubImportRequest,
     workspace_id: str = "vault"
 ):
-    data = await request.json()
-    url = data.get("url")
-    branch = data.get("branch", "main")
-    if not url:
-        return AppResponse.business_failure(code="MISSING_URL", message="GitHub URL is required")
-
-    result = await document_service.import_github(url, workspace_id, branch)
+    url_str = str(payload.url)
+    result = await document_service.import_github(url_str, workspace_id, payload.branch)
     if result["status"] == "success":
         background_tasks.add_task(
             document_service.run_github_background,
-            result["task_id"], url, branch, workspace_id
+            result["task_id"], url_str, payload.branch, workspace_id
         )
     return AppResponse.from_result(result)
 

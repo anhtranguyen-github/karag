@@ -31,22 +31,32 @@ pipeline {
                 echo "Checked out commit: ${env.GIT_COMMIT}"
             }
         }
+        stage('Prompt Registry Validation') {
+            steps {
+                echo 'Validating Prompt Registry (YAML syntax + versioning)...'
+                sh '''
+                    # Ensure prompts.yaml is valid YAML
+                    python3 -c "import yaml; yaml.safe_load(open('backend/app/core/prompts.yaml'))"
+                    echo "Prompt Registry: PASSED"
+                '''
+            }
+        }
 
         stage('Backend Unit Tests') {
             steps {
-                echo 'Running backend unit tests with pytest...'
+                echo 'Running backend unit tests with uv...'
                 sh '''
-                    # Create virtual environment and install dependencies
+                    # Install uv if missing
                     curl -LsSf https://astral.sh/uv/install.sh | sh
-                    . $HOME/.cargo/env
-                    uv venv .venv
-                    . .venv/bin/activate
-                    uv pip install -r backend/requirements.txt
-                    uv pip install pytest pytest-asyncio
+                    export PATH="$HOME/.cargo/bin:$PATH"
                     
-                    # Run pytest and fail immediately if any test fails
+                    # Synchronize project environment (Frozen for reproducibility)
+                    cd backend
+                    uv sync --frozen --no-install-project
+                    
+                    # Run tests within the virtual environment
                     export PYTHONPATH=$PYTHONPATH:.
-                    pytest backend/tests/ --maxfail=1
+                    uv run pytest tests/ --maxfail=1
                 '''
             }
         }

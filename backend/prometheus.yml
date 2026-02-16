@@ -8,4 +8,4 @@ scrape_configs:
     # Using host.docker.internal for Mac/Windows, or 172.17.0.1 for Linux
     # reliable approach for Linux is often --add-host host.docker.internal:host-gateway
     static_configs:
-      - targets: ['host.docker.internal:8000']
+      - targets: ['backend:8000']

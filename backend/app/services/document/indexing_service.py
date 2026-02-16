@@ -38,7 +38,7 @@ class IndexingService:
                 return 0
 
             settings = await settings_manager.get_settings(workspace_id)
-            target_coll = qdrant.get_collection_name(settings.embedding_dim)
+            target_coll = await qdrant.get_collection_name(workspace_id=workspace_id)
             if await qdrant.client.collection_exists(target_coll):
                 await qdrant.client.delete(
                     collection_name=target_coll,

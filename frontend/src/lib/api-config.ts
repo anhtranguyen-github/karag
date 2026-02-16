@@ -18,8 +18,8 @@ export const API_ROUTES = {
     DOCUMENTS_ALL: `${API_BASE_URL}/documents-all`,
     DOCUMENTS_UPDATE_WS: `${API_BASE_URL}/documents/update-workspaces`,
     VAULT: `${API_BASE_URL}/vault`,
-    DOCUMENT_GET: (name: string) => `${API_BASE_URL}/documents/${encodeURIComponent(name)}`,
-    DOCUMENT_DELETE: (name: string) => `${API_BASE_URL}/documents/${encodeURIComponent(name)}`,
+    DOCUMENT_GET: (id: string) => `${API_BASE_URL}/documents/${encodeURIComponent(id)}`,
+    DOCUMENT_DELETE: (id: string) => `${API_BASE_URL}/documents/${encodeURIComponent(id)}`,
     UPLOAD: `${API_BASE_URL}/upload`,
     SETTINGS: `${API_BASE_URL}/settings/`,
     SETTINGS_METADATA: `${API_BASE_URL}/settings/metadata`,
@@ -36,6 +36,9 @@ export const API_ROUTES = {
     EVAL_DATASETS: `${API_BASE_URL}/eval/datasets`,
     EVAL_RUNS: `${API_BASE_URL}/eval/runs`,
     EVAL_RUN_DETAIL: (id: string) => `${API_BASE_URL}/eval/runs/${encodeURIComponent(id)}`,
+    ADMIN_PROMPTS: `${API_BASE_URL}/admin/prompts`,
+    ADMIN_VECTOR_STATUS: `${API_BASE_URL}/admin/vector/status`,
+    ADMIN_OPS_OVERVIEW: `${API_BASE_URL}/admin/ops/overview`,
 };
 
 export const EXTERNAL_SERVICES = {

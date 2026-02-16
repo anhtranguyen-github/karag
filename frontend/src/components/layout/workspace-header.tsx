@@ -19,10 +19,9 @@ export function WorkspaceHeader({ onWorkspaceClick }: WorkspaceHeaderProps) {
     const pathname = usePathname();
 
     const navItems = [
-        { href: `/workspaces/${workspaceId}`, label: 'Overview', icon: Home },
         { href: `/workspaces/${workspaceId}/chat`, label: 'Chat', icon: MessageSquare },
         { href: `/workspaces/${workspaceId}/documents`, label: 'Documents', icon: FileText },
-        { href: `/workspaces/${workspaceId}/kernel`, label: 'Settings', icon: Settings },
+        { href: `/workspaces/${workspaceId}/settings`, label: 'Settings', icon: Settings },
     ];
 
 

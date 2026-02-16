@@ -162,16 +162,44 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    container_name: ai-jaeger
-    restart: unless-stopped
+  nginx:
+    image: nginx:alpine
+    container_name: ai-nginx
     ports:
-      - "16686:16686" # UI
-      - "4317:4317" # OTLP gRPC
-      - "4318:4318" # OTLP HTTP
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - ai_architect_network
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: ai-backend
     environment:
-      - COLLECTOR_OTLP_ENABLED=true
+      - OTEL_ENABLED=true
+      - OTEL_SERVICE_NAME=backend
+      - OTEL_EXPORTER_ENDPOINT=http://jaeger:4317
+      - METRICS_ENABLED=true
+    depends_on:
+      - mongodb
+      - qdrant
+      - minio
+      - jaeger
+    networks:
+      - ai_architect_network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: ai-frontend
+    depends_on:
+      - backend
     networks:
       - ai_architect_network
 
@@ -185,6 +213,19 @@ services:
       - ./backend/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    networks:
+      - ai_architect_network
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: ai-jaeger
+    restart: unless-stopped
+    ports:
+      - "16686:16686" # UI
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
     networks:
       - ai_architect_network
 

@@ -44,6 +44,14 @@ class MinioManager:
                 if not self.client.bucket_exists(bucket):
                     logger.info("minio_bucket_create", bucket=bucket)
                     self.client.make_bucket(bucket)
+                    # Production Requirement: Enable Versioning for Data Ops
+                    try:
+                        from minio.versioningconfig import VersioningConfig
+                        from minio.commonconfig import ENABLED
+                        self.client.set_bucket_versioning(bucket, VersioningConfig(ENABLED))
+                        logger.info("minio_versioning_enabled", bucket=bucket)
+                    except Exception as ve:
+                        logger.warning("minio_versioning_config_failed", bucket=bucket, error=str(ve))
                 else:
                     logger.debug("minio_bucket_exists", bucket=bucket)
             except S3Error as e:

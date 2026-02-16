@@ -33,7 +33,7 @@ async def lifespan(app: FastAPI):
     from backend.app.core.settings_manager import settings_manager
     global_settings = settings_manager.get_global_settings()
     target_dim = global_settings.embedding_dim
-    coll_name = qdrant.get_collection_name(target_dim)
+    coll_name = await qdrant.get_collection_name()
     
     logger.info("vector_init", msg=f"Ensuring active collection: {coll_name} (Dim: {target_dim})")
     await qdrant.create_collection(coll_name, target_dim)

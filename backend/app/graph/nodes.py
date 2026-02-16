@@ -137,19 +137,14 @@ async def reason_node(state: AgentState, config: RunnableConfig) -> Dict:
             else ""
         )
 
+        from backend.app.core.prompt_manager import prompt_manager
+        system_base = prompt_manager.get_prompt("rag_system.system", version="v1")
+        
         system_prompt = SystemMessage(
             content=(
-                "You are an advanced reasoning assistant. Use the provided context and conversation summary to answer the user's question. "
-                "If you need more information, you can use the available tools. "
-                "\n\n--- CITATION RULES ---\n"
-                "You MUST cite your sources using numeric brackets like [1], [2], etc., corresponding to the context blocks. "
-                "Place citations at the end of the sentences they support. "
-                "If multiple sources support a point, use [1][2]. "
-                "\n\n--- REASONING OPTIMIZATION (NOWAIT) ---\n"
-                "Be direct and efficient in your reasoning. Avoid unnecessary self-reflection tokens. "
-                + summary_context
-                + "\n\n--- CONTEXT ---\n"
-                + context_str
+                f"{system_base}\n\n"
+                f"{summary_context}\n\n--- CONTEXT ---\n"
+                f"{context_str}"
             )
         )
 
@@ -168,10 +163,24 @@ async def reason_node(state: AgentState, config: RunnableConfig) -> Dict:
             response = AIMessage(content=error_msg)
             return {"messages": [response], "reasoning_steps": state.get("reasoning_steps", []) + ["Internal reasoning error"]}
 
+        # Determine provider and model for metrics
+        provider_name = type(llm).__name__
+        model_name = getattr(llm, "model_name", getattr(llm, "model", "unknown"))
+
+        # Extract token usage (LangChain standard)
+        usage = getattr(response, "usage_metadata", {})
+        if usage:
+            from backend.app.core.telemetry import record_llm_usage
+            record_llm_usage(
+                provider=provider_name,
+                model=model_name,
+                prompt_tokens=usage.get("input_tokens", 0),
+                completion_tokens=usage.get("output_tokens", 0),
+                workspace_id=workspace_id
+            )
+
         duration = time.perf_counter() - start
 
-        # Determine provider for metrics
-        provider_name = type(llm).__name__
         LLM_REQUEST_LATENCY.labels(
             provider=provider_name, operation="reason"
         ).observe(duration)
@@ -186,24 +195,12 @@ async def reason_node(state: AgentState, config: RunnableConfig) -> Dict:
         response.additional_kwargs["reasoning_steps"] = current_steps
         response.additional_kwargs["sources"] = state.get("sources", [])
 
+        span.set_attribute("llm.model", model_name)
         span.set_attribute("graph.has_tool_calls", bool(response.tool_calls))
         span.set_attribute("graph.response_length", len(response.content))
         span.set_attribute(
             "graph.duration_ms", round(duration * 1000, 2)
         )
-
-        if response.tool_calls:
-            logger.info(
-                "graph_reason_tool_calls",
-                num_calls=len(response.tool_calls),
-                tools=[tc["name"] for tc in response.tool_calls],
-            )
-        else:
-            logger.info(
-                "graph_reason_direct_response",
-                response_length=len(response.content),
-                duration_ms=round(duration * 1000, 2),
-            )
 
         return {"messages": [response], "reasoning_steps": current_steps}
 
@@ -246,6 +243,18 @@ async def generate_node(state: AgentState) -> Dict:
             SystemMessage(content=full_system)
         ] + state["messages"])
         
+        # Record usage
+        usage = getattr(response, "usage_metadata", {})
+        if usage:
+            from backend.app.core.telemetry import record_llm_usage
+            record_llm_usage(
+                provider=type(llm).__name__,
+                model=getattr(llm, "model_name", getattr(llm, "model", "unknown")),
+                prompt_tokens=usage.get("input_tokens", 0),
+                completion_tokens=usage.get("output_tokens", 0),
+                workspace_id=workspace_id
+            )
+
         response.additional_kwargs["reasoning_steps"] = final_steps
         response.additional_kwargs["sources"] = state.get("sources", [])
         
@@ -275,24 +284,32 @@ async def summarize_node(state: AgentState) -> Dict:
             workspace_id=workspace_id,
         )
 
+        from backend.app.core.prompt_manager import prompt_manager
         existing_summary = state.get("summary", "")
         if existing_summary:
-            summary_prompt = (
-                f"This is a summary of the conversation history so far: {existing_summary}\n\n"
-                "Extend the summary by adding the new messages below. "
-                "IMPORTANT: Preserve all specific facts, numbers, and user-provided details concisely."
+            summary_prompt_base = prompt_manager.get_prompt("summarizer.extend", version="v1")
+            summary_prompt = prompt_manager.format_prompt(
+                summary_prompt_base, existing_summary=existing_summary
             )
         else:
-            summary_prompt = (
-                "Summarize the following conversation history concisely. "
-                "IMPORTANT: You MUST preserve all specific facts, numbers, and key details provided by the user."
-            )
+            summary_prompt = prompt_manager.get_prompt("summarizer.create", version="v1")
 
         messages_to_summarize = messages[:-2]
 
         response = await llm.ainvoke(
             [SystemMessage(content=summary_prompt)] + messages_to_summarize
         )
+
+        # Record usage
+        usage = getattr(response, "usage_metadata", {})
+        if usage:
+            from backend.app.core.telemetry import record_llm_usage
+            record_llm_usage(
+                provider=type(llm).__name__,
+                model=getattr(llm, "model_name", getattr(llm, "model", "unknown")),
+                prompt_tokens=usage.get("input_tokens", 0),
+                completion_tokens=usage.get("output_tokens", 0)
+            )
 
         new_summary = response.content
         delete_messages = [

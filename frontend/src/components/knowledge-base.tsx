@@ -168,7 +168,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    name: doc.name,
+                    document_id: doc.id,
                     target_workspace_id: workspaceId,
                     action: 'link',
                     force_reindex: false
@@ -380,7 +380,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    name: duplicateData.name,
+                    document_id: duplicateData.id,
                     target_workspace_id: workspaceId,
                     action: 'link',
                     force_reindex: false
@@ -402,9 +402,9 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         }
     };
 
-    const handleDelete = async (name: string, vaultDelete: boolean = false) => {
+    const handleDelete = async (id: string, vaultDelete: boolean = false) => {
         try {
-            const url = new URL(API_ROUTES.DOCUMENT_DELETE(name));
+            const url = new URL(API_ROUTES.DOCUMENT_DELETE(id));
             // FIXED: Use specific document workspace context to avoid 404 in Global view
             const targetWs = deletingDoc?.workspace_id || workspaceId;
             url.searchParams.append('workspace_id', targetWs);
@@ -417,11 +417,11 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                 method: 'DELETE',
             });
             if (res.ok) {
-                setDocuments((prev) => prev.filter((d) => d.name !== name));
+                setDocuments((prev) => prev.filter((d) => d.id !== id));
                 setDeletingDoc(null);
             } else {
                 const payload = await res.json();
-                showError("Operation Failed", payload.message || 'Document deletion failed.', `Resource: ${name}`);
+                showError("Operation Failed", payload.message || 'Document deletion failed.', `ID: ${id}`);
             }
         } catch (err) {
             console.error('Failed to delete document', err);
@@ -439,7 +439,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    name: managingDoc.name,
+                    document_id: managingDoc.id,
                     target_workspace_id: shareTarget,
                     action: manageMode,
                     force_reindex: true
@@ -463,16 +463,16 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         }
     };
 
-    const handleView = async (name: string) => {
+    const handleView = async (id: string, name: string) => {
         setIsViewing(true);
         try {
-            const res = await fetch(API_ROUTES.DOCUMENT_GET(name));
+            const res = await fetch(API_ROUTES.DOCUMENT_GET(id));
             if (res.ok) {
                 const payload = await res.json();
                 const data = payload.data;
                 setActiveSource({
                     id: 0,
-                    name: data.name || data.filename,
+                    name: data.filename || name,
                     content: data.content,
                     download_url: data.download_url
                 });
@@ -480,7 +480,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
 
             } else {
                 const payload = await res.json();
-                showError("Retrieval Failure", payload.message || 'Could not fetch document content.', `Source: ${name}`);
+                showError("Retrieval Failure", payload.message || 'Could not fetch document content.', `ID: ${id}`);
             }
         } catch (err) {
             console.error('Failed to view document', err);
@@ -493,8 +493,9 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
 
     const handleDetailView = async (doc: Document) => {
         setIsDetailsLoading(true);
+        const docId = doc.id || doc.name;
         try {
-            const res = await fetch(`${API_ROUTES.DOCUMENTS}/${encodeURIComponent(doc.name)}/inspect`);
+            const res = await fetch(`${API_ROUTES.DOCUMENTS}/${encodeURIComponent(docId)}/inspect`);
             if (res.ok) {
                 const payload = await res.json();
                 setDetailsDoc(payload.data);
@@ -1059,7 +1060,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
 
                                 <div className="flex items-center gap-3">
                                     <button
-                                        onClick={() => handleView(doc.name)}
+                                        onClick={() => handleView(doc.id!, doc.name)}
                                         className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white/5 text-gray-500 hover:text-indigo-400 hover:bg-white/10 transition-all active:scale-90"
                                         title="View Content"
                                     >
@@ -1437,7 +1438,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                                         method: 'POST',
                                                         headers: { 'Content-Type': 'application/json' },
                                                         body: JSON.stringify({
-                                                            name: managingDoc.name,
+                                                            document_id: managingDoc.id,
                                                             target_workspace_id: confirmingAction.workspace_id,
                                                             action: 'link'
                                                         })
@@ -1451,7 +1452,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                                     }
                                                 } else {
                                                     // Remove index
-                                                    const res = await fetch(`${API_ROUTES.DOCUMENTS}/${encodeURIComponent(managingDoc.name)}?workspace_id=${encodeURIComponent(confirmingAction.workspace_id)}&vault_delete=false`, {
+                                                    const res = await fetch(`${API_ROUTES.DOCUMENTS}/${encodeURIComponent(managingDoc.id!)}?workspace_id=${encodeURIComponent(confirmingAction.workspace_id)}&vault_delete=false`, {
                                                         method: 'DELETE'
                                                     });
                                                     if (res.ok) {
@@ -1524,15 +1525,15 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                     </div>
                                 </div>
 
-                                <div className="space-y-4">
+                                <div className="flex flex-col gap-3">
                                     <button
-                                        onClick={() => handleDelete(deletingDoc.name, false)}
+                                        onClick={() => handleDelete(deletingDoc.id!)}
                                         className="w-full py-5 rounded-2xl bg-white/5 border border-white/5 text-white hover:bg-white/10 transition-all text-tiny font-black tracking-widest"
                                     >
                                         REMOVE FROM WORKSPACE ONLY
                                     </button>
                                     <button
-                                        onClick={() => handleDelete(deletingDoc.name, true)}
+                                        onClick={() => handleDelete(deletingDoc.id!, true)}
                                         data-testid="confirm-purge-btn"
                                         className="w-full py-5 rounded-2xl bg-red-500 text-white hover:bg-red-400 transition-all text-tiny font-black tracking-widest shadow-xl shadow-red-500/20"
                                     >

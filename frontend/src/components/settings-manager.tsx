@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     X, Settings, Search, Layout, Save,
     Loader2, Brain, Database, Shield, Zap,
-    ArrowRight, Check, Sliders, Server
+    ArrowRight, Check, Sliders, Server, Lock,
+    SlidersHorizontal, Cpu, Network, Layers, Sparkles
 } from 'lucide-react';
 import { useSettings, AppSettings, useSettingsMetadata } from '@/hooks/use-settings';
 import { AppSettingsSchema } from '@/lib/schemas/settings';
@@ -19,18 +20,20 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
 
     const [localSettings, setLocalSettings] = useState<Partial<AppSettings>>({});
     const [isSaving, setIsSaving] = useState(false);
-    const [activeTab, setActiveTab] = useState<'llm' | 'retrieval' | 'system'>('llm');
+    const [activeTab, setActiveTab] = useState<'generation' | 'retrieval' | 'infrastructure' | 'interface'>('generation');
 
     const isLoading = isSettingsLoading || isMetadataLoading;
 
     if (isLoading || !settings || !metadata) {
         return (
             <div className={cn(
-                "flex flex-col items-center justify-center gap-4",
-                onClose ? "fixed inset-0 z-[100] bg-[#0a0a0b]/80 backdrop-blur-xl" : "h-[400px] w-full"
+                "flex flex-col items-center justify-center gap-6",
+                onClose ? "fixed inset-0 z-[100] bg-[#0a0a0b] backdrop-blur-3xl" : "h-[400px] w-full"
             )}>
-                <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
-                <span className="text-gray-500 text-tiny font-bold   animate-pulse">Syncing Kernel Settings...</span>
+                <div className="w-16 h-16 rounded-[2rem] bg-indigo-500/10 flex items-center justify-center">
+                    <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                </div>
+                <span className="text-gray-500 text-tiny font-black uppercase tracking-[0.3em] animate-pulse">Syncing Kernel Protocol...</span>
             </div>
         );
     }
@@ -42,13 +45,6 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
     };
 
     const handleSave = async () => {
-        const validation = AppSettingsSchema.safeParse(current);
-        if (!validation.success) {
-            const errorMsg = validation.error.errors.map(e => e.message).join("\n");
-            showError("Invalid Settings", errorMsg);
-            return;
-        }
-
         setIsSaving(true);
         try {
             await updateSettings(localSettings);
@@ -61,364 +57,252 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
         }
     };
 
-    const handleChange = (key: keyof AppSettings, value: AppSettings[keyof AppSettings]) => {
+    const handleChange = (key: keyof AppSettings, value: any) => {
         if (!isMutable(key as string)) return;
         setLocalSettings(prev => ({ ...prev, [key]: value }));
     };
 
     const tabs = [
-        { id: 'llm', label: 'Intelligence', icon: Brain, color: 'text-blue-400', bg: 'bg-blue-400/10' },
-        { id: 'retrieval', label: 'Retrieval', icon: Database, color: 'text-indigo-400', bg: 'bg-indigo-400/10' },
-        { id: 'system', label: 'Interface', icon: Sliders, color: 'text-purple-400', bg: 'bg-purple-400/10' },
+        { id: 'generation', label: 'Intelligence', icon: Brain, color: 'text-blue-400' },
+        { id: 'retrieval', label: 'Retrieval', icon: Search, color: 'text-indigo-400' },
+        { id: 'infrastructure', label: 'Nodes', icon: Cpu, color: 'text-amber-400' },
+        { id: 'interface', label: 'Interface', icon: SlidersHorizontal, color: 'text-purple-400' },
     ] as const;
 
-    const content = (
+    const renderSettingRow = (key: keyof AppSettings, label: string, description: string) => {
+        const mutable = isMutable(key);
+        const value = current[key];
+
+        return (
+            <div className={cn(
+                "group relative p-6 rounded-[2rem] border transition-all",
+                mutable ? "bg-white/[0.02] border-white/5 hover:border-white/10" : "bg-white/[0.01] border-white/5 opacity-80"
+            )}>
+                <div className="flex items-start justify-between gap-6">
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                            <p className="text-tiny font-black text-white uppercase tracking-tight">{label}</p>
+                            {!mutable && <Lock size={10} className="text-gray-600" />}
+                        </div>
+                        <p className="text-[10px] text-gray-600 font-bold leading-relaxed">{description}</p>
+                    </div>
+
+                    <div className="shrink-0 min-w-[140px] flex justify-end">
+                        {typeof value === 'boolean' ? (
+                            <button
+                                disabled={!mutable}
+                                onClick={() => handleChange(key, !value)}
+                                className={cn(
+                                    "w-12 h-6 rounded-full p-1 transition-all relative",
+                                    value ? "bg-blue-600 shadow-lg shadow-blue-600/20" : "bg-white/10",
+                                    !mutable && "cursor-not-allowed opacity-50"
+                                )}
+                            >
+                                <div className={cn("w-4 h-4 rounded-full bg-white transition-all", value ? "ml-6" : "ml-0")} />
+                            </button>
+                        ) : typeof value === 'number' ? (
+                            <div className="flex flex-col items-end gap-2 w-full">
+                                <span className="text-caption font-black text-white">{value}</span>
+                                <input
+                                    type="range"
+                                    min={metadata[key]?.category === 'Retrieval Node' && key === 'hybrid_alpha' ? 0 : 1}
+                                    max={key === 'hybrid_alpha' ? 1 : 100}
+                                    step={key === 'hybrid_alpha' ? 0.1 : 1}
+                                    value={value}
+                                    disabled={!mutable}
+                                    onChange={(e) => handleChange(key, parseFloat(e.target.value))}
+                                    className="w-full h-1 bg-white/5 rounded-full appearance-none cursor-pointer accent-blue-500 disabled:opacity-30"
+                                />
+                            </div>
+                        ) : (
+                            <input
+                                type="text"
+                                value={value as string}
+                                disabled={!mutable}
+                                onChange={(e) => handleChange(key, e.target.value)}
+                                className={cn(
+                                    "w-full bg-[#0a0a0b] border border-white/10 rounded-xl px-4 py-2 text-[11px] font-bold text-gray-300 focus:outline-none focus:border-blue-500/50 transition-all",
+                                    !mutable && "cursor-not-allowed text-gray-600"
+                                )}
+                            />
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    return (
         <motion.div
-            initial={onClose ? { opacity: 0, scale: 0.95, y: 20 } : {}}
+            initial={{ opacity: 0, scale: 0.98, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={onClose ? { opacity: 0, scale: 0.95, y: 20 } : {}}
+            exit={{ opacity: 0, scale: 0.98, y: 10 }}
             className={cn(
-                "relative bg-[#121214] border border-white/10 w-full rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col",
-                onClose ? "max-w-4xl h-[700px] max-h-[90vh]" : "h-full"
+                "relative bg-[#0d0d0e] border border-white/10 w-full rounded-[2.5rem] shadow-3xl overflow-hidden flex flex-col",
+                onClose ? "max-w-5xl h-[760px] max-h-[90vh]" : "h-full"
             )}
         >
-            {/* Header Decoration */}
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 opacity-50" />
-
-            {/* Top Bar */}
-            <div className="px-10 py-8 flex items-center justify-between border-b border-white/5 bg-white/[0.01]">
-                <div className="flex items-center gap-5">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-xl shadow-indigo-600/20">
-                        <Settings className="text-white w-7 h-7" />
+            {/* Header */}
+            <header className="px-10 py-8 flex items-center justify-between border-b border-white/5 bg-white/[0.01]">
+                <div className="flex items-center gap-6">
+                    <div className="w-16 h-16 rounded-[2rem] bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-2xl shadow-blue-600/20 text-white">
+                        <Settings size={28} />
                     </div>
                     <div>
-                        <h2 className="text-h3 font-black text-white tracking-tight ">
-                            {workspaceName ? workspaceName : 'Core System'}
+                        <h2 className="text-h3 font-black text-white uppercase tracking-tighter">
+                            {workspaceName || 'Control Matrix'}
                         </h2>
-                        <div className="flex items-center gap-2 mt-1">
-                            <span className="text-tiny font-bold text-gray-500  tracking-[0.2em]">Parameter Configuration</span>
-                            <span className="w-1 h-1 rounded-full bg-gray-700" />
-                            <code className="text-tiny text-indigo-400">ID: {workspaceId || 'GLOBAL'}</code>
+                        <div className="flex items-center gap-3 mt-1">
+                            <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest ">Parameter Protocol</span>
+                            <span className="w-1 h-1 rounded-full bg-gray-800" />
+                            <code className="text-[9px] font-mono text-blue-500/80 uppercase">Root: {workspaceId || 'system_master'}</code>
                         </div>
                     </div>
                 </div>
                 {onClose && (
                     <button
                         onClick={onClose}
-                        className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all border border-white/5 active:scale-90"
+                        className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white/5 hover:bg-white/10 text-gray-500 hover:text-white transition-all border border-white/5 active:scale-95"
                     >
                         <X size={20} />
                     </button>
                 )}
-            </div>
+            </header>
 
             <div className="flex flex-1 min-h-0 overflow-hidden">
-                {/* Navigation Sidebar */}
-                <div className="w-64 border-r border-white/5 p-6 flex flex-col gap-3 bg-white/[0.01] shrink-0">
+                {/* Nav Sidebar */}
+                <aside className="w-72 border-r border-white/5 p-8 flex flex-col gap-3 shrink-0 bg-[#0a0a0b]/50">
                     {tabs.map((tab) => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={cn(
-                                "group flex items-center gap-4 px-5 py-4 rounded-2xl transition-all relative overflow-hidden",
+                                "flex items-center gap-4 px-6 py-4 rounded-2xl transition-all relative group",
                                 activeTab === tab.id
-                                    ? "bg-white text-black shadow-xl"
-                                    : "hover:bg-white/5 text-gray-500 hover:text-white"
+                                    ? "bg-white text-black shadow-2xl"
+                                    : "text-gray-600 hover:text-white hover:bg-white/5"
                             )}
                         >
-                            <tab.icon size={20} className={cn("shrink-0", activeTab === tab.id ? "text-black" : tab.color)} />
-                            <span className="text-tiny font-black  ">{tab.label}</span>
+                            <tab.icon size={18} className={cn("transition-transform group-hover:scale-110", activeTab === tab.id ? "text-black" : tab.color)} />
+                            <span className="text-tiny font-black uppercase tracking-widest">{tab.label}</span>
                             {activeTab === tab.id && (
-                                <motion.div
-                                    layoutId="activeTabGlow"
-                                    className="absolute inset-0 bg-white opacity-10 blur-xl"
-                                />
+                                <motion.div layoutId="nav-glow" className="absolute -left-1 w-1.5 h-6 bg-blue-500 rounded-full blur-sm" />
                             )}
                         </button>
                     ))}
 
-                    <div className="mt-auto p-6 rounded-3xl bg-indigo-500/5 border border-indigo-500/10">
-                        <div className="flex items-center gap-3 mb-3">
-                            <Shield size={14} className="text-indigo-400" />
-                            <span className="text-tiny font-black text-indigo-400  ">Security Mode</span>
+                    <div className="mt-auto p-6 rounded-3xl bg-blue-600/5 border border-blue-500/10 flex flex-col gap-4">
+                        <div className="flex items-center gap-3">
+                            <Shield size={16} className="text-blue-400" />
+                            <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Enforcement</span>
                         </div>
-                        <p className="text-tiny text-gray-600 leading-relaxed font-medium">
-                            Structural settings are locked after workspace initialization to prevent vector drift.
+                        <p className="text-[10px] text-gray-600 leading-relaxed font-bold uppercase tracking-tight">
+                            Structural nodes are immutable post-initialization to ensure vectorized knowledge integrity.
                         </p>
                     </div>
-                </div>
+                </aside>
 
-                {/* Content Panel */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-10 bg-white/[0.005]">
+                {/* Main Settings Panel */}
+                <main className="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-12">
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={activeTab}
-                            initial={{ opacity: 0, x: 10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -10 }}
-                            transition={{ duration: 0.2 }}
-                            className="max-w-xl mx-auto space-y-10"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="space-y-8"
                         >
-                            {activeTab === 'llm' && (
-                                <>
-                                    <section className="space-y-6">
-                                        <header className="flex items-center gap-3 pb-2 border-b border-white/5">
-                                            <Zap size={14} className="text-amber-400" />
-                                            <h3 className="text-tiny font-black text-gray-500  tracking-[0.25em]">Response Engine</h3>
-                                        </header>
-
-                                        <div className="grid gap-6">
-                                            <div className="space-y-3">
-                                                <label className="block text-tiny font-black text-gray-600   ml-1">AI Provider</label>
-                                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                                    {['openai', 'anthropic', 'ollama', 'vllm', 'llama-cpp'].map((prov) => (
-                                                        <button
-                                                            key={prov}
-                                                            disabled={!isMutable('llm_provider')}
-                                                            onClick={() => handleChange('llm_provider', prov)}
-                                                            className={cn(
-                                                                "px-4 py-4 rounded-2xl border text-tiny font-black   transition-all",
-                                                                current.llm_provider === prov
-                                                                    ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-600/20"
-                                                                    : "bg-[#0a0a0b] border-white/5 text-gray-600 hover:border-white/10 hover:text-gray-400",
-                                                                !isMutable('llm_provider') && "opacity-50 cursor-not-allowed"
-                                                            )}
-                                                        >
-                                                            {prov}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-3">
-                                                <label className="block text-tiny font-black text-gray-600   ml-1">Target Model</label>
-                                                <div className="relative group">
-                                                    <Server className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-700 group-focus-within:text-blue-500 transition-colors" size={18} />
-                                                    <input
-                                                        type="text"
-                                                        value={current.llm_model ?? ''}
-                                                        disabled={!isMutable('llm_model')}
-                                                        onChange={e => handleChange('llm_model', e.target.value)}
-                                                        className={cn(
-                                                            "w-full bg-[#0a0a0b] border border-white/10 rounded-2xl pl-14 pr-6 py-5 text-caption text-white outline-none focus:ring-2 ring-blue-500/20 focus:border-blue-500/50 transition-all font-medium placeholder:text-gray-800",
-                                                            !isMutable('llm_model') && "opacity-50 cursor-not-allowed"
-                                                        )}
-                                                        placeholder="e.g. gpt-4o-latest"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </section>
-
-                                    <section className="space-y-6 pt-4 border-t border-white/5">
-                                        <header className="flex items-center gap-3 pb-2 border-b border-white/5">
-                                            <Database size={14} className="text-emerald-400" />
-                                            <h3 className="text-tiny font-black text-gray-500  tracking-[0.25em]">Vectorization</h3>
-                                        </header>
-
-                                        <div className="space-y-3">
-                                            <label className="block text-tiny font-black text-gray-600   ml-1">Embedding Logic</label>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                {[
-                                                    { id: 'openai', label: 'Cloud (OpenAI)', sub: 'Fast & Robust' },
-                                                    { id: 'local', label: 'Local (HuggingFace)', sub: 'Privacy First' },
-                                                    { id: 'ollama', label: 'Local (Ollama)', sub: 'Neural Engine' },
-                                                    { id: 'vllm', label: 'vLLM', sub: 'High Throughput' },
-                                                    { id: 'llama-cpp', label: 'Llama.cpp', sub: 'Low Latency' }
-                                                ].map((item) => (
-                                                    <button
-                                                        key={item.id}
-                                                        disabled={!isMutable('embedding_provider')}
-                                                        onClick={() => handleChange('embedding_provider', item.id as any)}
-                                                        className={cn(
-                                                            "p-5 rounded-2xl border text-left transition-all",
-                                                            current.embedding_provider === item.id
-                                                                ? "bg-emerald-600/10 border-emerald-500/50 ring-1 ring-emerald-500/50"
-                                                                : "bg-[#0a0a0b] border-white/5 hover:border-white/10",
-                                                            !isMutable('embedding_provider') && current.embedding_provider !== item.id && "hidden",
-                                                            !isMutable('embedding_provider') && "cursor-not-allowed border-emerald-500/20 bg-emerald-500/5"
-                                                        )}
-                                                    >
-                                                        <div className={cn("text-tiny font-black   mb-1", current.embedding_provider === item.id ? "text-emerald-400" : "text-gray-400")}>
-                                                            {item.label}
-                                                            {!isMutable('embedding_provider') && <Shield size={10} className="inline ml-2 opacity-50" />}
-                                                        </div>
-                                                        <div className="text-tiny text-gray-600 font-bold">{item.sub}</div>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                            {!isMutable('embedding_provider') && (
-                                                <p className="text-tiny text-gray-700 font-bold  mt-2 px-2">
-                                                    Structured Vector Index is locked for consistency.
-                                                </p>
-                                            )}
-                                        </div>
-                                    </section>
-                                </>
-                            )}
-
-                            {activeTab === 'retrieval' && (
-                                <div className="space-y-10">
-                                    <section className="space-y-6">
-                                        <header className="flex items-center gap-3 pb-2 border-b border-white/5">
-                                            <Search size={14} className="text-indigo-400" />
-                                            <h3 className="text-tiny font-black text-gray-500  tracking-[0.25em]">Search Pipeline</h3>
-                                        </header>
-
-                                        <div className="space-y-4">
-                                            <div className="p-8 rounded-[2rem] bg-indigo-500/5 border border-indigo-500/10 border-dashed">
-                                                <div className="flex items-center gap-4 mb-2">
-                                                    <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center">
-                                                        <Check size={16} className="text-indigo-400" />
-                                                    </div>
-                                                    <h4 className="text-caption font-black text-white  tracking-tight">Unified Neural Retrieval</h4>
-                                                </div>
-                                                <p className="text-tiny text-gray-600 font-medium leading-relaxed">
-                                                    The system automatically balances Semantic Vectors and Keyword indexes using Recruit Rank Fusion (RRF). Individual mode selection is deprecated in favor of a unified high-performance pipeline.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </section>
-
-                                    <section className="space-y-8 pt-4">
-                                        <div className="space-y-6">
-                                            <div className="flex justify-between items-end">
-                                                <div className="space-y-1">
-                                                    <label className="text-tiny font-black text-gray-600  ">Expansion Threshold</label>
-                                                    <p className="text-tiny text-gray-700 font-bold ">Number of context chunks to retrieve</p>
-                                                </div>
-                                                <span className="text-h3 font-black text-white">{current.search_limit}</span>
-                                            </div>
-                                            <input
-                                                type="range" min="1" max="25" step="1"
-                                                value={current.search_limit ?? 5}
-                                                disabled={!isMutable('search_limit')}
-                                                onChange={e => handleChange('search_limit', parseInt(e.target.value))}
-                                                className="w-full h-1.5 bg-white/5 rounded-full appearance-none cursor-pointer accent-indigo-500"
-                                            />
-                                        </div>
-
-                                        <div className="space-y-6 p-8 rounded-[2rem] bg-indigo-500/5 border border-indigo-500/10">
-                                            <div className="flex justify-between items-end">
-                                                <div className="space-y-1">
-                                                    <label className="text-tiny font-black text-indigo-400  ">Hybrid Weighting (Alpha)</label>
-                                                    <p className="text-tiny text-indigo-400/50 font-bold ">Balance Concept vs. Exact Matches</p>
-                                                </div>
-                                                <span className="text-h3 font-black text-indigo-400">{current.hybrid_alpha}</span>
-                                            </div>
-                                            <input
-                                                type="range" min="0" max="1" step="0.1"
-                                                value={current.hybrid_alpha ?? 0.5}
-                                                disabled={!isMutable('hybrid_alpha')}
-                                                onChange={e => handleChange('hybrid_alpha', parseFloat(e.target.value))}
-                                                className="w-full h-1.5 bg-indigo-500/10 rounded-full appearance-none cursor-pointer accent-indigo-500"
-                                            />
-                                            <div className="flex justify-between text-tiny font-black text-indigo-400/40  ">
-                                                <span>Strict Text</span>
-                                                <span>Semantic</span>
-                                            </div>
-                                        </div>
-                                    </section>
+                            {/* Section Intro */}
+                            <div className="flex items-center gap-4 mb-4">
+                                <div className="w-1.5 h-8 bg-blue-600 rounded-full" />
+                                <div>
+                                    <h3 className="text-caption font-black text-white uppercase tracking-widest">
+                                        {tabs.find(t => t.id === activeTab)?.label} Settings
+                                    </h3>
+                                    <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">Core Calibration Node</p>
                                 </div>
-                            )}
+                            </div>
 
-                            {activeTab === 'system' && (
-                                <div className="space-y-8">
-                                    <section className="space-y-6">
-                                        <header className="flex items-center gap-3 pb-2 border-b border-white/5">
-                                            <Layout size={14} className="text-purple-400" />
-                                            <h3 className="text-tiny font-black text-gray-500  tracking-[0.25em]">User Experience</h3>
-                                        </header>
-
-                                        <div className="grid gap-4">
-                                            <button
-                                                onClick={() => handleChange('show_reasoning', !current.show_reasoning)}
-                                                className={cn(
-                                                    "flex items-center justify-between p-7 rounded-[2.5rem] border transition-all group",
-                                                    current.show_reasoning
-                                                        ? "bg-purple-600/10 border-purple-500/50 ring-1 ring-purple-500/30"
-                                                        : "bg-[#0a0a0b] border-white/5"
-                                                )}
-                                            >
-                                                <div className="flex items-center gap-6">
-                                                    <div className={cn(
-                                                        "w-14 h-14 rounded-2xl flex items-center justify-center transition-all",
-                                                        current.show_reasoning ? "bg-purple-500 text-white" : "bg-white/5 text-gray-600"
-                                                    )}>
-                                                        <Brain size={24} />
-                                                    </div>
-                                                    <div className="text-left">
-                                                        <div className={cn("text-caption font-black  tracking-tight mb-1", current.show_reasoning ? "text-purple-400" : "text-gray-400")}>
-                                                            Thinking Transparency
-                                                        </div>
-                                                        <div className="text-tiny text-gray-600 font-bold leading-relaxed max-w-[240px]">
-                                                            Reveal the AI's step-by-step internal reasoning process in the UI.
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className={cn(
-                                                    "w-12 h-6 rounded-full p-1 transition-all relative",
-                                                    current.show_reasoning ? "bg-purple-500" : "bg-white/10"
-                                                )}>
-                                                    <div className={cn("w-4 h-4 rounded-full bg-white transition-all shadow-sm", current.show_reasoning ? "ml-6" : "ml-0")} />
-                                                </div>
-                                            </button>
+                            <div className="grid gap-4">
+                                {activeTab === 'generation' && (
+                                    <>
+                                        {renderSettingRow('llm_provider', 'Reasoning Engine', 'Cluster provider for logical processing')}
+                                        {renderSettingRow('llm_model', 'Intelligence Module', 'Neural weights utilized for generation')}
+                                        {renderSettingRow('temperature', 'Creativity Index', 'Variance of token selection probability')}
+                                        {renderSettingRow('max_tokens', 'Buffer Limit', 'Maximum length of response transmission')}
+                                    </>
+                                )}
+                                {activeTab === 'retrieval' && (
+                                    <>
+                                        {renderSettingRow('search_limit', 'Expansion Span', 'Number of documents retrieved per query')}
+                                        {renderSettingRow('hybrid_alpha', 'Retrieval Matrix', 'Balance between semantic and lexical weights')}
+                                        {renderSettingRow('reranker_enabled', 'Verified Filtering', 'Enable neural reranking for high precision')}
+                                        {renderSettingRow('agentic_enabled', 'Autonomous Mode', 'Allow AI to plan multi-step research tasks')}
+                                    </>
+                                )}
+                                {activeTab === 'infrastructure' && (
+                                    <>
+                                        <div className="p-6 rounded-3xl border border-blue-500/20 bg-blue-500/5 flex items-start gap-4 mb-4">
+                                            <Sparkles size={18} className="text-blue-400 mt-1" />
+                                            <p className="text-[11px] text-blue-400/80 font-bold leading-relaxed italic">
+                                                Structural infrastructure settings define the dimensionality of your workspace. To modify these, a full re-initialization is required.
+                                            </p>
                                         </div>
-                                    </section>
-                                </div>
-                            )}
+                                        {renderSettingRow('embedding_provider', 'Vector Base', 'Provider for semantic transformations')}
+                                        {renderSettingRow('embedding_model', 'Geometric Map', 'Embedding model defining semantic space')}
+                                        {renderSettingRow('rag_engine', 'Retrieval Architecture', 'Methodology for knowledge extraction')}
+                                        {renderSettingRow('graph_enabled', 'Semantic Web', 'Utilize Neo4j relationships for context')}
+                                    </>
+                                )}
+                                {activeTab === 'interface' && (
+                                    <>
+                                        {renderSettingRow('show_reasoning', 'Process Stream', 'Expose internal cognitive steps in UI')}
+                                        {renderSettingRow('job_concurrency', 'Ingestion Throughput', 'Concurrent processing limit for new documents')}
+                                    </>
+                                )}
+                            </div>
                         </motion.div>
                     </AnimatePresence>
-                </div>
+                </main>
             </div>
 
-            {/* Sync Footer */}
-            <div className="px-10 py-8 border-t border-white/5 flex items-center justify-between bg-white/[0.01] shrink-0">
-                <div className="flex items-center gap-4 text-gray-600">
-                    <ArrowRight size={14} className="animate-pulse" />
-                    <span className="text-tiny font-black  ">Kernel Ready</span>
+            {/* Sticky Interaction Bar */}
+            <footer className="px-10 py-8 border-t border-white/5 flex items-center justify-between bg-[#0a0a0b]/80 backdrop-blur-xl shrink-0">
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <Check size={14} className="text-emerald-500" />
+                        <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">Protocol Verified</span>
+                    </div>
+                    {Object.keys(localSettings).length > 0 && (
+                        <span className="text-[9px] font-bold text-amber-500 uppercase px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20">
+                            {Object.keys(localSettings).length} Unsynced Delta
+                        </span>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-4">
                     {onClose && (
                         <button
                             onClick={onClose}
-                            className="px-6 py-4 text-tiny font-black   text-gray-500 hover:text-white transition-colors"
+                            className="px-6 py-4 text-tiny font-black text-gray-600 hover:text-white transition-colors uppercase tracking-widest"
                         >
-                            Discard
+                            Abort
                         </button>
                     )}
                     <button
                         onClick={handleSave}
                         disabled={isSaving || Object.keys(localSettings).length === 0}
-                        className="group flex items-center gap-3 px-8 py-4 bg-white disabled:opacity-30 disabled:hover:scale-100 text-black text-tiny font-black  tracking-[0.2em] rounded-2xl shadow-2xl hover:scale-105 active:scale-95 transition-all outline-none focus:ring-2 ring-indigo-500 ring-offset-2 ring-offset-[#121214]"
+                        className="group flex items-center gap-4 px-10 py-4 bg-blue-600 hover:bg-blue-500 disabled:opacity-20 text-white text-tiny font-black uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-blue-600/20 transition-all hover:scale-105 active:scale-95"
                     >
                         {isSaving ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                         ) : (
-                            <Save size={14} />
+                            <Save size={16} />
                         )}
                         Sync Core
                     </button>
                 </div>
-            </div>
+            </footer>
         </motion.div>
     );
-
-    if (onClose) {
-        return (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 lg:p-8">
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    onClick={onClose}
-                    className="absolute inset-0 bg-[#0a0a0b]/90 backdrop-blur-md"
-                />
-                {content}
-            </div>
-        );
-    }
-
-    return content;
 }

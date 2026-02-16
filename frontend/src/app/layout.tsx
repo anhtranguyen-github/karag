@@ -15,6 +15,7 @@ export const metadata: Metadata = {
 import { ErrorProvider } from "@/context/error-context";
 import { SearchProvider } from "@/context/search-context";
 import { TaskProvider } from "@/context/task-context";
+import { ChatProvider } from "@/context/chat-context";
 import { JobPanel } from "@/components/job-panel";
 
 export default function RootLayout({
@@ -30,8 +31,10 @@ export default function RootLayout({
         <ErrorProvider>
           <SearchProvider>
             <TaskProvider>
-              {children}
-              <JobPanel />
+              <ChatProvider>
+                {children}
+                <JobPanel />
+              </ChatProvider>
             </TaskProvider>
           </SearchProvider>
         </ErrorProvider>
