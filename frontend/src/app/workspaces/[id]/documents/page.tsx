@@ -171,7 +171,7 @@ export default function DocumentsPage() {
                 setIsDuplicateModalOpen(true);
             } else {
                 let title = "Ingestion Rejected";
-                let message = result.message || result.detail || 'Upload failed';
+                const message = result.message || result.detail || 'Upload failed';
 
                 if (result.code === 'INVALID_FILENAME') {
                     title = "Invalid Filename";

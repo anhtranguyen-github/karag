@@ -196,7 +196,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                                     <Server className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-700 group-focus-within:text-blue-500 transition-colors" size={18} />
                                                     <input
                                                         type="text"
-                                                        value={current.llm_model}
+                                                        value={current.llm_model ?? ''}
                                                         disabled={!isMutable('llm_model')}
                                                         onChange={e => handleChange('llm_model', e.target.value)}
                                                         className={cn(
@@ -291,7 +291,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                             </div>
                                             <input
                                                 type="range" min="1" max="25" step="1"
-                                                value={current.search_limit}
+                                                value={current.search_limit ?? 5}
                                                 disabled={!isMutable('search_limit')}
                                                 onChange={e => handleChange('search_limit', parseInt(e.target.value))}
                                                 className="w-full h-1.5 bg-white/5 rounded-full appearance-none cursor-pointer accent-indigo-500"
@@ -308,7 +308,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                             </div>
                                             <input
                                                 type="range" min="0" max="1" step="0.1"
-                                                value={current.hybrid_alpha}
+                                                value={current.hybrid_alpha ?? 0.5}
                                                 disabled={!isMutable('hybrid_alpha')}
                                                 onChange={e => handleChange('hybrid_alpha', parseFloat(e.target.value))}
                                                 className="w-full h-1.5 bg-indigo-500/10 rounded-full appearance-none cursor-pointer accent-indigo-500"

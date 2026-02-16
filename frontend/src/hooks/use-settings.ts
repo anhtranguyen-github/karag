@@ -106,7 +106,7 @@ export function useSettings(workspaceId?: string) {
                 return newSettings;
             } else {
                 let title = "Deployment Failed";
-                let message = data.message || data.detail || "The cluster rejected the configuration update.";
+                const message = data.message || data.detail || "The cluster rejected the configuration update.";
 
                 if (data.code === "VALIDATION_ERROR") {
                     title = "Invalid Parameter Scope";

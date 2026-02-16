@@ -290,7 +290,7 @@ export default function AdminConsolePage() {
                                             {field.type === 'select' && metadata[field.key]?.options ? (
                                                 <select
                                                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-tiny font-bold text-white focus:outline-none focus:ring-2 ring-indigo-500/50 appearance-none"
-                                                    value={settings[field.key as keyof typeof settings] as string}
+                                                    value={(settings[field.key as keyof typeof settings] as string) ?? ''}
                                                     onChange={(e) => handleSettingUpdate(field.key, e.target.value)}
                                                     disabled={!metadata[field.key]?.mutable}
                                                 >
@@ -302,7 +302,7 @@ export default function AdminConsolePage() {
                                                 <input
                                                     type="text"
                                                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-tiny font-bold text-white focus:outline-none focus:ring-2 ring-indigo-500/50"
-                                                    defaultValue={settings[field.key as keyof typeof settings] as string}
+                                                    defaultValue={(settings[field.key as keyof typeof settings] as string) ?? ''}
                                                     onBlur={(e) => {
                                                         if (e.target.value !== settings[field.key as keyof typeof settings]) {
                                                             handleSettingUpdate(field.key, e.target.value);
@@ -409,7 +409,7 @@ export default function AdminConsolePage() {
                                                     <input
                                                         type={isNum ? "number" : "text"}
                                                         className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-tiny font-bold text-white w-24 focus:outline-none focus:ring-2 ring-indigo-500/50"
-                                                        value={value as string | number}
+                                                        value={(value as string | number) ?? ''}
                                                         onChange={(e) => {
                                                             const val = isNum ? parseFloat(e.target.value) : e.target.value;
                                                             handleSettingUpdate(key, val);

@@ -274,7 +274,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
             } else {
                 const payload = await res.json();
                 let title = "Upload Failed";
-                let message = payload.message || 'Upload failed';
+                const message = payload.message || 'Upload failed';
 
                 if (payload.code === 'VALIDATION_ERROR') {
                     title = "Validation Error";

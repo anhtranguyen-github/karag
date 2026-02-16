@@ -150,7 +150,7 @@ export function useWorkspaces() {
             } else {
                 // Structured Business Error Handling
                 let title = "Unable to Create Workspace";
-                let message = appResponse.message || "System rejected creation request.";
+                const message = appResponse.message || "System rejected creation request.";
 
                 switch (appResponse.code) {
                     case "DUPLICATE_NAME":
