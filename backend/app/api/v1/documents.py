@@ -249,7 +249,7 @@ async def get_document(document_id: str):
     from backend.app.core.minio import minio_manager
     from backend.app.core.config import ai_settings
 
-    doc = await document_service.get_by_id_or_name(document_id)
+    doc = await document_service.get_by_id(document_id)
     if not doc:
         raise NotFoundError(f"Document '{document_id}' not found")
 
