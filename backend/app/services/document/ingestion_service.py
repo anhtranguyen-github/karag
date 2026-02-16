@@ -17,13 +17,15 @@ ALLOWED_EXTENSIONS = {'.pdf', '.txt', '.md', '.docx', '.html', '.csv', '.json'}
 
 class IngestionService:
     def _sanitize_filename(self, filename: str, max_length: int = 150) -> str:
-        """Sanitize filename by removing illegal chars and truncating."""
-        from backend.app.core.constants import ILLEGAL_NAME_CHARS
-        clean_name = "".join(c for c in filename if c not in ILLEGAL_NAME_CHARS)
+        """Extract only the filename part (identifier) to prevent directory injection."""
+        from pathlib import Path
+        clean_name = Path(filename).name
+        
         name, ext = os.path.splitext(clean_name)
         if len(clean_name) > max_length:
             return f"{name[:max_length-10]}{ext}"
         return clean_name
+
 
     async def upload(self, file: UploadFile, workspace_id: str, strategy: Optional[str] = None) -> Dict:
         """Process and prepare a new document for ingestion."""
@@ -143,8 +145,8 @@ class IngestionService:
             if not paper:
                 return {"status": "error", "code": "ARXIV_NOT_FOUND", "message": f"Paper '{arxiv_id}' not found."}
 
-            safe_title = "".join([c if c.isalnum() or c in " .-_()" else "_" for c in paper.title])
-            filename = f"{safe_title}.pdf"
+            filename = f"arxiv_{arxiv_id}.pdf"
+
             
             import httpx
             async with httpx.AsyncClient() as ac:
@@ -182,9 +184,11 @@ class IngestionService:
             if not path:
                 filename = parsed.netloc.replace(".", "_") + ".html"
             else:
-                filename = path.split("/")[-1]
+                from pathlib import Path
+                filename = Path(path).name
                 if "." not in filename:
                     filename += ".html"
+
             
             # Note: Conflict detection based on content hash cannot happen here
             # because content is fetched in the background task.
@@ -221,25 +225,6 @@ class IngestionService:
                 "message": f"Sitemap ingestion started for {sitemap_url}"
             }
 
-    async def import_directory(self, path: str, workspace_id: str) -> Dict:
-        """Start a background task to process a local directory."""
-        with tracer.start_as_current_span(
-            "document.import_directory",
-            attributes={"workspace_id": workspace_id, "path": path},
-        ):
-            if not os.path.isabs(path):
-                path = os.path.abspath(path)
-
-            task_id = await task_service.create_task("directory_ingestion", {
-                "path": path,
-                "workspace_id": workspace_id
-            }, workspace_id=workspace_id)
-
-            return {
-                "status": "success",
-                "task_id": task_id,
-                "message": f"Directory ingestion started for {path}"
-            }
 
     async def run_url_ingestion_background(self, task_id: str, url: str, filename: str, workspace_id: str, strategy: Optional[str] = None):
         """Background runner that fetches the URL and then ingests it."""
@@ -280,11 +265,6 @@ class IngestionService:
         strat = SitemapIngestionStrategy()
         await strat.run(task_id, workspace_id, {"sitemap_url": sitemap_url})
 
-    async def run_directory_background(self, task_id: str, path: str, workspace_id: str):
-        """Background runner for directory processing."""
-        from .ingestion.directory_strategy import DirectoryIngestionStrategy
-        strat = DirectoryIngestionStrategy()
-        await strat.run(task_id, workspace_id, {"path": path})
 
     async def run_ingestion(self, task_id: str, safe_filename: str, content: bytes, content_type: str, workspace_id: str):
         """Phase 1: Storage and metadata."""
