@@ -110,25 +110,6 @@ async def import_sitemap_document(
     return AppResponse.from_result(result)
 
 
-@router.post("/import-directory")
-async def import_directory_document(
-    background_tasks: BackgroundTasks,
-    request: Request,
-    workspace_id: str = "vault"
-):
-    data = await request.json()
-    path = data.get("path")
-    if not path:
-        return AppResponse.business_failure(code="MISSING_PATH", message="Directory path is required")
-
-    result = await document_service.import_directory(path, workspace_id)
-    if result["status"] == "success":
-        background_tasks.add_task(
-            document_service.run_directory_background,
-            result["task_id"], path, workspace_id
-        )
-    return AppResponse.from_result(result)
-
 
 @router.post("/import-github")
 async def import_github_document(
@@ -189,42 +170,38 @@ async def list_vault_documents():
 
 # --- Specific Document Sub-Resources (Must come before generic {name:path}) ---
 
-@router.get("/documents/{name:path}/chunks")
-async def get_document_chunks(name: str, limit: int = 100):
-    return await document_service.get_chunks(name, limit=limit)
+@router.get("/documents/{document_id}/chunks")
+async def get_document_chunks(document_id: str, limit: int = 100):
+    return await document_service.get_chunks(document_id, limit=limit)
 
 
-@router.post("/documents/{name:path}/index")
+@router.post("/documents/{document_id}/index")
 async def index_document(
     background_tasks: BackgroundTasks,
-    name: str,
+    document_id: str,
     workspace_id: str = "vault"
 ):
-    """Non-blocking indexing: returns a task_id immediately.
-
-    The actual embedding and vector storage runs in the background.
-    Poll GET /tasks/{task_id} for progress.
-    """
+    """Non-blocking indexing triggered by document ID."""
     task_id = await task_service.create_task("indexing", {
-        "filename": name,
+        "doc_id": document_id,
         "workspace_id": workspace_id,
         "operation": "index",
     }, workspace_id=workspace_id)
 
     background_tasks.add_task(
         document_service.run_index_background,
-        task_id, name, workspace_id, False
+        task_id, document_id, workspace_id, False
     )
 
     return AppResponse.success_response(
         data={"task_id": task_id},
-        message=f"Indexing for '{name}' started in background."
+        message=f"Indexing for document '{document_id}' started."
     )
 
 
-@router.get("/documents/{name:path}/inspect")
-async def inspect_document(name: str):
-    results = await document_service.inspect(name)
+@router.get("/documents/{document_id}/inspect")
+async def inspect_document(document_id: str):
+    results = await document_service.inspect(document_id)
     return AppResponse.success_response(data=results)
 
 
@@ -233,63 +210,51 @@ async def update_document_workspaces(
     background_tasks: BackgroundTasks,
     request: Request
 ):
-    """Non-blocking workspace operations (link, move, share).
-
-    Returns a task_id immediately for long-running operations (link, move with reindex).
-    Poll GET /tasks/{task_id} for progress.
-    """
+    """Workspace operations using internal IDs."""
     data = await request.json()
-    name = data.get("name")
+    document_id = data.get("document_id")
     target_workspace_id = data.get("target_workspace_id")
     action = data.get("action", "share")
     force_reindex = data.get("force_reindex", False)
 
-    if not name or not target_workspace_id:
-        raise ValidationError("Name and target_workspace_id are required")
-
-
+    if not document_id or not target_workspace_id:
+        raise ValidationError("document_id and target_workspace_id are required")
 
     task_id = await task_service.create_task("workspace_op", {
-        "filename": name,
+        "doc_id": document_id,
         "workspace_id": target_workspace_id,
         "operation": action,
     }, workspace_id=target_workspace_id)
 
     background_tasks.add_task(
         document_service.run_workspace_op_background,
-        task_id, name, target_workspace_id, action, force_reindex
+        task_id, document_id, target_workspace_id, action, force_reindex
     )
 
     return AppResponse.success_response(
         data={"task_id": task_id},
-        message=f"Document {action} operation started in background."
+        message=f"Document operation {action} started."
     )
 
 
 @router.post("/documents/sync-workspaces")
 async def sync_document_workspaces():
-    """Manually trigger reconciliation of orphaned document-workspace links."""
     result = await document_service.sync_workspaces()
-    return AppResponse.success_response(
-        data=result,
-        message=f"Reconciliation complete. Fixed {result['repaired_direct']} direct orphans."
-    )
+    return AppResponse.success_response(data=result)
 
 # --- Generic Document Operations ---
 
-@router.get("/documents/{name:path}")
-async def get_document(name: str):
+@router.get("/documents/{document_id}")
+async def get_document(document_id: str):
     from backend.app.core.minio import minio_manager
     from backend.app.core.config import ai_settings
 
-    doc = await document_service.get_by_id_or_name(name)
+    doc = await document_service.get_by_id_or_name(document_id)
     if not doc:
-        raise NotFoundError(f"Document '{name}' not found")
+        raise NotFoundError(f"Document '{document_id}' not found")
 
-    # Always generate presigned URL for direct access/download
     minio_path = doc.get("minio_path")
     if minio_path:
-        # Remove bucket prefix if present
         bucket_prefix = f"{ai_settings.MINIO_BUCKET}/"
         object_name = minio_path
         if object_name.startswith(bucket_prefix):
@@ -297,31 +262,26 @@ async def get_document(name: str):
             
         doc["download_url"] = minio_manager.get_presigned_url(object_name)
 
-    # Determine availability of inline parsed text content
     content_type = doc.get("content_type", "application/octet-stream")
-    # Treat as binary if it matches known binary types
     is_binary = any(t in content_type for t in ["image/", "audio/", "video/", "application/pdf", "application/zip", "application/octet-stream"])
     
     if is_binary:
-        doc["content"] = None # Do not return binary bytes in JSON
+        doc["content"] = None
     else:
-        # Text based content: decode and return inline
-        content_bytes = await document_service.get_content(name)
+        content_bytes = await document_service.get_content(document_id)
         if content_bytes:
             try:
                 doc["content"] = content_bytes.decode("utf-8")
             except UnicodeDecodeError:
                 doc["content"] = None
-                doc["error"] = "Content decoding failed"
 
     return AppResponse.success_response(data=jsonable_encoder(doc))
 
 
-@router.delete("/documents/{name:path}")
-async def delete_document(name: str, workspace_id: str = "vault", vault_delete: bool = False):
-    await document_service.delete(name, workspace_id, vault_delete=vault_delete)
+@router.delete("/documents/{document_id}")
+async def delete_document(document_id: str, workspace_id: str = "vault", vault_delete: bool = False):
+    await document_service.delete(document_id, workspace_id, vault_delete=vault_delete)
     return AppResponse.success_response(
-        data={"name": name},
-        code="DOCUMENT_DELETED",
-        message=f"Document '{name}' deleted successfully."
+        data={"id": document_id},
+        message=f"Document '{document_id}' deleted successfully."
     )
