@@ -11,7 +11,7 @@ from qdrant_client.http import models as qmodels
 from .base import logger
 
 class IndexingService:
-    async def index_document(self, doc_id_or_name: str, workspace_id: str, force: bool = False, task_id: str = None):
+    async def index_document(self, doc_id: str, workspace_id: str, force: bool = False, task_id: str = None):
         """Phase 2: On-Demand Neural Indexing."""
         if task_id and await task_service.is_cancelled(task_id):
             logger.info("indexing_cancelled_start", task_id=task_id)
@@ -19,14 +19,12 @@ class IndexingService:
 
         db = mongodb_manager.get_async_database()
         doc = await db.documents.find_one({
-            "$and": [
-                {"$or": [{"id": doc_id_or_name}, {"filename": doc_id_or_name}]},
-                {"$or": [{"workspace_id": workspace_id}, {"shared_with": workspace_id}]}
-            ]
+            "id": doc_id,
+            "$or": [{"workspace_id": workspace_id}, {"shared_with": workspace_id}]
         })
         
         if not doc:
-            raise NotFoundError(f"Document {doc_id_or_name} not found in workspace {workspace_id}")
+            raise NotFoundError(f"Document {doc_id} not found in workspace {workspace_id}")
             
         if doc["status"] == "indexed" and not force:
             return doc["chunks"]
@@ -96,14 +94,14 @@ class IndexingService:
             await db.documents.update_one({"id": doc["id"]}, {"$set": {"status": "uploaded"}})
             raise e
 
-    async def run_index_background(self, task_id: str, doc_id_or_name: str, workspace_id: str, force: bool = False):
+    async def run_index_background(self, task_id: str, doc_id: str, workspace_id: str, force: bool = False):
         """Background wrapper for index_document."""
         try:
             if await task_service.is_cancelled(task_id):
                 return
 
             await task_service.update_task(task_id, status="processing", progress=10, message="Starting neural indexing...")
-            num_chunks = await self.index_document(doc_id_or_name, workspace_id, force=force, task_id=task_id)
+            num_chunks = await self.index_document(doc_id, workspace_id, force=force, task_id=task_id)
             
             if await task_service.is_cancelled(task_id):
                 return
@@ -111,7 +109,7 @@ class IndexingService:
             await task_service.update_task(
                 task_id, status="completed", progress=100,
                 message=f"Indexed {num_chunks} fragments.",
-                result={"chunks": num_chunks, "doc_id": doc_id_or_name, "workspace_id": workspace_id}
+                result={"chunks": num_chunks, "doc_id": doc_id, "workspace_id": workspace_id}
             )
         except Exception as e:
             logger.error("background_index_failed", task_id=task_id, error=str(e), exc_info=True)

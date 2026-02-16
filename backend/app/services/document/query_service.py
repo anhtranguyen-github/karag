@@ -61,23 +61,20 @@ class QueryService:
             d["workspace_name"] = ws_map.get(d.get("workspace_id", ""), "Unknown Workspace")
         return docs
 
-    async def get_by_id_or_name(self, name: str) -> Optional[Dict]:
+    async def get_by_id(self, doc_id: str) -> Optional[Dict]:
+        """Find a document by its unique internal ID."""
         db = mongodb_manager.get_async_database()
-        doc = await db.documents.find_one({
-            "$or": [
-                {"id": name},
-                {"filename": name}
-            ]
-        })
+        doc = await db.documents.find_one({"id": doc_id})
         if doc and "_id" in doc:
             doc["_id"] = str(doc["_id"])
         return doc
 
-    async def get_chunks(self, name: str, limit: int = 100) -> List[Dict]:
+    async def get_chunks(self, doc_id: str, limit: int = 100) -> List[Dict]:
+        """Retrieve vector chunks associated with a specific document ID."""
         from backend.app.rag.qdrant_provider import qdrant
         from backend.app.core.settings_manager import settings_manager
 
-        doc = await self.get_by_id_or_name(name)
+        doc = await self.get_by_id(doc_id)
         if not doc:
             return []
         
@@ -85,24 +82,25 @@ class QueryService:
         settings = await settings_manager.get_settings(ws_id)
         collection = qdrant.get_collection_name(settings.embedding_dim)
         
+        # Filter strictly by doc_id stored in vector payload
         results = await qdrant.client.scroll(
             collection_name=collection,
-            scroll_filter={"must": [{"key": "source", "match": {"value": doc["filename"]}}]},
+            scroll_filter={"must": [{"key": "doc_id", "match": {"value": doc_id}}]},
             limit=limit,
             with_payload=True,
             with_vectors=False
         )
         return [{"id": p.id, **p.payload} for p in results[0]]
 
-    async def inspect(self, name: str) -> Dict:
+    async def inspect(self, doc_id: str) -> Dict:
+        """Inspect document state and relationships using its internal ID."""
         db = mongodb_manager.get_async_database()
-        doc = await self.get_by_id_or_name(name)
+        doc = await self.get_by_id(doc_id)
         if not doc:
             return {"error": "Not found"}
 
         content_hash = doc.get("content_hash")
         
-        # Find all records with same content hash to identify workspace relationships
         cursor = db.documents.find({"content_hash": content_hash})
         related_docs = await cursor.to_list(1000)
         
@@ -134,7 +132,6 @@ class QueryService:
                 "is_primary": d.get("id") == doc.get("id")
             })
             
-            # Shared workspaces
             for shared_ws in d.get("shared_with", []):
                 s_ws_name = ws_map.get(shared_ws)
                 if not s_ws_name:
@@ -151,10 +148,6 @@ class QueryService:
                     "shared_from": ws_id
                 })
 
-        # Proactive sync: if zombies were detected during inspection, trigger background reconciliation
-        if zombies_found:
-            logger.warning("zombies_detected", doc_id=doc["id"], msg="Document inspection revealed orphaned workspace links. Cleanup required.")
-
         return {
             "metadata": {
                 "id": doc["id"],
@@ -170,25 +163,19 @@ class QueryService:
         }
 
     async def sync_workspaces(self):
-        """Reconcile all document-workspace relationships and purge orphans."""
+        """Cleanup logic for orphaned workspace references."""
         db = mongodb_manager.get_async_database()
         
-        # Get all valid workspace IDs
         ws_cursor = db.workspaces.find({}, {"id": 1})
         valid_ws_ids = {ws["id"] for ws in await ws_cursor.to_list(1000)}
         valid_ws_ids.add("vault")
         valid_ws_ids.add("default")
         
-        # 1. Fix direct workspace_id orphans (move to vault)
         result_direct = await db.documents.update_many(
             {"workspace_id": {"$nin": list(valid_ws_ids)}},
             {"$set": {"workspace_id": "vault"}}
         )
         
-        # 2. Fix shared_with orphans (pull invalid IDs)
-        # Note: This is more complex in Mongo without aggregation, 
-        # but we can iterate if small or use a script.
-        # For a robust fix, we update any document where shared_with contains an invalid ID.
         cursor = db.documents.find({"shared_with": {"$exists": True, "$ne": []}})
         async for doc in cursor:
             shared = doc.get("shared_with", [])

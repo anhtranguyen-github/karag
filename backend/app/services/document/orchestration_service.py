@@ -11,7 +11,7 @@ from .base import logger
 
 class OrchestrationService:
     async def run_workspace_op_background(
-        self, task_id: str, name: str, target_workspace_id: str,
+        self, task_id: str, doc_id: str, target_workspace_id: str,
         action: str, force_reindex: bool = False
     ):
         """Background wrapper for workspace operations."""
@@ -23,7 +23,7 @@ class OrchestrationService:
                 task_id, status="processing", progress=10,
                 message=f"Executing {action} operation..."
             )
-            await self.update_workspaces(name, target_workspace_id, action, force_reindex=force_reindex, task_id=task_id)
+            await self.update_workspaces(doc_id, target_workspace_id, action, force_reindex=force_reindex, task_id=task_id)
             
             if await task_service.is_cancelled(task_id):
                 return
@@ -31,7 +31,7 @@ class OrchestrationService:
             await task_service.update_task(
                 task_id, status="completed", progress=100,
                 message=f"Document {action} completed.",
-                result={"document": name, "workspace": target_workspace_id, "action": action}
+                result={"document_id": doc_id, "workspace": target_workspace_id, "action": action}
             )
         except Exception as e:
             logger.error("background_workspace_op_failed", task_id=task_id, error=str(e), exc_info=True)
@@ -39,15 +39,15 @@ class OrchestrationService:
                 task_id, status="failed", message=str(e), error_code="WORKSPACE_OP_FAILED"
             )
 
-    async def update_workspaces(self, name: str, target_workspace_id: str, action: str, force_reindex: bool = False, task_id: str = None):
-        """Cross-workspace orchestration (move/share/link) with RAG Config auditing."""
+    async def update_workspaces(self, doc_id: str, target_workspace_id: str, action: str, force_reindex: bool = False, task_id: str = None):
+        """Cross-workspace orchestration using internal doc_id."""
         if task_id and await task_service.is_cancelled(task_id):
             return
 
         db = mongodb_manager.get_async_database()
-        res = await db.documents.find_one({"filename": name})
+        res = await db.documents.find_one({"id": doc_id})
         if not res:
-            raise NotFoundError(f"Document '{name}' not found.")
+            raise NotFoundError(f"Document '{doc_id}' not found.")
 
         target_settings = await settings_manager.get_settings(target_workspace_id)
         target_rag_hash = target_settings.get_rag_hash()
@@ -75,23 +75,22 @@ class OrchestrationService:
 
         is_config_compatible = res.get("rag_config_hash") == target_rag_hash
         
-        # Auto-Fork Logic: If sharing is requested but configs differ, switch to "link"
+        # Auto-Fork Logic
         if action == "share" and not is_config_compatible:
-            logger.info("auto_forking_share_to_link", document=name, target_workspace=target_workspace_id, reason="rag_mismatch")
-            await task_service.update_task(
-                task_id, 
-                message=f"RAG configuration mismatch detected. Automatically linking (forking) document to workspace '{target_workspace_id}' instead of sharing."
-            )
-            # Recursively call with action="link"
-            return await self.update_workspaces(name, target_workspace_id, action="link", force_reindex=False, task_id=task_id)
+            logger.info("auto_forking_share_to_link", doc_id=doc_id, target_workspace=target_workspace_id, reason="rag_mismatch")
+            if task_id:
+                await task_service.update_task(
+                    task_id, 
+                    message="RAG configuration mismatch. Automatically forking document to target workspace."
+                )
+            return await self.update_workspaces(doc_id, target_workspace_id, action="link", force_reindex=False, task_id=task_id)
 
-        # Enforce re-index for Move if incompatible
         if action == "move" and not is_config_compatible:
              force_reindex = True
 
         if not is_config_compatible and not force_reindex:
             raise ConflictError(
-                message=f"Incompatible Workspace: Target RAG config ({target_rag_hash}) differs from Document ({res.get('rag_config_hash')})",
+                message=f"Incompatible Workspace: Target RAG config differs from Document",
                 params={"type": "rag_mismatch", "expected": res.get("rag_config_hash"), "actual": target_rag_hash}
             )
 
