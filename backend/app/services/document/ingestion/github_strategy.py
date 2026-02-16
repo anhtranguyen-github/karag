@@ -44,10 +44,12 @@ class GitHubIngestionStrategy(BaseIngestionStrategy):
 
             await task_service.update_task(task_id, progress=20, message="Processing repository files...")
             
-            num_chunks = await ingestion_pipeline.process_directory(
-                tmp_dir, 
+            from pathlib import Path
+            num_chunks = await ingestion_pipeline._ingest_local_directory(
+                Path(tmp_dir), 
                 metadata={"workspace_id": workspace_id, "source": f"github:{repo_url}"}
             )
+
             
             await task_service.update_task(
                 task_id, status="completed", progress=100,

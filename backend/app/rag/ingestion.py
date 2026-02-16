@@ -11,6 +11,7 @@ from backend.app.core.telemetry import (
     DOCUMENT_INGESTION_LATENCY,
     DOCUMENT_INGESTION_COUNT,
 )
+from pathlib import Path
 from langchain_community.document_loaders import (
     PyPDFLoader,
     TextLoader,
@@ -38,15 +39,21 @@ class IngestionPipeline:
         await qdrant.create_collection(name, vector_size=dim)
         return name
 
-    async def process_file(self, file_path: str, metadata: Dict = None):
+    async def process_file(self, file_path_str: str, metadata: Dict = None):
         """
         Process various file types: PDF, TXT, MD, DOCX, HTML.
         Automatically selects the appropriate loader based on extension.
+        
+        INTERNAL ONLY: file_path_str must be a trusted internal path (e.g. from tempfile or storage).
         """
         from langchain_community.document_loaders import BSHTMLLoader
-        ext = os.path.splitext(file_path)[1].lower()
+        
+        file_path = Path(file_path_str)
+        ext = file_path.suffix.lower()
+
         workspace_id = (metadata or {}).get("workspace_id", "default")
-        filename = (metadata or {}).get("filename", os.path.basename(file_path))
+        filename = (metadata or {}).get("filename", file_path.name)
+
 
         with tracer.start_as_current_span(
             "ingestion.process_file",
@@ -131,7 +138,7 @@ class IngestionPipeline:
                     **(metadata or {}),
                     "text": chunk,
                     "source": (metadata or {}).get("filename")
-                    or os.path.basename(file_path),
+                    or file_path.name,
                     "extension": ext,
                     "index": i,
                     "workspace_id": workspace_id,
@@ -341,43 +348,25 @@ class IngestionPipeline:
             
             return total_chunks
 
-    async def process_directory(self, directory_path: str, metadata: Dict = None):
-        """
-        Recursively process all files in a directory.
-        """
-        workspace_id = (metadata or {}).get("workspace_id", "default")
-        
-        if not os.path.isdir(directory_path):
-            raise ValueError(f"Path is not a directory: {directory_path}")
 
+
+    async def _ingest_local_directory(self, directory_path: Path, metadata: Dict = None):
+        """
+        INTERNAL ONLY: Recursively process files in a system-controlled directory.
+        Used by GitHub ingestion and other internal workflows.
+        """
         ignore_dirs = {".git", "__pycache__", ".venv", "node_modules", ".next"}
-
-        with tracer.start_as_current_span(
-            "ingestion.process_directory",
-            attributes={
-                "ingestion.directory": directory_path,
-                "workspace_id": workspace_id,
-            },
-        ) as _:
-            total_chunks = 0
-            for root, dirs, files in os.walk(directory_path):
-                # Modify dirs in-place to skip ignored directories
-                dirs[:] = [d for d in dirs if d not in ignore_dirs]
-                
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    # Skip hidden files
-                    if file.startswith("."):
-                        continue
-                        
-                    try:
-                        chunks = await self.process_file(file_path, metadata=metadata)
-                        total_chunks += chunks
-                    except Exception as e:
-                        logger.error("directory_file_failed", path=file_path, error=str(e))
-                        continue
-            
-            return total_chunks
-
+        total_chunks = 0
+        
+        for root, dirs, files in os.walk(str(directory_path)):
+            dirs[:] = [d for d in dirs if d not in ignore_dirs]
+            for file in files:
+                if file.startswith("."): continue
+                file_path = Path(root) / file
+                try:
+                    chunks = await self.process_file(str(file_path), metadata=metadata)
+                    total_chunks += chunks
+                except Exception: continue
+        return total_chunks
 
 ingestion_pipeline = IngestionPipeline()
