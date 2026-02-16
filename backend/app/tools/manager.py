@@ -10,25 +10,33 @@ from backend.app.tools.schemas import ToolDefinition
 
 logger = structlog.get_logger(__name__)
 
-DATA_FILE = "backend/data/tools.json"
+from pathlib import Path
+
+# Fixed base directory for application data
+DATA_DIR = Path("/home/tra01/project/karag/backend/data")
+DATA_FILE_ID = "tools.json"
 
 class ToolManager:
     def __init__(self):
         self._tools: List[ToolDefinition] = []
+        # INTERNAL ONLY: Managed path construction
+        self.config_path = DATA_DIR / DATA_FILE_ID
+
         self._ensure_data_file()
         self.load_tools()
+
         self._sync_system_tools()
 
     def _ensure_data_file(self):
-        if not os.path.exists(os.path.dirname(DATA_FILE)):
-            os.makedirs(os.path.dirname(DATA_FILE))
-        if not os.path.exists(DATA_FILE):
-            with open(DATA_FILE, "w") as f:
+        if not self.config_path.parent.exists():
+            self.config_path.parent.mkdir(parents=True, exist_ok=True)
+        if not self.config_path.exists():
+            with open(self.config_path, "w") as f:
                 json.dump([], f)
 
     def load_tools(self):
         try:
-            with open(DATA_FILE, "r") as f:
+            with open(self.config_path, "r") as f:
                 data = json.load(f)
                 self._tools = [ToolDefinition(**item) for item in data]
         except Exception as e:
@@ -37,7 +45,7 @@ class ToolManager:
 
     def save_tools(self):
         try:
-            with open(DATA_FILE, "w") as f:
+            with open(self.config_path, "w") as f:
                 data = [t.model_dump() for t in self._tools]
                 json.dump(data, f, indent=2)
         except Exception as e:

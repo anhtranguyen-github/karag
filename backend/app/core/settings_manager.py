@@ -12,9 +12,15 @@ from backend.app.core.exceptions import ValidationError
 
 logger = structlog.get_logger(__name__)
 
+# Fixed base directory for application data
+DATA_DIR = Path("/home/tra01/project/karag/backend/data")
+
 class SettingsManager:
-    def __init__(self, config_path: str = "backend/data/settings.json"):
-        self.config_path = Path(config_path)
+    def __init__(self, config_file: str = "settings.json"):
+        # INTERNAL ONLY: Controlled mapping to data directory
+        self.config_path = DATA_DIR / config_file
+
+
         self._global_settings: AppSettings = self._load_initial_settings()
         # Ensure fallback file exists
         if not self.config_path.exists():
