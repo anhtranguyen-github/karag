@@ -1,16 +1,18 @@
-#!/usr/bin/env python3
 import os
 import sys
 import re
 import pypdf
 from typing import List, Set
+from pathlib import Path
 
+# Identifiers for tools
 from downloader import download_arxiv_paper
 
-def extract_content_from_pdf(pdf_path: str) -> str:
-    """Extracts text from the entire PDF."""
+
+def extract_content_from_pdf(pdf_path: Path) -> str:
+    """Extracts text from the entire PDF using safe Path object."""
     try:
-        reader = pypdf.PdfReader(pdf_path)
+        reader = pypdf.PdfReader(str(pdf_path))
         full_text = ""
         for page in reader.pages:
             full_text += page.extract_text() + "\n"
@@ -21,42 +23,34 @@ def extract_content_from_pdf(pdf_path: str) -> str:
 
 def find_references_section(text: str) -> str:
     """Heuristic to find the start of the references section."""
-    # Common patterns for Reference section headers
     patterns = [
         r'\n\s*References\s*\n', 
         r'\n\s*REFERENCES\s*\n', 
         r'\n\s*Bibliography\s*\n',
-        r'\n\s*[0-9]*\.?\s*References\s*\n' # "10. References"
+        r'\n\s*[0-9]*\.?\s*References\s*\n' 
     ]
     
     best_idx = -1
     for p in patterns:
         matches = list(re.finditer(p, text, re.IGNORECASE))
         if matches:
-            # Take the last match position
             best_idx = max(best_idx, matches[-1].start())
     
     if best_idx != -1:
          return text[best_idx:]
-         
-    return text[-50000:] if len(text) > 50000 else text # Fallback to last chunk if not found
+    return text[-50000:] if len(text) > 50000 else text
 
 def get_arxiv_ids(text: str) -> Set[str]:
     """Extracts arXiv IDs using common patterns."""
-    # Pattern for YYMM.NNNNN
     ids = set(re.findall(r'(\d{4}\.\d{4,5})', text))
-    # Pattern for explicit arXiv: prefix
     explicit = re.findall(r'arxiv:?\s*(\d{4}\.\d{4,5})', text, re.IGNORECASE)
     ids.update(explicit)
-    # Pattern for URLs
     urls = re.findall(r'arxiv\.org/abs/(\d{4}\.\d{4,5})', text)
     ids.update(urls)
     return ids
 
 def parse_non_arxiv_references(text: str) -> List[str]:
     """Heuristic to identify reference entries that don't mention arXiv."""
-    # Split by what looks like start of a new citation (New line + Author Name)
-    # This is a very rough heuristic: citations often end with a year and a period.
     entries = []
     current = ""
     lines = text.split('\n')
@@ -71,23 +65,24 @@ def parse_non_arxiv_references(text: str) -> List[str]:
             current = ""
     return entries
 
-DEFAULT_OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "downloads")
+DEFAULT_DOWNLOADS_SUBDIR = "downloads"
 
-def run_recursive_downloader(main_id: str, max_refs: int = 10, output_dir: str = DEFAULT_OUTPUT_DIR):
+def run_recursive_downloader(main_id: str, max_refs: int = 10, output_subdir: str = DEFAULT_DOWNLOADS_SUBDIR):
     print(f"=== Starting Recursive Downloader for {main_id} ===")
     
     # 1. Download Main Paper
-    main_dir = download_arxiv_paper(main_id, output_dir)
-    if not main_dir:
+    main_dir_str = download_arxiv_paper(main_id, output_subdir)
+    if not main_dir_str:
         print("Failed to download main paper.")
         return
 
-    pdf_files = [f for f in os.listdir(main_dir) if f.endswith('.pdf')]
+    main_dir = Path(main_dir_str)
+    pdf_files = [f for f in main_dir.iterdir() if f.suffix == '.pdf']
     if not pdf_files:
         print("No PDF found in download directory.")
         return
     
-    main_pdf_path = os.path.join(main_dir, pdf_files[0])
+    main_pdf_path = pdf_files[0]
     
     # 2. Extract Citations
     print(f"Extracting citations from {main_pdf_path}...")
@@ -95,7 +90,6 @@ def run_recursive_downloader(main_id: str, max_refs: int = 10, output_dir: str =
     ref_section = find_references_section(ref_text)
     
     arxiv_ids = get_arxiv_ids(ref_section)
-    # Filter out the main ID itself if it appears
     clean_main_id = main_id.split('/')[-1].replace('.pdf', '')
     if clean_main_id in arxiv_ids:
         arxiv_ids.remove(clean_main_id)
@@ -111,13 +105,14 @@ def run_recursive_downloader(main_id: str, max_refs: int = 10, output_dir: str =
             break
         try:
             print(f"  -> Downloading citation: {aid}")
-            download_arxiv_paper(aid, output_dir)
+            download_arxiv_paper(aid, output_subdir)
             downloaded_count += 1
         except Exception as e:
             print(f"  ERR: Failed to download {aid}: {e}")
 
     # 4. Generate Report
-    report_path = os.path.join(main_dir, "citation_report.md")
+    report_path = main_dir / "citation_report.md"
+    
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(f"# Citation Report for {main_id}\n\n")
         f.write(f"## ArXiv Citations Detected ({len(arxiv_ids)})\n")
@@ -140,4 +135,5 @@ if __name__ == "__main__":
     
     input_id = sys.argv[1]
     limit = int(sys.argv[2]) if len(sys.argv) > 2 else 10
-    run_recursive_downloader(input_id, limit, DEFAULT_OUTPUT_DIR)
+    run_recursive_downloader(input_id, limit, DEFAULT_DOWNLOADS_SUBDIR)
+
