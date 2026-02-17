@@ -43,7 +43,7 @@ class WorkspaceService:
             }
         ]
         
-        return await db.workspaces.aggregate(pipeline).to_list(100)
+        return await db.workspaces.aggregate(pipeline).to_list(1000)
 
     @staticmethod
     async def create(data: Dict[str, Any]) -> Dict[str, Any]:
