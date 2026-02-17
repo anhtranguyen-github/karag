@@ -6,7 +6,7 @@ import {
     FileText, ArrowLeft, Database, Calendar,
     Layers, Download, Loader2, AlertCircle,
     Shield, HardDrive, Info, CheckCircle2,
-    Box, Layout, Network, ChevronDown
+    Box, Layout, Network, ChevronDown, Brain
 } from 'lucide-react';
 import { API_ROUTES } from '@/lib/api-config';
 import { cn } from '@/lib/utils';
