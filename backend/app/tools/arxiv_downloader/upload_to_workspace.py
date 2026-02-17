@@ -22,7 +22,7 @@ def upload_pdf(pdf_path: Path, workspace_id: str) -> dict:
     
     with open(pdf_path, 'rb') as f:
         files = {'file': (filename, f, mime_type)}
-        response = requests.post(url, files=files)
+        response = requests.post(url, files=files, timeout=30)
     
     return response.json() if response.ok else {"error": response.text, "status_code": response.status_code}
 

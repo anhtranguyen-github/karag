@@ -66,8 +66,8 @@ pipeline {
                 echo 'Running frontend CI (Lint & Vitest)...'
                 dir('frontend') {
                     sh '''
-                        # Install pnpm and dependencies
-                        npm install -g pnpm
+                        # Enable pnpm via corepack and install dependencies
+                        corepack enable
                         pnpm install
                         
                         # Run Lint

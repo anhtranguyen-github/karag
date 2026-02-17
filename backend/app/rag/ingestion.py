@@ -367,7 +367,9 @@ class IngestionPipeline:
                 try:
                     chunks = await self.process_file(str(file_path), metadata=metadata)
                     total_chunks += chunks
-                except Exception: continue
+                except Exception:
+                    logger.warning("ingestion_file_failed", file_path=str(file_path))
+                    continue
         return total_chunks
 
 ingestion_pipeline = IngestionPipeline()
