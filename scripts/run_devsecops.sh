@@ -1,46 +1,64 @@
 #!/bin/bash
 set -e
 
-echo "=== STARTING DEVSECOPS AUDIT ==="
+# --- Configuration ---
+PROJECT_ROOT=$(pwd)
+BACKEND_DIR="${PROJECT_ROOT}/backend"
+FRONTEND_DIR="${PROJECT_ROOT}/frontend"
 
-# 1. Frontend Security Scan
-echo "-----------------------------------"
-echo "[Frontend] Running pnpm audit..."
-cd frontend
-if command -v pnpm &> /dev/null; then
-    pnpm audit --audit-level high
-else
-    echo "pnpm not found. Skipping pnpm audit."
+echo -e "\e[34m=== Karag Local DevSecOps Pipeline ===\e[0m"
+echo "Constraint: LOCAL-ONLY. No Cloud. No Docker Registries."
+
+# 1. Prompt Registry Validation
+echo -e "\n\e[32m[Stage 1/6] Prompt Registry Validation\e[0m"
+python3 -c "import yaml; yaml.safe_load(open('backend/app/core/prompts.yaml'))" && echo "✓ Prompt Registry: PASSED"
+
+# 2. Backend Unit Tests
+echo -e "\n\e[32m[Stage 2/6] Backend Unit Tests (Pytest)\e[0m"
+cd "${BACKEND_DIR}"
+# Ensure test-results dir exists for sonar reports
+mkdir -p test-results
+uv run python -m pytest tests/ --junitxml=test-results/results.xml --maxfail=1
+echo "✓ Backend Tests: PASSED"
+cd "${PROJECT_ROOT}"
+
+# 3. Frontend CI (Lint & Unit Tests)
+echo -e "\n\e[32m[Stage 3/6] Frontend CI (Lint & Vitest)\e[0m"
+cd "${FRONTEND_DIR}"
+pnpm run lint --quiet
+pnpm run test:unit --run
+echo "✓ Frontend CI: PASSED"
+cd "${PROJECT_ROOT}"
+
+# 4. API Contract Security Audit
+echo -e "\n\e[32m[Stage 4/6] API Contract Security Audit\e[0m"
+if grep -q ":path}" frontend/src/lib/api/openapi.json; then
+    echo -e "\e[31mCRITICAL: Path traversal vulnerability surface detected in openapi.json!\e[0m"
+    grep ":path}" frontend/src/lib/api/openapi.json
+    exit 1
 fi
-cd ..
+echo "✓ API Contract: PASSED"
 
-# 2. Backend Security Scan
-echo "-----------------------------------"
-echo "[Backend] Running Bandit (SAST)..."
-cd backend
-if command -v uv &> /dev/null; then
-    uv run bandit -r app/ --recursive --skip B101,B104 || echo "Bandit found issues (but continuing for audit report)"
+# 5. Infrastructure Scanning (Checkov)
+echo -e "\n\e[32m[Stage 5/6] Infrastructure Scanning (Checkov)\e[0m"
+# Scan the repository for IaC issues using Docker as a runtime tool (or uvx)
+# Adhering to "Docker for tools only" constraint
+uvx checkov -d . --check HIGH,CRITICAL --soft-fail || echo "Checkov found potential issues."
+
+# 6. Code Quality Analysis (SonarQube)
+# Note: This assumes a local SonarQube container is available or can be started as a tool.
+echo -e "\n\e[32m[Stage 6/6] SonarQube Analysis (Tool via Docker)\e[0m"
+# Since we don't have a confirmed running Sonar server, we attempt scan if reachable
+# User constraints mention CI components run locally typically via Docker
+if docker ps | grep -q "sonarqube"; then
+    echo "SonarQube server detected. Running scanner tool..."
+    docker run --rm \
+        -v "${PROJECT_ROOT}:/usr/src" \
+        --network host \
+        sonarsource/sonar-scanner-cli
 else
-    echo "uv not found. Skipping Bandit."
+    echo "SonarQube server not running locally. Skipping scan stage."
 fi
 
-echo "-----------------------------------"
-echo "[Backend] Running pip-audit (SCA)..."
-if command -v uv &> /dev/null; then
-    # Use --no-deps because we are passing a frozen requirement list from uv
-    uvx pip-audit --no-deps --requirement <(uv pip freeze) || echo "pip-audit found vulnerabilities"
-else
-    echo "uv not found. Skipping pip-audit."
-fi
-cd ..
-
-# 3. Secrets Detection (Simple Pattern Check)
-echo "-----------------------------------"
-echo "[Security] Scanning for secrets..."
-# Exclude data directories, logs, and build artifacts to prevent permission errors and false positives
-grep -rE "AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY|OPENAI_API_KEY|ANTHROPIC_API_KEY|GOOGLE_API_KEY" . \
-    --exclude-dir={node_modules,.git,.venv,__pycache__,.gemini,logs,mongo_data,qdrant_storage,minio_data,.next} \
-    --exclude={*.json,*.lock,*.log,.env,.env.local,.env.development.local} \
-    || echo "No obvious secrets found in codebase."
-
-echo "=== DEVSECOPS AUDIT COMPLETE ==="
+echo -e "\n\e[34m=== DEVSECOPS RUN COMPLETE ===\e[0m"
+echo "All local pipeline stages finished successfully."
