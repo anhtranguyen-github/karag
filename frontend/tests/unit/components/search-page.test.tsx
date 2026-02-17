@@ -11,9 +11,7 @@ vi.mock('next/navigation', () => ({
         push: vi.fn(),
         replace: vi.fn(),
     }),
-    useSearchParams: () => ({
-        get: () => null,
-    }),
+    useSearchParams: () => new URLSearchParams(),
 }));
 
 // Import after mocks

@@ -53,7 +53,7 @@ describe('CitationModal', () => {
         render(<CitationModal source={mockSource} onClose={vi.fn()} />);
 
         expect(screen.getByText(/Citation \[1\]/)).toBeInTheDocument();
-        expect(screen.getByText(/ws-123/)).toBeInTheDocument();
+        expect(screen.getByText(/Workspace: ws-123/)).toBeInTheDocument();
     });
 
     it('displays document content', () => {
@@ -75,19 +75,19 @@ describe('CitationModal', () => {
         const onClose = vi.fn();
         render(<CitationModal source={mockSource} onClose={onClose} />);
 
-        // Click the X button in the header
-        const closeButtons = screen.getAllByRole('button');
-        fireEvent.click(closeButtons[0]); // First button is the X
+        const closeButton = screen.getByRole('button', { name: /Close/i });
+        fireEvent.click(closeButton);
 
         expect(onClose).toHaveBeenCalledTimes(1);
     });
 
     it('calls onClose when backdrop clicked', () => {
         const onClose = vi.fn();
-        render(<CitationModal source={mockSource} onClose={onClose} />);
+        const { container } = render(<CitationModal source={mockSource} onClose={onClose} />);
 
-        // Click the backdrop (the first div with absolute class)
-        const backdrop = document.querySelector('.bg-black\\/80');
+        // Click the backdrop (the first div inside the portal)
+        // In the component it's: <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
+        const backdrop = container.querySelector('.bg-black\\/80');
         if (backdrop) {
             fireEvent.click(backdrop);
             expect(onClose).toHaveBeenCalledTimes(1);

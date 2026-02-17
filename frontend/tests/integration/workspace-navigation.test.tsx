@@ -1,158 +1,114 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { api } from '@/lib/api-client';
 
 // Setup mocks
 const mockRouterPush = vi.fn();
-const mockCreateWorkspace = vi.fn();
-const mockDeleteWorkspace = vi.fn();
-const mockSwitchWorkspace = vi.fn();
+const mockRefresh = vi.fn();
 
 vi.mock('next/navigation', () => ({
     useRouter: () => ({
         push: mockRouterPush,
         replace: vi.fn(),
         back: vi.fn(),
+        refresh: mockRefresh,
     }),
     useParams: () => ({
         id: 'test-workspace',
     }),
     usePathname: () => '/workspaces/test-workspace',
+    useSearchParams: () => new URLSearchParams(),
 }));
 
-// Dynamic workspace state for integration testing
-const mockWorkspaces = [
-    { id: 'default', name: 'Default Workspace', stats: { doc_count: 5, thread_count: 3 } },
-    { id: 'ws-1', name: 'Test Workspace', stats: { doc_count: 10, thread_count: 7 } },
-];
-
-vi.mock('@/hooks/use-workspaces', () => ({
-    useWorkspaces: () => ({
-        workspaces: mockWorkspaces,
-        currentWorkspace: mockWorkspaces[1],
-        isLoading: false,
-        error: null,
-        createWorkspace: mockCreateWorkspace,
-        deleteWorkspace: mockDeleteWorkspace,
-        switchWorkspace: mockSwitchWorkspace,
-        selectWorkspace: mockSwitchWorkspace,
-    }),
+vi.mock('@/lib/api-client', () => ({
+    api: {
+        listWorkspacesWorkspacesGet: vi.fn(),
+        getSettingsMetadataSettingsMetadataGet: vi.fn(),
+        createWorkspaceWorkspacesPost: vi.fn(),
+    }
 }));
 
 import HomePage from '@/app/page';
 
 describe('Workspace Navigation Integration', () => {
+    const mockWorkspaces = [
+        { id: 'default', name: 'Default Workspace', description: 'Test desc 1' },
+        { id: 'ws-1', name: 'Test Workspace', description: 'Test desc 2' },
+    ];
+
     beforeEach(() => {
         vi.clearAllMocks();
+        (api.listWorkspacesWorkspacesGet as any).mockResolvedValue({ data: mockWorkspaces });
+        (api.getSettingsMetadataSettingsMetadataGet as any).mockResolvedValue({ data: {} });
     });
 
     it('navigates to workspace when card clicked', async () => {
         render(<HomePage />);
 
-        const defaultWorkspaceCard = (await screen.findByText('Default Workspace')).closest('div')?.parentElement;
-        if (defaultWorkspaceCard) {
-            fireEvent.click(defaultWorkspaceCard);
-        }
-
-        expect(mockRouterPush).toHaveBeenCalledWith('/workspaces/default');
+        const link = await screen.findByRole('link', { name: /Default Workspace/i });
+        expect(link).toHaveAttribute('href', '/workspaces/default/chat');
     });
 
     it('opens create modal and creates workspace', async () => {
-        mockCreateWorkspace.mockResolvedValue({ success: true, workspace: { id: 'new-ws', name: 'New Workspace' } });
+        (api.createWorkspaceWorkspacesPost as any).mockResolvedValue({ data: { id: 'new-ws', name: 'New Workspace' } });
 
         render(<HomePage />);
 
         // Open modal
-        const createButton = screen.getByRole('button', { name: /New/i });
+        const createButton = screen.getByRole('button', { name: /New Workspace/i });
         fireEvent.click(createButton);
 
         // Fill form
-        const nameInput = screen.getByLabelText(/Workspace Name/i);
+        const nameInput = await screen.findByLabelText(/^Name$/i);
         fireEvent.change(nameInput, { target: { value: 'New Workspace' } });
-        fireEvent.blur(nameInput);
-
 
         // Submit
-        await waitFor(() => {
-            const btn = screen.getByRole('button', { name: /PROCEED TO CONFIRMATION/i });
-            expect(btn).not.toBeDisabled();
-        }, { timeout: 10000 });
-
-        fireEvent.click(screen.getByRole('button', { name: /PROCEED TO CONFIRMATION/i }));
+        const submitButton = screen.getByRole('button', { name: /Create Workspace/i });
+        fireEvent.click(submitButton);
 
         await waitFor(() => {
-            expect(screen.getByRole('button', { name: /DEPLOY WORKSPACE/i })).toBeInTheDocument();
-        }, { timeout: 10000 });
-
-        fireEvent.click(screen.getByRole('button', { name: /DEPLOY WORKSPACE/i }));
-
-        await waitFor(() => {
-            expect(mockCreateWorkspace).toHaveBeenCalledWith(expect.objectContaining({
-                name: 'New Workspace'
+            expect(api.createWorkspaceWorkspacesPost).toHaveBeenCalledWith(expect.objectContaining({
+                workspaceCreate: expect.objectContaining({
+                    name: 'New Workspace'
+                })
             }));
-        }, { timeout: 10000 });
+        });
+
+        expect(mockRefresh).toHaveBeenCalled();
     });
 
-    it('navigates to new workspace after creation', async () => {
-        mockCreateWorkspace.mockResolvedValue({ success: true, workspace: { id: 'new-ws-123' } });
+    it('selects simple fields in create modal', async () => {
+        (api.createWorkspaceWorkspacesPost as any).mockResolvedValue({ data: { id: 'new-ws' } });
+        (api.getSettingsMetadataSettingsMetadataGet as any).mockResolvedValue({
+            data: {
+                llm_provider: {
+                    mutable: false,
+                    category: 'ai',
+                    description: 'LLM Provider',
+                    options: ['openai', 'anthropic']
+                }
+            }
+        });
 
         render(<HomePage />);
 
-        // Open modal and create
-        fireEvent.click(screen.getByRole('button', { name: /New/i }));
+        fireEvent.click(screen.getByRole('button', { name: /New Workspace/i }));
 
-        const nameInput = await screen.findByLabelText(/Workspace Name/i);
-        fireEvent.change(nameInput, { target: { value: 'Quick Test' } });
-        fireEvent.blur(nameInput);
+        const nameInput = await screen.findByLabelText(/^Name$/i);
+        fireEvent.change(nameInput, { target: { value: 'Custom WS' } });
 
-        await waitFor(() => {
-            const btn = screen.getByRole('button', { name: /PROCEED TO CONFIRMATION/i });
-            expect(btn).not.toBeDisabled();
-        }, { timeout: 10000 });
+        const llmSelect = await screen.findByLabelText(/Llm Provider/i);
+        fireEvent.change(llmSelect, { target: { value: 'openai' } });
 
-        fireEvent.click(screen.getByRole('button', { name: /PROCEED TO CONFIRMATION/i }));
+        const submitButton = screen.getByRole('button', { name: /Create Workspace/i });
+        fireEvent.click(submitButton);
 
         await waitFor(() => {
-            expect(screen.getByRole('button', { name: /DEPLOY WORKSPACE/i })).toBeInTheDocument();
-        });
-        fireEvent.click(screen.getByRole('button', { name: /DEPLOY WORKSPACE/i }));
-
-        await waitFor(() => {
-            expect(mockRouterPush).toHaveBeenCalledWith('/workspaces/new-ws-123');
-        });
-    });
-
-    it('selects graph RAG engine in create modal', async () => {
-        mockCreateWorkspace.mockResolvedValue({ success: true, workspace: { id: 'graph-ws' } });
-
-        render(<HomePage />);
-
-        fireEvent.click(screen.getByRole('button', { name: /New/i }));
-
-        const nameInput = await screen.findByLabelText(/Workspace Name/i);
-        fireEvent.change(nameInput, { target: { value: 'Graph WS' } });
-        fireEvent.blur(nameInput);
-
-
-        // Select Graph engine
-        const ragSelect = await screen.findByLabelText(/Search Mode/i);
-        fireEvent.change(ragSelect, { target: { value: 'graph' } });
-
-        await waitFor(() => {
-            const btn = screen.getByRole('button', { name: /PROCEED TO CONFIRMATION/i });
-            expect(btn).not.toBeDisabled();
-        }, { timeout: 10000 });
-
-        fireEvent.click(screen.getByRole('button', { name: /PROCEED TO CONFIRMATION/i }));
-
-        await waitFor(() => {
-            expect(screen.getByRole('button', { name: /DEPLOY WORKSPACE/i })).toBeInTheDocument();
-        });
-        fireEvent.click(screen.getByRole('button', { name: /DEPLOY WORKSPACE/i }));
-
-        await waitFor(() => {
-            expect(mockCreateWorkspace).toHaveBeenCalledWith(expect.objectContaining({
-                name: 'Graph WS',
-                rag_engine: 'graph'
+            expect(api.createWorkspaceWorkspacesPost).toHaveBeenCalledWith(expect.objectContaining({
+                workspaceCreate: expect.objectContaining({
+                    name: 'Custom WS',
+                    llmProvider: 'openai'
+                })
             }));
         });
     });

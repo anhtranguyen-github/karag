@@ -12,6 +12,7 @@ vi.mock('next/navigation', () => ({
         id: 'test-workspace',
     }),
     usePathname: () => '/workspaces/test-workspace',
+    useSearchParams: () => new URLSearchParams(),
 }));
 
 import { server } from '../src/mocks/server';

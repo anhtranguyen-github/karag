@@ -53,10 +53,9 @@ describe('WorkspaceHeader', () => {
     it('renders navigation links', () => {
         renderWithProvider(<WorkspaceHeader />);
 
-        expect(screen.getByText('Overview')).toBeInTheDocument();
-        expect(screen.getByText('Chat')).toBeInTheDocument();
-        expect(screen.getByText('Documents')).toBeInTheDocument();
-        expect(screen.getByText('Settings')).toBeInTheDocument();
+        expect(screen.getByText(/Chat/i)).toBeInTheDocument();
+        expect(screen.getByText(/Documents/i)).toBeInTheDocument();
+        expect(screen.getByText(/Settings/i)).toBeInTheDocument();
     });
 
     it('has exit workspace link', () => {
