@@ -46,10 +46,13 @@ class IngestionPipeline:
         Automatically selects the appropriate loader based on extension.
         
         INTERNAL ONLY: file_path_str must be a trusted internal path (e.g. from tempfile or storage).
+        Validated against workspace sandbox roots.
         """
+        from backend.app.core.path_utils import validate_safe_path
         from langchain_community.document_loaders import BSHTMLLoader
         
-        file_path = Path(file_path_str)
+        # Canonicalize and validate path
+        file_path = validate_safe_path(file_path_str)
         ext = file_path.suffix.lower()
 
         workspace_id = (metadata or {}).get("workspace_id", "default")
@@ -71,13 +74,13 @@ class IngestionPipeline:
             # --- Stage 1: Load ---
             load_start = time.perf_counter()
             if ext == ".pdf":
-                loader = PyPDFLoader(file_path)
+                loader = PyPDFLoader(str(file_path))
             elif ext in [".txt", ".log", ".md", ".py", ".js", ".ts", ".tsx", ".json", ".yaml", ".yml"]:
-                loader = TextLoader(file_path)
+                loader = TextLoader(str(file_path))
             elif ext == ".docx":
-                loader = Docx2txtLoader(file_path)
+                loader = Docx2txtLoader(str(file_path))
             elif ext == ".html":
-                loader = BSHTMLLoader(file_path)
+                loader = BSHTMLLoader(str(file_path))
             else:
                 raise ValueError(f"Unsupported file extension: {ext}")
 
@@ -356,6 +359,11 @@ class IngestionPipeline:
         INTERNAL ONLY: Recursively process files in a system-controlled directory.
         Used by GitHub ingestion and other internal workflows.
         """
+        from backend.app.core.path_utils import validate_safe_path
+        
+        # Strictly sandbox the directory path
+        directory_path = validate_safe_path(directory_path)
+        
         ignore_dirs = {".git", "__pycache__", ".venv", "node_modules", ".next"}
         total_chunks = 0
         
@@ -365,6 +373,7 @@ class IngestionPipeline:
                 if file.startswith("."): continue
                 file_path = Path(root) / file
                 try:
+                    # process_file will also validate each individual file path
                     chunks = await self.process_file(str(file_path), metadata=metadata)
                     total_chunks += chunks
                 except Exception:

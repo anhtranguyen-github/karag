@@ -18,7 +18,10 @@ class GitHubIngestionStrategy(BaseIngestionStrategy):
         repo_url = metadata.get("repo_url")
         branch = metadata.get("branch", "main")
         
-        tmp_dir = tempfile.mkdtemp(prefix="karag_git_")
+        from backend.app.core.path_utils import get_safe_temp_path
+        tmp_dir = str(get_safe_temp_path(prefix="git_"))
+        os.makedirs(tmp_dir, exist_ok=True)
+        
         try:
             if await task_service.is_cancelled(task_id):
                 return {}

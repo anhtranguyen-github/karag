@@ -32,7 +32,16 @@ def download_arxiv_paper(arxiv_id_or_url: str, output_subdir: str = DEFAULT_DOWN
         return None
 
     # INTERNAL ONLY: Path construction based on fixed identifiers
-    target_path = DATA_DIR / output_subdir / arxiv_id
+    # We use the canonical path validation to ensure no directory traversal occurs
+    from backend.app.core.path_utils import validate_safe_path
+    
+    try:
+        # Sanitize and validate the final path
+        raw_target_path = DATA_DIR / output_subdir / arxiv_id
+        target_path = validate_safe_path(raw_target_path)
+    except Exception as e:
+        print(f"Illegal path error: {e}")
+        return None
     
     if not target_path.exists():
         target_path.mkdir(parents=True, exist_ok=True)

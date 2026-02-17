@@ -53,45 +53,60 @@ class IndexingService:
                 raise ValueError("Source file missing in vault storage.")
                 
             extension = doc.get("extension", ".tmp")
-            with tempfile.NamedTemporaryFile(delete=False, suffix=extension) as tmp:
-                tmp.write(content)
-                tmp_path = tmp.name
-
+            from backend.app.core.path_utils import get_safe_temp_path
+            tmp_path = str(get_safe_temp_path(suffix=extension))
+            
             try:
-                rag_hash = settings.get_rag_hash()
-                
-                if task_id and await task_service.is_cancelled(task_id):
-                    logger.info("indexing_cancelled_before_pipeline", task_id=task_id)
-                    await db.documents.update_one({"id": doc["id"]}, {"$set": {"status": "uploaded"}})
-                    return 0
-
-                await ingestion_pipeline.initialize(workspace_id=workspace_id)
-                num_chunks = await ingestion_pipeline.process_file(
-                    tmp_path, 
-                    metadata={
-                        "filename": doc["filename"], 
-                        "workspace_id": workspace_id,
-                        "doc_id": doc["id"], 
-                        "version": doc.get("current_version", 1), 
-                        "minio_path": doc["minio_path"],
-                        "content_hash": doc["content_hash"],
-                        "rag_config_hash": rag_hash
-                    }
-                )
-                
-                await db.documents.update_one(
-                    {"id": doc["id"]}, 
-                    {"$set": {"status": "indexed", "chunks": num_chunks, "rag_config_hash": rag_hash}}
-                )
-                logger.info("document_indexed_on_demand", filename=doc["filename"], chunks=num_chunks, force=force)
-                return num_chunks
-            finally:
-                if os.path.exists(tmp_path):
-                    os.remove(tmp_path)
+                with open(tmp_path, "wb") as f:
+                    f.write(content)
                     
+                try:
+                    rag_hash = settings.get_rag_hash()
+                    
+                    if task_id and await task_service.is_cancelled(task_id):
+                        logger.info("indexing_cancelled_before_pipeline", task_id=task_id)
+                        await db.documents.update_one({"id": doc["id"]}, {"$set": {"status": "uploaded"}})
+                        return 0
+
+                    from backend.app.core.path_utils import validate_safe_path
+                    # Safety first: validate the temporary path
+                    safe_tmp_path = validate_safe_path(tmp_path)
+
+                    await ingestion_pipeline.initialize(workspace_id=workspace_id)
+                    num_chunks = await ingestion_pipeline.process_file(
+                        str(safe_tmp_path), 
+                        metadata={
+                            "filename": doc["filename"], 
+                            "workspace_id": workspace_id,
+                            "doc_id": doc["id"], 
+                            "version": doc.get("current_version", 1), 
+                            "minio_path": doc["minio_path"],
+                            "content_hash": doc["content_hash"],
+                            "rag_config_hash": rag_hash
+                        }
+                    )
+                    
+                    await db.documents.update_one(
+                        {"id": doc["id"]}, 
+                        {"$set": {"status": "indexed", "chunks": num_chunks, "rag_config_hash": rag_hash}}
+                    )
+                    logger.info("document_indexed_on_demand", filename=doc["filename"], chunks=num_chunks, force=force)
+                    return num_chunks
+                finally:
+                    from backend.app.core.path_utils import validate_safe_path
+                    try:
+                        safe_cleanup_path = validate_safe_path(tmp_path)
+                        if os.path.exists(safe_cleanup_path):
+                            os.remove(safe_cleanup_path)
+                    except Exception as e:
+                        logger.warning("cleanup_failed", path=tmp_path, error=str(e))
+                        
+            except Exception as e:
+                logger.error("indexing_failed", doc_id=doc["id"], error=str(e), exc_info=True)
+                await db.documents.update_one({"id": doc["id"]}, {"$set": {"status": "uploaded"}})
+                raise e
         except Exception as e:
-            logger.error("indexing_failed", doc_id=doc["id"], error=str(e), exc_info=True)
-            await db.documents.update_one({"id": doc["id"]}, {"$set": {"status": "uploaded"}})
+            logger.error("indexing_outer_error", doc_id=doc_id, error=str(e))
             raise e
 
     async def run_index_background(self, task_id: str, doc_id: str, workspace_id: str, force: bool = False):

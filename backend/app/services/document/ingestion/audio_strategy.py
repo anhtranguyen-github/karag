@@ -22,9 +22,11 @@ class AudioIngestionStrategy(BaseIngestionStrategy):
                 
             await task_service.update_task(task_id, status="processing", progress=10, message="Initializing Speech-to-Text...")
             
-            with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as tmp:
-                tmp.write(content)
-                tmp_path = tmp.name
+            from backend.app.core.path_utils import get_safe_temp_path
+            tmp_path = str(get_safe_temp_path(suffix=os.path.splitext(filename)[1]))
+            
+            with open(tmp_path, "wb") as f:
+                f.write(content)
 
             # MOCK/PLACEHOLDER for actual STT
             await task_service.update_task(task_id, progress=30, message="Transcribing audio (Mock mode)...")
