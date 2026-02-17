@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import AsyncGenerator, List, Dict
 
 import structlog
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from backend.app.graph.builder import app as graph_app
 from backend.app.core.mongodb import mongodb_manager
 from backend.app.providers.llm import get_llm
@@ -137,6 +137,7 @@ class ChatService:
                     message=message
                 )
 
+                llm = await get_llm(workspace_id)
                 response = await llm.ainvoke([
                     SystemMessage(content=sys_tem),
                     HumanMessage(content=user_msg)
@@ -150,7 +151,8 @@ class ChatService:
                         provider=type(llm).__name__,
                         model=getattr(llm, "model_name", getattr(llm, "model", "unknown")),
                         prompt_tokens=usage.get("input_tokens", 0),
-                        completion_tokens=usage.get("output_tokens", 0)
+                        completion_tokens=usage.get("output_tokens", 0),
+                        workspace_id=workspace_id
                     )
                 content = response.content.strip()
 
@@ -197,6 +199,7 @@ class ChatService:
         message: str, thread_id: str, workspace_id: str
     ) -> AsyncGenerator[str, None]:
         """Stream event updates from the LangGraph execution with robust error handling."""
+        logger.info("stream_updates_entered", workspace_id=workspace_id, thread_id=thread_id)
         inputs = {
             "messages": [HumanMessage(content=message)],
             "workspace_id": workspace_id,
@@ -262,6 +265,8 @@ class ChatService:
                     continue
 
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             logger.error(
                 "chat_stream_failed",
                 thread_id=thread_id,
@@ -272,7 +277,7 @@ class ChatService:
 
             span.set_status(StatusCode.ERROR, str(e))
             span.record_exception(e)
-            yield f"data: {json.dumps({'type': 'error', 'message': 'Connection to reasoning engine lost'})}\n\n"
+            yield f"data: {json.dumps({'type': 'error', 'message': f'Connection to reasoning engine lost: {str(e)}'})}\n\n"
         finally:
             ACTIVE_STREAMS.dec()
             span.end()

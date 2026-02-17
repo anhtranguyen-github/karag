@@ -70,7 +70,7 @@ class StorageService:
                 await db.documents.update_one({"id": doc["id"]}, {"$pull": {"shared_with": workspace_id}})
             
             target_settings = await settings_manager.get_settings(workspace_id)
-            coll = qdrant.get_collection_name(target_settings.embedding_dim)
+            coll = await qdrant.get_collection_name(workspace_id)
             if await qdrant.client.collection_exists(coll):
                 await qdrant.client.delete(
                     collection_name=coll,
@@ -105,7 +105,7 @@ class StorageService:
             )
             
             target_settings = await settings_manager.get_settings(workspace_id)
-            coll = qdrant.get_collection_name(target_settings.embedding_dim)
+            coll = await qdrant.get_collection_name(workspace_id)
             if await qdrant.client.collection_exists(coll):
                 await qdrant.client.delete(
                     collection_name=coll,

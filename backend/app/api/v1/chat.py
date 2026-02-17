@@ -1,10 +1,13 @@
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import StreamingResponse
 import asyncio
+import structlog
 from backend.app.services.chat_service import chat_service
 from backend.app.schemas.chat import ChatStreamRequest, ThreadTitleUpdate, ChatMessage, ChatThread
 from backend.app.schemas.base import AppResponse
 from backend.app.core.exceptions import ValidationError
+
+logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -37,6 +40,7 @@ async def chat_stream(payload: ChatStreamRequest):
     Stream chat updates using SSE.
     Spawns background title generation for consistent UX.
     """
+    logger.info("chat_stream_request", payload=payload.model_dump())
     # Spawn title generation in background (non-blocking)
     asyncio.create_task(
         chat_service.generate_title(payload.message, payload.thread_id, payload.workspace_id)

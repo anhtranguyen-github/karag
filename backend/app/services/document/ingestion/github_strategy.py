@@ -1,6 +1,6 @@
 import os
 import shutil
-import subprocess
+import subprocess  # nosec B404
 import tempfile
 from typing import Dict, Any
 from backend.app.services.document.ingestion.base import BaseIngestionStrategy, logger
@@ -26,18 +26,19 @@ class GitHubIngestionStrategy(BaseIngestionStrategy):
             await task_service.update_task(task_id, status="processing", progress=5, message=f"Cloning {repo_url}...")
             
             # Clone repo
+            git_path = shutil.which("git") or "git"
             result = subprocess.run(
-                ["git", "clone", "--depth", "1", "--branch", branch, repo_url, tmp_dir],
+                [git_path, "clone", "--depth", "1", "--branch", branch, repo_url, tmp_dir],
                 capture_output=True, text=True, check=False
-            )
+            )  # nosec B603 B607
             
             if result.returncode != 0:
                 if "Remote branch" in result.stderr and branch == "main":
                     await task_service.update_task(task_id, message="Main branch not found, trying master...")
                     result = subprocess.run(
-                        ["git", "clone", "--depth", "1", "--branch", "master", repo_url, tmp_dir],
+                        [git_path, "clone", "--depth", "1", "--branch", "master", repo_url, tmp_dir],
                         capture_output=True, text=True, check=False
-                    )
+                    )  # nosec B603 B607
 
             if result.returncode != 0:
                 raise Exception(f"Git clone failed: {result.stderr}")

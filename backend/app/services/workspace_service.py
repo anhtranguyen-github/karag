@@ -266,9 +266,9 @@ class WorkspaceService:
                             "value": 1.0,
                             "type": rec["rel_type"]
                         })
-            except Exception:
+            except Exception as e:
+                logger.warning("neo4j_graph_fetch_failed", error=str(e), workspace_id=workspace_id)
                 pass # Fail gracefully if Neo4j is down
-        
         return {"nodes": nodes, "edges": edges}
 
 workspace_service = WorkspaceService()

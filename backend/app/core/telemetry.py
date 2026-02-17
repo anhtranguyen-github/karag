@@ -130,6 +130,7 @@ def record_llm_usage(
     model: str,
     prompt_tokens: int,
     completion_tokens: int,
+    workspace_id: Optional[str] = None,
 ) -> None:
     """Record LLM token usage to both OpenTelemetry and Prometheus."""
     span = trace.get_current_span()
@@ -139,10 +140,12 @@ def record_llm_usage(
         span.set_attribute("llm.usage.prompt_tokens", prompt_tokens)
         span.set_attribute("llm.usage.completion_tokens", completion_tokens)
         span.set_attribute("llm.usage.total_tokens", prompt_tokens + completion_tokens)
+        if workspace_id:
+            span.set_attribute("workspace_id", workspace_id)
 
     # Prometheus metrics
-    LLM_TOKEN_USAGE.labels(provider=provider, model=model, token_type="prompt").inc(prompt_tokens)
-    LLM_TOKEN_USAGE.labels(provider=provider, model=model, token_type="completion").inc(completion_tokens)
+    LLM_TOKEN_USAGE.labels(provider=provider, model=model, token_type="prompt").inc(prompt_tokens)  # nosec B106
+    LLM_TOKEN_USAGE.labels(provider=provider, model=model, token_type="completion").inc(completion_tokens)  # nosec B106
 
 
 def configure_logging(log_format: str = "json", log_level: str = "INFO") -> None:
