@@ -73,6 +73,7 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 nosetests.xml
+screenshots/
 
 # ===================
 # Data & Storage (Project Specific)
@@ -100,7 +101,6 @@ backend/app/tools/arxiv_downloader/downloads/
 # ===================
 # Project Documentation
 # ===================
-/docs/
 /plans/
 /scripts/
 /test-resources/
