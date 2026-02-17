@@ -27,10 +27,8 @@ fi
 echo "-----------------------------------"
 echo "[Backend] Running pip-audit (SCA)..."
 if command -v uv &> /dev/null; then
-    # Try creating a lock file first for stability
-    uv pip freeze > requirements_freeze.txt
-    uv run pip-audit -r requirements_freeze.txt || echo "pip-audit found vulnerabilities (but continuing for audit report)"
-    rm requirements_freeze.txt
+    # Use --no-deps because we are passing a frozen requirement list from uv
+    uvx pip-audit --no-deps --requirement <(uv pip freeze) || echo "pip-audit found vulnerabilities"
 else
     echo "uv not found. Skipping pip-audit."
 fi
@@ -39,7 +37,10 @@ cd ..
 # 3. Secrets Detection (Simple Pattern Check)
 echo "-----------------------------------"
 echo "[Security] Scanning for secrets..."
-# Simple grep for common secrets patterns (API keys, etc.)
-grep -rE "AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY|OPENAI_API_KEY|ANTHROPIC_API_KEY|GOOGLE_API_KEY" . --exclude-dir={node_modules,.git,.venv,__pycache__,.gemini} --exclude=*.{json,lock,log} || echo "No obvious secrets found in codebase."
+# Exclude data directories, logs, and build artifacts to prevent permission errors and false positives
+grep -rE "AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY|OPENAI_API_KEY|ANTHROPIC_API_KEY|GOOGLE_API_KEY" . \
+    --exclude-dir={node_modules,.git,.venv,__pycache__,.gemini,logs,mongo_data,qdrant_storage,minio_data,.next} \
+    --exclude={*.json,*.lock,*.log,.env,.env.local,.env.development.local} \
+    || echo "No obvious secrets found in codebase."
 
 echo "=== DEVSECOPS AUDIT COMPLETE ==="
