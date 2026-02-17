@@ -59,11 +59,11 @@ describe('Workspace Navigation Integration', () => {
         fireEvent.click(createButton);
 
         // Fill form
-        const nameInput = await screen.findByLabelText(/^Name$/i);
+        const nameInput = await screen.findByLabelText(/Workspace Name/i);
         fireEvent.change(nameInput, { target: { value: 'New Workspace' } });
 
         // Submit
-        const submitButton = screen.getByRole('button', { name: /Create Workspace/i });
+        const submitButton = screen.getByRole('button', { name: /Launch Workspace/i });
         fireEvent.click(submitButton);
 
         await waitFor(() => {
@@ -94,13 +94,13 @@ describe('Workspace Navigation Integration', () => {
 
         fireEvent.click(screen.getByRole('button', { name: /New Workspace/i }));
 
-        const nameInput = await screen.findByLabelText(/^Name$/i);
+        const nameInput = await screen.findByLabelText(/Workspace Name/i);
         fireEvent.change(nameInput, { target: { value: 'Custom WS' } });
 
         const llmSelect = await screen.findByLabelText(/Llm Provider/i);
         fireEvent.change(llmSelect, { target: { value: 'openai' } });
 
-        const submitButton = screen.getByRole('button', { name: /Create Workspace/i });
+        const submitButton = screen.getByRole('button', { name: /Launch Workspace/i });
         fireEvent.click(submitButton);
 
         await waitFor(() => {
