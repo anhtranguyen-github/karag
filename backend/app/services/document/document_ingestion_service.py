@@ -4,13 +4,13 @@ from backend.app.core.mongodb import mongodb_manager
 from backend.app.core.minio import minio_manager
 from backend.app.core.settings_manager import settings_manager
 from backend.app.core.exceptions import NotFoundError
-from backend.app.services.task_service import task_service
+from backend.app.services.task.task_service import task_service
 from backend.app.rag.ingestion import ingestion_pipeline
 from backend.app.rag.qdrant_provider import qdrant
 from qdrant_client.http import models as qmodels
 from .base import logger
 
-class IndexingService:
+class DocumentIngestionService:
     async def index_document(self, doc_id: str, workspace_id: str, force: bool = False, task_id: str = None):
         """Phase 2: On-Demand Neural Indexing."""
         if task_id and await task_service.is_cancelled(task_id):
@@ -29,7 +29,7 @@ class IndexingService:
         if doc["status"] == "indexed" and not force:
             return doc["chunks"]
 
-        await db.documents.update_one({"id": doc["id"]}, {"$set": {"status": "indexing"}})
+        await db.documents.update_one({"id": doc["id"]}, {"$set": {"status": "ingesting"}})
         
         try:
             if task_id and await task_service.is_cancelled(task_id):
@@ -132,4 +132,4 @@ class IndexingService:
                 task_id, error_message=str(e), error_code="INDEXING_FAILED"
             )
 
-indexing_service = IndexingService()
+document_ingestion_service = DocumentIngestionService()

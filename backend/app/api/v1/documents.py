@@ -2,13 +2,12 @@ from typing import Optional
 from fastapi import APIRouter, Request, UploadFile, File, BackgroundTasks
 from fastapi.encoders import jsonable_encoder
 from backend.app.services.document_service import document_service
-from backend.app.services.task_service import task_service
+from backend.app.services.task.task_service import task_service
 
 from backend.app.core.exceptions import ValidationError, NotFoundError
 from backend.app.schemas.base import AppResponse
 
 from backend.app.schemas.documents import (
-    ArxivUploadRequest, 
     UrlImportRequest, 
     SitemapImportRequest, 
     GitHubImportRequest,
@@ -36,23 +35,7 @@ async def upload_document(
 
     return AppResponse.from_result(result)
 
-@router.post("/upload-arxiv", response_model=AppResponse)
-async def upload_arxiv_document(
-    background_tasks: BackgroundTasks,
-    payload: ArxivUploadRequest,
-    workspace_id: str = "vault"
-):
-    result = await document_service.upload_arxiv(payload.url, workspace_id, strategy=payload.strategy)
 
-    if result["status"] == "success":
-        background_tasks.add_task(
-            document_service.run_ingestion,
-            result["task_id"], result["filename"], result["content"], result["content_type"], workspace_id
-        )
-        if "content" in result:
-            del result["content"]
-
-    return AppResponse.from_result(result)
 
 @router.post("/import-url", response_model=AppResponse)
 async def import_url_document(
@@ -102,6 +85,8 @@ async def import_github_document(
             result["task_id"], url_str, payload.branch, workspace_id
         )
     return AppResponse.from_result(result)
+
+
 
 
 @router.post("/import-audio")

@@ -1,6 +1,6 @@
 from typing import Dict, Any
 from backend.app.services.document.ingestion.base import BaseIngestionStrategy, logger
-from backend.app.services.task_service import task_service
+from backend.app.services.task.task_service import task_service
 from backend.app.core.error_codes import AppErrorCode
 
 class SitemapIngestionStrategy(BaseIngestionStrategy):

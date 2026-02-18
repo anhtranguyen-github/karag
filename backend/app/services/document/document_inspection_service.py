@@ -1,7 +1,7 @@
 from typing import List, Dict, Optional
 from backend.app.core.mongodb import mongodb_manager
 
-class QueryService:
+class DocumentInspectionService:
     async def list_by_workspace(self, workspace_id: str) -> List[Dict]:
         db = mongodb_manager.get_async_database()
         cursor = db.documents.find({

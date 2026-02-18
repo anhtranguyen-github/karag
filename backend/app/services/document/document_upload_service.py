@@ -7,7 +7,7 @@ from fastapi import UploadFile
 
 from backend.app.core.mongodb import mongodb_manager
 from backend.app.core.minio import minio_manager
-from backend.app.services.task_service import task_service
+from backend.app.services.task.task_service import task_service
 from backend.app.core.exceptions import ValidationError
 from backend.app.core.error_codes import AppErrorCode
 from .base import logger, tracer
@@ -15,7 +15,7 @@ from .base import logger, tracer
 MAX_FILE_SIZE = 50_000_000  # 50MB
 ALLOWED_EXTENSIONS = {'.pdf', '.txt', '.md', '.docx', '.html', '.csv', '.json'}
 
-class IngestionService:
+class DocumentUploadService:
     def _sanitize_filename(self, filename: str, max_length: int = 150) -> str:
         """Extract only the filename part (identifier) to prevent directory injection."""
         from pathlib import Path
@@ -89,6 +89,7 @@ class IngestionService:
                 
                 # Optimized regex query to find all conflicting names
                 # Properly escaping components
+                import re
                 cursor = db.documents.find({
                     "workspace_id": workspace_id, 
                     "filename": {"$regex": f"^{re.escape(name)} \\(\\d+\\){re.escape(ext)}$"}
@@ -96,7 +97,6 @@ class IngestionService:
                 existing = await cursor.to_list(1000)
                 
                 max_count = 0
-                import re
                 for doc in existing:
                     match = re.search(r"\((\d+)\)", doc["filename"])
                     if match:
@@ -122,50 +122,7 @@ class IngestionService:
                 "duplicate_info": duplicate_info
             }
 
-    async def run_arxiv_background(self, task_id: str, arxiv_id: str, filename: str, content: bytes, workspace_id: str):
-        """Background runner for Arxiv ingestion."""
-        from .ingestion.arxiv_strategy import ArxivIngestionStrategy
-        strat = ArxivIngestionStrategy()
-        await strat.run(task_id, workspace_id, {"arxiv_id": arxiv_id, "filename": filename, "content": content})
 
-    async def upload_arxiv(self, arxiv_id_or_url: str, workspace_id: str, strategy: Optional[str] = None) -> Dict:
-        """Download from arXiv and prepare for ingestion."""
-        with tracer.start_as_current_span(
-            "document.upload_arxiv",
-            attributes={"workspace_id": workspace_id, "arxiv_id_or_url": arxiv_id_or_url},
-        ):
-            import arxiv
-            arxiv_id = arxiv_id_or_url.split('/')[-1]
-            if arxiv_id.endswith('.pdf'):
-                arxiv_id = arxiv_id[:-4]
-            
-            client = arxiv.Client()
-            search = arxiv.Search(id_list=[arxiv_id])
-            paper = next(client.results(search), None)
-            if not paper:
-                return {"status": "error", "code": "ARXIV_NOT_FOUND", "message": f"Paper '{arxiv_id}' not found."}
-
-            filename = f"arxiv_{arxiv_id}.pdf"
-
-            
-            import httpx
-            async with httpx.AsyncClient() as ac:
-                res = await ac.get(paper.pdf_url)
-                content = res.content
-
-            task_id = await task_service.create_task("arxiv_ingestion", {
-                "arxiv_id": arxiv_id,
-                "filename": filename,
-                "workspace_id": workspace_id
-            }, workspace_id=workspace_id)
-
-            return {
-                "status": "success",
-                "task_id": task_id,
-                "content": content,
-                "filename": filename,
-                "content_type": "application/pdf"
-            }
 
     async def import_url(self, url: str, workspace_id: str, strategy: Optional[str] = None) -> Dict:
         """Fetch content from a URL and prepare for ingestion."""
@@ -278,15 +235,6 @@ class IngestionService:
             extension = os.path.splitext(safe_filename)[1].lower() if safe_filename else ".tmp"
             minio_path = f"workspaces/{workspace_id}/documents/{doc_id}/v1/{safe_filename}"
             
-            import io
-            await minio_manager.upload_file(minio_path, io.BytesIO(content), len(content), content_type)
-            
-            if await task_service.is_cancelled(task_id):
-                minio_manager.delete_file(minio_path)
-                return
-
-            await task_service.update_task(task_id, progress=50, message="Recording metadata...")
-            
             db = mongodb_manager.get_async_database()
             document_data = {
                 "id": doc_id,
@@ -297,36 +245,42 @@ class IngestionService:
                 "size": len(content),
                 "minio_path": minio_path,
                 "content_hash": file_hash,
-                "status": "uploaded",
+                "status": "verifying",
                 "current_version": 1,
                 "shared_with": [],
                 "created_at": datetime.utcnow().isoformat(),
                 "updated_at": datetime.utcnow().isoformat()
             }
             await db.documents.insert_one(document_data)
+
+            if await task_service.is_cancelled(task_id):
+                await db.documents.delete_one({"id": doc_id})
+                return
+
+            await db.documents.update_one({"id": doc_id}, {"$set": {"status": "uploading"}})
+
+            import io
+            await minio_manager.upload_file(minio_path, io.BytesIO(content), len(content), content_type)
             
             if await task_service.is_cancelled(task_id):
                 await db.documents.delete_one({"id": doc_id})
                 minio_manager.delete_file(minio_path)
                 return
 
-            # AUTO-INDEX: If workspace is not vault, proceed to Phase 2 immediately
-            if workspace_id != "vault":
-                await task_service.update_task(task_id, progress=60, message="Neural infrastructure: Indexing...")
-                from .indexing_service import indexing_service
-                num_chunks = await indexing_service.index_document(doc_id, workspace_id, task_id=task_id)
-                
-                await task_service.update_task(
-                    task_id, status="completed", progress=100,
-                    message=f"Ingestion complete: '{safe_filename}' indexed ({num_chunks} fragments).",
-                    result={"doc_id": doc_id, "filename": safe_filename, "chunks": num_chunks}
-                )
-            else:
-                await task_service.update_task(
-                    task_id, status="completed", progress=100,
-                    message=f"Document '{safe_filename}' saved to vault.",
-                    result={"doc_id": doc_id, "filename": safe_filename}
-                )
+            await task_service.update_task(task_id, progress=50, message="Recording metadata...")
+            
+            await db.documents.update_one({"id": doc_id}, {"$set": {"status": "reading"}})
+            
+            # AUTO-INDEX: Proceed to Phase 2 immediately for all workspaces (including Vault)
+            await task_service.update_task(task_id, progress=60, message="Neural infrastructure: Indexing...")
+            from .document_ingestion_service import document_ingestion_service
+            num_chunks = await document_ingestion_service.index_document(doc_id, workspace_id, task_id=task_id)
+            
+            await task_service.update_task(
+                task_id, status="completed", progress=100,
+                message=f"Ingestion complete: '{safe_filename}' indexed ({num_chunks} fragments).",
+                result={"doc_id": doc_id, "filename": safe_filename, "chunks": num_chunks}
+            )
 
             from backend.app.core.telemetry import DOCUMENT_INGESTION_COUNT
             DOCUMENT_INGESTION_COUNT.labels(extension=extension, status="success").inc()
@@ -361,4 +315,5 @@ class IngestionService:
         strat = AudioIngestionStrategy()
         await strat.run(task_id, workspace_id, {"filename": filename, "content": content})
 
-ingestion_service = IngestionService()
+
+document_upload_service = DocumentUploadService()
