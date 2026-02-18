@@ -37,13 +37,13 @@ export function ChunkingStrategySelector({ form }: StrategySettingsProps) {
                         className={cn(
                             "p-3 rounded-xl border text-left transition-all group",
                             isActive
-                                ? "bg-indigo-600/10 border-indigo-500 text-white shadow-lg shadow-indigo-600/5"
-                                : "bg-white/5 border-white/5 text-gray-500 hover:border-white/10 hover:bg-white/[0.07]"
+                                ? "bg-indigo-500/10 border-indigo-500 text-foreground shadow-lg shadow-indigo-500/5"
+                                : "bg-secondary/50 border-border text-muted-foreground hover:border-indigo-500/30 hover:bg-secondary"
                         )}
                     >
                         <div className={cn(
                             "w-8 h-8 rounded-lg flex items-center justify-center mb-2 transition-colors",
-                            isActive ? "bg-indigo-500 text-white" : "bg-white/5 text-gray-400 group-hover:text-gray-300"
+                            isActive ? "bg-indigo-500 text-white" : "bg-card border border-border text-muted-foreground group-hover:text-foreground"
                         )}>
                             <Icon size={16} />
                         </div>
@@ -60,8 +60,8 @@ export function ChunkingStrategyDetails({ form }: StrategySettingsProps) {
     const { register, watch } = form;
     const strategy = watch('chunking.strategy');
 
-    const inputClass = "w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-caption focus:ring-1 focus:ring-indigo-500 outline-none transition-all";
-    const labelClass = "text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 block";
+    const inputClass = "w-full bg-secondary border border-border rounded-xl px-3 py-2 text-caption focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-foreground";
+    const labelClass = "text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1.5 block";
 
     switch (strategy) {
         case 'recursive':
@@ -87,16 +87,16 @@ export function ChunkingStrategyDetails({ form }: StrategySettingsProps) {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="flex items-center gap-2">
-                            <input type="checkbox" {...register('chunking.keep_separator')} id="keep_sep" className="rounded bg-white/5 border-white/10" />
-                            <label htmlFor="keep_sep" className="text-[10px] text-gray-400 font-bold uppercase">Keep Separator</label>
+                            <input type="checkbox" {...register('chunking.keep_separator')} id="keep_sep" className="rounded bg-secondary border-border" />
+                            <label htmlFor="keep_sep" className="text-[10px] text-muted-foreground font-black uppercase tracking-widest cursor-pointer">Keep Separator</label>
                         </div>
                         <div className="flex items-center gap-2">
-                            <input type="checkbox" {...register('chunking.trim_whitespace')} id="trim_ws" className="rounded bg-white/5 border-white/10" />
-                            <label htmlFor="trim_ws" className="text-[10px] text-gray-400 font-bold uppercase">Trim Whitespace</label>
+                            <input type="checkbox" {...register('chunking.trim_whitespace')} id="trim_ws" className="rounded bg-secondary border-border" />
+                            <label htmlFor="trim_ws" className="text-[10px] text-muted-foreground font-black uppercase tracking-widest cursor-pointer">Trim Whitespace</label>
                         </div>
                         <div className="flex items-center gap-2">
-                            <input type="checkbox" {...register('chunking.fallback_to_sentence')} id="fallback_sent" className="rounded bg-white/5 border-white/10" />
-                            <label htmlFor="fallback_sent" className="text-[10px] text-gray-400 font-bold uppercase">Fallback to Sentence</label>
+                            <input type="checkbox" {...register('chunking.fallback_to_sentence')} id="fallback_sent" className="rounded bg-secondary border-border" />
+                            <label htmlFor="fallback_sent" className="text-[10px] text-muted-foreground font-black uppercase tracking-widest cursor-pointer">Fallback to Sentence</label>
                         </div>
                     </div>
                 </div>
@@ -124,12 +124,12 @@ export function ChunkingStrategyDetails({ form }: StrategySettingsProps) {
                     </div>
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
-                            <input type="checkbox" {...register('chunking.respect_paragraphs')} id="resp_para" className="rounded bg-white/5 border-white/10" />
-                            <label htmlFor="resp_para" className="text-[10px] text-gray-400 font-bold uppercase">Respect Paragraphs</label>
+                            <input type="checkbox" {...register('chunking.respect_paragraphs')} id="resp_para" className="rounded bg-secondary border-border" />
+                            <label htmlFor="resp_para" className="text-[10px] text-muted-foreground font-black uppercase tracking-widest cursor-pointer">Respect Paragraphs</label>
                         </div>
                         <div className="flex items-center gap-2">
-                            <input type="checkbox" {...register('chunking.merge_short_sentences')} id="merge_short" className="rounded bg-white/5 border-white/10" />
-                            <label htmlFor="merge_short" className="text-[10px] text-gray-400 font-bold uppercase">Merge Short</label>
+                            <input type="checkbox" {...register('chunking.merge_short_sentences')} id="merge_short" className="rounded bg-secondary border-border" />
+                            <label htmlFor="merge_short" className="text-[10px] text-muted-foreground font-black uppercase tracking-widest cursor-pointer">Merge Short</label>
                         </div>
                     </div>
                 </div>
@@ -157,16 +157,16 @@ export function ChunkingStrategyDetails({ form }: StrategySettingsProps) {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="flex items-center gap-2">
-                            <input type="checkbox" {...register('chunking.count_special_tokens')} id="special_toks" className="rounded bg-white/5 border-white/10" />
-                            <label htmlFor="special_toks" className="text-[10px] text-gray-400 font-bold uppercase">Special Tokens</label>
+                            <input type="checkbox" {...register('chunking.count_special_tokens')} id="special_toks" className="rounded bg-secondary border-border" />
+                            <label htmlFor="special_toks" className="text-[10px] text-muted-foreground font-black uppercase tracking-widest cursor-pointer">Special Tokens</label>
                         </div>
                         <div className="flex items-center gap-2">
-                            <input type="checkbox" {...register('chunking.truncate_overflow')} id="trunc_over" className="rounded bg-white/5 border-white/10" />
-                            <label htmlFor="trunc_over" className="text-[10px] text-gray-400 font-bold uppercase">Truncate Overflow</label>
+                            <input type="checkbox" {...register('chunking.truncate_overflow')} id="trunc_over" className="rounded bg-secondary border-border" />
+                            <label htmlFor="trunc_over" className="text-[10px] text-muted-foreground font-black uppercase tracking-widest cursor-pointer">Truncate Overflow</label>
                         </div>
                         <div className="flex items-center gap-2">
-                            <input type="checkbox" {...register('chunking.strict_token_limit')} id="strict_lim" className="rounded bg-white/5 border-white/10" />
-                            <label htmlFor="strict_lim" className="text-[10px] text-gray-400 font-bold uppercase">Strict Limit</label>
+                            <input type="checkbox" {...register('chunking.strict_token_limit')} id="strict_lim" className="rounded bg-secondary border-border" />
+                            <label htmlFor="strict_lim" className="text-[10px] text-muted-foreground font-black uppercase tracking-widest cursor-pointer">Strict Limit</label>
                         </div>
                     </div>
                 </div>
@@ -197,8 +197,8 @@ export function ChunkingStrategyDetails({ form }: StrategySettingsProps) {
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <input type="checkbox" {...register('chunking.merge_small_chunks')} id="merge_small" className="rounded bg-white/5 border-white/10" />
-                        <label htmlFor="merge_small" className="text-[10px] text-gray-400 font-bold uppercase">Merge Small Chunks</label>
+                        <input type="checkbox" {...register('chunking.merge_small_chunks')} id="merge_small" className="rounded bg-secondary border-border" />
+                        <label htmlFor="merge_small" className="text-[10px] text-muted-foreground font-black uppercase tracking-widest cursor-pointer">Merge Small Chunks</label>
                     </div>
                 </div>
             );
@@ -217,12 +217,12 @@ export function ChunkingStrategyDetails({ form }: StrategySettingsProps) {
                     </div>
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
-                            <input type="checkbox" {...register('chunking.hard_cut')} id="hard_cut" className="rounded bg-white/5 border-white/10" />
-                            <label htmlFor="hard_cut" className="text-[10px] text-gray-400 font-bold uppercase">Hard Cut</label>
+                            <input type="checkbox" {...register('chunking.hard_cut')} id="hard_cut" className="rounded bg-secondary border-border" />
+                            <label htmlFor="hard_cut" className="text-[10px] text-muted-foreground font-black uppercase tracking-widest cursor-pointer">Hard Cut</label>
                         </div>
                         <div className="flex items-center gap-2">
-                            <input type="checkbox" {...register('chunking.pad_last_chunk')} id="pad_last" className="rounded bg-white/5 border-white/10" />
-                            <label htmlFor="pad_last" className="text-[10px] text-gray-400 font-bold uppercase">Pad Last</label>
+                            <input type="checkbox" {...register('chunking.pad_last_chunk')} id="pad_last" className="rounded bg-secondary border-border" />
+                            <label htmlFor="pad_last" className="text-[10px] text-muted-foreground font-black uppercase tracking-widest cursor-pointer">Pad Last</label>
                         </div>
                     </div>
                 </div>
@@ -253,12 +253,12 @@ export function ChunkingStrategyDetails({ form }: StrategySettingsProps) {
                     </div>
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
-                            <input type="checkbox" {...register('chunking.preserve_hierarchy')} id="pres_hier" className="rounded bg-white/5 border-white/10" />
-                            <label htmlFor="pres_hier" className="text-[10px] text-gray-400 font-bold uppercase">Preserve Hierarchy</label>
+                            <input type="checkbox" {...register('chunking.preserve_hierarchy')} id="pres_hier" className="rounded bg-secondary border-border" />
+                            <label htmlFor="pres_hier" className="text-[10px] text-muted-foreground font-black uppercase tracking-widest cursor-pointer">Preserve Hierarchy</label>
                         </div>
                         <div className="flex items-center gap-2">
-                            <input type="checkbox" {...register('chunking.include_metadata')} id="inc_meta" className="rounded bg-white/5 border-white/10" />
-                            <label htmlFor="inc_meta" className="text-[10px] text-gray-400 font-bold uppercase">Include Metadata</label>
+                            <input type="checkbox" {...register('chunking.include_metadata')} id="inc_meta" className="rounded bg-secondary border-border" />
+                            <label htmlFor="inc_meta" className="text-[10px] text-muted-foreground font-black uppercase tracking-widest cursor-pointer">Include Metadata</label>
                         </div>
                     </div>
                 </div>
