@@ -44,13 +44,13 @@ export function EmbeddingProviderSelector({ form }: EmbeddingSettingsProps) {
                         className={cn(
                             "p-3 rounded-xl border text-left transition-all group",
                             isActive
-                                ? "bg-blue-600/10 border-blue-500 text-white shadow-lg shadow-blue-600/5"
-                                : "bg-white/5 border-white/5 text-gray-500 hover:border-white/10 hover:bg-white/[0.07]"
+                                ? "bg-indigo-500/10 border-indigo-500 text-foreground shadow-lg shadow-indigo-500/5"
+                                : "bg-secondary/50 border-border text-muted-foreground hover:border-indigo-500/30 hover:bg-secondary"
                         )}
                     >
                         <div className={cn(
                             "w-8 h-8 rounded-lg flex items-center justify-center mb-2 transition-colors",
-                            isActive ? "bg-blue-500 text-white" : "bg-white/5 text-gray-400 group-hover:text-gray-300"
+                            isActive ? "bg-indigo-500 text-white" : "bg-card border border-border text-muted-foreground group-hover:text-foreground"
                         )}>
                             <Icon size={16} />
                         </div>
@@ -81,8 +81,8 @@ export function EmbeddingModelSelector({ form }: EmbeddingSettingsProps) {
     const currentModel = watch('embedding.model');
     const models = PROVIDER_MODELS[provider] || [];
 
-    const inputClass = "w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-caption focus:ring-1 focus:ring-blue-500 outline-none transition-all";
-    const labelClass = "text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 block";
+    const inputClass = "w-full bg-secondary border border-border rounded-xl px-3 py-2 text-caption focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-foreground";
+    const labelClass = "text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1.5 block";
 
     // Update model if provider changes and current model is not in list
     useEffect(() => {
@@ -103,7 +103,7 @@ export function EmbeddingModelSelector({ form }: EmbeddingSettingsProps) {
             </div>
             <div className="space-y-1">
                 <label className={labelClass}>Dimension (Derived)</label>
-                <div className={cn(inputClass, "bg-white/10 text-gray-400 cursor-not-allowed flex items-center")}>
+                <div className={cn(inputClass, "bg-muted text-muted-foreground/60 cursor-not-allowed flex items-center")}>
                     {MODEL_DIMENSIONS[currentModel] || '---'}
                 </div>
             </div>
@@ -209,8 +209,8 @@ export function EmbeddingConfigDetails({ form }: EmbeddingSettingsProps) {
                         <input type="number" {...register('embedding.max_sequence_length', { valueAsNumber: true })} className={inputClass} />
                     </div>
                     <div className="flex items-center gap-2 pt-4">
-                        <input type="checkbox" {...register('embedding.normalize_embeddings')} id="norm_emb" className="w-4 h-4 rounded border-white/10 bg-white/5" />
-                        <label htmlFor="norm_emb" className="text-[10px] font-bold text-gray-400">NORMALIZE</label>
+                        <input type="checkbox" {...register('embedding.normalize_embeddings')} id="norm_emb" className="w-4 h-4 rounded border-border bg-secondary" />
+                        <label htmlFor="norm_emb" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest cursor-pointer">Normalize</label>
                     </div>
                 </div>
             );
@@ -251,12 +251,12 @@ export function EmbeddingConfigDetails({ form }: EmbeddingSettingsProps) {
                         <input type="number" {...register('embedding.batch_size', { valueAsNumber: true })} className={inputClass} />
                     </div>
                     <div className="flex items-center gap-2 pt-4">
-                        <input type="checkbox" {...register('embedding.enable_finetune')} id="tune" className="w-4 h-4 rounded border-white/10 bg-white/5" />
-                        <label htmlFor="tune" className="text-[10px] font-bold text-gray-400">ENABLE FINETUNE</label>
+                        <input type="checkbox" {...register('embedding.enable_finetune')} id="tune" className="w-4 h-4 rounded border-border bg-secondary" />
+                        <label htmlFor="tune" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest cursor-pointer">Enable Finetune</label>
                     </div>
                     <div className="flex items-center gap-2 pt-4">
-                        <input type="checkbox" {...register('embedding.embedding_cache')} id="cache" className="w-4 h-4 rounded border-white/10 bg-white/5" />
-                        <label htmlFor="cache" className="text-[10px] font-bold text-gray-400">EMBEDDING CACHE</label>
+                        <input type="checkbox" {...register('embedding.embedding_cache')} id="cache" className="w-4 h-4 rounded border-border bg-secondary" />
+                        <label htmlFor="cache" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest cursor-pointer">Embedding Cache</label>
                     </div>
                 </div>
             );
@@ -280,16 +280,16 @@ export function EmbeddingConfigDetails({ form }: EmbeddingSettingsProps) {
                         <input type="number" {...register('embedding.batch_size', { valueAsNumber: true })} className={inputClass} />
                     </div>
                     <div className="flex items-center gap-2 pt-4">
-                        <input type="checkbox" {...register('embedding.normalize_embeddings')} id="norm_vlm" className="w-4 h-4 rounded border-white/10 bg-white/5" />
-                        <label htmlFor="norm_vlm" className="text-[10px] font-bold text-gray-400">NORMALIZE</label>
+                        <input type="checkbox" {...register('embedding.normalize_embeddings')} id="norm_vlm" className="w-4 h-4 rounded border-border bg-secondary" />
+                        <label htmlFor="norm_vlm" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest cursor-pointer">Normalize</label>
                     </div>
                 </div>
             );
         default:
             return (
-                <div className="p-3 rounded-xl bg-blue-500/5 border border-blue-500/10 flex items-start gap-3">
-                    <Info size={14} className="text-blue-400 shrink-0 mt-0.5" />
-                    <p className="text-[10px] text-blue-200/60 leading-relaxed">
+                <div className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/10 flex items-start gap-4">
+                    <Info size={14} className="text-indigo-500 shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
                         Default settings applied for {provider}. Standard batch processing and timeouts enabled.
                     </p>
                 </div>
