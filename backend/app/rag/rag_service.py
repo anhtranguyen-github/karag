@@ -1,5 +1,5 @@
 import time
-from typing import List, Optional
+from typing import List, Optional, Any, Dict
 
 import structlog
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -21,84 +21,31 @@ class RAGService:
     ) -> List[str]:
         """Split text into chunks using selected strategy."""
         from backend.app.core.settings_manager import settings_manager
+        from backend.app.rag.chunking.registry import chunking_registry
 
         settings = await settings_manager.get_settings(workspace_id)
-        strategy = settings.chunking_strategy
+        config = settings.chunking
 
         with tracer.start_as_current_span(
             "rag.chunk_text",
             attributes={
-                "chunk_size": settings.chunk_size,
-                "chunk_overlap": settings.chunk_overlap,
-                "chunking_strategy": strategy,
+                "strategy": config.strategy,
                 "workspace_id": workspace_id or "default",
             },
         ) as span:
-            if strategy == "recursive":
-                splitter = RecursiveCharacterTextSplitter(
-                    chunk_size=settings.chunk_size,
-                    chunk_overlap=settings.chunk_overlap,
-                    separators=["\n\n", "\n", ". ", "! ", "? ", "; ", " ", ""],
-                    add_start_index=True,
-                )
-            elif strategy == "token":
-                from langchain_text_splitters import TokenTextSplitter
-                splitter = TokenTextSplitter(
-                    chunk_size=settings.chunk_size,
-                    chunk_overlap=settings.chunk_overlap,
-                )
-            elif strategy == "markdown":
-                from langchain_text_splitters import MarkdownHeaderTextSplitter
-                # 1. Split by header
-                headers_to_split_on = [
-                    ("#", "Header 1"),
-                    ("##", "Header 2"),
-                    ("###", "Header 3"),
-                ]
-                markdown_splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers_to_split_on)
-                md_header_splits = markdown_splitter.split_text(text)
-                
-                # 2. Further split by recursive if chunks are still too large
-                text_splitter = RecursiveCharacterTextSplitter(
-                    chunk_size=settings.chunk_size, chunk_overlap=settings.chunk_overlap
-                )
-                splits = text_splitter.split_documents(md_header_splits)
-                return [doc.page_content for doc in splits]
-            elif strategy == "latex":
-                from langchain_text_splitters import LatexTextSplitter
-                splitter = LatexTextSplitter(
-                    chunk_size=settings.chunk_size,
-                    chunk_overlap=settings.chunk_overlap,
-                )
-            elif strategy == "semantic":
-                from langchain_experimental.text_splitter import SemanticChunker
-                provider = await get_embeddings(workspace_id)
-                # semantic chunker takes embedding model
-                splitter = SemanticChunker(provider)
-                # it splits by passing text directly
-                chunks = splitter.split_text(text)
-                return chunks
-            else:
-                # Fallback to character splitter
-                splitter = RecursiveCharacterTextSplitter(
-                    chunk_size=settings.chunk_size,
-                    chunk_overlap=settings.chunk_overlap,
-                )
-
-            # Clean text first if recursive
-            if strategy == "recursive":
-                text = " ".join(text.split())
-            
-            chunks = splitter.split_text(text)
+            chunks = await chunking_registry.chunk_text(
+                text, config, workspace_id=workspace_id
+            )
 
             span.set_attribute("rag.num_chunks", len(chunks))
             span.set_attribute("rag.text_length", len(text))
+            
             logger.debug(
                 "text_chunked",
                 num_chunks=len(chunks),
                 text_length=len(text),
                 workspace_id=workspace_id,
-                strategy=strategy,
+                strategy=config.strategy,
             )
             return chunks
 
@@ -153,84 +100,155 @@ class RAGService:
         limit: Optional[int] = None,
     ) -> list:
         """
-        Unified retrieval entry point.
-        Executes the fixed pipeline configured for the workspace.
+        Unified modular retrieval pipeline.
+        Executes search modules based on workspace configuration.
         """
         from backend.app.core.settings_manager import settings_manager
         from backend.app.rag.qdrant_provider import qdrant
         from backend.app.rag.graph_provider import graph_provider
 
         settings = await settings_manager.get_settings(workspace_id)
-        search_limit = limit or settings.search_limit
-        engine = settings.rag_engine
+        config = settings.retrieval
+        search_limit = limit or config.vector.top_k
 
         with tracer.start_as_current_span(
             "rag.search",
             attributes={
-                "rag.engine": engine,
+                "rag.vector_enabled": config.vector.enabled,
+                "rag.graph_enabled": config.graph.enabled,
+                "rag.rerank_enabled": config.rerank.enabled,
                 "rag.limit": search_limit,
                 "workspace_id": workspace_id,
                 "rag.query_preview": query[:80],
             },
         ) as span:
             start = time.perf_counter()
+            results = []
 
-            # 1. Generate Query Vector
-            query_vector = await self.get_query_embedding(query, workspace_id)
+            # 1. Graph-Enriched Vector Search or Hybrid Search
+            # We follow the configured modules.
+            
+            # Generate Query Vector if vector search is needed
+            query_vector = None
+            if config.vector.enabled or (config.graph.enabled and config.graph.merge_with_vector):
+                query_vector = await self.get_query_embedding(query, workspace_id)
 
-            # 2. Execute Unified Pipeline (Internal Complexity Hidden)
-            # Both paths internally use hybrid search, but the graph path applies discovered context.
-            if engine == "graph":
+            if config.graph.enabled:
+                # Executes graph search, potentially merging with vector
                 results = await graph_provider.search(
                     query=query,
                     query_vector=query_vector,
                     workspace_id=workspace_id,
                     limit=search_limit,
+                    # We pass graph-specific overrides from config here if graph_provider supports it
+                    # hops=config.graph.max_hops, etc.
                 )
-            else:
+            elif config.vector.enabled:
+                # Fallback to standard vector/hybrid search
                 results = await qdrant.hybrid_search(
                     collection_name="knowledge_base",
                     query_vector=query_vector,
                     query_text=query,
                     limit=search_limit,
-                    alpha=settings.hybrid_alpha,
+                    alpha=config.vector.dense_weight if config.vector.enable_hybrid else 1.0,
                     workspace_id=workspace_id,
                 )
 
-            # 3. Optional Reranking
-            from backend.app.providers.reranker import get_reranker
-            reranker = await get_reranker(workspace_id)
-            if reranker and results:
-                rerank_start = time.perf_counter()
-                results = await reranker.rerank(
-                    query=query, 
-                    documents=results, 
-                    top_k=settings.rerank_top_k
-                )
-                rerank_duration = time.perf_counter() - rerank_start
-                span.set_attribute("rag.rerank_duration_ms", round(rerank_duration * 1000, 2))
-                span.set_attribute("rag.reranker", type(reranker).__name__)
-                logger.info("rag_rerank_complete", provider=type(reranker).__name__, duration_ms=round(rerank_duration * 1000, 2))
+            # 2. Optional Reranking
+            if config.rerank.enabled and results:
+                from backend.app.providers.reranker import get_reranker
+                reranker = await get_reranker(workspace_id)
+                if reranker:
+                    rerank_start = time.perf_counter()
+                    results = await reranker.rerank(
+                        query=query, 
+                        documents=results, 
+                        top_k=config.rerank.top_n
+                    )
+                    rerank_duration = time.perf_counter() - rerank_start
+                    span.set_attribute("rag.rerank_duration_ms", round(rerank_duration * 1000, 2))
+                    span.set_attribute("rag.reranker", type(reranker).__name__)
+                    logger.info("rag_rerank_complete", provider=type(reranker).__name__, duration_ms=round(rerank_duration * 1000, 2))
 
             duration = time.perf_counter() - start
 
             # Metrics
-            RAG_RETRIEVAL_LATENCY.labels(engine=engine, mode="unified").observe(duration)
-            RAG_CHUNKS_RETRIEVED.labels(engine=engine).observe(len(results))
+            engine_tag = "graph" if config.graph.enabled else "vector"
+            RAG_RETRIEVAL_LATENCY.labels(engine=engine_tag, mode="modular").observe(duration)
+            RAG_CHUNKS_RETRIEVED.labels(engine=engine_tag).observe(len(results))
 
             span.set_attribute("rag.results_count", len(results))
             span.set_attribute("rag.duration_ms", round(duration * 1000, 2))
 
             logger.info(
                 "rag_search_complete",
-                engine=engine,
-                mode="unified",
+                engine=engine_tag,
+                mode="modular",
                 results=len(results),
                 duration_ms=round(duration * 1000, 2),
                 workspace_id=workspace_id,
             )
 
             return results
+
+    async def execute(
+        self,
+        query: str,
+        workspace_id: str,
+        settings: Optional[Any] = None, # RuntimeSettings
+    ) -> Dict[str, Any]:
+        """
+        Execute the RAG flow via the LangGraph orchestrator.
+        """
+        from backend.app.rag.graph.orchestrator import rag_executor
+        from backend.app.schemas.execution import RuntimeSettings
+
+        if settings is None:
+            settings = RuntimeSettings()
+        elif isinstance(settings, dict):
+            settings = RuntimeSettings(**settings)
+
+        initial_state = {
+            "query": query,
+            "workspace_id": workspace_id,
+            "settings": settings,
+            "generated_queries": [],
+            "retrieved_results": [],
+            "draft_answers": [],
+            "loop_count": 0,
+            "confidence_level": 0.0,
+            "is_sufficient": False,
+        }
+
+        with tracer.start_as_current_span(
+            "rag.graph_execute",
+            attributes={
+                "mode": settings.execution_mode,
+                "workspace_id": workspace_id,
+            },
+        ) as span:
+            start_time = time.perf_counter()
+            final_state = await rag_executor.ainvoke(initial_state)
+            duration = (time.perf_counter() - start_time) * 1000
+
+            metadata = final_state.get("execution_metadata", {})
+            metadata["duration_ms"] = round(duration, 2)
+            metadata["loops"] = final_state.get("loop_count", 0)
+            metadata["final_confidence"] = final_state.get("confidence_level")
+            metadata["queries"] = final_state.get("generated_queries", [])
+            
+            logger.info(
+                "graph_execution_complete",
+                mode=settings.execution_mode,
+                duration_ms=round(duration, 2),
+                workspace_id=workspace_id,
+            )
+
+            return {
+                "answer": final_state.get("final_answer") or (final_state.get("draft_answers")[0] if final_state.get("draft_answers") else "No answer generated."),
+                "context": final_state.get("final_context", ""),
+                "tracing": metadata
+            }
 
 
 rag_service = RAGService()

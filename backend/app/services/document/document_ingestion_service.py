@@ -26,15 +26,27 @@ class DocumentIngestionService:
         if not doc:
             raise NotFoundError(f"Document {doc_id} not found in workspace {workspace_id}")
             
-        if doc["status"] == "indexed" and not force:
-            return doc["chunks"]
+        if doc.get("status") == "ingested" and not force:
+            return doc.get("chunks", 0)
 
-        await db.documents.update_one({"id": doc["id"]}, {"$set": {"status": "ingesting"}})
+        await db.documents.update_one(
+            {"id": doc["id"]}, 
+            {"$set": {
+                "status": "ingesting",
+                f"workspace_statuses.{workspace_id}": "ingesting"
+            }}
+        )
         
         try:
             if task_id and await task_service.is_cancelled(task_id):
                 logger.info("indexing_cancelled_post_update", task_id=task_id)
-                await db.documents.update_one({"id": doc["id"]}, {"$set": {"status": "uploaded"}})
+                await db.documents.update_one(
+                    {"id": doc["id"]}, 
+                    {"$set": {
+                        "status": "uploaded",
+                        f"workspace_statuses.{workspace_id}": "uploaded"
+                    }}
+                )
                 return 0
 
             settings = await settings_manager.get_settings(workspace_id)
@@ -65,7 +77,13 @@ class DocumentIngestionService:
                     
                     if task_id and await task_service.is_cancelled(task_id):
                         logger.info("indexing_cancelled_before_pipeline", task_id=task_id)
-                        await db.documents.update_one({"id": doc["id"]}, {"$set": {"status": "uploaded"}})
+                        await db.documents.update_one(
+                            {"id": doc["id"]}, 
+                            {"$set": {
+                                "status": "uploaded",
+                                f"workspace_statuses.{workspace_id}": "uploaded"
+                            }}
+                        )
                         return 0
 
                     from backend.app.core.path_utils import validate_safe_path
@@ -88,7 +106,12 @@ class DocumentIngestionService:
                     
                     await db.documents.update_one(
                         {"id": doc["id"]}, 
-                        {"$set": {"status": "indexed", "chunks": num_chunks, "rag_config_hash": rag_hash}}
+                        {"$set": {
+                            "status": "ingested", 
+                            f"workspace_statuses.{workspace_id}": "ingested",
+                            "chunks": num_chunks, 
+                            "rag_config_hash": rag_hash
+                        }}
                     )
                     logger.info("document_indexed_on_demand", filename=doc["filename"], chunks=num_chunks, force=force)
                     return num_chunks
@@ -103,7 +126,13 @@ class DocumentIngestionService:
                         
             except Exception as e:
                 logger.error("indexing_failed", doc_id=doc["id"], error=str(e), exc_info=True)
-                await db.documents.update_one({"id": doc["id"]}, {"$set": {"status": "uploaded"}})
+                await db.documents.update_one(
+                    {"id": doc["id"]}, 
+                    {"$set": {
+                        "status": "uploaded",
+                        f"workspace_statuses.{workspace_id}": "uploaded"
+                    }}
+                )
                 raise e
         except Exception as e:
             logger.error("indexing_outer_error", doc_id=doc_id, error=str(e))

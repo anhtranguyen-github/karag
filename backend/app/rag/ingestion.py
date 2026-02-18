@@ -32,7 +32,7 @@ class IngestionPipeline:
 
         settings = await settings_manager.get_settings(workspace_id)
         coll_name = await qdrant.get_collection_name(workspace_id=workspace_id)
-        return coll_name, settings.embedding_dim
+        return coll_name, settings.embedding.dimensions
 
     async def initialize(self, workspace_id: str = "default"):
         """Ensure the workspace's target collection exists."""
@@ -70,8 +70,20 @@ class IngestionPipeline:
             pipeline_start = time.perf_counter()
 
             target_collection, _ = await self.get_target_collection(workspace_id)
+            doc_id = (metadata or {}).get("doc_id")
 
-            # --- Stage 1: Load ---
+            if doc_id:
+                from backend.app.core.mongodb import mongodb_manager
+                db = mongodb_manager.get_async_database()
+                await db.documents.update_one(
+                    {"id": doc_id},
+                    {"$set": {
+                        "status": "reading",
+                        f"workspace_statuses.{workspace_id}": "reading"
+                    }}
+                )
+
+            # --- Component 1: Load ---
             load_start = time.perf_counter()
             if ext == ".pdf":
                 loader = PyPDFLoader(str(file_path))
@@ -98,7 +110,7 @@ class IngestionPipeline:
                 duration_ms=round(load_duration * 1000, 2),
             )
 
-            # --- Stage 2: Chunk ---
+            # --- Component 2: Chunk ---
             chunk_start = time.perf_counter()
             all_chunks = []
             for doc in documents:
@@ -120,7 +132,7 @@ class IngestionPipeline:
 
             span.set_attribute("ingestion.num_chunks", len(all_chunks))
 
-            # --- Stage 3: Embed ---
+            # --- Component 3: Embed ---
             embed_start = time.perf_counter()
             embeddings = await rag_service.get_embeddings(
                 all_chunks, workspace_id=workspace_id
@@ -134,7 +146,7 @@ class IngestionPipeline:
                 "ingestion.embed_duration_ms", round(embed_duration * 1000, 2)
             )
 
-            # --- Stage 4: Store ---
+            # --- Component 4: Store ---
             store_start = time.perf_counter()
             ids = [str(uuid.uuid4()) for _ in all_chunks]
             payloads = [
@@ -164,7 +176,7 @@ class IngestionPipeline:
                 extension=ext, stage="store"
             ).observe(store_duration)
 
-            # --- Stage 5: Graph Construction (Optional) ---
+            # --- Component 5: Graph Construction (Optional) ---
             from backend.app.core.settings_manager import settings_manager
             settings = await settings_manager.get_settings(workspace_id)
             if settings.rag_engine == "graph":
@@ -262,7 +274,7 @@ class IngestionPipeline:
             pipeline_start = time.perf_counter()
             target_collection, _ = await self.get_target_collection(workspace_id)
 
-            # --- Stage 1: Load ---
+            # --- Component 1: Load ---
             load_start = time.perf_counter()
             loader = WebBaseLoader(url)
             documents = loader.load()
@@ -270,7 +282,7 @@ class IngestionPipeline:
             
             span.set_attribute("ingestion.pages_loaded", len(documents))
 
-            # --- Stage 2: Chunk ---
+            # --- Component 2: Chunk ---
             chunk_start = time.perf_counter()
             all_chunks = []
             for doc in documents:
@@ -282,13 +294,13 @@ class IngestionPipeline:
             if not all_chunks:
                 return 0
 
-            # --- Stage 3: Embed ---
+            # --- Component 3: Embed ---
             embed_start = time.perf_counter()
             embeddings = await rag_service.get_embeddings(
                 all_chunks, workspace_id=workspace_id
             )
 
-            # --- Stage 4: Store ---
+            # --- Component 4: Store ---
             ids = [str(uuid.uuid4()) for _ in all_chunks]
             payloads = [
                 {
