@@ -1,5 +1,5 @@
 from fastapi import APIRouter, BackgroundTasks
-from backend.app.services.task_service import task_service
+from backend.app.services.task.task_service import task_service
 from backend.app.core.exceptions import NotFoundError
 from backend.app.schemas.base import AppResponse
 

@@ -1,8 +1,7 @@
 import asyncio
 import structlog
 from datetime import datetime
-from backend.app.services.task_service import task_service
-from backend.app.services.document_service import document_service
+from .task_service import task_service
 
 logger = structlog.get_logger(__name__)
 
@@ -63,6 +62,7 @@ class TaskWorker:
             await self._dispatch_task(task)
 
     async def _dispatch_task(self, task):
+        from backend.app.services.document_service import document_service
         task_id = task["id"]
         task_type = task["type"]
         metadata = task["metadata"] or {}
@@ -97,11 +97,6 @@ class TaskWorker:
                 if "filename" in metadata:
                     asyncio.create_task(document_service.run_index_background(
                         task_id, metadata["filename"], workspace_id
-                    ))
-            elif task_type == "directory_ingestion":
-                if "path" in metadata:
-                    asyncio.create_task(document_service.run_directory_background(
-                        task_id, metadata["path"], workspace_id
                     ))
             # Audio ingestion requires content bytes which are not in metadata (persisted in MinIO usually)
             # For now, audio is a manual re-upload, but we handle the status.
