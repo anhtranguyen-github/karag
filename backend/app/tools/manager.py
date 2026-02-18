@@ -12,8 +12,10 @@ logger = structlog.get_logger(__name__)
 
 from pathlib import Path
 
+from backend.app.core.path_utils import BASE_DIR
+
 # Fixed base directory for application data
-DATA_DIR = Path("/home/tra01/project/karag/backend/data")
+DATA_DIR = BASE_DIR / "backend" / "data"
 DATA_FILE_ID = "tools.json"
 
 class ToolManager:

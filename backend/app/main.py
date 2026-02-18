@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 
-from backend.app.api.v1 import api_v1_router
+from backend.app.api.v1.router import api_v1_router
 from backend.app.core.config import ai_settings
 from backend.app.core.exceptions import BaseAppException
 from backend.app.core.telemetry import init_telemetry
@@ -40,12 +40,12 @@ async def lifespan(app: FastAPI):
     await qdrant.create_collection(coll_name, target_dim)
 
     # Cleanup old completed/failed tasks
-    from backend.app.services.task_service import task_service
+    from backend.app.services.task.task_service import task_service
     await task_service.reset_running_tasks_on_startup()
     await task_service.cleanup_old_tasks(older_than_hours=24)
 
     # Start Background Task Worker for resilience
-    from backend.app.services.task_worker import task_worker
+    from backend.app.services.task.task_worker import task_worker
     await task_worker.start()
 
     logger.info("infra_init_complete", msg="Infrastructure ready.")

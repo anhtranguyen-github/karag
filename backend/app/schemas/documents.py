@@ -1,9 +1,7 @@
 from pydantic import BaseModel, HttpUrl, Field
 from typing import Optional, List
 
-class ArxivUploadRequest(BaseModel):
-    url: str = Field(..., description="arXiv URL or ID")
-    strategy: Optional[str] = Field(None, description="Ingestion strategy")
+
 
 class UrlImportRequest(BaseModel):
     url: HttpUrl = Field(..., description="URL to import from")

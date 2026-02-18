@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api-client";
-import { UploadCloud, Link as LinkIcon, Github, FileText, FileAudio } from "lucide-react";
+import { UploadCloud, Link as LinkIcon, Github, FileAudio } from "lucide-react";
 
 // Simple Tabs implementation since we don't have ui/tabs yet
 function SimpleTabs({ options, onChange, value }: { options: { label: string, value: string, icon?: any }[], onChange: (v: string) => void, value: string }) {
@@ -53,9 +53,7 @@ export function UploadModal({ isOpen, onClose, workspaceId, onUploadComplete }: 
             } else if (mode === "github") {
                 if (!url) return;
                 await api.importGithubDocumentImportGithubPost({ gitHubImportRequest: { url, branch }, workspaceId: targetWorkspace });
-            } else if (mode === "arxiv") {
-                if (!url) return;
-                await api.uploadArxivDocumentUploadArxivPost({ arxivUploadRequest: { url }, workspaceId: targetWorkspace });
+
             } else if (mode === "audio") {
                 if (!file) return;
                 await api.importAudioDocumentImportAudioPost({ file, workspaceId: targetWorkspace });
@@ -85,7 +83,7 @@ export function UploadModal({ isOpen, onClose, workspaceId, onUploadComplete }: 
                         { label: "File", value: "file", icon: UploadCloud },
                         { label: "URL", value: "url", icon: LinkIcon },
                         { label: "GitHub", value: "github", icon: Github },
-                        { label: "Arxiv", value: "arxiv", icon: FileText },
+
                         { label: "Audio", value: "audio", icon: FileAudio },
                     ]}
                 />
@@ -105,7 +103,7 @@ export function UploadModal({ isOpen, onClose, workspaceId, onUploadComplete }: 
                             <p className="text-xs text-muted-foreground">MP3, WAV supported.</p>
                         </div>
                     )}
-                    {(mode === "url" || mode === "arxiv") && (
+                    {mode === "url" && (
                         <div className="grid w-full items-center gap-1.5">
                             <Label htmlFor="url">URL</Label>
                             <Input id="url" type="url" placeholder="https://..." value={url} onChange={e => setUrl(e.target.value)} />

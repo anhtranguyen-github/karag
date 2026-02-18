@@ -5,7 +5,7 @@ import {
     Upload, FileText, Trash2, Loader2,
     Database, Search, Eye,
     Plus, Filter, Shield, ArrowRight, AlertTriangle, MessageSquare,
-    X, Network, Globe, Link2, Github, Folder, Music, Info,
+    X, Globe, Link2, Github, Folder, Music, Info,
     ChevronRight, ChevronDown, ArrowRightLeft, Layers, Zap, HardDrive, Calendar
 } from 'lucide-react';
 import Link from 'next/link';
@@ -88,7 +88,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
     const [vaultDocuments, setVaultDocuments] = useState<Document[]>([]);
     const [isVaultLoading, setIsVaultLoading] = useState(false);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-    const [uploadMode, setUploadMode] = useState<'file' | 'url' | 'arxiv' | 'github' | 'sitemap' | 'directory' | 'audio'>('file');
+    const [uploadMode, setUploadMode] = useState<'file' | 'url' | 'github' | 'sitemap' | 'audio'>('file');
     const [importUrl, setImportUrl] = useState('');
     const [githubBranch, setGithubBranch] = useState('main');
     const [statusFilter, setStatusFilter] = useState('all');
@@ -321,7 +321,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
     };
 
     const handleImport = async (type: string) => {
-        if (!importUrl && type !== 'directory') return;
+        if (!importUrl) return;
 
         // Validation: URL Format
         if (type === 'url' || type === 'sitemap' || type === 'github') {
@@ -349,13 +349,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                     url = API_ROUTES.DOCUMENTS + '/import-github';
                     body = { url: importUrl, branch: githubBranch };
                     break;
-                case 'directory':
-                    url = API_ROUTES.DOCUMENTS + '/import-directory';
-                    body = { path: importUrl };
-                    break;
-                case 'arxiv':
-                    url = API_ROUTES.UPLOAD + '-arxiv';
-                    break;
+
                 default: return;
             }
 
@@ -645,15 +639,14 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                     {[
                                         { id: 'file', label: 'Local File', icon: Upload },
                                         { id: 'url', label: 'Web URL', icon: Globe },
-                                        { id: 'arxiv', label: 'ArXiv', icon: Network },
+
                                         { id: 'github', label: 'GitHub', icon: Github },
                                         { id: 'sitemap', label: 'Sitemap', icon: Link2 },
-                                        { id: 'directory', label: 'Directory', icon: Folder },
                                         { id: 'audio', label: 'Audio', icon: Music },
                                     ].map((m) => (
                                         <button
                                             key={m.id}
-                                            onClick={() => setUploadMode(m.id as 'file' | 'url' | 'arxiv' | 'github' | 'sitemap' | 'directory' | 'audio')}
+                                            onClick={() => setUploadMode(m.id as 'file' | 'url' | 'github' | 'sitemap' | 'audio')}
                                             className={cn(
                                                 "flex flex-col items-center justify-center p-4 rounded-2xl border transition-all gap-2",
                                                 uploadMode === m.id ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-400" : "bg-white/5 border-white/5 text-gray-500 hover:bg-white/10"
@@ -678,15 +671,14 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                         <div className="space-y-4">
                                             <div className="space-y-2">
                                                 <label className="text-tiny font-black text-gray-500 uppercase tracking-widest ml-1">
-                                                    {uploadMode === 'arxiv' ? 'Paper ID or Link' : uploadMode === 'directory' ? 'Absolute Path' : 'URL Source'}
+                                                    {uploadMode === 'url' ? 'URL Source' : 'URL Source'}
                                                 </label>
                                                 <input
                                                     type="text"
                                                     placeholder={
-                                                        uploadMode === 'arxiv' ? "e.g. 1706.03762" :
-                                                            uploadMode === 'github' ? "https://github.com/..." :
-                                                                uploadMode === 'directory' ? "/home/user/documents" :
-                                                                    "https://example.com/..."
+
+                                                        uploadMode === 'github' ? "https://github.com/..." :
+                                                            "https://example.com/..."
                                                     }
                                                     value={importUrl}
                                                     onChange={(e) => setImportUrl(e.target.value)}
@@ -708,7 +700,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
 
                                             <button
                                                 onClick={() => handleImport(uploadMode)}
-                                                disabled={isUploading || (!importUrl && uploadMode !== 'directory')}
+                                                disabled={isUploading || !importUrl}
                                                 className="w-full h-14 bg-white text-black hover:bg-gray-200 rounded-2xl font-black text-tiny tracking-widest transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50 mt-4"
                                             >
                                                 {isUploading ? <Loader2 className="animate-spin" size={16} /> : <ArrowRight size={16} />}
@@ -910,8 +902,11 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                         >
                             <option value="all" className="bg-[#121214]">All Status</option>
                             <option value="indexed" className="bg-[#121214]">Indexed</option>
-                            <option value="uploaded" className="bg-[#121214]">Unindexed</option>
-                            <option value="indexing" className="bg-[#121214]">Processing</option>
+                            <option value="uploaded" className="bg-[#121214]">Uploaded</option>
+                            <option value="verifying" className="bg-[#121214]">Verifying</option>
+                            <option value="uploading" className="bg-[#121214]">Uploading</option>
+                            <option value="reading" className="bg-[#121214]">Reading</option>
+                            <option value="ingesting" className="bg-[#121214]">Ingesting</option>
                         </select>
                     </div>
 

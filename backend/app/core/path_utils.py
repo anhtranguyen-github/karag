@@ -21,6 +21,7 @@ def validate_safe_path(requested_path: Union[str, Path], base_dir: Union[str, Pa
     """
     try:
         # 1. Resolve everything to absolute real paths
+        # We use resolve() to handle '..' and symlinks consistently
         base_path = Path(base_dir).resolve()
         
         req_p = Path(requested_path)
@@ -29,22 +30,31 @@ def validate_safe_path(requested_path: Union[str, Path], base_dir: Union[str, Pa
         else:
             resolved_path = (base_path / req_p).resolve()
             
-        # 2. Convert to string and ensure normalization (no trailing dots or slashes)
-        # We use commonpath as a secondary redundant check for 'is under root'
+        # 2. Convert to string and ensure normalization
+        str_resolved = str(resolved_path)
+        str_base = str(base_path)
+
+        # 3. Check containment
         try:
-            # This is the primary check
+            # Primary check: relative_to
             resolved_path.relative_to(base_path)
         except ValueError:
-            # Secondary check: if they are identical after normalization, they are the same
-            if os.path.abspath(resolved_path) == os.path.abspath(base_path):
-                return resolved_path
-            
-            # If we reach here, it's definitely outside
-            logger.error("path_validation_failed", requested=str(requested_path), resolved=str(resolved_path), base=str(base_path))
-            raise ValidationError(
-                f"Illegal path: Path escapes the authorized workspace root.",
-                params={"requested": str(requested_path), "resolved": str(resolved_path), "allowed_root": str(base_path)}
-            )
+            # Secondary check: Handle cases where they might be identical or have symlink nuances
+            # We use commonpath as a secondary redundant check for 'is under root'
+            try:
+                common = os.path.commonpath([str_base, str_resolved])
+                if common != str_base and os.path.normpath(str_resolved) != os.path.normpath(str_base):
+                     logger.error("path_validation_failed", requested=str(requested_path), resolved=str_resolved, base=str_base)
+                     raise ValidationError(
+                        f"Illegal path: {requested_path}. Path escapes the authorized workspace root: {base_path}",
+                        params={"requested": str(requested_path), "resolved": str_resolved, "allowed_root": str(base_path)}
+                    )
+            except ValueError: # Paths on different drives (on Windows) or something else
+                logger.error("path_validation_failed_ValueError", requested=str(requested_path), resolved=str_resolved, base=str_base)
+                raise ValidationError(
+                    f"Illegal path: {requested_path}. Path escapes the authorized workspace root.",
+                    params={"requested": str(requested_path), "resolved": str_resolved, "allowed_root": str(base_path)}
+                )
             
         return resolved_path
         
