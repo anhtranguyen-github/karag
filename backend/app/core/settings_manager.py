@@ -12,8 +12,17 @@ from backend.app.core.exceptions import ValidationError
 
 logger = structlog.get_logger(__name__)
 
-# Fixed base directory for application data
-DATA_DIR = Path("/home/tra01/project/karag/backend/data")
+# Determine project root and data directory dynamically
+_CURRENT_FILE = Path(__file__).resolve()
+# We are in backend/app/core/settings_manager.py
+# Root is 3 levels up: settings_manager.py -> core -> app -> backend -> karag? No, app is under backend?
+# Wait, let's check: backend/app/core/settings_manager.py
+# .parent -> core
+# .parent -> app
+# .parent -> backend
+# .parent -> karag 
+PROJECT_ROOT = _CURRENT_FILE.parent.parent.parent.parent
+DATA_DIR = PROJECT_ROOT / "backend/data"
 
 class SettingsManager:
     def __init__(self, config_file: str = "settings.json", config_path: Optional[Path] = None):
@@ -109,20 +118,61 @@ class SettingsManager:
 
     def get_settings_metadata(self) -> Dict[str, Any]:
         """Discover settings metadata from the AppSettings schema."""
+        import typing
         metadata = {}
         for name, field in AppSettings.model_fields.items():
             extra = field.json_schema_extra or {}
-            field_data = {
+            
+            # Skip internal/backend-only fields (no category = not user-facing)
+            if "category" not in extra:
+                continue
+            
+            field_data: Dict[str, Any] = {
                 "mutable": extra.get("mutable", True),
                 "category": extra.get("category", "General"),
                 "description": field.description or ""
             }
             
-            # Extract options from Literal if present
-            # Accessing the annotation of Pydantic V2 fields
+            # Resolve annotation (handle Optional)
             annotation = field.annotation
-            if hasattr(annotation, "__origin__") and annotation.__origin__ is Literal:
+            origin = getattr(annotation, "__origin__", None)
+            
+            # Unwrap Optional[X] -> X
+            if origin is typing.Union:
+                args = [a for a in annotation.__args__ if a is not type(None)]
+                if args:
+                    annotation = args[0]
+                    origin = getattr(annotation, "__origin__", None)
+            
+            # Determine field type and extract options/constraints
+            if origin is Literal:
+                field_data["field_type"] = "select"
                 field_data["options"] = list(annotation.__args__)
+            elif annotation is bool:
+                field_data["field_type"] = "bool"
+            elif annotation is int:
+                field_data["field_type"] = "int"
+            elif annotation is float:
+                field_data["field_type"] = "float"
+            elif annotation is str:
+                field_data["field_type"] = "text"
+            else:
+                field_data["field_type"] = "text"
+            
+            # Extract default
+            if field.default is not None:
+                field_data["default"] = field.default
+            
+            # Extract constraints from field metadata
+            for constraint in (field.metadata or []):
+                if hasattr(constraint, "ge"):
+                    field_data["min"] = constraint.ge
+                if hasattr(constraint, "le"):
+                    field_data["max"] = constraint.le
+            
+            # Set step for float fields
+            if field_data["field_type"] == "float":
+                field_data["step"] = 0.05
             
             metadata[name] = field_data
         return metadata

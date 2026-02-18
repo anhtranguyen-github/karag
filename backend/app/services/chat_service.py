@@ -91,6 +91,25 @@ class ChatService:
             ]
 
     @staticmethod
+    async def get_thread(thread_id: str) -> Dict:
+        """Fetch metadata for a specific thread."""
+        db = mongodb_manager.get_async_database()
+        meta = await db["thread_metadata"].find_one({"thread_id": thread_id})
+        if not meta:
+            return {
+                "id": thread_id,
+                "title": f"Chat {thread_id[:8]}",
+                "workspace_id": "default"
+            }
+        return {
+            "id": thread_id,
+            "title": meta.get("title", f"Chat {thread_id[:8]}"),
+            "workspace_id": meta.get("workspace_id", "default"),
+            "has_thinking": meta.get("has_thinking", False),
+            "tags": meta.get("tags", [])
+        }
+
+    @staticmethod
     async def update_title(thread_id: str, title: str):
         """Update the title of a specific thread."""
         db = mongodb_manager.get_async_database()

@@ -29,12 +29,28 @@ class WorkspaceService:
                 }
             },
             {
+                "$lookup": {
+                    "from": "workspace_settings",
+                    "localField": "id",
+                    "foreignField": "workspace_id",
+                    "as": "settings"
+                }
+            },
+            {
+                "$addFields": {
+                    "settings_doc": {"$arrayElemAt": ["$settings", 0]}
+                }
+            },
+            {
                 "$project": {
                     "id": 1,
                     "name": 1, 
                     "description": 1,
                     "created_at": 1,
                     "updated_at": 1,
+                    "llm_provider": "$settings_doc.llm_provider",
+                    "embedding_provider": "$settings_doc.embedding_provider",
+                    "rag_engine": "$settings_doc.rag_engine",
                     "stats": {
                         "doc_count": {"$size": "$docs"},
                         "thread_count": {"$size": "$threads"}

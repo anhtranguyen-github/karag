@@ -4,8 +4,12 @@ import arxiv
 from typing import Optional
 from pathlib import Path
 
-# Fixed base directory for application data
-DATA_DIR = Path("/home/tra01/project/karag/backend/data")
+# Determine project root and data directory dynamically
+_CURRENT_FILE = Path(__file__).resolve()
+# We are in backend/app/tools/arxiv_downloader/downloader.py
+# Root is 5 levels up: downloader.py -> arxiv_downloader -> tools -> app -> backend -> karag
+PROJECT_ROOT = _CURRENT_FILE.parent.parent.parent.parent.parent
+DATA_DIR = PROJECT_ROOT / "backend/data"
 DEFAULT_DOWNLOADS_SUBDIR = "downloads"
 
 def download_arxiv_paper(arxiv_id_or_url: str, output_subdir: str = DEFAULT_DOWNLOADS_SUBDIR) -> Optional[str]:

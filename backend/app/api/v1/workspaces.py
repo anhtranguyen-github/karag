@@ -15,7 +15,14 @@ class Workspace(BaseModel):
     id: str
     name: str
     description: Optional[str] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
     stats: Optional[WorkspaceStats] = None
+    
+    # Filterable fields
+    llm_provider: Optional[str] = None
+    embedding_provider: Optional[str] = None
+    rag_engine: Optional[str] = None
 
 class WorkspaceDetail(Workspace):
     threads: List[dict] = []

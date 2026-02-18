@@ -29,6 +29,11 @@ async def update_thread_title(thread_id: str, payload: ThreadTitleUpdate):
         message="Thread title updated"
     )
 
+@router.get("/threads/{thread_id}", response_model=AppResponse)
+async def get_thread(thread_id: str):
+    thread = await chat_service.get_thread(thread_id)
+    return AppResponse.success_response(data=thread)
+
 @router.delete("/threads/{thread_id}", response_model=AppResponse)
 async def delete_thread(thread_id: str):
     await chat_service.delete_thread(thread_id)
