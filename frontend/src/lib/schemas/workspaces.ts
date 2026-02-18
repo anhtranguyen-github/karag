@@ -1,9 +1,14 @@
 import { z } from 'zod';
+import { ChunkingConfigSchema } from './chunking';
+import { EmbeddingConfigSchema } from './embedding';
+import { GenerationConfigSchema } from './generation';
+import { RetrievalConfigSchema } from './retrieval';
+import { RuntimeSettingsSchema } from './runtime';
 
 export const WorkspaceSchema = z.object({
-    id: z.string(), // Backend uuid prefix might be <8 chars, let's relax length
+    id: z.string(),
     name: z.string().min(1, 'Name is required'),
-    description: z.string().nullable().optional(), // Backend sends null if None
+    description: z.string().nullable().optional(),
     stats: z.object({
         thread_count: z.number().optional(),
         doc_count: z.number().optional(),
@@ -19,36 +24,38 @@ export const BaseCreateWorkspaceSchema = z.object({
         .regex(/^[\w\s.-]+$/, 'Name can only contain letters, numbers, spaces, dots, and hyphens'),
     description: z.string().max(200, 'Description must be 200 characters or less').optional(),
 
-    // Node 1: Embedding
-    embedding_provider: z.string().default('openai'),
-    embedding_model: z.string().default('text-embedding-3-small'),
-    embedding_dim: z.number().int().default(1536),
+    // Ingestion Component
+    chunking: ChunkingConfigSchema.default({
+        strategy: 'recursive',
+        max_chunk_size: 1000,
+        chunk_overlap: 200,
+    }),
 
-    // Node 2: Retrieval
-    rag_engine: z.enum(['basic', 'graph']).default('basic'),
-    search_limit: z.number().int().min(1).max(50).default(5),
-    recall_k: z.number().int().min(1).max(100).default(20),
-    hybrid_alpha: z.number().min(0).max(1).default(0.5),
+    // Embedding Component
+    embedding: EmbeddingConfigSchema.default({
+        provider: 'openai',
+        model: 'text-embedding-3-small',
+        batch_size: 100,
+        timeout_ms: 30000
+    }),
 
-    // Node 3: Graph
-    graph_enabled: z.boolean().default(true),
+    // Retrieval Component
+    retrieval: RetrievalConfigSchema.default({}),
 
-    // Node 4: Reranking
-    reranker_enabled: z.boolean().default(false),
-    reranker_provider: z.string().default('none'),
-    rerank_top_k: z.number().int().min(1).max(15).default(3),
+    // Generation Component
+    generation: GenerationConfigSchema.default({
+        provider: 'openai',
+        model: 'gpt-4o-mini',
+        temperature: 0.7,
+        max_output_tokens: 2048,
+        streaming: true
+    }),
 
-    // Node 5: Agentic
-    agentic_enabled: z.boolean().default(true),
+    // Runtime Component (Thinking Mode)
+    runtime: RuntimeSettingsSchema.default({}),
 
-    // Node 6: Generation
-    llm_provider: z.string().default('openai'),
-    llm_model: z.string().default('gpt-4o'),
-    temperature: z.number().min(0).max(2).default(0.7),
-
-    // Node 7: Ingestion
-    chunk_size: z.number().int().min(100).max(4000).default(800),
-    chunk_overlap: z.number().int().min(0).max(1000).default(150),
+    // Legacy/Internal
+    system_prompt: z.string().default('You are an advanced reasoning assistant. Use the provided context to answer the user\'s question.'),
 });
 
 export const CreateWorkspaceSchema = BaseCreateWorkspaceSchema
@@ -63,7 +70,7 @@ export const CreateWorkspaceSchema = BaseCreateWorkspaceSchema
         if (data.rag_engine === 'graph' && !data.graph_enabled) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
-                message: "Graph Node must be enabled to use Graph RAG Engine",
+                message: "Graph Component must be enabled to use Graph RAG Engine",
                 path: ["graph_enabled"]
             });
         }

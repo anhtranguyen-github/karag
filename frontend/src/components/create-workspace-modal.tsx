@@ -120,7 +120,7 @@ export const CreateWorkspaceModal = ({ isOpen, onClose, onSubmit, isCreating }: 
                             <Plus size={32} />
                         </div>
                         <div>
-                            <h2 className="text-h3 font-black text-white uppercase tracking-tighter">Initialize Intelligence Node</h2>
+                            <h2 className="text-h3 font-black text-white uppercase tracking-tighter">Initialize Intelligence Cluster</h2>
                             <div className="flex items-center gap-3 mt-1">
                                 <span className="text-[10px] text-gray-600 font-bold uppercase tracking-[0.2em] ">Provisioning Protocol</span>
                                 <span className="w-1 h-1 rounded-full bg-gray-800" />

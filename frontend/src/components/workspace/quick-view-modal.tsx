@@ -39,7 +39,7 @@ export function QuickViewWorkspaceModal({
                         Genesis Intent
                     </div>
                     <p className="text-sm font-medium text-gray-400 leading-relaxed bg-white/[0.02] p-4 rounded-2xl border border-white/5 italic">
-                        "{workspace.description || "No strategic objective defined for this node."}"
+                        "{workspace.description || "No strategic objective defined for this workspace."}"
                     </p>
                 </div>
 
@@ -72,7 +72,7 @@ export function QuickViewWorkspaceModal({
                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                 <span className="text-xs font-black uppercase tracking-widest text-emerald-400">Operational</span>
                             </div>
-                            <span className="text-[10px] font-medium text-gray-500">Node integrity verified via vector parity.</span>
+                            <span className="text-[10px] font-medium text-gray-500">Workspace integrity verified via vector parity.</span>
                         </div>
                     </div>
                 </div>

@@ -1,4 +1,3 @@
-.openapi-generator-ignore
 apis/AdminOpsApi.ts
 apis/ChatApi.ts
 apis/DocumentsApi.ts
@@ -13,9 +12,9 @@ apis/index.ts
 docs/AdminOpsApi.md
 docs/AppResponse.md
 docs/AppResponseListWorkspace.md
-docs/ArxivUploadRequest.md
 docs/ChatApi.md
 docs/ChatStreamRequest.md
+docs/DocumentWorkspaceUpdate.md
 docs/DocumentsApi.md
 docs/EvaluationApi.md
 docs/GitHubImportRequest.md
@@ -39,8 +38,8 @@ docs/WorkspacesApi.md
 index.ts
 models/AppResponse.ts
 models/AppResponseListWorkspace.ts
-models/ArxivUploadRequest.ts
 models/ChatStreamRequest.ts
+models/DocumentWorkspaceUpdate.ts
 models/GitHubImportRequest.ts
 models/HTTPValidationError.ts
 models/LocationInner.ts

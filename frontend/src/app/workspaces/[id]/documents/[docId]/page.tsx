@@ -66,7 +66,7 @@ export default function DocumentDetailPage() {
                 <div className="w-16 h-16 rounded-[2rem] bg-indigo-500/10 flex items-center justify-center">
                     <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
                 </div>
-                <span className="text-gray-500 text-tiny font-black uppercase tracking-[0.3em] animate-pulse">Syncing Knowledge Node...</span>
+                <span className="text-gray-500 text-tiny font-black uppercase tracking-[0.3em] animate-pulse">Syncing Knowledge Component...</span>
             </div>
         );
     }
@@ -76,7 +76,7 @@ export default function DocumentDetailPage() {
             <div className="flex-1 flex flex-col items-center justify-center bg-[#0a0a0b] gap-8">
                 <AlertCircle size={48} className="text-red-500" />
                 <div className="text-center space-y-2">
-                    <h2 className="text-h3 font-black text-white uppercase tracking-tighter">Node Desynchronized</h2>
+                    <h2 className="text-h3 font-black text-white uppercase tracking-tighter">Component Desynchronized</h2>
                     <p className="text-caption text-gray-600 font-medium">The requested knowledge module could not be located in the current workspace scope.</p>
                 </div>
                 <button onClick={() => router.back()} className="h-14 px-8 rounded-2xl bg-white/5 border border-white/10 text-white text-tiny font-black uppercase tracking-widest hover:bg-white/10 transition-all">
@@ -117,7 +117,7 @@ export default function DocumentDetailPage() {
                     </div>
                     <button className="h-12 px-6 rounded-2xl bg-white text-black font-black text-tiny tracking-widest uppercase flex items-center gap-3 hover:bg-gray-200 transition-all active:scale-95">
                         <Download size={18} />
-                        Export Module
+                        Export Component
                     </button>
                 </div>
             </header>
@@ -161,7 +161,7 @@ export default function DocumentDetailPage() {
                                 <>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                         <MetricCard label="Magnitude" value={formatBytes(document.size_bytes)} icon={HardDrive} />
-                                        <MetricCard label="Blocks" value={`${document.chunks} Index Nodes`} icon={Box} />
+                                        <MetricCard label="Blocks" value={`${document.chunks} Index Units`} icon={Box} />
                                         <MetricCard label="Ingestion" value={new Date(document.created_at).toLocaleDateString()} icon={Calendar} />
                                         <MetricCard label="Integrity" value="Verified" icon={CheckCircle2} color="text-emerald-500" />
                                     </div>
@@ -174,7 +174,7 @@ export default function DocumentDetailPage() {
                                         <div className="grid gap-4">
                                             <div className="p-8 rounded-[2.5rem] bg-[#121214] border border-white/5 flex items-center justify-between">
                                                 <div className="space-y-1">
-                                                    <p className="text-[10px] font-black text-gray-700 uppercase tracking-widest">Internal MinIO Node</p>
+                                                    <p className="text-[10px] font-black text-gray-700 uppercase tracking-widest">Internal MinIO Instance</p>
                                                     <code className="text-caption font-mono text-gray-500">{document.minio_path}</code>
                                                 </div>
                                                 <Shield size={24} className="text-gray-800" />
@@ -201,7 +201,7 @@ export default function DocumentDetailPage() {
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-h3 font-black text-white uppercase tracking-tighter">Vectorized Chunks</h3>
                                         <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/5 text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                                            Displaying {document.chunks} mapped nodes
+                                            Displaying {document.chunks} mapped units
                                         </div>
                                     </div>
                                     <div className="grid gap-6">

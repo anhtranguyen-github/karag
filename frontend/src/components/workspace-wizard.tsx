@@ -11,6 +11,12 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CreateWorkspaceSchema, CreateWorkspaceInput } from '@/lib/schemas/workspaces';
+import { ChunkingSettings } from './chunking/ChunkingSettings';
+import { EmbeddingProviderSelector, EmbeddingModelSelector, EmbeddingConfigDetails } from './embedding/EmbeddingSettings';
+import { GenerationSettings } from './generation/GenerationSettings';
+import { RetrievalSettings } from './retrieval/RetrievalSettings';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FormField, FormItem, FormLabel, FormControl, FormDescription } from '@/components/ui/form'; // Assuming these are from a UI form component
 
 interface WorkspaceWizardProps {
     isOpen: boolean;
@@ -30,25 +36,40 @@ export function WorkspaceWizard({ isOpen, onClose, onSubmit, isCreating }: Works
         defaultValues: {
             name: '',
             description: '',
-            llm_provider: 'openai',
-            llm_model: 'gpt-4o',
-            temperature: 0.7,
+            embedding: {
+                provider: 'openai',
+                model: 'text-embedding-3-small',
+                dimensions: 1536,
+            },
+            chunking: {
+                strategy: 'recursive',
+                chunk_size: 1000,
+                chunk_overlap: 200,
+            },
+            retrieval: {
+                vector: {
+                    enabled: true,
+                    top_k: 5,
+                    similarity_metric: 'cosine',
+                    enable_hybrid: false,
+                },
+                rerank: { enabled: false, provider: 'local', model: 'bge-reranker-large', top_n: 3 },
+                graph: { enabled: false, graph_type: 'knowledge', max_hops: 2 },
+            },
+            generation: {
+                provider: 'openai',
+                model: 'gpt-4o-mini',
+                temperature: 0.7,
+                max_output_tokens: 2048,
+                streaming: true,
+            },
+            system_prompt: 'You are an advanced reasoning assistant. Use the provided context to answer the user\'s question.',
             agentic_enabled: true,
-            embedding_provider: 'openai',
-            embedding_model: 'text-embedding-3-small',
-            embedding_dim: 1536,
-            chunk_size: 800,
-            chunk_overlap: 150,
-            rag_engine: 'basic',
-            search_limit: 5,
-            hybrid_alpha: 0.5,
-            graph_enabled: true,
-            reranker_enabled: false,
-            reranker_provider: 'none',
+            agent_max_iterations: 5,
         }
     });
 
-    const { register, watch, setValue, handleSubmit, formState: { errors } } = form;
+    const { register, handleSubmit, formState: { errors } } = form;
 
     const steps: { id: Step; label: string; icon: any }[] = [
         { id: 'identity', label: 'Identity', icon: Database },
@@ -128,7 +149,7 @@ export function WorkspaceWizard({ isOpen, onClose, onSubmit, isCreating }: Works
                     <div className="mt-8 p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/10">
                         <div className="flex items-center gap-2 text-indigo-400 mb-1">
                             <ShieldCheck size={12} />
-                            <span className="text-[10px] font-bold uppercase tracking-wider">System Node</span>
+                            <span className="text-[10px] font-bold uppercase tracking-wider">System Component</span>
                         </div>
                         <p className="text-[10px] text-gray-500 italic">Evaluation & Observability are managed by the system.</p>
                     </div>
@@ -139,7 +160,7 @@ export function WorkspaceWizard({ isOpen, onClose, onSubmit, isCreating }: Works
                     <div className="p-6 border-b border-white/10 flex items-center justify-between bg-black/20">
                         <div>
                             <h2 className="text-h3 font-bold text-white capitalize">{currentStep} Configuration</h2>
-                            <p className="text-tiny text-gray-500">Configure functional nodes for this workspace</p>
+                            <p className="text-tiny text-gray-500">Configure functional components for this workspace</p>
                         </div>
                         <div className="flex bg-white/5 p-1 rounded-lg border border-white/10">
                             <button
@@ -168,7 +189,7 @@ export function WorkspaceWizard({ isOpen, onClose, onSubmit, isCreating }: Works
                                         exit={{ opacity: 0, x: -20 }}
                                         className="space-y-6"
                                     >
-                                        <NodeCard
+                                        <ComponentCard
                                             icon={Settings2}
                                             title="Workspace Metadata"
                                             description="Define the core identity of this RAG pipeline"
@@ -194,7 +215,7 @@ export function WorkspaceWizard({ isOpen, onClose, onSubmit, isCreating }: Works
                                                     />
                                                 </div>
                                             </div>
-                                        </NodeCard>
+                                        </ComponentCard>
                                     </motion.div>
                                 )}
 
@@ -206,61 +227,32 @@ export function WorkspaceWizard({ isOpen, onClose, onSubmit, isCreating }: Works
                                         exit={{ opacity: 0, x: -20 }}
                                         className="space-y-6"
                                     >
-                                        <NodeCard
-                                            icon={Zap}
-                                            title="Generation Node"
-                                            description="LLM configuration for final response synthesis"
-                                            status="mandatory"
-                                        >
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-1.5">
-                                                    <label className="text-tiny font-bold text-gray-400">Provider</label>
-                                                    <select
-                                                        {...register('llm_provider')}
-                                                        className="w-full bg-[#1a1a1f] border border-white/10 rounded-xl px-3 py-2 text-caption focus:ring-1 focus:ring-blue-500 outline-none"
-                                                    >
-                                                        <option value="openai">OpenAI</option>
-                                                        <option value="anthropic">Anthropic</option>
-                                                        <option value="ollama">Ollama</option>
-                                                        <option value="vllm">vLLM</option>
-                                                    </select>
-                                                </div>
-                                                <div className="space-y-1.5">
-                                                    <label className="text-tiny font-bold text-gray-400">Model</label>
-                                                    <input
-                                                        {...register('llm_model')}
-                                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-caption outline-none"
-                                                    />
-                                                </div>
-                                                {mode === 'advanced' && (
-                                                    <div className="space-y-1.5 col-span-2">
-                                                        <label className="text-tiny font-bold text-gray-400">Temperature: {watch('temperature')}</label>
-                                                        <input
-                                                            type="range"
-                                                            min="0" max="2" step="0.1"
-                                                            {...register('temperature', { valueAsNumber: true })}
-                                                            className="w-full"
-                                                        />
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </NodeCard>
-
-                                        <NodeCard
-                                            icon={Cpu}
-                                            title="Agentic Node"
-                                            description="Enable multi-pass reasoning and tool usage"
-                                            status="optional"
-                                            enabled={watch('agentic_enabled')}
-                                            onToggle={(e) => setValue('agentic_enabled', e)}
-                                        >
-                                            <div className="p-3 rounded-xl bg-blue-500/5 border border-blue-500/10 flex items-start gap-3">
-                                                <Info size={14} className="text-blue-400 shrink-0 mt-0.5" />
-                                                <p className="text-[10px] text-blue-200/60 leading-relaxed">
-                                                    When enabled, the system uses a ReAct pattern to plan and execute multiple steps before generating a final answer.
+                                        <div className="space-y-6">
+                                            <div>
+                                                <h3 className="text-lg font-medium">Generation Strategy</h3>
+                                                <p className="text-sm text-muted-foreground mb-4">
+                                                    Select the model and parameters used to generate responses.
                                                 </p>
+                                                <GenerationSettings form={form} />
                                             </div>
-                                        </NodeCard>
+
+                                            <FormField
+                                                control={form.control}
+                                                name="system_prompt"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>System Prompt</FormLabel>
+                                                        <FormControl>
+                                                            <textarea
+                                                                className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                                                {...field}
+                                                            />
+                                                        </FormControl>
+                                                        <FormDescription>Instructions for the AI assistant</FormDescription>
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
                                     </motion.div>
                                 )}
 
@@ -270,75 +262,17 @@ export function WorkspaceWizard({ isOpen, onClose, onSubmit, isCreating }: Works
                                         initial={{ opacity: 0, x: 20 }}
                                         animate={{ opacity: 1, x: 0 }}
                                         exit={{ opacity: 0, x: -20 }}
-                                        className="space-y-4"
+                                        className="space-y-6"
                                     >
-                                        <NodeCard
-                                            icon={Search}
-                                            title="Retrieval Node"
-                                            description="Search strategy for fetching relevant context"
-                                            status="mandatory"
-                                        >
-                                            <div className="flex gap-2">
-                                                {['basic', 'graph'].map((engine) => (
-                                                    <button
-                                                        key={engine}
-                                                        type="button"
-                                                        onClick={() => setValue('rag_engine', engine as any)}
-                                                        className={cn(
-                                                            "flex-1 p-3 rounded-xl border transition-all text-left",
-                                                            watch('rag_engine') === engine
-                                                                ? "bg-blue-600/10 border-blue-500 text-white"
-                                                                : "bg-white/5 border-white/5 text-gray-400 hover:border-white/10"
-                                                        )}
-                                                    >
-                                                        <div className="text-caption font-bold capitalize mb-0.5">{engine}</div>
-                                                        <div className="text-[10px] opacity-60">
-                                                            {engine === 'basic' ? 'Vector + Keyword' : 'Graph Expansion + Vector'}
-                                                        </div>
-                                                    </button>
-                                                ))}
+                                        <div className="space-y-6">
+                                            <div>
+                                                <h3 className="text-lg font-medium">Retrieval Pipeline</h3>
+                                                <p className="text-sm text-muted-foreground mb-4">
+                                                    Configure how documents are retrieved and ranked.
+                                                </p>
+                                                <RetrievalSettings form={form} />
                                             </div>
-                                        </NodeCard>
-
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <NodeCard
-                                                icon={Share2}
-                                                title="Knowledge Node"
-                                                description="Graph-based relationships"
-                                                status="optional"
-                                                enabled={watch('graph_enabled')}
-                                                onToggle={(e) => setValue('graph_enabled', e)}
-                                            />
-                                            <NodeCard
-                                                icon={ShieldCheck}
-                                                title="Reranking Node"
-                                                description="Post-retrieval refinement"
-                                                status="optional"
-                                                enabled={watch('reranker_enabled')}
-                                                onToggle={(e) => setValue('reranker_enabled', e)}
-                                            />
                                         </div>
-
-                                        {mode === 'advanced' && (
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-1.5">
-                                                    <label className="text-tiny font-bold text-gray-400">Search Limit (Top-K)</label>
-                                                    <input
-                                                        type="number"
-                                                        {...register('search_limit', { valueAsNumber: true })}
-                                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-caption outline-none"
-                                                    />
-                                                </div>
-                                                <div className="space-y-1.5">
-                                                    <label className="text-tiny font-bold text-gray-400">Hybrid Alpha</label>
-                                                    <input
-                                                        type="number" step="0.1"
-                                                        {...register('hybrid_alpha', { valueAsNumber: true })}
-                                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-caption outline-none"
-                                                    />
-                                                </div>
-                                            </div>
-                                        )}
                                     </motion.div>
                                 )}
 
@@ -350,64 +284,43 @@ export function WorkspaceWizard({ isOpen, onClose, onSubmit, isCreating }: Works
                                         exit={{ opacity: 0, x: -20 }}
                                         className="space-y-6"
                                     >
-                                        <NodeCard
+                                        <ComponentCard
                                             icon={Database}
-                                            title="Embedding Node"
+                                            title="Embedding Component"
                                             description="Vector representation settings (Immutable)"
                                             status="mandatory"
                                         >
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-1.5">
+                                            <div className="space-y-6">
+                                                <div className="space-y-3">
                                                     <label className="text-tiny font-bold text-gray-400">Provider</label>
-                                                    <select
-                                                        {...register('embedding_provider')}
-                                                        className="w-full bg-[#1a1a1f] border border-white/10 rounded-xl px-3 py-2 text-caption outline-none"
-                                                    >
-                                                        <option value="openai">OpenAI</option>
-                                                        <option value="voyage">Voyage</option>
-                                                        <option value="local">Local (HuggingFace)</option>
-                                                    </select>
+                                                    <EmbeddingProviderSelector form={form} />
                                                 </div>
-                                                <div className="space-y-1.5">
-                                                    <label className="text-tiny font-bold text-gray-400">Dimension</label>
-                                                    <input
-                                                        type="number"
-                                                        {...register('embedding_dim', { valueAsNumber: true })}
-                                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-caption outline-none"
-                                                    />
+
+                                                <div className="pt-4 border-t border-white/5 space-y-4">
+                                                    <EmbeddingModelSelector form={form} />
+                                                    <EmbeddingConfigDetails form={form} />
                                                 </div>
                                             </div>
+
                                             <div className="mt-3 p-2 rounded-lg bg-orange-500/5 border border-orange-500/10 flex items-center gap-2">
                                                 <AlertTriangle size={12} className="text-orange-400" />
                                                 <span className="text-[10px] text-orange-200/60">Choose carefully. Changing these later requires re-indexing.</span>
                                             </div>
-                                        </NodeCard>
+                                        </ComponentCard>
 
-                                        <NodeCard
-                                            icon={Database}
-                                            title="Ingestion Node"
+                                        <ComponentCard
+                                            icon={Settings2}
+                                            title="Ingestion Component"
                                             description="Data processing & chunking settings"
                                             status="mandatory"
                                         >
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-1.5">
-                                                    <label className="text-tiny font-bold text-gray-400">Chunk Size</label>
-                                                    <input
-                                                        type="number"
-                                                        {...register('chunk_size', { valueAsNumber: true })}
-                                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-caption outline-none"
-                                                    />
-                                                </div>
-                                                <div className="space-y-1.5">
-                                                    <label className="text-tiny font-bold text-gray-400">Overlap</label>
-                                                    <input
-                                                        type="number"
-                                                        {...register('chunk_overlap', { valueAsNumber: true })}
-                                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-caption outline-none"
-                                                    />
+                                            <div className="space-y-6">
+                                                <div className="space-y-3">
+                                                    <label className="text-tiny font-bold text-gray-400">Strategy</label>
+                                                    <ChunkingSettings form={form} />
                                                 </div>
                                             </div>
-                                        </NodeCard>
+                                        </ComponentCard>
                                     </motion.div>
                                 )}
                             </AnimatePresence>
@@ -455,66 +368,64 @@ export function WorkspaceWizard({ isOpen, onClose, onSubmit, isCreating }: Works
             </motion.div>
         </div>
     );
-}
+    interface ComponentCardProps {
+        icon: any;
+        title: string;
+        description: string;
+        status: 'mandatory' | 'optional';
+        enabled?: boolean;
+        onToggle?: (val: boolean) => void;
+        children?: React.ReactNode;
+    }
 
-interface NodeCardProps {
-    icon: any;
-    title: string;
-    description: string;
-    status: 'mandatory' | 'optional';
-    enabled?: boolean;
-    onToggle?: (val: boolean) => void;
-    children?: React.ReactNode;
-}
-
-function NodeCard({ icon: Icon, title, description, status, enabled = true, onToggle, children }: NodeCardProps) {
-    return (
-        <div className={cn(
-            "p-4 rounded-2xl border transition-all",
-            enabled ? "bg-white/5 border-white/10" : "bg-black/20 border-white/5 opacity-50"
-        )}>
-            <div className="flex items-start justify-between mb-4">
-                <div className="flex gap-3">
-                    <div className={cn(
-                        "w-9 h-9 rounded-xl flex items-center justify-center transition-all",
-                        enabled ? "bg-blue-600/10 text-blue-400" : "bg-white/5 text-gray-600"
-                    )}>
-                        <Icon size={18} />
-                    </div>
-                    <div>
-                        <div className="flex items-center gap-2">
-                            <h4 className="text-caption font-bold text-white">{title}</h4>
-                            <span className={cn(
-                                "text-[8px] px-1.5 py-0.5 rounded uppercase font-black",
-                                status === 'mandatory' ? "bg-indigo-500/20 text-indigo-300" : "bg-white/10 text-gray-500"
-                            )}>
-                                {status}
-                            </span>
+    function ComponentCard({ icon: Icon, title, description, status, enabled = true, onToggle, children }: ComponentCardProps) {
+        return (
+            <div className={cn(
+                "p-4 rounded-2xl border transition-all",
+                enabled ? "bg-white/5 border-white/10" : "bg-black/20 border-white/5 opacity-50"
+            )}>
+                <div className="flex items-start justify-between mb-4">
+                    <div className="flex gap-3">
+                        <div className={cn(
+                            "w-9 h-9 rounded-xl flex items-center justify-center transition-all",
+                            enabled ? "bg-blue-600/10 text-blue-400" : "bg-white/5 text-gray-600"
+                        )}>
+                            <Icon size={18} />
                         </div>
-                        <p className="text-[10px] text-gray-500">{description}</p>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <h4 className="text-caption font-bold text-white">{title}</h4>
+                                <span className={cn(
+                                    "text-[8px] px-1.5 py-0.5 rounded uppercase font-black",
+                                    status === 'mandatory' ? "bg-indigo-500/20 text-indigo-300" : "bg-white/10 text-gray-500"
+                                )}>
+                                    {status}
+                                </span>
+                            </div>
+                            <p className="text-[10px] text-gray-500">{description}</p>
+                        </div>
                     </div>
+                    {status === 'optional' && onToggle && (
+                        <button
+                            type="button"
+                            onClick={() => onToggle(!enabled)}
+                            className={cn(
+                                "w-10 h-5 rounded-full relative transition-all",
+                                enabled ? "bg-blue-600" : "bg-white/10"
+                            )}
+                        >
+                            <motion.div
+                                animate={{ x: enabled ? 20 : 2 }}
+                                className="w-4 h-4 rounded-full bg-white absolute top-0.5"
+                            />
+                        </button>
+                    )}
                 </div>
-                {status === 'optional' && onToggle && (
-                    <button
-                        type="button"
-                        onClick={() => onToggle(!enabled)}
-                        className={cn(
-                            "w-10 h-5 rounded-full relative transition-all",
-                            enabled ? "bg-blue-600" : "bg-white/10"
-                        )}
-                    >
-                        <motion.div
-                            animate={{ x: enabled ? 20 : 2 }}
-                            className="w-4 h-4 rounded-full bg-white absolute top-0.5"
-                        />
-                    </button>
+                {children && (
+                    <div className={cn("transition-all", !enabled && "pointer-events-none")}>
+                        {children}
+                    </div>
                 )}
             </div>
-            {children && (
-                <div className={cn("transition-all", !enabled && "pointer-events-none")}>
-                    {children}
-                </div>
-            )}
-        </div>
-    );
-}
+        );
+    }

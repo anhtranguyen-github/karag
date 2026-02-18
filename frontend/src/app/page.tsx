@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
 import { api } from "@/lib/api-client";
 import { Workspace } from "@/lib/api";
-import { CreateWorkspaceModal } from "@/components/workspace/create-workspace-modal";
+import { WorkspaceWizard } from "@/components/workspace/WorkspaceWizard";
 import { DeleteWorkspaceModal } from "@/components/workspace/delete-workspace-modal";
 import { QuickViewWorkspaceModal } from "@/components/workspace/quick-view-modal";
 import { Search, Trash2, Eye, Database, Plus, Loader2, ArrowRight, Shield, Zap } from "lucide-react";
@@ -240,7 +240,7 @@ export default function Home() {
         </div>
       </div>
 
-      <CreateWorkspaceModal
+      <WorkspaceWizard
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);

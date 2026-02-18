@@ -16,7 +16,7 @@
 import * as runtime from '../runtime';
 import type {
   AppResponse,
-  ArxivUploadRequest,
+  DocumentWorkspaceUpdate,
   GitHubImportRequest,
   HTTPValidationError,
   SitemapImportRequest,
@@ -25,8 +25,8 @@ import type {
 import {
     AppResponseFromJSON,
     AppResponseToJSON,
-    ArxivUploadRequestFromJSON,
-    ArxivUploadRequestToJSON,
+    DocumentWorkspaceUpdateFromJSON,
+    DocumentWorkspaceUpdateToJSON,
     GitHubImportRequestFromJSON,
     GitHubImportRequestToJSON,
     HTTPValidationErrorFromJSON,
@@ -85,9 +85,8 @@ export interface ListDocumentsDocumentsGetRequest {
     workspaceId?: string;
 }
 
-export interface UploadArxivDocumentUploadArxivPostRequest {
-    arxivUploadRequest: ArxivUploadRequest;
-    workspaceId?: string;
+export interface UpdateDocumentWorkspacesDocumentsUpdateWorkspacesPostRequest {
+    documentWorkspaceUpdate: DocumentWorkspaceUpdate;
 }
 
 export interface UploadDocumentUploadPostRequest {
@@ -658,10 +657,19 @@ export class DocumentsApi extends runtime.BaseAPI {
      * Workspace operations using internal IDs.
      * Update Document Workspaces
      */
-    async updateDocumentWorkspacesDocumentsUpdateWorkspacesPostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async updateDocumentWorkspacesDocumentsUpdateWorkspacesPostRaw(requestParameters: UpdateDocumentWorkspacesDocumentsUpdateWorkspacesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        if (requestParameters['documentWorkspaceUpdate'] == null) {
+            throw new runtime.RequiredError(
+                'documentWorkspaceUpdate',
+                'Required parameter "documentWorkspaceUpdate" was null or undefined when calling updateDocumentWorkspacesDocumentsUpdateWorkspacesPost().'
+            );
+        }
+
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
 
 
         let urlPath = `/documents/update-workspaces`;
@@ -671,6 +679,7 @@ export class DocumentsApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
+            body: DocumentWorkspaceUpdateToJSON(requestParameters['documentWorkspaceUpdate']),
         }, initOverrides);
 
         if (this.isJsonMime(response.headers.get('content-type'))) {
@@ -684,51 +693,8 @@ export class DocumentsApi extends runtime.BaseAPI {
      * Workspace operations using internal IDs.
      * Update Document Workspaces
      */
-    async updateDocumentWorkspacesDocumentsUpdateWorkspacesPost(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.updateDocumentWorkspacesDocumentsUpdateWorkspacesPostRaw(initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Upload Arxiv Document
-     */
-    async uploadArxivDocumentUploadArxivPostRaw(requestParameters: UploadArxivDocumentUploadArxivPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponse>> {
-        if (requestParameters['arxivUploadRequest'] == null) {
-            throw new runtime.RequiredError(
-                'arxivUploadRequest',
-                'Required parameter "arxivUploadRequest" was null or undefined when calling uploadArxivDocumentUploadArxivPost().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        if (requestParameters['workspaceId'] != null) {
-            queryParameters['workspace_id'] = requestParameters['workspaceId'];
-        }
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        headerParameters['Content-Type'] = 'application/json';
-
-
-        let urlPath = `/upload-arxiv`;
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-            body: ArxivUploadRequestToJSON(requestParameters['arxivUploadRequest']),
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => AppResponseFromJSON(jsonValue));
-    }
-
-    /**
-     * Upload Arxiv Document
-     */
-    async uploadArxivDocumentUploadArxivPost(requestParameters: UploadArxivDocumentUploadArxivPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponse> {
-        const response = await this.uploadArxivDocumentUploadArxivPostRaw(requestParameters, initOverrides);
+    async updateDocumentWorkspacesDocumentsUpdateWorkspacesPost(requestParameters: UpdateDocumentWorkspacesDocumentsUpdateWorkspacesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.updateDocumentWorkspacesDocumentsUpdateWorkspacesPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

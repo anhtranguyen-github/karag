@@ -10,12 +10,14 @@ import { api } from "@/lib/api-client";
 import { WorkspaceCreate } from "@/lib/api";
 import {
     Sparkles, Layout, Info, AlertCircle, ChevronDown, Loader2,
-    Boxes, Search, GitFork, Cpu, FileText, Wand2, RotateCcw
+    Boxes, Search, GitFork, Cpu, FileText, Wand2, RotateCcw, Brain
 } from "lucide-react";
 
 interface CreateWorkspaceModalProps {
     isOpen: boolean;
     onClose: () => void;
+    seedDocumentId?: string;
+    seedDocumentName?: string;
 }
 
 interface SettingMetadata {
@@ -32,24 +34,26 @@ interface SettingMetadata {
 
 // Category display configuration
 const CATEGORY_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-    "Ingestion Node": { label: "Chunking", color: "text-cyan-400", icon: FileText },
-    "Embedding Node": { label: "Embeddings", color: "text-indigo-400", icon: Boxes },
-    "Generation Node": { label: "Generation", color: "text-violet-400", icon: Wand2 },
-    "Retrieval Node": { label: "Retrieval", color: "text-emerald-400", icon: Search },
-    "Graph Node": { label: "Knowledge Graph", color: "text-amber-400", icon: GitFork },
-    "Reranking Node": { label: "Reranking", color: "text-rose-400", icon: RotateCcw },
-    "Agentic Node": { label: "Agent Behavior", color: "text-fuchsia-400", icon: Cpu },
+    "Ingestion Component": { label: "Ingestion & Chunking", color: "text-cyan-400", icon: FileText },
+    "Embedding Component": { label: "Model Embeddings", color: "text-indigo-400", icon: Boxes },
+    "Generation Component": { label: "LLM Generation", color: "text-violet-400", icon: Wand2 },
+    "Retrieval Component": { label: "Search & Retrieval", color: "text-emerald-400", icon: Search },
+    "Graph Component": { label: "Knowledge Graph", color: "text-amber-400", icon: GitFork },
+    "Reranking Component": { label: "Re-ranking", color: "text-rose-400", icon: RotateCcw },
+    "Agentic Component": { label: "Agent Config", color: "text-fuchsia-400", icon: Cpu },
+    "Execution Mode": { label: "Thinking Mode", color: "text-amber-500", icon: Brain },
 };
 
 // Order of categories in the UI
 const CATEGORY_ORDER = [
-    "Ingestion Node",
-    "Embedding Node",
-    "Generation Node",
-    "Retrieval Node",
-    "Graph Node",
-    "Reranking Node",
-    "Agentic Node",
+    "Execution Mode",
+    "Ingestion Component",
+    "Embedding Component",
+    "Generation Component",
+    "Retrieval Component",
+    "Graph Component",
+    "Reranking Component",
+    "Agentic Component",
 ];
 
 // Fields to hide from the create modal UI (backend-only or too advanced)
@@ -61,12 +65,23 @@ const HIDDEN_FIELDS = new Set([
 export function CreateWorkspaceModal({
     isOpen,
     onClose,
+    seedDocumentId,
+    seedDocumentName,
 }: CreateWorkspaceModalProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [metadata, setMetadata] = useState<Record<string, SettingMetadata>>({});
     const [formData, setFormData] = useState<Record<string, any>>({});
     const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (isOpen && seedDocumentName) {
+            setFormData(prev => ({
+                ...prev,
+                name: seedDocumentName.split('.')[0] + " Context"
+            }));
+        }
+    }, [isOpen, seedDocumentName]);
 
     useEffect(() => {
         if (isOpen) {
@@ -89,14 +104,29 @@ export function CreateWorkspaceModal({
                 throw new Error("Workspace name is required");
             }
 
-            await api.createWorkspaceWorkspacesPost({
+            const res = await api.createWorkspaceWorkspacesPost({
                 workspaceCreate: {
                     ...formData
                 } as WorkspaceCreate,
             });
 
+            // If we have a seed document, link it immediately
+            if (seedDocumentId && res.data?.id) {
+                await api.updateDocumentWorkspacesDocumentsUpdateWorkspacesPost({
+                    documentWorkspaceUpdate: {
+                        document_id: seedDocumentId,
+                        target_workspace_id: res.data.id,
+                        action: 'link',
+                        force_reindex: true
+                    } as any
+                });
+            }
+
             onClose();
             router.refresh();
+            if (res.data?.id) {
+                router.push(`/workspaces/${res.data.id}`);
+            }
         } catch (err: any) {
             console.error(err);
             setError(err.message || "Failed to create workspace");
@@ -134,9 +164,11 @@ export function CreateWorkspaceModal({
     }, [groupedByCategory]);
 
     const renderField = (key: string, meta: SettingMetadata) => {
-        const camelKey = key.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
-        const displayName = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-        const currentValue = formData[camelKey];
+        // Handle dot-notation keys for display (e.g., retrieval.graph.enabled -> Enabled)
+        const parts = key.split('.');
+        const lastPart = parts[parts.length - 1];
+        const displayName = lastPart.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        const currentValue = formData[key];
 
         // Select (dropdown)
         if (meta.field_type === "select" && meta.options) {
@@ -157,7 +189,7 @@ export function CreateWorkspaceModal({
                             id={key}
                             className="appearance-none flex h-8 w-full rounded-lg border border-muted-foreground/10 bg-muted/20 px-3 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all pr-10"
                             value={(currentValue as string) ?? ""}
-                            onChange={(e) => handleChange(camelKey, e.target.value)}
+                            onChange={(e) => handleChange(key, e.target.value)}
                             disabled={loading}
                         >
                             <option value="">{meta.default ?? "Auto"}</option>
@@ -189,7 +221,7 @@ export function CreateWorkspaceModal({
                         id={key}
                         role="switch"
                         aria-checked={checked}
-                        onClick={() => handleChange(camelKey, !checked)}
+                        onClick={() => handleChange(key, !checked)}
                         disabled={loading}
                         className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50 ${checked ? 'bg-primary' : 'bg-muted-foreground/20'
                             }`}
@@ -228,9 +260,9 @@ export function CreateWorkspaceModal({
                         onChange={(e) => {
                             const raw = e.target.value;
                             if (raw === "") {
-                                handleChange(camelKey, undefined);
+                                handleChange(key, undefined);
                             } else {
-                                handleChange(camelKey, meta.field_type === "float" ? parseFloat(raw) : parseInt(raw, 10));
+                                handleChange(key, meta.field_type === "float" ? parseFloat(raw) : parseInt(raw, 10));
                             }
                         }}
                         disabled={loading}
@@ -252,7 +284,7 @@ export function CreateWorkspaceModal({
                         className="flex h-8 w-full rounded-lg border border-muted-foreground/10 bg-muted/20 px-3 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                         value={(currentValue as string) ?? ""}
                         placeholder={meta.default ?? ""}
-                        onChange={(e) => handleChange(camelKey, e.target.value)}
+                        onChange={(e) => handleChange(key, e.target.value)}
                         disabled={loading}
                     />
                 </div>

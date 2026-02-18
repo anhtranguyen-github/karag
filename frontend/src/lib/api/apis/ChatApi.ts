@@ -43,6 +43,10 @@ export interface GetChatHistoryChatHistoryThreadIdGetRequest {
     threadId: string;
 }
 
+export interface GetThreadChatThreadsThreadIdGetRequest {
+    threadId: string;
+}
+
 export interface ListChatThreadsChatThreadsGetRequest {
     workspaceId: string;
 }
@@ -173,6 +177,43 @@ export class ChatApi extends runtime.BaseAPI {
      */
     async getChatHistoryChatHistoryThreadIdGet(requestParameters: GetChatHistoryChatHistoryThreadIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponse> {
         const response = await this.getChatHistoryChatHistoryThreadIdGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get Thread
+     */
+    async getThreadChatThreadsThreadIdGetRaw(requestParameters: GetThreadChatThreadsThreadIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponse>> {
+        if (requestParameters['threadId'] == null) {
+            throw new runtime.RequiredError(
+                'threadId',
+                'Required parameter "threadId" was null or undefined when calling getThreadChatThreadsThreadIdGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/chat/threads/{thread_id}`;
+        urlPath = urlPath.replace(`{${"thread_id"}}`, encodeURIComponent(String(requestParameters['threadId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AppResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Get Thread
+     */
+    async getThreadChatThreadsThreadIdGet(requestParameters: GetThreadChatThreadsThreadIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponse> {
+        const response = await this.getThreadChatThreadsThreadIdGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

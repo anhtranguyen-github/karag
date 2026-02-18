@@ -103,7 +103,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                     <span className="text-xs font-black text-white">{value}</span>
                                     <input
                                         type="range"
-                                        min={metadata[key]?.category === 'Retrieval Node' && key === 'hybrid_alpha' ? 0 : 1}
+                                        min={metadata[key]?.category === 'Retrieval Component' && key === 'hybrid_alpha' ? 0 : 1}
                                         max={key === 'hybrid_alpha' ? 1 : 100}
                                         step={key === 'hybrid_alpha' ? 0.1 : 1}
                                         value={value}

@@ -38,6 +38,7 @@ export function ChatInterface({
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [executionMode, setExecutionMode] = useState<"fast" | "thinking" | "deep" | "blending">("thinking");
     const [selectedCitation, setSelectedCitation] = useState<any | null>(null);
     const [isCitationModalOpen, setIsCitationModalOpen] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -116,7 +117,12 @@ export function ChatInterface({
                 body: JSON.stringify({
                     message: userMsg.content,
                     thread_id: currentThreadId,
-                    workspace_id: workspaceId
+                    workspace_id: workspaceId || "default",
+                    execution: {
+                        execution_mode: executionMode,
+                        max_loops: executionMode === "deep" ? 5 : 3,
+                        enable_tracing: true
+                    }
                 }),
                 onmessage(msg) {
                     try {
@@ -131,6 +137,9 @@ export function ChatInterface({
                             if (data.type === "content") {
                                 // Append delta
                                 lastMsg.content += data.delta || "";
+                            } else if (data.type === "thought") {
+                                if (!lastMsg.reasoning_steps) lastMsg.reasoning_steps = [];
+                                lastMsg.reasoning_steps.push(data.step);
                             } else if (data.type === "reasoning") {
                                 if (!lastMsg.reasoning_steps) lastMsg.reasoning_steps = [];
                                 if (Array.isArray(data.steps)) {
@@ -210,7 +219,26 @@ export function ChatInterface({
             </div>
 
             {/* Input Area */}
-            <div className="p-6 shrink-0">
+            <div className="p-6 shrink-0 space-y-4">
+                <div className="max-w-4xl mx-auto flex items-center justify-center space-x-2">
+                    {["fast", "thinking", "deep", "blending"].map((mode) => (
+                        <button
+                            key={mode}
+                            type="button"
+                            onClick={() => setExecutionMode(mode as any)}
+                            className={cn(
+                                "px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full transition-all duration-200 border",
+                                executionMode === mode
+                                    ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-400 shadow-lg shadow-indigo-500/10"
+                                    : "bg-white/5 border-white/5 text-gray-500 hover:bg-white/10 hover:border-white/10"
+                            )}
+                            disabled={isLoading}
+                        >
+                            {mode}
+                        </button>
+                    ))}
+                </div>
+
                 <form onSubmit={handleSend} className="max-w-4xl mx-auto relative group">
                     <div className="relative flex items-center bg-white/[0.03] backdrop-blur-2xl rounded-2xl border border-white/10 p-1.5 transition-all duration-300 focus-within:border-white/20 focus-within:bg-white/[0.05] shadow-2xl">
                         <Input

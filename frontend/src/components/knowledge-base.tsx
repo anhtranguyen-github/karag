@@ -3,14 +3,15 @@
 import React, { useState, useEffect } from 'react';
 import {
     Upload, FileText, Trash2, Loader2,
-    Database, Search, Eye,
-    Plus, Filter, Shield, ArrowRight, AlertTriangle, MessageSquare,
+    Database, Search, Eye, Sparkles,
+    Plus, Filter, Shield, ArrowRight, AlertTriangle,
     X, Globe, Link2, Github, Folder, Music, Info,
     ChevronRight, ChevronDown, ArrowRightLeft, Layers, Zap, HardDrive, Calendar
 } from 'lucide-react';
 import Link from 'next/link';
 import { API_ROUTES, API_BASE_URL } from '@/lib/api-config';
 import { SourceViewer } from '@/components/source-viewer';
+import { WorkspaceWizard } from "@/components/workspace/WorkspaceWizard";
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useError } from '@/context/error-context';
@@ -31,6 +32,7 @@ interface Document {
     workspace_name?: string;
     shared_with?: string[];
     size?: number | string;
+    workspace_statuses?: Record<string, string>;
 }
 
 // Task type is now managed globally by TaskContext
@@ -106,6 +108,9 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         workspace_name: string;
     } | null>(null);
 
+    const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
+    const [seedDoc, setSeedDoc] = useState<Document | null>(null);
+
     // Poll for active tasks
     const fetchDocuments = React.useCallback(async () => {
         try {
@@ -118,13 +123,9 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                 const payload = await res.json();
                 const data: BackendDocument[] = payload.data || [];
                 const mappedDocs = data.map((doc) => ({
-                    id: doc.id,
+                    ...doc,
                     name: doc.filename,
-                    extension: doc.extension,
-                    chunks: doc.chunks,
-                    status: doc.status,
                     shared: !isGlobal && doc.workspace_id !== workspaceId,
-                    workspace_id: doc.workspace_id,
                     workspace_name: doc.workspace_name || doc.workspace_id
                 }));
                 setDocuments(mappedDocs);
@@ -161,12 +162,8 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                 const payload = await res.json();
                 const data: BackendDocument[] = payload.data || [];
                 const mappedDocs = data.map((doc) => ({
-                    id: doc.id,
+                    ...doc,
                     name: doc.filename,
-                    extension: doc.extension,
-                    chunks: doc.chunks,
-                    status: doc.status,
-                    workspace_id: doc.workspace_id,
                     workspace_name: doc.workspace_name || doc.workspace_id
                 }));
                 // Filter out documents already in this workspace
@@ -901,12 +898,13 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                             className="bg-transparent border-none text-xs text-gray-400 focus:ring-0 outline-none cursor-pointer py-2 pr-8"
                         >
                             <option value="all" className="bg-[#121214]">All Status</option>
-                            <option value="indexed" className="bg-[#121214]">Indexed</option>
+                            <option value="ingested" className="bg-[#121214]">Ingested</option>
                             <option value="uploaded" className="bg-[#121214]">Uploaded</option>
                             <option value="verifying" className="bg-[#121214]">Verifying</option>
-                            <option value="uploading" className="bg-[#121214]">Uploading</option>
+                            <option value="embedding" className="bg-[#121214]">Embedding</option>
                             <option value="reading" className="bg-[#121214]">Reading</option>
                             <option value="ingesting" className="bg-[#121214]">Ingesting</option>
+                            <option value="failed" className="bg-[#121214]">Failed</option>
                         </select>
                     </div>
 
@@ -986,7 +984,10 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                 doc.workspace_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                                 doc.extension?.toLowerCase().includes(searchQuery.toLowerCase());
 
-                            const matchesStatus = statusFilter === 'all' || doc.status === statusFilter || (statusFilter === 'uploaded' && doc.status === 'uploaded');
+                            const effectiveStatus = (doc as any).workspace_statuses?.[workspaceId] || doc.status;
+                            const matchesStatus = statusFilter === 'all' ||
+                                effectiveStatus === statusFilter ||
+                                (statusFilter === 'ingested' && effectiveStatus === 'indexed');
                             const matchesWorkspace = workspaceFilter === 'all' || doc.workspace_id === workspaceFilter;
                             const matchesType = typeFilter === 'all' || doc.extension?.toLowerCase() === typeFilter.toLowerCase();
                             const matchesVisibility = visibilityFilter === 'all' ||
@@ -1025,33 +1026,54 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                         <span className="text-sm font-bold text-white truncate max-w-[400px] tracking-tight">{doc.name}</span>
                                         <div className="flex items-center gap-3 mt-1">
                                             <span className="text-[10px] font-black text-gray-700 uppercase tracking-[0.2em]">{doc.extension?.replace('.', '') || 'File'}</span>
-                                            <span className="w-1 h-1 rounded-full bg-gray-800" />
-                                            {doc.status === 'indexed' ? (
-                                                <span className="text-[10px] text-indigo-400 font-black tracking-widest uppercase">{doc.chunks} Fragments</span>
-                                            ) : (
-                                                <span className="text-[10px] text-amber-500 font-black flex items-center gap-2 uppercase tracking-widest animate-pulse">
-                                                    {doc.status}
-                                                </span>
-                                            )}
-                                            {isGlobal && doc.workspace_name && doc.workspace_name !== 'Unknown' && doc.workspace_name !== 'Unknown Workspace' && doc.workspace_id !== 'vault' && (
-                                                <>
-                                                    <span className="w-1 h-1 rounded-full bg-gray-800" />
-                                                    <span className="text-[10px] text-gray-600 font-bold uppercase tracking-tight">{doc.workspace_name}</span>
-                                                </>
-                                            )}
+                                            {(() => {
+                                                const effectiveStatus = (doc as any).workspace_statuses?.[workspaceId] || doc.status;
+                                                const isIngested = effectiveStatus === 'ingested' || effectiveStatus === 'indexed';
+
+                                                return (
+                                                    <>
+                                                        <span className="w-1 h-1 rounded-full bg-gray-800" />
+                                                        {isIngested ? (
+                                                            <span className="text-[10px] text-emerald-400 font-black tracking-widest uppercase flex items-center gap-1.5">
+                                                                <Shield className="w-2.5 h-2.5" />
+                                                                {doc.chunks || 0} Fragments
+                                                            </span>
+                                                        ) : (
+                                                            <span className={cn(
+                                                                "text-[10px] font-black flex items-center gap-2 uppercase tracking-widest animate-pulse",
+                                                                effectiveStatus === 'failed' ? "text-red-500" :
+                                                                    effectiveStatus === 'embedding' ? "text-indigo-400" :
+                                                                        effectiveStatus === 'reading' ? "text-blue-400" :
+                                                                            effectiveStatus === 'verifying' ? "text-amber-400" :
+                                                                                "text-amber-500"
+                                                            )}>
+                                                                {effectiveStatus}
+                                                            </span>
+                                                        )}
+                                                        {isGlobal && doc.workspace_name && doc.workspace_name !== 'Unknown' && doc.workspace_name !== 'Unknown Workspace' && doc.workspace_id !== 'vault' && (
+                                                            <>
+                                                                <span className="w-1 h-1 rounded-full bg-gray-800" />
+                                                                <span className="text-[10px] text-gray-600 font-bold uppercase tracking-tight">{doc.workspace_name}</span>
+                                                            </>
+                                                        )}
+                                                    </>
+                                                );
+                                            })()}
                                         </div>
                                     </div>
                                 </div>
 
                                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
-                                    <Link href={`/chats/new?workspaceId=${workspaceId}&docId=${doc.id}`}>
-                                        <button
-                                            className="w-12 h-12 flex items-center justify-center rounded-2xl text-gray-600 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all"
-                                            title="Start Chat"
-                                        >
-                                            <MessageSquare size={18} />
-                                        </button>
-                                    </Link>
+                                    <button
+                                        onClick={() => {
+                                            setSeedDoc(doc);
+                                            setIsCreatingWorkspace(true);
+                                        }}
+                                        className="w-12 h-12 flex items-center justify-center rounded-2xl text-gray-600 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all"
+                                        title="Create Workspace"
+                                    >
+                                        <Sparkles size={18} />
+                                    </button>
                                     <button
                                         onClick={() => handleView(doc.id!, doc.name)}
                                         className="w-12 h-12 flex items-center justify-center rounded-2xl text-gray-600 hover:text-white hover:bg-white/5 transition-all"
@@ -1087,14 +1109,16 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                 </AnimatePresence>
             </div>
 
-            <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 text-xs font-bold text-emerald-500">
-                        <Shield className="w-3 h-3" />
-                        Indexed
+            {!isGlobal && (
+                <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 text-xs font-bold text-emerald-500">
+                            <Shield className="w-3 h-3" />
+                            Indexed
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Details Modal */}
             <AnimatePresence>
@@ -1525,6 +1549,13 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                     />
                 )}
             </AnimatePresence>
+
+            <WorkspaceWizard
+                isOpen={isCreatingWorkspace}
+                onClose={() => setIsCreatingWorkspace(false)}
+                seedDocumentId={seedDoc?.id}
+                seedDocumentName={seedDoc?.name}
+            />
         </div>
     );
 }
