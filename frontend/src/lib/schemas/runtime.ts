@@ -1,33 +1,33 @@
 import { z } from 'zod';
 
-export const FastModeConfigSchema = z.object({
-    max_loops: z.number().int().min(1).default(1),
+export const FastModeSchema = z.object({
+    max_loops: z.number().int().default(1),
     enable_reflection: z.boolean().default(false),
     timeout_ms: z.number().int().min(1000).default(30000),
 });
 
-export const ThinkingModeConfigSchema = z.object({
-    max_loops: z.number().int().min(1).default(3),
-    reflection_depth: z.number().int().min(1).default(2),
-    confidence_threshold: z.number().min(0).max(1).default(0.8),
+export const ThinkingModeSchema = z.object({
+    max_loops: z.number().int().min(1).max(10).default(3),
+    reflection_depth: z.number().int().min(1).max(5).default(2),
+    confidence_threshold: z.number().min(0.0).max(1.0).default(0.8),
     timeout_ms: z.number().int().min(1000).default(60000),
 });
 
-export const DeepThinkingModeConfigSchema = z.object({
-    max_loops: z.number().int().min(1).default(5),
-    multi_query_limit: z.number().int().min(1).default(3),
+export const DeepThinkingModeSchema = z.object({
+    max_loops: z.number().int().min(1).max(15).default(5),
+    multi_query_limit: z.number().int().min(1).max(10).default(3),
     backtracking_enabled: z.boolean().default(true),
     timeout_ms: z.number().int().min(1000).default(120000),
 });
 
-export const BlendingModeConfigSchema = z.object({
-    query_variants: z.number().int().min(1).default(2),
-    answer_variants: z.number().int().min(1).default(2),
+export const BlendingModeSchema = z.object({
+    query_variants: z.number().int().min(1).max(5).default(2),
+    answer_variants: z.number().int().min(1).max(5).default(2),
     synthesis_strategy: z.enum(['most_complete', 'consensus', 'concatenation']).default('most_complete'),
     timeout_ms: z.number().int().min(1000).default(90000),
 });
 
-export const TracingConfigSchema = z.object({
+export const TracingSchema = z.object({
     tracing_enabled: z.boolean().default(true),
     trace_level: z.enum(['basic', 'detailed', 'debug']).default('detailed'),
     store_intermediate_results: z.boolean().default(true),
@@ -37,11 +37,11 @@ export const TracingConfigSchema = z.object({
 
 export const RuntimeSettingsSchema = z.object({
     mode: z.enum(['fast', 'thinking', 'deep', 'blending']).default('fast'),
-    fast: FastModeConfigSchema.default({}),
-    thinking: ThinkingModeConfigSchema.default({}),
-    deep: DeepThinkingModeConfigSchema.default({}),
-    blending: BlendingModeConfigSchema.default({}),
-    tracing: TracingConfigSchema.default({}),
+    fast: FastModeSchema.default({}),
+    thinking: ThinkingModeSchema.default({}),
+    deep: DeepThinkingModeSchema.default({}),
+    blending: BlendingModeSchema.default({}),
+    tracing: TracingSchema.default({}),
     stream_thoughts: z.boolean().default(true),
 });
 

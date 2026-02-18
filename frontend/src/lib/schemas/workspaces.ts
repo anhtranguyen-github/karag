@@ -15,6 +15,9 @@ export const WorkspaceSchema = z.object({
     }).optional().nullable(),
     created_at: z.string().optional(),
     updated_at: z.string().optional(),
+    llm_provider: z.string().optional().nullable(),
+    embedding_provider: z.string().optional().nullable(),
+    rag_engine: z.string().optional().nullable(),
 });
 
 export const BaseCreateWorkspaceSchema = z.object({
@@ -58,23 +61,7 @@ export const BaseCreateWorkspaceSchema = z.object({
     system_prompt: z.string().default('You are an advanced reasoning assistant. Use the provided context to answer the user\'s question.'),
 });
 
-export const CreateWorkspaceSchema = BaseCreateWorkspaceSchema
-    .superRefine((data, ctx) => {
-        if (data.reranker_enabled && data.reranker_provider === 'none') {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Reranker provider is required when reranking is enabled",
-                path: ["reranker_provider"]
-            });
-        }
-        if (data.rag_engine === 'graph' && !data.graph_enabled) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Graph Component must be enabled to use Graph RAG Engine",
-                path: ["graph_enabled"]
-            });
-        }
-    });
+export const CreateWorkspaceSchema = BaseCreateWorkspaceSchema;
 
 export type Workspace = z.infer<typeof WorkspaceSchema>;
 export type CreateWorkspaceInput = z.infer<typeof CreateWorkspaceSchema>;

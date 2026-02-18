@@ -10,6 +10,9 @@ export interface Workspace {
         thread_count?: number;
         doc_count?: number;
     } | null;
+    llmProvider?: string | null;
+    embeddingProvider?: string | null;
+    ragEngine?: string | null;
 }
 
 export interface Thread {
@@ -69,15 +72,22 @@ export function useWorkspaces() {
                 return;
             }
 
-            setWorkspaces(payload.data);
+            const mappedData = payload.data.map(ws => ({
+                ...ws,
+                llmProvider: ws.llm_provider,
+                embeddingProvider: ws.embedding_provider,
+                ragEngine: ws.rag_engine
+            }));
+
+            setWorkspaces(mappedData);
 
             const savedWsId = localStorage.getItem('currentWorkspaceId');
-            const found = payload.data.find(ws => ws.id === savedWsId);
+            const found = mappedData.find(ws => ws.id === savedWsId);
             if (found) {
                 setCurrentWorkspace(found);
-            } else if (payload.data.length > 0) {
-                setCurrentWorkspace(payload.data[0]);
-                localStorage.setItem('currentWorkspaceId', payload.data[0].id);
+            } else if (mappedData.length > 0) {
+                setCurrentWorkspace(mappedData[0]);
+                localStorage.setItem('currentWorkspaceId', mappedData[0].id);
             } else {
                 setCurrentWorkspace(null);
             }
@@ -135,8 +145,15 @@ export function useWorkspaces() {
 
             const appResponse = result.data;
             if (appResponse.success && appResponse.data) {
+                const ws = appResponse.data;
+                const mappedWs = {
+                    ...ws,
+                    llmProvider: ws.llm_provider,
+                    embeddingProvider: ws.embedding_provider,
+                    ragEngine: ws.rag_engine
+                };
                 await fetchWorkspaces();
-                return { success: true, workspace: appResponse.data };
+                return { success: true, workspace: mappedWs };
             } else {
                 // Structured Business Error Handling
                 let title = "Unable to Create Workspace";

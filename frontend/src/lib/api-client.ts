@@ -42,14 +42,12 @@ export const api = {
     ...evaluation,
     ...tools,
 
-    // Explicitly bind methods to their instances to avoid 'this' context issues
-    // Using Object.getPrototypeOf to iterate through methods
     ...getMethods(workspaces),
     ...getMethods(chat),
     ...getMethods(documents),
     ...getMethods(settings),
     ...getMethods(tasks),
-};
+} as WorkspacesApi & ChatApi & DocumentsApi & SettingsApi & TasksApi & HealthApi & SearchApi & AdminOpsApi & EvaluationApi & ToolsApi;
 
 function getMethods(obj: object) {
     const methods: Record<string, (...args: any[]) => any> = {};
