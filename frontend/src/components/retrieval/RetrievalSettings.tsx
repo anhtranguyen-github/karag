@@ -33,22 +33,31 @@ export function RetrievalSettings({ form }: RetrievalSettingsProps) {
     const showRerank = form.watch('retrieval.rerank.enabled');
     const showGraph = form.watch('retrieval.graph.enabled');
 
+    const sectionClass = "p-5 rounded-2xl bg-card border border-border shadow-sm mb-6";
+    const subSectionClass = "mt-4 p-4 rounded-xl bg-secondary/30 border border-border/50 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300";
+    const labelClass = "text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1.5 block";
+    const switchRowClass = "flex items-center justify-between pb-3 last:pb-0 last:border-0 border-b border-border/20";
+
     return (
-        <div className="space-y-6">
-            {/* 1. Vector & Sparse Search Modules */}
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <div className="flex items-center gap-2">
-                        <Search className="w-4 h-4 text-primary" />
-                        <CardTitle className="text-sm font-semibold">Base Retrieval (Vector & BM25)</CardTitle>
+        <div className="space-y-0 pb-10">
+            {/* 1. Base Retrieval */}
+            <div className={sectionClass}>
+                <div className="flex items-center gap-2 mb-6">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500">
+                        <Search size={16} />
                     </div>
-                </CardHeader>
-                <CardContent className="space-y-6 pt-2">
+                    <div>
+                        <h3 className="text-sm font-bold text-foreground">Base Retrieval</h3>
+                        <p className="text-[10px] text-muted-foreground font-medium">Configure Vector and Semantic search modules</p>
+                    </div>
+                </div>
+
+                <div className="space-y-4 px-2">
                     {/* Dense Vector Toggle */}
-                    <div className="flex items-center justify-between border-b pb-3 border-muted/20">
+                    <div className={switchRowClass}>
                         <div className="space-y-0.5">
-                            <FormLabel className="text-xs">Dense Vector Search</FormLabel>
-                            <FormDescription className="text-[10px]">ML-based semantic search</FormDescription>
+                            <FormLabel className="text-xs font-bold">Dense Vector Search</FormLabel>
+                            <FormDescription className="text-[10px] text-muted-foreground/60">AI-powered semantic meaning matching</FormDescription>
                         </div>
                         <FormField
                             control={form.control}
@@ -58,42 +67,44 @@ export function RetrievalSettings({ form }: RetrievalSettingsProps) {
                     </div>
 
                     {showVector && (
-                        <div className="grid grid-cols-2 gap-4 px-2">
-                            <FormField
-                                control={form.control}
-                                name="retrieval.vector.top_k"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[10px]">Vector Top K</FormLabel>
-                                        <Input type="number" {...field} className="h-8 text-xs" onChange={e => field.onChange(parseInt(e.target.value))} />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="retrieval.vector.similarity_metric"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[10px]">Metric</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value}>
-                                            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="cosine">Cosine</SelectItem>
-                                                <SelectItem value="dot">Dot</SelectItem>
-                                                <SelectItem value="l2">L2</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </FormItem>
-                                )}
-                            />
+                        <div className={subSectionClass}>
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="retrieval.vector.top_k"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className={labelClass}>Vector Top K</FormLabel>
+                                            <Input type="number" {...field} className="h-9 rounded-xl bg-background border-border text-xs" onChange={e => field.onChange(parseInt(e.target.value))} />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="retrieval.vector.similarity_metric"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className={labelClass}>Metric</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <SelectTrigger className="h-9 rounded-xl bg-background border-border text-xs"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="cosine">Cosine</SelectItem>
+                                                    <SelectItem value="dot">Dot</SelectItem>
+                                                    <SelectItem value="l2">L2</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
                         </div>
                     )}
 
                     {/* Sparse BM25 Toggle */}
-                    <div className="flex items-center justify-between border-b pb-3 border-muted/20">
+                    <div className={switchRowClass}>
                         <div className="space-y-0.5">
-                            <FormLabel className="text-xs">Sparse BM25 Search</FormLabel>
-                            <FormDescription className="text-[10px]">Keyword-based traditional search</FormDescription>
+                            <FormLabel className="text-xs font-bold">Sparse BM25 Search</FormLabel>
+                            <FormDescription className="text-[10px] text-muted-foreground/60">Keyword and exact term matching</FormDescription>
                         </div>
                         <FormField
                             control={form.control}
@@ -103,34 +114,39 @@ export function RetrievalSettings({ form }: RetrievalSettingsProps) {
                     </div>
 
                     {showBM25 && (
-                        <div className="grid grid-cols-2 gap-4 px-2">
-                            <FormField
-                                control={form.control}
-                                name="retrieval.bm25.top_k"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[10px]">BM25 Top K</FormLabel>
-                                        <Input type="number" {...field} className="h-8 text-xs" onChange={e => field.onChange(parseInt(e.target.value))} />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="retrieval.bm25.min_term_match"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[10px]">Min Match</FormLabel>
-                                        <Input type="number" {...field} className="h-8 text-xs" onChange={e => field.onChange(parseInt(e.target.value))} />
-                                    </FormItem>
-                                )}
-                            />
+                        <div className={subSectionClass}>
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="retrieval.bm25.top_k"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className={labelClass}>BM25 Top K</FormLabel>
+                                            <Input type="number" {...field} className="h-9 rounded-xl bg-background border-border text-xs" onChange={e => field.onChange(parseInt(e.target.value))} />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="retrieval.bm25.min_term_match"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className={labelClass}>Min Match</FormLabel>
+                                            <Input type="number" {...field} className="h-9 rounded-xl bg-background border-border text-xs" onChange={e => field.onChange(parseInt(e.target.value))} />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
                         </div>
                     )}
 
-                    {/* Hybrid Fusion Section */}
-                    <div className="pt-2">
+                    {/* Hybrid Fusion */}
+                    <div className="pt-4 mt-4 border-t border-border/20">
                         <div className="flex items-center justify-between mb-4">
-                            <FormLabel className="text-xs font-medium text-emerald-500">Hybrid Fusion</FormLabel>
+                            <div className="space-y-0.5 text-indigo-500">
+                                <FormLabel className="text-xs font-black uppercase tracking-widest">Hybrid Fusion</FormLabel>
+                                <FormDescription className="text-[10px] text-indigo-500/60 font-medium">Merge vector and keyword results</FormDescription>
+                            </div>
                             <FormField
                                 control={form.control}
                                 name="retrieval.hybrid.enabled"
@@ -139,23 +155,24 @@ export function RetrievalSettings({ form }: RetrievalSettingsProps) {
                         </div>
 
                         {showHybrid && (
-                            <div className="space-y-4 bg-emerald-500/5 p-3 rounded-lg border border-emerald-500/20">
+                            <div className="bg-indigo-500/5 p-4 rounded-xl border border-indigo-500/10 space-y-5 animate-in zoom-in-95 duration-300">
                                 <FormField
                                     control={form.control}
                                     name="retrieval.hybrid.dense_weight"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <div className="flex justify-between text-[10px] mb-1">
-                                                <FormLabel>Dense vs Sparse Weight</FormLabel>
-                                                <span>{(field.value * 100).toFixed(0)}% / {((1 - field.value) * 100).toFixed(0)}%</span>
+                                            <div className="flex justify-between text-[10px] mb-2 font-bold tracking-tight">
+                                                <FormLabel className="text-muted-foreground uppercase">Dense vs Sparse Weight</FormLabel>
+                                                <span className="text-indigo-500">{(field.value * 100).toFixed(0)}% / {((1 - field.value) * 100).toFixed(0)}%</span>
                                             </div>
                                             <Slider
                                                 min={0} max={1} step={0.05}
                                                 value={[field.value]}
-                                                onValueChange={(v) => {
+                                                onValueChange={(v: number[]) => {
                                                     field.onChange(v[0]);
                                                     form.setValue('retrieval.hybrid.sparse_weight', parseFloat((1 - v[0]).toFixed(2)));
                                                 }}
+                                                className="py-2"
                                             />
                                         </FormItem>
                                     )}
@@ -165,9 +182,9 @@ export function RetrievalSettings({ form }: RetrievalSettingsProps) {
                                     name="retrieval.hybrid.fusion_strategy"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel className="text-[10px]">Fusion Strategy</FormLabel>
+                                            <FormLabel className={labelClass}>Fusion Strategy</FormLabel>
                                             <Select onValueChange={field.onChange} value={field.value}>
-                                                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                                <SelectTrigger className="h-9 rounded-xl bg-background border-border text-xs"><SelectValue /></SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem value="weighted_sum">Weighted Sum</SelectItem>
                                                     <SelectItem value="rrf">RRF</SelectItem>
@@ -179,33 +196,39 @@ export function RetrievalSettings({ form }: RetrievalSettingsProps) {
                             </div>
                         )}
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
 
-            {/* 2. Re-ranking Module */}
-            <Card className={cn(!showRerank && "opacity-60")}>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
+            {/* 2. Re-ranking */}
+            <div className={cn(sectionClass, !showRerank && "opacity-80 transition-opacity grayscale-[30%]")}>
+                <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-2">
-                        <RotateCcw className="w-4 h-4 text-primary" />
-                        <CardTitle className="text-sm font-semibold">Re-ranking (Cross-Encoder)</CardTitle>
+                        <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500">
+                            <RotateCcw size={16} />
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-bold text-foreground">Re-ranking</h3>
+                            <p className="text-[10px] text-muted-foreground font-medium">Cross-Encoder refinement for higher precision</p>
+                        </div>
                     </div>
                     <FormField
                         control={form.control}
                         name="retrieval.rerank.enabled"
                         render={({ field }) => <Switch checked={field.value} onCheckedChange={field.onChange} />}
                     />
-                </CardHeader>
+                </div>
+
                 {showRerank && (
-                    <CardContent className="space-y-4 pt-2">
+                    <div className={cn(subSectionClass, "bg-indigo-500/5")}>
                         <div className="grid grid-cols-2 gap-4">
                             <FormField
                                 control={form.control}
                                 name="retrieval.rerank.provider"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[10px]">Provider</FormLabel>
+                                        <FormLabel className={labelClass}>Provider</FormLabel>
                                         <Select onValueChange={field.onChange} value={field.value}>
-                                            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                            <SelectTrigger className="h-9 rounded-xl bg-background border-border text-xs"><SelectValue /></SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="cohere">Cohere</SelectItem>
                                                 <SelectItem value="openai">OpenAI</SelectItem>
@@ -220,20 +243,20 @@ export function RetrievalSettings({ form }: RetrievalSettingsProps) {
                                 name="retrieval.rerank.top_n"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[10px]">Top N Out</FormLabel>
-                                        <Input type="number" {...field} className="h-8 text-xs" onChange={e => field.onChange(parseInt(e.target.value))} />
+                                        <FormLabel className={labelClass}>Top N Out</FormLabel>
+                                        <Input type="number" {...field} className="h-9 rounded-xl bg-background border-border text-xs" onChange={e => field.onChange(parseInt(e.target.value))} />
                                     </FormItem>
                                 )}
                             />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-4 pt-2">
                             <FormField
                                 control={form.control}
                                 name="retrieval.rerank.rerank_batch_size"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[10px]">Batch Size</FormLabel>
-                                        <Input type="number" {...field} className="h-8 text-xs" onChange={e => field.onChange(parseInt(e.target.value))} />
+                                        <FormLabel className={labelClass}>Batch Size</FormLabel>
+                                        <Input type="number" {...field} className="h-9 rounded-xl bg-background border-border text-xs" onChange={e => field.onChange(parseInt(e.target.value))} />
                                     </FormItem>
                                 )}
                             />
@@ -242,39 +265,45 @@ export function RetrievalSettings({ form }: RetrievalSettingsProps) {
                                 name="retrieval.rerank.rerank_threshold"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[10px]">Threshold</FormLabel>
-                                        <Input type="number" step="0.05" {...field} className="h-8 text-xs" onChange={e => field.onChange(parseFloat(e.target.value))} />
+                                        <FormLabel className={labelClass}>Threshold</FormLabel>
+                                        <Input type="number" step="0.05" {...field} className="h-9 rounded-xl bg-background border-border text-xs" onChange={e => field.onChange(parseFloat(e.target.value))} />
                                     </FormItem>
                                 )}
                             />
                         </div>
-                    </CardContent>
+                    </div>
                 )}
-            </Card>
+            </div>
 
-            {/* 3. Graph Retrieval Module */}
-            <Card className={cn(!showGraph && "opacity-60")}>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
+            {/* 3. Graph Retrieval */}
+            <div className={cn(sectionClass, !showGraph && "opacity-80 grayscale-[30%]")}>
+                <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-2">
-                        <Network className="w-4 h-4 text-primary" />
-                        <CardTitle className="text-sm font-semibold">Graph Retrieval</CardTitle>
+                        <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500">
+                            <Network size={16} />
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-bold text-foreground">Graph Retrieval</h3>
+                            <p className="text-[10px] text-muted-foreground font-medium">Map entity relationships and connections</p>
+                        </div>
                     </div>
                     <FormField
                         control={form.control}
                         name="retrieval.graph.enabled"
                         render={({ field }) => <Switch checked={field.value} onCheckedChange={field.onChange} />}
                     />
-                </CardHeader>
+                </div>
+
                 {showGraph && (
-                    <CardContent className="space-y-4 pt-2">
+                    <div className={subSectionClass}>
                         <FormField
                             control={form.control}
                             name="retrieval.graph.graph_type"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-[10px]">Graph Schema</FormLabel>
+                                    <FormLabel className={labelClass}>Graph Schema</FormLabel>
                                     <Select onValueChange={field.onChange} value={field.value}>
-                                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                        <SelectTrigger className="h-9 rounded-xl bg-background border-border text-xs"><SelectValue /></SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="knowledge">Knowledge Graph</SelectItem>
                                             <SelectItem value="document_relationship">Doc Relationships</SelectItem>
@@ -289,8 +318,8 @@ export function RetrievalSettings({ form }: RetrievalSettingsProps) {
                                 name="retrieval.graph.max_hops"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[10px]">Max Hops</FormLabel>
-                                        <Input type="number" {...field} className="h-8 text-xs" onChange={e => field.onChange(parseInt(e.target.value))} />
+                                        <FormLabel className={labelClass}>Max Hops</FormLabel>
+                                        <Input type="number" {...field} className="h-9 rounded-xl bg-background border-border text-xs" onChange={e => field.onChange(parseInt(e.target.value))} />
                                     </FormItem>
                                 )}
                             />
@@ -299,8 +328,8 @@ export function RetrievalSettings({ form }: RetrievalSettingsProps) {
                                 name="retrieval.graph.graph_confidence_threshold"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[10px]">Confidence</FormLabel>
-                                        <Input type="number" step="0.05" {...field} className="h-8 text-xs" onChange={e => field.onChange(parseFloat(e.target.value))} />
+                                        <FormLabel className={labelClass}>Confidence</FormLabel>
+                                        <Input type="number" step="0.05" {...field} className="h-9 rounded-xl bg-background border-border text-xs" onChange={e => field.onChange(parseFloat(e.target.value))} />
                                     </FormItem>
                                 )}
                             />
@@ -310,14 +339,14 @@ export function RetrievalSettings({ form }: RetrievalSettingsProps) {
                             name="retrieval.graph.node_score_decay"
                             render={({ field }) => (
                                 <FormItem>
-                                    <div className="flex justify-between text-[10px] mb-1">
-                                        <FormLabel>Entity Score Decay</FormLabel>
-                                        <span>{field.value}</span>
+                                    <div className="flex justify-between text-[10px] mb-2 font-bold tracking-tight">
+                                        <FormLabel className="text-muted-foreground uppercase">Entity Score Decay</FormLabel>
+                                        <span className="text-indigo-500 font-mono">{field.value}</span>
                                     </div>
                                     <Slider
                                         min={0} max={1} step={0.05}
                                         value={[field.value]}
-                                        onValueChange={(v) => field.onChange(v[0])}
+                                        onValueChange={(v: number[]) => field.onChange(v[0])}
                                     />
                                 </FormItem>
                             )}
@@ -326,78 +355,84 @@ export function RetrievalSettings({ form }: RetrievalSettingsProps) {
                             control={form.control}
                             name="retrieval.graph.merge_graph_with_vector"
                             render={({ field }) => (
-                                <FormItem className="flex items-center justify-between border rounded-md p-2">
-                                    <FormLabel className="text-[10px]">Merge with Vector</FormLabel>
+                                <FormItem className="flex items-center justify-between p-3 rounded-xl bg-background/50 border border-border">
+                                    <div className="space-y-0.5">
+                                        <FormLabel className="text-xs font-bold">Merge with Vector</FormLabel>
+                                        <p className="text-[9px] text-muted-foreground">Hybrid graph-dense reasoning</p>
+                                    </div>
                                     <Switch checked={field.value} onCheckedChange={field.onChange} />
                                 </FormItem>
                             )}
                         />
-                    </CardContent>
+                    </div>
                 )}
-            </Card>
+            </div>
 
-            {/* 4. Advanced Settings */}
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <div className="flex items-center gap-2">
-                        <Settings2 className="w-4 h-4 text-primary" />
-                        <CardTitle className="text-sm font-semibold">Advanced Query Parameters</CardTitle>
+            {/* 4. Advanced Parameters */}
+            <div className={sectionClass}>
+                <div className="flex items-center gap-2 mb-6">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500">
+                        <Settings2 size={16} />
                     </div>
-                </CardHeader>
-                <CardContent className="space-y-4 pt-2">
-                    <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                            control={form.control}
-                            name="retrieval.advanced.query_embedding_batch_size"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-[10px]">Query Batch Size</FormLabel>
-                                    <Input type="number" {...field} className="h-8 text-xs" onChange={e => field.onChange(parseInt(e.target.value))} />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="retrieval.advanced.max_query_tokens"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-[10px]">Max Query Tokens</FormLabel>
-                                    <Input type="number" {...field} className="h-8 text-xs" onChange={e => field.onChange(parseInt(e.target.value))} />
-                                </FormItem>
-                            )}
-                        />
+                    <div>
+                        <h3 className="text-sm font-bold text-foreground">Advanced Query Parameters</h3>
+                        <p className="text-[10px] text-muted-foreground font-medium">Fine-tune query execution and batching</p>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                            control={form.control}
-                            name="retrieval.advanced.pm125_mode"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-[10px]">PM125 Mode</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="off">Off</SelectItem>
-                                            <SelectItem value="strict">Strict</SelectItem>
-                                            <SelectItem value="relaxed">Relaxed</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="retrieval.advanced.enable_query_expansion"
-                            render={({ field }) => (
-                                <FormItem className="flex items-center justify-between border rounded-md p-2">
-                                    <FormLabel className="text-[10px]">Query Expansion</FormLabel>
-                                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-                </CardContent>
-            </Card>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 px-2">
+                    <FormField
+                        control={form.control}
+                        name="retrieval.advanced.query_embedding_batch_size"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className={labelClass}>Batch Size</FormLabel>
+                                <Input type="number" {...field} className="h-9 rounded-xl bg-background border-border text-xs" onChange={e => field.onChange(parseInt(e.target.value))} />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="retrieval.advanced.max_query_tokens"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className={labelClass}>Max Query Tokens</FormLabel>
+                                <Input type="number" {...field} className="h-9 rounded-xl bg-background border-border text-xs" onChange={e => field.onChange(parseInt(e.target.value))} />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="retrieval.advanced.pm125_mode"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className={labelClass}>PM125 Mode</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <SelectTrigger className="h-9 rounded-xl bg-background border-border text-xs"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="off">Off</SelectItem>
+                                        <SelectItem value="strict">Strict</SelectItem>
+                                        <SelectItem value="relaxed">Relaxed</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="retrieval.advanced.enable_query_expansion"
+                        render={({ field }) => (
+                            <FormItem className="flex items-center justify-between p-3 rounded-xl bg-background/50 border border-border mt-3">
+                                <div className="space-y-0.5">
+                                    <FormLabel className="text-xs font-bold">Query Expansion</FormLabel>
+                                    <p className="text-[9px] text-muted-foreground">Self-query rewriting</p>
+                                </div>
+                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+            </div>
         </div>
     );
 }
