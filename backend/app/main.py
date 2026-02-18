@@ -26,7 +26,8 @@ async def lifespan(app: FastAPI):
     from backend.app.rag.qdrant_provider import qdrant
     from backend.app.services.workspace_service import workspace_service
 
-    logger.info("infra_init_start", msg="Initializing Infrastructure...")
+    from backend.app.core.path_utils import BASE_DIR
+    logger.info("infra_init_start", msg="Initializing Infrastructure...", base_dir=str(BASE_DIR))
     minio_manager.ensure_bucket()
     
     # Dynamically ensure active collection exists (Must follow AI Settings / OpenAI Contract)
