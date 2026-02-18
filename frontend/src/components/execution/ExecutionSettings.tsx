@@ -10,8 +10,7 @@ import {
     Microscope,
     Atom,
     Eye,
-    Activity,
-    Trace
+    Activity
 } from 'lucide-react';
 import {
     FormControl,
@@ -39,60 +38,74 @@ export function ExecutionSettings({ form }: ExecutionSettingsProps) {
         { id: 'blending', label: 'Blending', icon: Atom, desc: 'Multi-source synthesis' },
     ];
 
+    const sectionClass = "p-5 rounded-2xl bg-card border border-border shadow-sm mb-6";
+    const subSectionClass = "mt-4 p-4 rounded-xl bg-secondary/30 border border-border/50 animate-in fade-in slide-in-from-top-2 duration-300";
+    const labelClass = "text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1.5 block";
+
     return (
-        <div className="space-y-6">
+        <div className="space-y-0 pb-10">
             {/* Mode Selector */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {modes.map((m) => {
-                    const Icon = m.icon;
-                    const isActive = currentMode === m.id;
+            <div className={sectionClass}>
+                <div className="flex items-center gap-2 mb-6">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500">
+                        <Zap size={16} />
+                    </div>
+                    <div>
+                        <h3 className="text-sm font-bold text-foreground">Execution Engine</h3>
+                        <p className="text-[10px] text-muted-foreground font-medium">Select the primary reasoning mode for this workspace</p>
+                    </div>
+                </div>
 
-                    return (
-                        <button
-                            key={m.id}
-                            type="button"
-                            onClick={() => setValue('runtime.mode', m.id as any)}
-                            className={cn(
-                                "p-3 rounded-xl border text-left transition-all group relative overflow-hidden",
-                                isActive
-                                    ? "bg-amber-600/10 border-amber-500 text-white shadow-lg shadow-amber-600/5"
-                                    : "bg-white/5 border-white/5 text-gray-500 hover:border-white/10 hover:bg-white/[0.07]"
-                            )}
-                        >
-                            <div className={cn(
-                                "w-8 h-8 rounded-lg flex items-center justify-center mb-2",
-                                isActive ? "bg-amber-500 text-white" : "bg-white/5 text-gray-400 group-hover:text-gray-300"
-                            )}>
-                                <Icon size={16} />
-                            </div>
-                            <div className="font-bold text-[11px] mb-0.5">{m.label}</div>
-                            <div className="text-[9px] opacity-60 leading-tight">{m.desc}</div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+                    {modes.map((m) => {
+                        const Icon = m.icon;
+                        const isActive = currentMode === m.id;
 
-                            {isActive && (
-                                <div className="absolute top-0 right-0 p-1">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                        return (
+                            <button
+                                key={m.id}
+                                type="button"
+                                onClick={() => setValue('runtime.mode', m.id as any)}
+                                className={cn(
+                                    "p-3 rounded-xl border text-left transition-all group relative overflow-hidden",
+                                    isActive
+                                        ? "bg-indigo-500/10 border-indigo-500 text-foreground shadow-lg shadow-indigo-500/5"
+                                        : "bg-secondary/50 border-border text-muted-foreground hover:border-indigo-500/30 hover:bg-secondary"
+                                )}
+                            >
+                                <div className={cn(
+                                    "w-8 h-8 rounded-lg flex items-center justify-center mb-2 transition-colors",
+                                    isActive ? "bg-indigo-500 text-white" : "bg-card border border-border text-muted-foreground group-hover:text-foreground"
+                                )}>
+                                    <Icon size={16} />
                                 </div>
-                            )}
-                        </button>
-                    );
-                })}
-            </div>
+                                <div className="font-bold text-[11px] mb-0.5">{m.label}</div>
+                                <div className="text-[9px] opacity-60 leading-tight">{m.desc}</div>
 
-            {/* Mode-Specific Parameters */}
-            <Card className="bg-white/5 border-white/5">
-                <CardContent className="pt-6 space-y-6">
+                                {isActive && (
+                                    <div className="absolute top-2 right-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                                    </div>
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
+
+                <div className="space-y-6 px-2">
+                    {/* Mode-Specific Parameters */}
                     {currentMode === 'thinking' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in duration-300">
                             <FormField
                                 control={form.control}
                                 name="runtime.thinking.max_loops"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <div className="flex justify-between items-center mb-1">
-                                            <FormLabel className="text-[10px] uppercase font-bold text-amber-500/80">Max Loops</FormLabel>
-                                            <span className="text-[10px] text-white/40">{field.value || 3}</span>
+                                        <div className="flex justify-between items-center mb-2 font-bold tracking-tight">
+                                            <FormLabel className={labelClass}>Max Loops</FormLabel>
+                                            <span className="text-indigo-500 text-[10px] font-mono">{field.value || 3}</span>
                                         </div>
-                                        <Slider min={1} max={10} step={1} value={[field.value || 3]} onValueChange={(v) => field.onChange(v[0])} />
+                                        <Slider min={1} max={10} step={1} value={[field.value || 3]} onValueChange={(v: number[]) => field.onChange(v[0])} />
                                     </FormItem>
                                 )}
                             />
@@ -101,24 +114,11 @@ export function ExecutionSettings({ form }: ExecutionSettingsProps) {
                                 name="runtime.thinking.reflection_depth"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <div className="flex justify-between items-center mb-1">
-                                            <FormLabel className="text-[10px] uppercase font-bold text-amber-500/80">Reflection Depth</FormLabel>
-                                            <span className="text-[10px] text-white/40">{field.value || 2}</span>
+                                        <div className="flex justify-between items-center mb-2 font-bold tracking-tight">
+                                            <FormLabel className={labelClass}>Reflection Depth</FormLabel>
+                                            <span className="text-indigo-500 text-[10px] font-mono">{field.value || 2}</span>
                                         </div>
-                                        <Slider min={1} max={5} step={1} value={[field.value || 2]} onValueChange={(v) => field.onChange(v[0])} />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="runtime.thinking.confidence_threshold"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <div className="flex justify-between items-center mb-1">
-                                            <FormLabel className="text-[10px] uppercase font-bold text-amber-500/80">Confidence Threshold</FormLabel>
-                                            <span className="text-[10px] text-white/40">{field.value || 0.8}</span>
-                                        </div>
-                                        <Slider min={0} max={1} step={0.05} value={[field.value || 0.8]} onValueChange={(v) => field.onChange(v[0])} />
+                                        <Slider min={1} max={5} step={1} value={[field.value || 2]} onValueChange={(v: number[]) => field.onChange(v[0])} />
                                     </FormItem>
                                 )}
                             />
@@ -126,17 +126,17 @@ export function ExecutionSettings({ form }: ExecutionSettingsProps) {
                     )}
 
                     {currentMode === 'deep' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in duration-300">
                             <FormField
                                 control={form.control}
                                 name="runtime.deep.max_loops"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <div className="flex justify-between items-center mb-1">
-                                            <FormLabel className="text-[10px] uppercase font-bold text-amber-500/80">Max Loops</FormLabel>
-                                            <span className="text-[10px] text-white/40">{field.value || 5}</span>
+                                        <div className="flex justify-between items-center mb-2 font-bold tracking-tight">
+                                            <FormLabel className={labelClass}>Multi-path Max Loops</FormLabel>
+                                            <span className="text-indigo-500 text-[10px] font-mono">{field.value || 5}</span>
                                         </div>
-                                        <Slider min={1} max={15} step={1} value={[field.value || 5]} onValueChange={(v) => field.onChange(v[0])} />
+                                        <Slider min={1} max={15} step={1} value={[field.value || 5]} onValueChange={(v: number[]) => field.onChange(v[0])} />
                                     </FormItem>
                                 )}
                             />
@@ -145,54 +145,11 @@ export function ExecutionSettings({ form }: ExecutionSettingsProps) {
                                 name="runtime.deep.multi_query_limit"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <div className="flex justify-between items-center mb-1">
-                                            <FormLabel className="text-[10px] uppercase font-bold text-amber-500/80">Multi-Query Limit</FormLabel>
-                                            <span className="text-[10px] text-white/40">{field.value || 3}</span>
+                                        <div className="flex justify-between items-center mb-2 font-bold tracking-tight">
+                                            <FormLabel className={labelClass}>Query Expansion Limit</FormLabel>
+                                            <span className="text-indigo-500 text-[10px] font-mono">{field.value || 3}</span>
                                         </div>
-                                        <Slider min={1} max={10} step={1} value={[field.value || 3]} onValueChange={(v) => field.onChange(v[0])} />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="runtime.deep.backtracking_enabled"
-                                render={({ field }) => (
-                                    <FormItem className="flex items-center justify-between rounded-lg border border-white/5 p-3">
-                                        <div className="space-y-0.5">
-                                            <FormLabel className="text-[10px] uppercase font-bold text-amber-500/80">Backtracking</FormLabel>
-                                        </div>
-                                        <Switch checked={field.value !== false} onCheckedChange={field.onChange} />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-                    )}
-
-                    {currentMode === 'blending' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <FormField
-                                control={form.control}
-                                name="runtime.blending.query_variants"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <div className="flex justify-between items-center mb-1">
-                                            <FormLabel className="text-[10px] uppercase font-bold text-amber-500/80">Query Variants</FormLabel>
-                                            <span className="text-[10px] text-white/40">{field.value || 2}</span>
-                                        </div>
-                                        <Slider min={1} max={5} step={1} value={[field.value || 2]} onValueChange={(v) => field.onChange(v[0])} />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="runtime.blending.answer_variants"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <div className="flex justify-between items-center mb-1">
-                                            <FormLabel className="text-[10px] uppercase font-bold text-amber-500/80">Answer Variants</FormLabel>
-                                            <span className="text-[10px] text-white/40">{field.value || 2}</span>
-                                        </div>
-                                        <Slider min={1} max={5} step={1} value={[field.value || 2]} onValueChange={(v) => field.onChange(v[0])} />
+                                        <Slider min={1} max={10} step={1} value={[field.value || 3]} onValueChange={(v: number[]) => field.onChange(v[0])} />
                                     </FormItem>
                                 )}
                             />
@@ -200,18 +157,18 @@ export function ExecutionSettings({ form }: ExecutionSettingsProps) {
                     )}
 
                     {/* Common Runtime Toggles */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-white/5 pt-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-border/20 pt-8">
                         <FormField
                             control={form.control}
                             name="runtime.stream_thoughts"
                             render={({ field }) => (
-                                <FormItem className="flex items-center justify-between rounded-lg border border-white/5 p-3 bg-white/[0.02]">
+                                <FormItem className="flex items-center justify-between p-3 rounded-xl bg-background/50 border border-border">
                                     <div className="space-y-0.5">
-                                        <div className="flex items-center gap-2">
-                                            <Eye className="w-3 h-3 text-amber-400" />
-                                            <FormLabel className="text-[11px]">Stream Thoughts</FormLabel>
+                                        <div className="flex items-center gap-2 mb-0.5">
+                                            <Eye className="w-3.5 h-3.5 text-indigo-500" />
+                                            <FormLabel className="text-xs font-bold">Stream Thoughts</FormLabel>
                                         </div>
-                                        <FormDescription className="text-[9px]">See internal reasoning LIVE</FormDescription>
+                                        <FormDescription className="text-[9px] text-muted-foreground">See internal reasoning LIVE</FormDescription>
                                     </div>
                                     <FormControl>
                                         <Switch checked={field.value} onCheckedChange={field.onChange} />
@@ -223,26 +180,26 @@ export function ExecutionSettings({ form }: ExecutionSettingsProps) {
                             control={form.control}
                             name="runtime.tracing.trace_level"
                             render={({ field }) => (
-                                <FormItem className="flex items-center justify-between rounded-lg border border-white/5 p-3 bg-white/[0.02]">
+                                <FormItem className="flex items-center justify-between p-3 rounded-xl bg-background/50 border border-border">
                                     <div className="space-y-0.5">
-                                        <div className="flex items-center gap-2">
-                                            <Activity className="w-3 h-3 text-amber-400" />
-                                            <FormLabel className="text-[11px]">Detailed Tracing</FormLabel>
+                                        <div className="flex items-center gap-2 mb-0.5">
+                                            <Activity className="w-3.5 h-3.5 text-indigo-500" />
+                                            <FormLabel className="text-xs font-bold">Detailed Tracing</FormLabel>
                                         </div>
-                                        <FormDescription className="text-[9px]">Deep observability for RAG</FormDescription>
+                                        <FormDescription className="text-[9px] text-muted-foreground">Deep observability for RAG</FormDescription>
                                     </div>
                                     <FormControl>
                                         <Switch
                                             checked={field.value === 'debug'}
-                                            onCheckedChange={(v) => field.onChange(v ? 'debug' : 'info')}
+                                            onCheckedChange={(v: boolean) => field.onChange(v ? 'debug' : 'info')}
                                         />
                                     </FormControl>
                                 </FormItem>
                             )}
                         />
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
         </div>
     );
 }
