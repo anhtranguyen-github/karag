@@ -14,7 +14,7 @@ class GitHubImportRequest(BaseModel):
     url: HttpUrl = Field(..., description="GitHub repository URL")
     branch: str = Field("main", description="Branch name")
 
-class WorkspaceUpdate(BaseModel):
+class DocumentWorkspaceUpdate(BaseModel):
     document_id: str
     target_workspace_id: str
     action: str = "share"  # share or move
