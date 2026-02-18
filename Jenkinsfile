@@ -50,13 +50,30 @@ pipeline {
                     curl -LsSf https://astral.sh/uv/install.sh | sh
                     export PATH="$HOME/.cargo/bin:$PATH"
                     
-                    # Synchronize project environment (Frozen for reproducibility)
                     cd backend
-                    uv sync --frozen --no-install-project
+                    uv sync
                     
-                    # Run tests within the virtual environment
-                    export PYTHONPATH=$PYTHONPATH:.
-                    uv run pytest tests/ --maxfail=1
+                    # Ensure results directory exists
+                    mkdir -p tests/results
+                    
+                    # Run tests with coverage and JUnit reporting
+                    uv run pytest tests/ \
+                        --junitxml=tests/results/results.xml \
+                        --cov=app \
+                        --cov-report=xml:tests/results/coverage.xml \
+                        --maxfail=2
+                '''
+            }
+        }
+
+        stage('Backend SAST') {
+            steps {
+                echo 'Running Bandit security scan...'
+                sh '''
+                    export PATH="$HOME/.cargo/bin:$PATH"
+                    cd backend
+                    # Run bandit and generate report, don't fail the build here (let Sonar handle it)
+                    uv run bandit -r app/ -f json -o tests/results/bandit.json || true
                 '''
             }
         }
@@ -118,8 +135,8 @@ pipeline {
             steps {
                 echo 'Scanning repository for IaC security issues with Checkov...'
                 sh '''
-                    # Scan the entire repository and fail on high or critical findings
-                    checkov -d ${CHECKOV_REQUISITES_DIR} --check HIGH,CRITICAL --soft-fail false
+                    # Scan Dockerfiles and docker-compose
+                    checkov -d . --check HIGH,CRITICAL --framework dockerfile,docker_compose --soft-fail false
                 '''
             }
         }

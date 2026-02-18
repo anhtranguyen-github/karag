@@ -40,9 +40,12 @@ jobs:
           QDRANT_HOST: localhost
           MINIO_ENDPOINT: localhost:9000
         run: |
-          # Chạy test, bỏ qua các test yêu cầu database thật nếu cần
-          # Hoặc có thể dùng Docker Compose ở bước trước để dựng DB ảo
-          pytest tests/ -m "not integration" || echo "Note: Some integration tests skipped in CI environment"
+          mkdir -p tests/results
+          uv run pytest tests/ \
+            --junitxml=tests/results/results.xml \
+            --cov=app \
+            --cov-report=xml:tests/results/coverage.xml \
+            -m "not integration" || echo "Note: Some integration tests skipped in CI environment"
 
   # --- KIỂM TRA FRONTEND ---
   frontend-validation:
@@ -107,3 +110,11 @@ jobs:
           base: ${{ github.event.repository.default_branch }}
           head: HEAD
           extra_args: --debug --only-verified
+
+      - name: IaC Scan (Checkov)
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: ./
+          framework: dockerfile,docker_compose
+          check: HIGH,CRITICAL
+          soft_fail: true

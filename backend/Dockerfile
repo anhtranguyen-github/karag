@@ -1,5 +1,5 @@
 # --- Stage 1: Build & Sync ---
-FROM python:3.10-slim AS builder
+FROM python:3.10.14-slim-bullseye AS builder
 
 # Install uv for extremely fast dependency management
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
@@ -18,7 +18,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-project --no-dev
 
 # --- Stage 2: Runtime ---
-FROM python:3.10-slim-bullseye
+FROM python:3.10.14-slim-bullseye
 
 # Create a non-root user for security
 RUN groupadd -r appuser && useradd -r -g appuser appuser

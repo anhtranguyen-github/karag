@@ -1,0 +1,54 @@
+# Git
+.git
+.gitignore
+.github
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+backend/.venv/
+backend/.pytest_cache/
+backend/tests/results/
+backend/test-results/
+.coverage
+coverage.xml
+
+# Node
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/.pnpm-store/
+
+# Environment
+.env
+.env*
+!.env.example
+
+# Storage (Local only)
+qdrant_storage/
+mongo_data/
+minio_data/
+ollama_data/
+neo4j_data/
+neo4j_logs/
+model_cache/
+models/
+
+# Agent
+.agent/
+.agents/
+.gemini/
+
+# Misc
+*.log
+tmp/
+temp/
+docs/
+plans/
+screenshots/
+scripts/
+README.md
+Jenkinsfile
+sonar-project.properties
