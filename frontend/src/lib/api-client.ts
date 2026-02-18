@@ -51,12 +51,12 @@ export const api = {
     ...getMethods(tasks),
 };
 
-function getMethods(obj: any) {
-    const methods: any = {};
+function getMethods(obj: object) {
+    const methods: Record<string, (...args: any[]) => any> = {};
     const proto = Object.getPrototypeOf(obj);
     Object.getOwnPropertyNames(proto).forEach(name => {
-        if (typeof obj[name] === 'function' && name !== 'constructor') {
-            methods[name] = obj[name].bind(obj);
+        if (typeof (obj as any)[name] === 'function' && name !== 'constructor') {
+            methods[name] = (obj as any)[name].bind(obj);
         }
     });
     return methods;

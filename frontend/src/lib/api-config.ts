@@ -13,6 +13,7 @@ export const API_ROUTES = {
     CHAT_HISTORY: (threadId: string) => `${API_BASE_URL}/chat/history/${encodeURIComponent(threadId)}`,
     CHAT_THREADS: `${API_BASE_URL}/chat/threads`,
     THREAD_TITLE: (threadId: string) => `${API_BASE_URL}/chat/threads/${encodeURIComponent(threadId)}/title`,
+    THREAD_GET: (threadId: string) => `${API_BASE_URL}/chat/threads/${encodeURIComponent(threadId)}`,
     THREAD_DELETE: (threadId: string) => `${API_BASE_URL}/chat/threads/${encodeURIComponent(threadId)}`,
     DOCUMENTS: `${API_BASE_URL}/documents`,
     DOCUMENTS_ALL: `${API_BASE_URL}/documents-all`,
