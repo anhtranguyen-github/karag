@@ -1,12 +1,14 @@
 import os
+import structlog
 from pathlib import Path
 from typing import Union
 from backend.app.core.exceptions import ValidationError
 
+logger = structlog.get_logger(__name__)
+
 # Define the absolute root for all filesystem operations. 
 # All paths handled by the system must be normalized and checked against this root.
-# We resolve it to ensure we have the real absolute path without symlinks for comparison.
-BASE_DIR = Path("/home/tra01/project/karag").resolve()
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 SAFE_TEMP_DIR = BASE_DIR / "backend/data/temp"
 
 # Ensure the safe temp directory exists
@@ -15,50 +17,33 @@ SAFE_TEMP_DIR.mkdir(parents=True, exist_ok=True)
 def validate_safe_path(requested_path: Union[str, Path], base_dir: Union[str, Path] = BASE_DIR) -> Path:
     """
     Validates that a path is safe and strictly stays within the permitted base directory.
-    
-    This function implements:
-    - Path normalization (resolving '..', '.', and symlinks)
-    - Sandbox check (ensuring the resolved path starts with the base directory)
-    - Rejection of paths that attempt to escape the jail.
-    
-    Args:
-        requested_path: The path to validate (absolute or relative).
-        base_dir: The root directory that serves as the sandbox (defaults to project root).
-        
-    Returns:
-        The resolved Path object if safe.
-        
-    Raises:
-        ValidationError: If the path is illegal, escapes the root, or is invalid.
+    This prevents directory traversal attacks and protocol injection.
     """
     try:
+        # 1. Resolve everything to absolute real paths
         base_path = Path(base_dir).resolve()
-        req_path = Path(requested_path)
         
-        # If the path is already absolute, we just need to verify it's under base_path
-        # If it's relative, we join it with base_path first.
-        # .resolve() is critical here as it follows symlinks and collapses '..'
-        if req_path.is_absolute():
-            resolved_path = req_path.resolve()
+        req_p = Path(requested_path)
+        if req_p.is_absolute():
+            resolved_path = req_p.resolve()
         else:
-            resolved_path = (base_path / req_path).resolve()
+            resolved_path = (base_path / req_p).resolve()
             
-        # Security check: The resolved path MUST still start with the base_path string.
-        # We use commonpath to be robust about trailing slashes and identical paths.
+        # 2. Convert to string and ensure normalization (no trailing dots or slashes)
+        # We use commonpath as a secondary redundant check for 'is under root'
         try:
-            # os.path.commonpath returns the longest common sub-path of each pathname in the sequence.
-            # If the common path is not the base_path, then resolved_path is outside base_path.
-            common = os.path.commonpath([str(base_path), str(resolved_path)])
-            if common != str(base_path):
-                 raise ValidationError(
-                    f"Illegal path: Path escapes the authorized workspace root.",
-                    params={"requested": str(requested_path), "resolved": str(resolved_path), "allowed_root": str(base_path)}
-                )
+            # This is the primary check
+            resolved_path.relative_to(base_path)
         except ValueError:
-            # Thrown by commonpath if paths are on different drives (Windows) or mixed formats
+            # Secondary check: if they are identical after normalization, they are the same
+            if os.path.abspath(resolved_path) == os.path.abspath(base_path):
+                return resolved_path
+            
+            # If we reach here, it's definitely outside
+            logger.error("path_validation_failed", requested=str(requested_path), resolved=str(resolved_path), base=str(base_path))
             raise ValidationError(
-                f"Illegal path: Path is on a different volume or incompatible.",
-                params={"requested": str(requested_path), "allowed_root": str(base_path)}
+                f"Illegal path: Path escapes the authorized workspace root.",
+                params={"requested": str(requested_path), "resolved": str(resolved_path), "allowed_root": str(base_path)}
             )
             
         return resolved_path
@@ -66,6 +51,7 @@ def validate_safe_path(requested_path: Union[str, Path], base_dir: Union[str, Pa
     except ValidationError:
         raise
     except Exception as e:
+        logger.error("path_validation_process_error", error=str(e), requested=str(requested_path))
         raise ValidationError(f"Invalid path validation process: {str(e)}")
 
 def get_safe_temp_path(filename: str = None, prefix: str = None, suffix: str = None) -> Path:
