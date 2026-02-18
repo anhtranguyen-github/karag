@@ -64,7 +64,8 @@ class CrossWorkspaceDocumentService:
             new_doc["id"] = new_id
             new_doc["workspace_id"] = target_workspace_id
             new_doc["shared_with"] = []
-            new_doc["status"] = "uploaded" 
+            new_doc["status"] = "uploaded"
+            new_doc["workspace_statuses"] = {target_workspace_id: "uploaded", "vault": "uploaded"}
             new_doc["rag_config_hash"] = target_rag_hash
             new_doc["created_at"] = datetime.utcnow().isoformat()
             new_doc["updated_at"] = new_doc["created_at"]
@@ -94,7 +95,7 @@ class CrossWorkspaceDocumentService:
                 params={"type": "rag_mismatch", "expected": res.get("rag_config_hash"), "actual": target_rag_hash}
             )
 
-        if force_reindex or (not is_config_compatible) or res["status"] != "indexed":
+        if force_reindex or (not is_config_compatible) or res.get("status") != "ingested":
             await document_ingestion_service.index_document(res["id"], target_workspace_id, force=(force_reindex or not is_config_compatible), task_id=task_id)
             res = await db.documents.find_one({"id": res["id"]})
 
@@ -114,7 +115,13 @@ class CrossWorkspaceDocumentService:
                         ])
                     )
         elif action == "share":
-            await db.documents.update_one({"id": res["id"]}, {"$addToSet": {"shared_with": target_workspace_id}})
+            await db.documents.update_one(
+                {"id": res["id"]}, 
+                {
+                    "$addToSet": {"shared_with": target_workspace_id},
+                    "$set": {f"workspace_statuses.{target_workspace_id}": res.get("status", "uploaded")}
+                }
+            )
             updated_doc = await db.documents.find_one({"id": res["id"]})
             await qdrant.sync_shared_with(res["id"], updated_doc.get("shared_with", []))
         else:

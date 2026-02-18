@@ -20,16 +20,22 @@ tracer = get_tracer(__name__)
 
 async def get_embeddings(workspace_id: Optional[str] = None):
     """Factory to get the configured Embedding provider for a specific workspace."""
+    from backend.app.schemas.embedding import (
+        OpenAIEmbeddingConfig, AzureOpenAIEmbeddingConfig, VoyageEmbeddingConfig,
+        CohereEmbeddingConfig, HuggingFaceEmbeddingConfig, OllamaEmbeddingConfig,
+        LlamaEmbeddingConfig, CDP2EmbeddingConfig, VLMEmbeddingConfig
+    )
+    
     settings = await settings_manager.get_settings(workspace_id)
-    provider = settings.embedding_provider.lower()
-    model = settings.embedding_model
+    config = settings.embedding
+    provider_type = config.provider
 
     with tracer.start_as_current_span(
         "embedding.resolve_provider",
         attributes={
-            "embedding.provider": provider,
-            "embedding.model": model,
-            "embedding.dimension": settings.embedding_dim,
+            "embedding.provider": provider_type,
+            "embedding.model": config.model,
+            "embedding.dimensions": config.dimensions,
             "workspace_id": workspace_id or "default",
         },
     ):
@@ -37,47 +43,55 @@ async def get_embeddings(workspace_id: Optional[str] = None):
 
         logger.info(
             "embedding_provider_resolved",
-            provider=provider,
-            model=model,
+            provider=provider_type,
+            model=config.model,
             workspace_id=workspace_id or "default",
         )
 
-        if provider == "openai":
+        if isinstance(config, OpenAIEmbeddingConfig):
             emb = OpenAIEmbeddings(
-                model=model,
+                model=config.model,
                 api_key=ai_settings.OPENAI_API_KEY,
             )
-        elif provider == "voyage":
+        elif isinstance(config, AzureOpenAIEmbeddingConfig):
+            from langchain_openai import AzureOpenAIEmbeddings
+            emb = AzureOpenAIEmbeddings(
+                azure_deployment=config.deployment_name,
+                openai_api_version=config.api_version,
+                api_key=ai_settings.AZURE_OPENAI_API_KEY,
+            )
+        elif isinstance(config, VoyageEmbeddingConfig):
             emb = VoyageAIEmbeddings(
-                model=model,
+                model=config.model,
                 voyage_api_key=ai_settings.VOYAGE_API_KEY,
             )
-        elif provider == "local":
-            emb = HuggingFaceEmbeddings(model_name=model)
-        elif provider == "ollama":
+        elif isinstance(config, CohereEmbeddingConfig):
+            from langchain_cohere import CohereEmbeddings
+            emb = CohereEmbeddings(
+                model=config.model,
+                cohere_api_key=ai_settings.COHERE_API_KEY,
+            )
+        elif isinstance(config, HuggingFaceEmbeddingConfig):
+            emb = HuggingFaceEmbeddings(
+                model_name=config.model,
+                model_kwargs={'device': config.device},
+                encode_kwargs={'normalize_embeddings': config.normalize_embeddings}
+            )
+        elif isinstance(config, OllamaEmbeddingConfig):
             emb = OllamaEmbeddings(
-                model=model,
+                model=config.model,
                 base_url=ai_settings.OLLAMA_BASE_URL,
             )
-        elif provider == "vllm":
-            emb = OpenAIEmbeddings(
-                model=model,
-                api_key="EMPTY",
-                base_url=ai_settings.VLLM_BASE_URL,
-            )
-        elif provider == "llama-cpp":
-            emb = OpenAIEmbeddings(
-                model=model,
-                api_key="EMPTY",
-                base_url=ai_settings.LLAMACPP_BASE_URL,
-            )
         else:
-            raise ValueError(f"Unsupported Embedding provider: {provider}")
+            # Fallback for Llama, CDP2, VLM or any other custom handled types
+            # For now, if we don't have a direct LC implementation ready, we'll raise or use a generic one
+            # The catalog mentioned some local paths, which might need specialized loaders
+            raise ValueError(f"Direct implementation for {provider_type} not yet mapped in factory.")
 
         duration = time.perf_counter() - start
-        EMBEDDING_REQUEST_LATENCY.labels(provider=provider).observe(duration)
+        EMBEDDING_REQUEST_LATENCY.labels(provider=provider_type).observe(duration)
         LLM_REQUEST_COUNT.labels(
-            provider=f"emb:{provider}", operation="init", status="ok"
+            provider=f"emb:{provider_type}", operation="init", status="ok"
         ).inc()
 
         return emb

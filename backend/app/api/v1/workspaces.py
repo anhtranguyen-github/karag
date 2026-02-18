@@ -33,34 +33,35 @@ class WorkspaceCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=50, pattern=r'^[\w\s.-]+$')
     description: Optional[str] = Field(None, max_length=200)
     
-    # Node 1: Embedding
+    # Component 1: Embedding
     embedding_provider: str = "openai"
     embedding_model: str = "text-embedding-3-small"
     embedding_dim: int = 1536
     
-    # Node 2: Retrieval
+    # Component 2: Retrieval
     rag_engine: Literal["basic", "graph"] = "basic"
     search_limit: int = Field(5, ge=1, le=50)
     recall_k: int = Field(20, ge=1, le=100)
     hybrid_alpha: float = Field(0.5, ge=0.0, le=1.0)
     
-    # Node 3: Graph
+    # Component 3: Graph
     graph_enabled: bool = True
     
-    # Node 4: Reranking
+    # Component 4: Reranking
     reranker_enabled: bool = False
     reranker_provider: str = "none"
     rerank_top_k: int = Field(3, ge=1, le=15)
     
-    # Node 5: Agentic
+    # Component 5: Agentic
     agentic_enabled: bool = True
     
-    # Node 6: Generation
+    # Component 6: Generation
     llm_provider: str = "openai"
     llm_model: str = "gpt-4o"
     temperature: float = Field(0.7, ge=0.0, le=2.0)
     
-    # Node 7: Ingestion
+    # Component 7: Ingestion
+    chunking_strategy: Literal["recursive", "sentence", "token", "semantic", "fixed", "document"] = "recursive"
     chunk_size: int = Field(800, ge=100, le=4000)
     chunk_overlap: int = Field(150, ge=0, le=1000)
     

@@ -3,6 +3,7 @@ import json
 import structlog
 from pathlib import Path
 from typing import Dict, Any, Optional, Literal
+from pydantic_core import PydanticUndefined
 from backend.app.core.schemas import AppSettings
 from backend.app.core.config import ai_settings
 from backend.app.core.mongodb import mongodb_manager
@@ -117,37 +118,70 @@ class SettingsManager:
             return self._global_settings
 
     def get_settings_metadata(self) -> Dict[str, Any]:
-        """Discover settings metadata from the AppSettings schema."""
+        """Discover settings metadata from the AppSettings schema recursively."""
+        return self._discover_metadata(AppSettings)
+
+    def _discover_metadata(self, model_class: Any, prefix: str = "", category: Optional[str] = None, mutable: bool = True) -> Dict[str, Any]:
+        """Recursively discover fields in Pydantic models."""
         import typing
+        from pydantic import BaseModel
+        from pydantic.fields import FieldInfo
+
         metadata = {}
-        for name, field in AppSettings.model_fields.items():
+        
+        # Determine fields to iterate
+        fields = model_class.model_fields if hasattr(model_class, "model_fields") else {}
+        
+        for name, field in fields.items():
+            full_name = f"{prefix}{name}"
             extra = field.json_schema_extra or {}
             
-            # Skip internal/backend-only fields (no category = not user-facing)
-            if "category" not in extra:
-                continue
+            # Inherit or override category/mutable
+            current_category = extra.get("category", category)
+            current_mutable = extra.get("mutable", mutable)
             
-            field_data: Dict[str, Any] = {
-                "mutable": extra.get("mutable", True),
-                "category": extra.get("category", "General"),
-                "description": field.description or ""
-            }
-            
-            # Resolve annotation (handle Optional)
+            # Resolve annotation
             annotation = field.annotation
             origin = getattr(annotation, "__origin__", None)
             
-            # Unwrap Optional[X] -> X
+            # Unwrap Optional
             if origin is typing.Union:
                 args = [a for a in annotation.__args__ if a is not type(None)]
                 if args:
                     annotation = args[0]
                     origin = getattr(annotation, "__origin__", None)
+
+            # Case 1: Nested BaseModel
+            if isinstance(annotation, type) and issubclass(annotation, BaseModel):
+                # Recurse into nested model
+                nested_metadata = self._discover_metadata(
+                    annotation, 
+                    prefix=f"{full_name}.", 
+                    category=current_category,
+                    mutable=current_mutable
+                )
+                metadata.update(nested_metadata)
+                continue
+
+            # Case 2: Annotated / Union of Models (Strategies)
+            # For now, we only show the shared discriminator if it's at the top level
+            # but if it's a nested strategy, we might need a more complex UI
+            # For this simple discovery, we'll skip the nested internal fields of unions 
+            # and let the frontend handle "strategy" selection which then toggles others.
             
-            # Determine field type and extract options/constraints
+            # Skip fields without a category if we are at root
+            if not category and "category" not in extra:
+                continue
+
+            field_data: Dict[str, Any] = {
+                "mutable": current_mutable,
+                "category": current_category or "General",
+                "description": field.description or ""
+            }
+
             if origin is Literal:
                 field_data["field_type"] = "select"
-                field_data["options"] = list(annotation.__args__)
+                field_data["options"] = [str(arg) for arg in annotation.__args__]
             elif annotation is bool:
                 field_data["field_type"] = "bool"
             elif annotation is int:
@@ -158,24 +192,33 @@ class SettingsManager:
                 field_data["field_type"] = "text"
             else:
                 field_data["field_type"] = "text"
-            
-            # Extract default
-            if field.default is not None:
+
+            if field.default is not None and field.default is not PydanticUndefined:
                 field_data["default"] = field.default
-            
-            # Extract constraints from field metadata
+
             for constraint in (field.metadata or []):
-                if hasattr(constraint, "ge"):
-                    field_data["min"] = constraint.ge
-                if hasattr(constraint, "le"):
-                    field_data["max"] = constraint.le
-            
-            # Set step for float fields
+                if hasattr(constraint, "ge"): field_data["min"] = constraint.ge
+                if hasattr(constraint, "le"): field_data["max"] = constraint.le
+
             if field_data["field_type"] == "float":
                 field_data["step"] = 0.05
+
+            metadata[full_name] = field_data
             
-            metadata[name] = field_data
         return metadata
+
+    def _expand_flat_dict(self, flat_dict: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert a flat dict with dot-notation keys to a nested dict."""
+        nested = {}
+        for key, value in flat_dict.items():
+            parts = key.split('.')
+            d = nested
+            for part in parts[:-1]:
+                if part not in d or not isinstance(d[part], dict):
+                    d[part] = {}
+                d = d[part]
+            d[parts[-1]] = value
+        return nested
 
     async def update_settings(self, updates: Dict[str, Any], workspace_id: Optional[str] = None) -> AppSettings:
         """Update settings for a workspace or global."""
@@ -204,9 +247,18 @@ class SettingsManager:
                 return self._global_settings
             else:
                 # Validate updates by merging with current and testing against schema
-                current = await self.get_settings(workspace_id)
                 current_data = current.model_dump()
-                current_data.update(updates)
+                expanded_updates = self._expand_flat_dict(updates)
+                
+                # Deep merge logic for expanded_updates into current_data
+                def deep_update(target, source):
+                    for k, v in source.items():
+                        if isinstance(v, dict) and k in target and isinstance(target[k], dict):
+                            deep_update(target[k], v)
+                        else:
+                            target[k] = v
+                
+                deep_update(current_data, expanded_updates)
                 AppSettings(**current_data) # Dry run validation
                 
                 db = mongodb_manager.get_async_database()

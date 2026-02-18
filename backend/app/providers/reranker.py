@@ -121,21 +121,24 @@ class LocalReranker(RerankerProvider):
 async def get_reranker(workspace_id: Optional[str] = None) -> Optional[RerankerProvider]:
     from backend.app.core.settings_manager import settings_manager
     settings = await settings_manager.get_settings(workspace_id)
-    provider = settings.reranker_provider.lower()
+    config = settings.retrieval.rerank
     
-    if provider == "none":
+    if not config.enabled:
         return None
-    elif provider == "cohere":
+        
+    provider = config.provider.lower()
+    
+    if provider == "cohere":
         if not ai_settings.COHERE_API_KEY:
             logger.warning("cohere_api_key_missing", msg="Cohere Reranker requested but no key found.")
             return None
-        return CohereReranker(ai_settings.COHERE_API_KEY)
+        return CohereReranker(ai_settings.COHERE_API_KEY, model=config.model)
     elif provider == "jina":
         if not ai_settings.JINA_API_KEY:
             logger.warning("jina_api_key_missing", msg="Jina Reranker requested but no key found.")
             return None
-        return JinaReranker(ai_settings.JINA_API_KEY)
+        return JinaReranker(ai_settings.JINA_API_KEY, model=config.model)
     elif provider == "local":
-        return LocalReranker()
+        return LocalReranker(model_name=config.model)
     else:
         return None

@@ -19,17 +19,20 @@ tracer = get_tracer(__name__)
 
 async def get_llm(workspace_id: Optional[str] = None):
     """Factory to get the configured LLM provider for a specific workspace."""
+    from backend.app.schemas.generation import (
+        OpenAIGenerationConfig, AzureOpenAIGenerationConfig, LlamaGenerationConfig,
+        CDP2GenerationConfig, VLMGenerationConfig
+    )
+    
     settings = await settings_manager.get_settings(workspace_id)
-    provider = settings.llm_provider.lower()
-    model = settings.llm_model
+    config = settings.generation
+    provider = config.provider
 
-    # Trace the provider resolution itself — useful for debugging
-    # which workspace resolved to which LLM config
     with tracer.start_as_current_span(
         "llm.resolve_provider",
         attributes={
             "llm.provider": provider,
-            "llm.model": model,
+            "llm.model": config.model,
             "workspace_id": workspace_id or "default",
         },
     ):
@@ -38,61 +41,59 @@ async def get_llm(workspace_id: Optional[str] = None):
         logger.info(
             "llm_provider_resolved",
             provider=provider,
-            model=model,
+            model=config.model,
             workspace_id=workspace_id or "default",
         )
 
-        # Core configuration for reliability
+        # Base configuration from schema
+        base_kwargs = {
+            "temperature": config.temperature,
+            "max_tokens": config.max_output_tokens,
+            "streaming": config.streaming,
+        }
+        
+        # Reliability defaults
         common_kwargs = {
             "max_retries": 2,
-            "request_timeout": 30, # timeout in seconds
+            "request_timeout": 30,
         }
 
-        if provider == "openai":
+        if isinstance(config, OpenAIGenerationConfig):
             llm = ChatOpenAI(
-                model=model,
+                model=config.model,
                 api_key=ai_settings.OPENAI_API_KEY,
-                streaming=True,
+                presence_penalty=config.presence_penalty,
+                frequency_penalty=config.frequency_penalty,
+                **base_kwargs,
                 **common_kwargs
             )
-        elif provider == "anthropic":
-            llm = ChatAnthropic(
-                model=model,
-                api_key=ai_settings.ANTHROPIC_API_KEY,
-                streaming=True,
+        elif isinstance(config, AzureOpenAIGenerationConfig):
+            from langchain_openai import AzureChatOpenAI
+            llm = AzureChatOpenAI(
+                azure_deployment=config.deployment_name,
+                openai_api_version=config.api_version,
+                api_key=ai_settings.AZURE_OPENAI_API_KEY,
+                **base_kwargs,
                 **common_kwargs
             )
-        elif provider == "ollama":
+        elif isinstance(config, (LlamaGenerationConfig, CDP2GenerationConfig, VLMGenerationConfig)):
+            # Local models typically served via Ollama or VLLM
+            # For simplicity, we fallback to Ollama if it's one of these types
+            # but we can specialize further based on provider
             llm = ChatOllama(
-                model=model,
+                model=config.model,
                 base_url=ai_settings.OLLAMA_BASE_URL,
-                **common_kwargs
-            )
-        elif provider == "vllm":
-            llm = ChatOpenAI(
-                model=model,
-                api_key="EMPTY",
-                base_url=ai_settings.VLLM_BASE_URL,
-                streaming=True,
-                **common_kwargs
-            )
-        elif provider == "llama-cpp":
-            llm = ChatOpenAI(
-                model=model,
-                api_key="EMPTY",
-                base_url=ai_settings.LLAMACPP_BASE_URL,
-                streaming=True,
+                temperature=config.temperature,
+                # top_k=getattr(config, 'top_k', 40),
                 **common_kwargs
             )
         else:
-            raise ValueError(f"Unsupported LLM provider: {provider}")
+            raise ValueError(f"Unsupported Generation provider: {provider}")
 
         # --- PRODUCTION FALLBACK STRATEGY ---
-        # If the primary provider (e.g. OpenAI) fails, we can fallback 
-        # to a local instance to maintain service availability.
         if provider != "ollama" and ai_settings.OLLAMA_BASE_URL:
             fallback_llm = ChatOllama(
-                model="llama3:latest", # Hardcoded fallback target
+                model="llama3:latest",
                 base_url=ai_settings.OLLAMA_BASE_URL,
                 **common_kwargs
             )
