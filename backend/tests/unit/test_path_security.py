@@ -2,7 +2,7 @@ import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 from fastapi import FastAPI
-from backend.app.api.v1 import api_v1_router
+from backend.app.api.v1.router import api_v1_router
 from unittest.mock import patch, AsyncMock
 
 @pytest_asyncio.fixture
