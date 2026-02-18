@@ -10,28 +10,6 @@ export default function ForgePage() {
 
     return (
         <div className="flex-1 flex flex-col h-full overflow-hidden">
-            <header className="h-20 border-b border-white/5 flex items-center px-8 justify-between backdrop-blur-md sticky top-0 z-10 bg-[#0a0a0b]/50">
-                <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center border border-green-500/20 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.1)]">
-                        <Hammer size={22} />
-                    </div>
-                    <div>
-                        <h2 className="text-h3 font-black tracking-tight ">Capability Forge</h2>
-                        <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                            <span className="text-tiny text-gray-500 font-bold  ">Active Hooks: System Native</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex gap-4">
-                    <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/5 border border-white/5">
-                        <Zap size={14} className="text-green-500" />
-                        <span className="text-tiny font-black text-gray-600 ">MCP Protocol V1</span>
-                    </div>
-                </div>
-            </header>
-
             <main className="flex-1 overflow-y-auto p-10 custom-scrollbar">
                 <div className="max-w-5xl mx-auto space-y-10">
                     {/* Architectural Hero */}

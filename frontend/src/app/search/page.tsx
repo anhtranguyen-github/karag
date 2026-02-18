@@ -7,7 +7,7 @@ import {
     Search, FileText, MessageSquare,
     Loader2, X, ArrowRight, Clock, Box
 } from 'lucide-react';
-import { API_BASE_URL, API_ROUTES } from '@/lib/api-config';
+import { API_ROUTES } from '@/lib/api-config';
 import { cn } from '@/lib/utils';
 
 type SearchScope = 'all' | 'documents' | 'chats' | 'workspaces';
@@ -30,14 +30,7 @@ interface SearchWorkspace {
     stats?: { doc_count: number };
 }
 
-interface SearchDoc {
-    id?: string;
-    filename: string;
-    snippet?: string;
-    workspace_id: string;
-    created_at?: string;
-    score?: number;
-}
+// SearchDoc removed as it was unused
 
 function SearchContent() {
     const router = useRouter();
@@ -98,7 +91,7 @@ function SearchContent() {
 
                     // Documents
                     if ((scope === 'all' || scope === 'documents') && data.documents) {
-                        data.documents.forEach((doc: any) => {
+                        data.documents.forEach((doc: { id: string, name: string, workspace_id: string }) => {
                             allResults.push({
                                 type: 'document',
                                 id: doc.id,
@@ -112,7 +105,7 @@ function SearchContent() {
 
                     // Workspaces
                     if ((scope === 'all' || scope === 'workspaces') && data.workspaces) {
-                        data.workspaces.forEach((ws: any) => {
+                        data.workspaces.forEach((ws: { id: string, name: string, description?: string }) => {
                             allResults.push({
                                 type: 'workspace',
                                 id: ws.id,
@@ -125,7 +118,7 @@ function SearchContent() {
 
                     // Threads
                     if ((scope === 'all' || scope === 'chats') && data.threads) {
-                        data.threads.forEach((thread: any) => {
+                        data.threads.forEach((thread: { id: string, title?: string, workspace_id: string }) => {
                             allResults.push({
                                 type: 'chat',
                                 id: thread.id,

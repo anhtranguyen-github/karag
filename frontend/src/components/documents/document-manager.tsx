@@ -3,14 +3,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     FileText, Upload, Trash2, Search, Loader2, List, LayoutGrid,
-    Network, Share2, Eye, Shield, Database, HardDrive, Calendar,
-    MoreVertical, CheckCircle2, AlertCircle, X, Info
+    Shield, Database, HardDrive, Calendar,
+    CheckCircle2, AlertCircle, X, Info
 } from 'lucide-react';
 import { API_ROUTES } from '@/lib/api-config';
 import { useError } from '@/context/error-context';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter } from 'next/navigation';
 
 export interface Document {
     id: string;
@@ -30,7 +29,6 @@ interface DocumentManagerProps {
 }
 
 export function DocumentManager({ workspaceId, isGlobal = false }: DocumentManagerProps) {
-    const router = useRouter();
     const { showError } = useError();
 
     const [documents, setDocuments] = useState<Document[]>([]);
@@ -56,8 +54,8 @@ export function DocumentManager({ workspaceId, isGlobal = false }: DocumentManag
                     setDocuments(result.data);
                 }
             }
-        } catch (err) {
-            console.error('Failed to fetch documents', err);
+        } catch {
+            console.error('Failed to fetch documents');
         } finally {
             setIsLoading(false);
         }
@@ -90,7 +88,7 @@ export function DocumentManager({ workspaceId, isGlobal = false }: DocumentManag
             } else {
                 showError("Upload Failed", result.message || "Failed to upload document.");
             }
-        } catch (err) {
+        } catch {
             showError("Network Error", "Unable to connect to service.");
         } finally {
             setIsUploading(false);
@@ -111,7 +109,7 @@ export function DocumentManager({ workspaceId, isGlobal = false }: DocumentManag
             } else {
                 showError("Delete Failed", "Unable to remove document.");
             }
-        } catch (err) {
+        } catch {
             showError("Connection Error", "Failed to reach document service.");
         }
     };
@@ -288,7 +286,7 @@ export function DocumentManager({ workspaceId, isGlobal = false }: DocumentManag
     );
 }
 
-function DocumentDetailPanel({ doc, workspaceId, onClose }: { doc: Document, workspaceId?: string, onClose: () => void }) {
+function DocumentDetailPanel({ doc, onClose }: { doc: Document, workspaceId?: string, onClose: () => void }) {
     const [activeTab, setActiveTab] = useState<'content' | 'metadata'>('content');
     const [content, setContent] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -304,8 +302,8 @@ function DocumentDetailPanel({ doc, workspaceId, onClose }: { doc: Document, wor
                         setContent(result.data.content);
                     }
                 }
-            } catch (err) {
-                console.error('Failed to fetch content', err);
+            } catch {
+                console.error('Failed to fetch content');
             } finally {
                 setIsLoading(false);
             }
@@ -358,7 +356,7 @@ function DocumentDetailPanel({ doc, workspaceId, onClose }: { doc: Document, wor
                     ].map(tab => (
                         <button
                             key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
+                            onClick={() => setActiveTab(tab.id as 'content' | 'metadata')}
                             className={cn(
                                 "flex items-center gap-3 h-full border-b-2 transition-all text-tiny font-black uppercase tracking-[0.2em]",
                                 activeTab === tab.id ? "border-blue-500 text-white" : "border-transparent text-gray-600 hover:text-gray-400"
@@ -435,7 +433,7 @@ function DocumentDetailPanel({ doc, workspaceId, onClose }: { doc: Document, wor
     );
 }
 
-function MetaStat({ label, value, icon: Icon, color = "text-gray-400" }: { label: string, value: string, icon: any, color?: string }) {
+function MetaStat({ label, value, icon: Icon, color = "text-gray-400" }: { label: string, value: string, icon: React.ElementType, color?: string }) {
     return (
         <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 flex items-start gap-4 hover:bg-white/[0.04] transition-all">
             <div className={cn("mt-1", color)}><Icon size={18} /></div>

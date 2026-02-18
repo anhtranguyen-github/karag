@@ -3,17 +3,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Cpu, Database, Activity, Zap, ShieldCheck, ArrowRight,
-    Check, Loader2, AlertCircle, RefreshCw, Sliders, Eye,
-    ExternalLink, Layers, Server, Users, AlertTriangle, Info,
-    Target, PlayCircle, CheckCircle2, Plus, Terminal,
-    Shield, BarChart4, Clock, HardDrive, Package, GitBranch,
-    Search, FileText, ChevronRight, History, Code,
-    FileCheck, Bug, Scale
+    Cpu, Database, Activity, ShieldCheck, RefreshCw, Sliders,
+    Target, Terminal, Shield, FileText
 } from 'lucide-react';
 import { useSettings, useSettingsMetadata } from '@/hooks/use-settings';
-import { PROVIDER_SETTING_KEYS } from '@/lib/constants';
-import { API_ROUTES, EXTERNAL_SERVICES } from '@/lib/api-config';
+import { API_ROUTES } from '@/lib/api-config';
 import { cn } from '@/lib/utils';
 import { OverviewTab } from '@/components/admin/overview-tab';
 import { LLMOpsTab } from '@/components/admin/llmops-tab';
@@ -39,20 +33,18 @@ const TABS: { id: AdminTab; label: string; icon: React.ElementType; description:
 
 export default function AdminConsolePage() {
     const [activeTab, setActiveTab] = useState<AdminTab>('overview');
-    const { settings, updateSettings, isLoading: settingsLoading, refreshSettings } = useSettings();
-    const { metadata, isLoading: metaLoading, error: metaError, refreshSettings: refreshMetadata } = useSettingsMetadata();
+    const { updateSettings, refreshSettings } = useSettings();
+    const { metadata, refreshSettings: refreshMetadata } = useSettingsMetadata();
     const [isSaving, setIsSaving] = useState<string | null>(null);
 
     // Operational Data State
     const [rawMetrics, setRawMetrics] = useState('');
-    const [metricsLoading, setMetricsLoading] = useState(true);
     const [metricsError, setMetricsError] = useState<string | null>(null);
-    const [vectorStatus, setVectorStatus] = useState<any>(null);
-    const [promptsRegistry, setPromptsRegistry] = useState<any>(null);
+    const [vectorStatus, setVectorStatus] = useState<unknown>(null);
+    const [promptsRegistry, setPromptsRegistry] = useState<unknown>(null);
     const [lastSync, setLastSync] = useState<Date | null>(null);
 
     const fetchData = useCallback(async () => {
-        setMetricsLoading(true);
         try {
             const [mRes, vRes, pRes] = await Promise.all([
                 fetch(API_ROUTES.METRICS),
@@ -72,10 +64,10 @@ export default function AdminConsolePage() {
 
             setLastSync(new Date());
             setMetricsError(null);
-        } catch (e) {
+        } catch {
             setMetricsError('Operational data sync failed.');
         } finally {
-            setMetricsLoading(false);
+            // Loading state removed
         }
     }, []);
 
@@ -104,7 +96,7 @@ export default function AdminConsolePage() {
         setTimeout(() => setIsSaving(null), 1000);
     };
 
-    const isLoading = settingsLoading || metaLoading || metricsLoading;
+    // isLoading logic removed as it's not being leveraged in the UI currently
 
     return (
         <div className="min-h-screen bg-[#09090b] text-white">

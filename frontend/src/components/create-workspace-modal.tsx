@@ -5,9 +5,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    X, Plus, Settings2, Database, Brain, Network,
-    Sparkles, Shield, Cpu, ChevronRight, CheckCircle2,
-    Info, Loader2, Zap, Layout, Globe, Box
+    X, Plus, Settings2, Database,
+    Shield, Cpu, Loader2, Zap, Globe
 } from 'lucide-react';
 import { CreateWorkspaceInput, CreateWorkspaceSchema } from '@/lib/schemas/workspaces';
 import { cn } from '@/lib/utils';
@@ -15,7 +14,7 @@ import { cn } from '@/lib/utils';
 interface CreateWorkspaceModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (data: any) => Promise<any>;
+    onSubmit: (data: CreateWorkspaceInput) => Promise<void>;
     isCreating: boolean;
 }
 
@@ -32,7 +31,7 @@ const EMBEDDING_PROVIDERS = [
     { id: 'google', name: 'Google', models: [{ name: 'embedding-004', dim: 768 }] }
 ];
 
-const FormSection = ({ title, icon: Icon, children }: { title: string, icon: any, children: React.ReactNode }) => (
+const FormSection = ({ title, icon: Icon, children }: { title: string, icon: React.ElementType, children: React.ReactNode }) => (
     <div className="space-y-8">
         <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-500 shadow-lg shadow-blue-600/5">
@@ -51,7 +50,7 @@ export const CreateWorkspaceModal = ({ isOpen, onClose, onSubmit, isCreating }: 
 
     const form = useForm<CreateWorkspaceInput>({
         mode: 'onBlur',
-        resolver: zodResolver(CreateWorkspaceSchema) as any,
+        resolver: zodResolver(CreateWorkspaceSchema),
         defaultValues: {
             name: '',
             description: '',
@@ -75,7 +74,7 @@ export const CreateWorkspaceModal = ({ isOpen, onClose, onSubmit, isCreating }: 
         }
     });
 
-    const { register, watch, setValue, handleSubmit, getValues, formState: { errors } } = form;
+    const { register, watch, setValue, handleSubmit, formState: { errors } } = form;
 
     const selectedLLMProvider = watch('llm_provider');
     const selectedEMBProvider = watch('embedding_provider');

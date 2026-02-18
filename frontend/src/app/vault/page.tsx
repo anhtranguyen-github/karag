@@ -1,80 +1,74 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
-import { api } from "@/lib/api-client";
-import { DocumentList } from "@/components/documents/document-list";
-import { UploadModal } from "@/components/documents/upload-modal";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, UploadCloud } from "lucide-react";
+import { KnowledgeBase, KnowledgeBaseActions } from "@/components/knowledge-base";
+import { ChevronLeft, Database, Network, Plus } from "lucide-react";
 
 export default function VaultPage() {
-    const [documents, setDocuments] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [actions, setActions] = useState<KnowledgeBaseActions | null>(null);
 
-    useEffect(() => {
-        fetchDocuments();
+    const handleActionsReady = useCallback((a: KnowledgeBaseActions) => {
+        setActions(a);
     }, []);
 
-    const fetchDocuments = async () => {
-        setLoading(true);
-        try {
-            const res = await api.listVaultDocumentsVaultGet();
-            setDocuments((res.data as any[]) || []);
-        } catch (e) {
-            console.error("Failed to fetch documents", e);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleDelete = async (docId: string) => {
-        if (!confirm("Are you sure you want to delete this document globally? This cannot be undone.")) return;
-        try {
-            // api.deleteDocumentDocumentsDocumentIdDelete({ documentId: docId, vaultDelete: true });
-            await api.deleteDocumentDocumentsDocumentIdDelete({ documentId: docId, vaultDelete: true });
-            fetchDocuments();
-        } catch (e) {
-            console.error(e);
-            alert("Failed to delete document");
-        }
-    };
-
     return (
-        <div className="container mx-auto max-w-4xl py-12 px-4 h-full overflow-y-auto">
-            <div className="flex items-center mb-8">
-                <Link href="/" className="mr-4 text-muted-foreground hover:text-foreground">
-                    <ChevronLeft className="w-6 h-6" />
-                </Link>
-                <div className="flex-1">
-                    <h1 className="text-2xl font-semibold tracking-tight">Vault</h1>
-                    <p className="text-muted-foreground mt-1">
-                        Global document repository.
-                    </p>
-                </div>
-                <Button onClick={() => setIsUploadModalOpen(true)}>
-                    <UploadCloud className="w-4 h-4 mr-2" />
-                    Upload
-                </Button>
+        <div className="min-h-screen bg-[#0a0a0b] text-white flex flex-col font-sans selection:bg-indigo-500/30">
+            {/* Ambient Background */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+                <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-indigo-600/10 blur-[120px] rounded-full" />
+                <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] bg-purple-600/10 blur-[120px] rounded-full" />
             </div>
 
-            {loading ? (
-                <div>Loading...</div>
-            ) : (
-                <DocumentList
-                    documents={documents}
-                    showDelete
-                    onDelete={handleDelete}
-                />
-            )}
+            <header className="h-20 border-b border-white/5 flex items-center px-12 justify-between shrink-0">
+                <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 text-indigo-400">
+                        <Database size={20} />
+                    </div>
+                    <div>
+                        <h1 className="text-xl font-bold tracking-tight text-white leading-none">Vault</h1>
+                    </div>
+                </div>
 
-            <UploadModal
-                isOpen={isUploadModalOpen}
-                onClose={() => setIsUploadModalOpen(false)}
-                workspaceId="vault"
-                onUploadComplete={fetchDocuments}
-            />
+                <div className="flex items-center gap-3">
+                    {actions && (
+                        <>
+                            <button
+                                onClick={actions.triggerSync}
+                                className="h-10 px-4 rounded-xl bg-white/5 border border-white/10 text-gray-500 hover:text-indigo-400 hover:border-indigo-500/30 transition-all font-bold text-xs flex items-center gap-2"
+                            >
+                                <Network size={16} />
+                                Sync
+                            </button>
+                            <button
+                                onClick={actions.openUpload}
+                                className="h-10 px-6 rounded-xl bg-white text-black hover:bg-gray-200 transition-all font-bold text-xs flex items-center gap-2 shadow-lg"
+                            >
+                                <Plus size={16} />
+                                Upload
+                            </button>
+                        </>
+                    )}
+                    <Link href="/">
+                        <button className="h-10 px-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/20 transition-all font-bold text-[11px] text-gray-400 hover:text-white flex items-center gap-2">
+                            <ChevronLeft size={16} />
+                            Back
+                        </button>
+                    </Link>
+                </div>
+            </header>
+
+            <main className="flex-1 overflow-y-auto custom-scrollbar">
+                <div className="max-w-6xl mx-auto p-12 space-y-12">
+                    <div className="min-h-[600px] flex flex-col px-1">
+                        <KnowledgeBase isGlobal={true} onActionsReady={handleActionsReady} />
+                    </div>
+
+                    <footer className="py-6 text-gray-700 text-[10px] font-bold tracking-widest">
+                        KARAG
+                    </footer>
+                </div>
+            </main>
         </div>
     );
 }

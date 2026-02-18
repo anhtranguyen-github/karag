@@ -3,21 +3,24 @@ import * as React from "react"
 import { X } from "lucide-react";
 import { Button } from "./button";
 
+import { cn } from "@/lib/utils";
+
 interface ModalProps {
     isOpen: boolean
     onClose: () => void
     title: string
     children: React.ReactNode
+    className?: string
 }
 
-export function Modal({ isOpen, onClose, title, children }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, className }: ModalProps) {
     if (!isOpen) return null
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-            <div className="bg-background w-full max-w-lg rounded-lg shadow-lg border animate-in zoom-in-95 duration-200">
-                <div className="flex items-center justify-between p-6 border-b">
-                    <h2 id="modal-title" className="text-lg font-semibold">{title}</h2>
+            <div className={cn("bg-background w-full max-w-lg rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200", className)}>
+                <div className="flex items-center justify-between p-8 pb-0">
+                    <h2 id="modal-title" className="text-xl font-bold tracking-tight">{title}</h2>
                     <button
                         onClick={onClose}
                         className="text-muted-foreground hover:text-foreground transition-colors"

@@ -98,22 +98,12 @@ export function useWorkspaces() {
         localStorage.setItem('currentWorkspaceId', ws.id);
     };
 
-    // Zod Schema Imports (Static)
-    // Note: In a real app, move these to top-level imports. 
-    // Kept inside for compatibility during migration if needed, but best practice is top.
-
-    const validateWorkspaceName = async (name: string) => {
-        const { BaseCreateWorkspaceSchema } = await import('@/lib/schemas/workspaces');
-        const result = BaseCreateWorkspaceSchema.shape.name.safeParse(name);
-        return result.success ? null : result.error.errors[0].message;
-    };
 
     const createWorkspace = async (payload: { name: string; description?: string; rag_engine?: string }) => {
         // Optimistic Validation with Zod
         const { CreateWorkspaceSchema } = await import('@/lib/schemas/workspaces');
         const { AppResponseSchema } = await import('@/lib/schemas/api');
         const { WorkspaceSchema } = await import('@/lib/schemas/workspaces');
-        const { z } = await import('zod');
 
         const validationResult = CreateWorkspaceSchema.safeParse({
             name: payload.name,
@@ -192,7 +182,7 @@ export function useWorkspaces() {
 
             // Parse response as generic AppResponse or Workspace
             // Assuming update returns Workspace in data on success
-            const rawData = await res.json();
+            await res.json();
 
             // If backend standard is violated (e.g. update returns raw workspace), handle fallback or enforce
             // Based on constraints, should be AppResponse
@@ -228,7 +218,6 @@ export function useWorkspaces() {
                 showError("Deletion Failed", data.message || 'Unable to delete workspace.');
             }
         } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Unknown error';
             showError("Connection Error", "Could not delete workspace. Please check your connection.");
             console.error('Failed to delete workspace:', err);
         }

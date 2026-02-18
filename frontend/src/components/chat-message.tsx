@@ -33,7 +33,7 @@ export function ChatMessage({ message, isLoading, onCitationClick }: ChatMessage
                         onClick={() => onCitationClick(id)}
                         disabled={!hasSource}
                         className={cn(
-                            "inline-flex items-center justify-center min-w-[20px] h-5 px-1 text-[10px] font-black rounded-md mx-0.5 transition-all transform hover:-translate-y-0.5 active:scale-90 border",
+                            "inline-flex items-center justify-center min-w-[20px] h-5 px-1 text-[10px] font-bold rounded-md mx-0.5 transition-all transform hover:-translate-y-0.5 active:scale-90 border",
                             hasSource
                                 ? "bg-blue-600/20 text-blue-400 border-blue-500/30 hover:bg-blue-600 hover:text-white"
                                 : "bg-white/5 text-gray-600 border-white/5 cursor-not-allowed opacity-50"
@@ -73,9 +73,7 @@ export function ChatMessage({ message, isLoading, onCitationClick }: ChatMessage
                 message.role === 'user' ? "items-end text-right" : "items-start"
             )}>
                 {/* Meta Header */}
-                <div className="flex items-center gap-3 px-1 text-[10px] font-black uppercase tracking-[0.2em] text-gray-600">
-                    <span>{message.role === 'user' ? 'Transmission' : 'Architect Response'}</span>
-                    <span className="w-1 h-1 rounded-full bg-gray-800" />
+                <div className="flex items-center gap-3 px-1 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">
                     <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
 
@@ -85,7 +83,7 @@ export function ChatMessage({ message, isLoading, onCitationClick }: ChatMessage
                         {message.tools && message.tools.length > 0 && (
                             <div className="flex flex-wrap gap-2">
                                 {message.tools.map((tool, idx) => (
-                                    <div key={idx} className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase tracking-widest shadow-sm">
+                                    <div key={idx} className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-bold uppercase tracking-widest shadow-sm">
                                         <Terminal size={10} />
                                         {tool}
                                     </div>
@@ -102,8 +100,8 @@ export function ChatMessage({ message, isLoading, onCitationClick }: ChatMessage
                                 >
                                     <div className="flex items-center gap-3">
                                         <Sparkles size={14} className="text-indigo-500" />
-                                        <span className="text-[10px] font-black uppercase tracking-widest">Cognitive Process</span>
-                                        <span className="text-[9px] font-bold text-gray-600 ml-2">[{message.reasoning_steps?.length} nodes active]</span>
+                                        <span className="text-[9px] font-bold uppercase tracking-widest text-indigo-400/40">Thought</span>
+                                        <span className="text-[9px] font-bold text-gray-600 ml-2">[{message.reasoning_steps?.length}]</span>
                                     </div>
                                     <div className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center text-gray-500">
                                         {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -140,7 +138,7 @@ export function ChatMessage({ message, isLoading, onCitationClick }: ChatMessage
                 )}
 
                 <div className={cn(
-                    "p-8 rounded-[2rem] leading-relaxed text-caption shadow-2xl transition-all relative overflow-hidden group/text",
+                    "p-4 rounded-xl leading-relaxed text-sm shadow-2xl transition-all relative overflow-hidden group/text",
                     message.role === 'user'
                         ? "bg-[#1c1c1e] border border-indigo-500/20 text-indigo-50 rounded-tr-none shadow-indigo-500/5"
                         : "bg-[#121214] border border-white/5 text-gray-200 rounded-tl-none shadow-black/60"
@@ -160,7 +158,7 @@ export function ChatMessage({ message, isLoading, onCitationClick }: ChatMessage
                             <button
                                 key={source.id}
                                 onClick={() => onCitationClick(source.id)}
-                                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.03] border border-white/5 text-[9px] font-black uppercase tracking-widest text-gray-500 hover:text-white hover:bg-blue-600/10 hover:border-blue-500/30 transition-all group/src"
+                                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.03] border border-white/5 text-[9px] font-bold uppercase tracking-widest text-gray-500 hover:text-white hover:bg-blue-600/10 hover:border-blue-500/30 transition-all group/src"
                             >
                                 <Shield size={10} className="text-gray-700 group-hover/src:text-blue-500" />
                                 Source [{source.id}]

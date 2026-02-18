@@ -4,14 +4,12 @@ import React, { useState, useEffect } from 'react';
 import {
     Upload, FileText, Trash2, Loader2,
     Database, Search, Eye,
-    Plus, Filter, Shield, ArrowRight, AlertTriangle,
-    ArrowRightLeft, Layers, X, Zap, ChevronDown, Network,
-    Globe, Link2, Github, Folder, Music, Info,
-    HardDrive, Calendar, Clock, ChevronRight
+    Plus, Filter, Shield, ArrowRight, AlertTriangle, MessageSquare,
+    X, Network, Globe, Link2, Github, Folder, Music, Info,
+    ChevronRight, ChevronDown, ArrowRightLeft, Layers, Zap, HardDrive, Calendar
 } from 'lucide-react';
-import { API_BASE_URL } from '@/lib/api-config';
 import Link from 'next/link';
-import { API_ROUTES } from '@/lib/api-config';
+import { API_ROUTES, API_BASE_URL } from '@/lib/api-config';
 import { SourceViewer } from '@/components/source-viewer';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -52,18 +50,22 @@ interface Workspace {
     name: string;
 }
 
+export interface KnowledgeBaseActions {
+    openUpload: () => void;
+    triggerSync: () => void;
+}
+
 interface KnowledgeBaseProps {
     workspaceId?: string;
     isSidebar?: boolean;
     isGlobal?: boolean;
+    onActionsReady?: (actions: KnowledgeBaseActions) => void;
 }
 
-export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSidebar = false, isGlobal = false }: KnowledgeBaseProps) {
+export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSidebar = false, isGlobal = false, onActionsReady }: KnowledgeBaseProps) {
     const workspaceId = isGlobal ? "vault" : propWorkspaceId;
     const [documents, setDocuments] = useState<Document[]>([]);
     const [isUploading, setIsUploading] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [_error, setError] = useState<string | null>(null);
     const { showError } = useError();
     const { activeTasks, recentCompletedTasks } = useTasks();
     const [activeSource, setActiveSource] = useState<{ id: number; name: string; content: string | null; download_url?: string } | null>(null);
@@ -95,7 +97,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
     const [visibilityFilter, setVisibilityFilter] = useState('all');
 
     // Detailed Management State
-    const [detailsDoc, setDetailsDoc] = useState<any | null>(null);
+    const [detailsDoc, setDetailsDoc] = useState<unknown | null>(null);
     const [isDetailsLoading, setIsDetailsLoading] = useState(false);
     const [isWorkspaceModalOpen, setIsWorkspaceModalOpen] = useState(false);
     const [confirmingAction, setConfirmingAction] = useState<{
@@ -108,7 +110,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
     const fetchDocuments = React.useCallback(async () => {
         try {
             const url = isGlobal
-                ? (API_ROUTES as any).VAULT
+                ? (API_ROUTES as { VAULT: string }).VAULT
                 : `${API_ROUTES.DOCUMENTS}?workspace_id=${encodeURIComponent(workspaceId)}`;
 
             const res = await fetch(url);
@@ -132,10 +134,29 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         }
     }, [isGlobal, workspaceId]);
 
+    // Expose actions to parent (e.g. Vault header buttons)
+    useEffect(() => {
+        if (onActionsReady) {
+            onActionsReady({
+                openUpload: () => setIsUploadModalOpen(true),
+                triggerSync: async () => {
+                    try {
+                        const res = await fetch(`${API_BASE_URL}/documents/sync-workspaces`, { method: 'POST' });
+                        if (res.ok) {
+                            fetchDocuments();
+                        }
+                    } catch (err) {
+                        console.error('Sync failed:', err);
+                    }
+                },
+            });
+        }
+    }, [onActionsReady, fetchDocuments]);
+
     const fetchVaultDocuments = async () => {
         setIsVaultLoading(true);
         try {
-            const res = await fetch((API_ROUTES as any).VAULT);
+            const res = await fetch((API_ROUTES as { VAULT: string }).VAULT);
             if (res.ok) {
                 const payload = await res.json();
                 const data: BackendDocument[] = payload.data || [];
@@ -248,7 +269,6 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         }
 
         setIsUploading(true);
-        setError(null);
 
         const formData = new FormData();
         formData.append('file', file);
@@ -291,12 +311,9 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                     }
                 }
 
-                setError(message);
                 showError(title, message, `File: ${file.name}`);
             }
         } catch (err) {
-            setError('Connection error');
-            const errorMessage = err instanceof Error ? err.message : 'Failed to reach storage.';
             showError("Network Error", errorMessage);
         } finally {
             setIsUploading(false);
@@ -319,7 +336,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         setIsUploading(true);
         try {
             let url = '';
-            let body: any = { url: importUrl };
+            let body: { url?: string; branch?: string; path?: string } = { url: importUrl };
 
             switch (type) {
                 case 'url':
@@ -586,8 +603,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
     }
 
     return (
-        <div className="flex flex-col gap-6 p-10 bg-[#121214] rounded-[2.5rem] h-full border border-white/10 overflow-hidden relative">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-purple-500 opacity-30" />
+        <div className="flex flex-col gap-8 bg-transparent h-full overflow-hidden relative">
 
             {/* Unified Upload Modal */}
             <AnimatePresence>
@@ -637,7 +653,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                     ].map((m) => (
                                         <button
                                             key={m.id}
-                                            onClick={() => setUploadMode(m.id as any)}
+                                            onClick={() => setUploadMode(m.id as 'file' | 'url' | 'arxiv' | 'github' | 'sitemap' | 'directory' | 'audio')}
                                             className={cn(
                                                 "flex flex-col items-center justify-center p-4 rounded-2xl border transition-all gap-2",
                                                 uploadMode === m.id ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-400" : "bg-white/5 border-white/5 text-gray-500 hover:bg-white/10"
@@ -803,7 +819,6 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                     <AlertTriangle size={40} className="text-indigo-400" />
                                 </div>
                                 <div className="space-y-3">
-                                    <h2 className="text-h2 font-black text-white  ">Duplicate Found</h2>
                                     <p className="text-caption text-gray-500 font-medium leading-relaxed px-4">
                                         This document is already in the <span className="text-indigo-400 font-bold">Vault</span>.
                                         Would you like to link the existing record to this workspace instead of creating a duplicate?
@@ -831,39 +846,67 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                 )}
             </AnimatePresence>
 
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-5">
-                    <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 shadow-xl shadow-indigo-500/10">
-                        <Database className="w-7 h-7 text-indigo-400" />
-                    </div>
-                    <div>
-                        <h3 className="text-h3 font-black text-white  tracking-tight">Vault</h3>
-                        <div className="flex items-center gap-2 mt-1">
-                            <span className="text-tiny font-bold text-gray-500  ">{documents.length} Documents</span>
-                        </div>
+            {/* Header and Primary Actions — hidden when isGlobal (Vault page renders them in its own header) */}
+            {!isGlobal && (
+                <div className="flex items-center justify-end mb-4">
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => {
+                                fetchVaultDocuments();
+                                setIsVaultBrowserOpen(true);
+                            }}
+                            className="h-10 px-4 flex items-center gap-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 text-indigo-400 transition-all active:scale-95 text-xs font-bold"
+                        >
+                            <Database size={14} />
+                            Add from Vault
+                        </button>
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const res = await fetch(`${API_BASE_URL}/documents/sync-workspaces`, { method: 'POST' });
+                                    if (res.ok) {
+                                        fetchDocuments();
+                                    }
+                                } catch (err) {
+                                    console.error('Sync failed:', err);
+                                }
+                            }}
+                            className="h-10 px-4 rounded-xl bg-white/5 border border-white/10 text-gray-500 hover:text-indigo-400 hover:border-indigo-500/30 transition-all font-bold text-xs flex items-center gap-2"
+                        >
+                            <Network size={16} />
+                            Sync
+                        </button>
+                        <button
+                            onClick={() => setIsUploadModalOpen(true)}
+                            className="h-10 px-6 rounded-xl bg-white text-black hover:bg-gray-200 transition-all font-bold text-xs flex items-center gap-2 shadow-lg"
+                        >
+                            <Plus size={16} />
+                            Upload
+                        </button>
                     </div>
                 </div>
+            )}
 
-                <div className="flex items-center gap-4 flex-1 max-w-md mx-8">
-                    <div className="relative w-full group">
-                        <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-indigo-400 transition-colors" />
-                        <input
-                            type="text"
-                            placeholder="Search intelligence sources..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-white/[0.03] border border-white/5 rounded-2xl py-3 pl-12 pr-4 text-tiny text-white focus:outline-none focus:ring-2 ring-indigo-500/20 focus:bg-white/[0.05] transition-all placeholder:text-gray-700"
-                        />
-                    </div>
+            {/* Search and Filters */}
+            <div className="flex items-center gap-4">
+                <div className="flex-1 relative group">
+                    <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-indigo-400 transition-colors" />
+                    <input
+                        type="text"
+                        placeholder="Search files..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-white/[0.03] border border-white/5 rounded-xl py-2.5 pl-10 pr-4 text-xs text-white focus:outline-none focus:ring-2 ring-indigo-500/20 focus:bg-white/[0.05] transition-all placeholder:text-gray-700"
+                    />
                 </div>
 
-                <div className="flex gap-2">
-                    <div className="flex items-center bg-white/[0.03] border border-white/10 rounded-2xl px-3 gap-2">
+                <div className="flex items-center gap-2">
+                    <div className="flex items-center bg-white/[0.03] border border-white/10 rounded-xl px-3 gap-2">
                         <Filter size={14} className="text-gray-500" />
                         <select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
-                            className="bg-transparent border-none text-tiny text-gray-400 focus:ring-0 outline-none cursor-pointer py-2 pr-8"
+                            className="bg-transparent border-none text-xs text-gray-400 focus:ring-0 outline-none cursor-pointer py-2 pr-8"
                         >
                             <option value="all" className="bg-[#121214]">All Status</option>
                             <option value="indexed" className="bg-[#121214]">Indexed</option>
@@ -872,12 +915,12 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                         </select>
                     </div>
 
-                    <div className="flex items-center bg-white/[0.03] border border-white/10 rounded-2xl px-3 gap-2">
+                    <div className="flex items-center bg-white/[0.03] border border-white/10 rounded-xl px-3 gap-2">
                         <FileText size={14} className="text-gray-500" />
                         <select
                             value={typeFilter}
                             onChange={(e) => setTypeFilter(e.target.value)}
-                            className="bg-transparent border-none text-tiny text-gray-400 focus:ring-0 outline-none cursor-pointer py-2 pr-8"
+                            className="bg-transparent border-none text-xs text-gray-400 focus:ring-0 outline-none cursor-pointer py-2 pr-8"
                         >
                             <option value="all" className="bg-[#121214]">All Types</option>
                             {Array.from(new Set(documents.map(d => d.extension?.toLowerCase()).filter(Boolean))).sort().map(ext => (
@@ -886,12 +929,12 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                         </select>
                     </div>
 
-                    <div className="flex items-center bg-white/[0.03] border border-white/10 rounded-2xl px-3 gap-2">
+                    <div className="flex items-center bg-white/[0.03] border border-white/10 rounded-xl px-3 gap-2">
                         <Shield size={14} className="text-gray-500" />
                         <select
                             value={visibilityFilter}
                             onChange={(e) => setVisibilityFilter(e.target.value)}
-                            className="bg-transparent border-none text-tiny text-gray-400 focus:ring-0 outline-none cursor-pointer py-2 pr-8"
+                            className="bg-transparent border-none text-xs text-gray-400 focus:ring-0 outline-none cursor-pointer py-2 pr-8"
                         >
                             <option value="all" className="bg-[#121214]">All Access</option>
                             <option value="private" className="bg-[#121214]">Private</option>
@@ -900,12 +943,12 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                     </div>
 
                     {isGlobal && workspaces.length > 0 && (
-                        <div className="flex items-center bg-white/[0.03] border border-white/10 rounded-2xl px-3 gap-2">
+                        <div className="flex items-center bg-white/[0.03] border border-white/10 rounded-xl px-3 gap-2">
                             <Layers size={14} className="text-gray-500" />
                             <select
                                 value={workspaceFilter}
                                 onChange={(e) => setWorkspaceFilter(e.target.value)}
-                                className="bg-transparent border-none text-tiny text-gray-400 focus:ring-0 outline-none cursor-pointer py-2 pr-8"
+                                className="bg-transparent border-none text-xs text-gray-400 focus:ring-0 outline-none cursor-pointer py-2 pr-8"
                             >
                                 <option value="all" className="bg-[#121214]">All Workspaces</option>
                                 {workspaces.map(ws => (
@@ -914,47 +957,6 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                             </select>
                         </div>
                     )}
-
-                    {!isGlobal && (
-                        <button
-                            onClick={() => {
-                                fetchVaultDocuments();
-                                setIsVaultBrowserOpen(true);
-                            }}
-                            className="h-12 px-6 flex items-center gap-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 text-indigo-400 transition-all active:scale-95 text-tiny font-black  "
-                        >
-                            <Database size={14} />
-                            From Vault
-                        </button>
-                    )}
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={async () => {
-                                try {
-                                    const res = await fetch(`${API_BASE_URL}/documents/sync-workspaces`, { method: 'POST' });
-                                    if (res.ok) {
-                                        const data = await res.json();
-                                        fetchDocuments();
-                                        alert(`Reconciliation complete. Repaired ${data.data.repaired_direct} records.`);
-                                    }
-                                } catch (err) {
-                                    console.error('Sync failed:', err);
-                                }
-                            }}
-                            className="h-12 px-6 rounded-2xl bg-white/5 border border-white/10 text-gray-500 hover:text-indigo-400 hover:border-indigo-500/30 transition-all font-black text-tiny tracking-widest flex items-center gap-2"
-                            title="Reconcile orphaned links"
-                        >
-                            <Network size={16} />
-                            SYNC VAULT
-                        </button>
-                        <button
-                            onClick={() => setIsUploadModalOpen(true)}
-                            className="h-12 px-8 rounded-2xl bg-white text-black hover:bg-gray-200 transition-all font-black text-tiny tracking-[0.2em] flex items-center gap-2 shadow-xl shadow-white/10"
-                        >
-                            <Plus size={16} />
-                            IMPORT
-                        </button>
-                    </div>
                 </div>
             </div>
 
@@ -1015,120 +1017,88 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                             );
                         }
 
-                        return filtered.map((doc, idx) => (
-                            <motion.div
+                        return filtered.map((doc) => (
+                            <div
                                 key={doc.id || `${doc.name}-${doc.workspace_id}`}
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: idx * 0.05 }}
-                                className="group flex items-center justify-between p-6 rounded-[2rem] bg-[#0a0a0b] border border-white/5 hover:border-indigo-500/30 transition-all hover:bg-white/[0.02]"
+                                className="group flex items-center justify-between py-6 border-b border-white/[0.03] hover:bg-white/[0.01] transition-all px-2"
                             >
                                 <div className="flex items-center gap-6 overflow-hidden">
-                                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/5 flex items-center justify-center group-hover:bg-indigo-500/10 transition-colors">
+                                    <div className="w-12 h-12 rounded-2xl bg-white/[0.02] flex items-center justify-center border border-white/[0.05] group-hover:border-indigo-500/20 group-hover:bg-indigo-500/5 transition-all shrink-0">
                                         <FileText className="w-6 h-6 text-gray-600 group-hover:text-indigo-400 transition-colors" />
                                     </div>
                                     <div className="flex flex-col min-w-0">
-                                        <span
-                                            data-testid="doc-name"
-                                            data-doc-name={doc.name}
-                                            className="text-caption font-black text-white truncate max-w-[400px]  tracking-tight"
-                                            title={doc.name}
-                                        >
-                                            {doc.name}
-                                        </span>
+                                        <span className="text-sm font-bold text-white truncate max-w-[400px] tracking-tight">{doc.name}</span>
                                         <div className="flex items-center gap-3 mt-1">
-                                            <span className="text-tiny text-gray-600 ">{doc.extension?.replace('.', '') || 'File'}</span>
+                                            <span className="text-[10px] font-black text-gray-700 uppercase tracking-[0.2em]">{doc.extension?.replace('.', '') || 'File'}</span>
                                             <span className="w-1 h-1 rounded-full bg-gray-800" />
                                             {doc.status === 'indexed' ? (
-                                                <span className="text-tiny text-indigo-400/50 font-black  ">{doc.chunks} Fragments</span>
+                                                <span className="text-[10px] text-indigo-400 font-black tracking-widest uppercase">{doc.chunks} Fragments</span>
                                             ) : (
-                                                <span className="text-tiny text-amber-400/50 font-black   flex items-center gap-2 uppercase tracking-widest">
+                                                <span className="text-[10px] text-amber-500 font-black flex items-center gap-2 uppercase tracking-widest animate-pulse">
                                                     {doc.status}
                                                 </span>
                                             )}
-                                            {isGlobal && (
+                                            {isGlobal && doc.workspace_name && doc.workspace_name !== 'Unknown' && doc.workspace_name !== 'Unknown Workspace' && doc.workspace_id !== 'vault' && (
                                                 <>
                                                     <span className="w-1 h-1 rounded-full bg-gray-800" />
-                                                    <span className="text-tiny px-2 py-0.5 rounded bg-white/5 text-gray-500  font-bold ">
-                                                        {doc.workspace_name}
-                                                    </span>
+                                                    <span className="text-[10px] text-gray-600 font-bold uppercase tracking-tight">{doc.workspace_name}</span>
                                                 </>
                                             )}
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
+                                    <Link href={`/chats/new?workspaceId=${workspaceId}&docId=${doc.id}`}>
+                                        <button
+                                            className="w-12 h-12 flex items-center justify-center rounded-2xl text-gray-600 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all"
+                                            title="Start Chat"
+                                        >
+                                            <MessageSquare size={18} />
+                                        </button>
+                                    </Link>
                                     <button
                                         onClick={() => handleView(doc.id!, doc.name)}
-                                        className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white/5 text-gray-500 hover:text-indigo-400 hover:bg-white/10 transition-all active:scale-90"
+                                        className="w-12 h-12 flex items-center justify-center rounded-2xl text-gray-600 hover:text-white hover:bg-white/5 transition-all"
                                         title="View Content"
                                     >
-                                        {isViewing && activeSource?.name === doc.name ? (
-                                            <Loader2 size={18} className="animate-spin" />
-                                        ) : (
-                                            <Eye size={18} />
-                                        )}
+                                        <Eye size={18} />
                                     </button>
-
                                     <button
                                         onClick={() => handleDetailView(doc)}
-                                        className={cn(
-                                            "w-12 h-12 flex items-center justify-center rounded-2xl transition-all active:scale-90",
-                                            detailsDoc?.metadata?.filename === doc.name ? "bg-indigo-600 text-white shadow-lg" : "bg-white/5 text-gray-500 hover:text-indigo-400 hover:bg-white/10"
-                                        )}
-                                        title="Document Details"
+                                        className="w-12 h-12 flex items-center justify-center rounded-2xl text-gray-600 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all"
+                                        title="Details"
                                     >
                                         <Info size={18} />
                                     </button>
-
-                                    {isGlobal && (
-                                        <button
-                                            onClick={() => handleOpenWorkspaceManagement(doc)}
-                                            className={cn(
-                                                "w-12 h-12 flex items-center justify-center rounded-2xl transition-all active:scale-90",
-                                                isWorkspaceModalOpen && managingDoc?.name === doc.name ? "bg-indigo-600 text-white shadow-lg" : "bg-white/5 text-gray-500 hover:text-indigo-400 hover:bg-white/10"
-                                            )}
-                                            title="Workspace Indexing Management"
-                                        >
-                                            <ArrowRightLeft size={18} />
-                                        </button>
-                                    )}
-
+                                    <button
+                                        onClick={() => handleOpenWorkspaceManagement(doc)}
+                                        className="w-12 h-12 flex items-center justify-center rounded-2xl text-gray-600 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all"
+                                        title="Manage"
+                                    >
+                                        <ArrowRightLeft size={18} />
+                                    </button>
                                     <button
                                         onClick={() => setDeletingDoc(doc)}
-                                        data-testid={`delete-doc-${doc.name}`}
-                                        className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white/5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all active:scale-90"
-                                        title="Delete Document"
+                                        className="w-12 h-12 flex items-center justify-center rounded-2xl text-gray-600 hover:text-red-500 hover:bg-red-500/10 transition-all"
+                                        title="Delete"
                                     >
                                         <Trash2 size={18} />
                                     </button>
                                 </div>
-                            </motion.div>
+                            </div>
                         ));
                     })()}
                 </AnimatePresence>
             </div>
 
-            <div className="flex items-center justify-between pt-6 border-t border-white/5">
+            <div className="flex items-center justify-between pt-4 border-t border-white/5">
                 <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 text-tiny font-black text-emerald-500  ">
+                    <div className="flex items-center gap-2 text-xs font-bold text-emerald-500">
                         <Shield className="w-3 h-3" />
                         Indexed
                     </div>
-                    <div className="flex items-center gap-2 text-tiny font-black text-blue-500  ">
-                        <Filter className="w-3 h-3" />
-                        Management Active
-                    </div>
                 </div>
-
-                <Link
-                    href="/"
-                    className="text-tiny font-black  tracking-[0.2em] text-gray-600 hover:text-indigo-400 transition-colors flex items-center gap-2 group"
-                >
-                    System Protocol v1.4
-                    <ArrowRight size={10} className="group-hover:translate-x-1 transition-transform" />
-                </Link>
             </div>
 
             {/* Details Modal */}

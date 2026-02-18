@@ -7,7 +7,9 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { api } from "@/lib/api-client";
-import { Send, User, Bot, Loader2, FileText, Brain } from "lucide-react";
+import { Send, Loader2, Brain } from "lucide-react";
+import { CitationModal } from "./citation-modal";
+import { ChatMessage } from "@/components/chat-message";
 
 interface Message {
     id: string;
@@ -18,29 +20,39 @@ interface Message {
     timestamp?: number;
 }
 
-export function ChatInterface({ threadId: propThreadId }: { threadId?: string }) {
+export function ChatInterface({
+    threadId: propThreadId,
+    workspaceId: propWorkspaceId
+}: {
+    threadId?: string;
+    workspaceId?: string;
+}) {
     const params = useParams();
-    const workspaceId = params.id as string;
     const router = useRouter();
+    const [workspaceId, setWorkspaceId] = useState<string | undefined>(propWorkspaceId);
+
 
     // If no prop threadID, we might be in a "new chat" state or need to redirect
     // For now assume threadId is passed or we generate a new one on first message
     const [threadId, setThreadId] = useState<string | undefined>(propThreadId);
-
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [selectedCitation, setSelectedCitation] = useState<any | null>(null);
+    const [isCitationModalOpen, setIsCitationModalOpen] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // Fetch history if threadId exists
+    // Fetch history and metadata if threadId exists
     useEffect(() => {
-        const fetchHistory = async () => {
-            if (!threadId) return;
+        const fetchThreadData = async () => {
+            if (!threadId || threadId === "new") {
+                setMessages([]);
+                return;
+            }
             try {
-                const res = await api.getChatHistoryChatHistoryThreadIdGet({ threadId });
-                // Map response to Message format. 
-                // The API returns { data: [ { role, content, ... } ] }
-                const history = (res.data as any[]).map((msg: any, idx: number) => ({
+                // Fetch History
+                const histRes = await api.getChatHistoryChatHistoryThreadIdGet({ threadId });
+                const history = (histRes.data as any[]).map((msg: any, idx: number) => ({
                     id: msg.id || `hist-${idx}`,
                     role: msg.role,
                     content: msg.content,
@@ -48,17 +60,24 @@ export function ChatInterface({ threadId: propThreadId }: { threadId?: string })
                     reasoning_steps: msg.reasoning_steps
                 }));
                 setMessages(history);
+
+                // Fetch Metadata to get workspaceId if not provided
+                if (!workspaceId) {
+                    const metaRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/chat/threads/${threadId}`);
+                    if (metaRes.ok) {
+                        const payload = await metaRes.json();
+                        if (payload.success && payload.data) {
+                            setWorkspaceId(payload.data.workspace_id);
+                        }
+                    }
+                }
             } catch (e) {
-                console.error("Failed to fetch history", e);
+                console.error("Failed to fetch thread data", e);
             }
         };
 
-        if (threadId && threadId !== "new") {
-            fetchHistory();
-        } else {
-            setMessages([]);
-        }
-    }, [threadId]);
+        fetchThreadData();
+    }, [threadId, workspaceId]);
 
     const handleSend = async (e: FormEvent) => {
         e.preventDefault();
@@ -74,14 +93,12 @@ export function ChatInterface({ threadId: propThreadId }: { threadId?: string })
         setInput("");
         setIsLoading(true);
 
-        // If no threadId, generate one
+        // If no threadId, generate one and redirect
         let currentThreadId = threadId;
         if (!currentThreadId || currentThreadId === "new") {
             currentThreadId = crypto.randomUUID();
             setThreadId(currentThreadId);
-            // Replace URL without full reload if possible, or just push
-            window.history.replaceState(null, "", `/workspaces/${workspaceId}/chat?threadId=${currentThreadId}`);
-            // Or using query param for now for simplicity, ideally route param /t/id
+            router.push(`/chats/${currentThreadId}`);
         }
 
         const assistantMsgId = (Date.now() + 1).toString();
@@ -113,11 +130,9 @@ export function ChatInterface({ threadId: propThreadId }: { threadId?: string })
 
                             if (data.type === "content") {
                                 // Append delta
-                                lastMsg.content += data.delta || ""; // sometimes delta can be null?
+                                lastMsg.content += data.delta || "";
                             } else if (data.type === "reasoning") {
                                 if (!lastMsg.reasoning_steps) lastMsg.reasoning_steps = [];
-                                // Assuming steps is an array or object? content says steps: output['reasoning_steps']
-                                // which might be a list of strings or objects.
                                 if (Array.isArray(data.steps)) {
                                     lastMsg.reasoning_steps = [...lastMsg.reasoning_steps, ...data.steps];
                                 } else {
@@ -136,12 +151,9 @@ export function ChatInterface({ threadId: propThreadId }: { threadId?: string })
                 onerror(err) {
                     console.error("SSE Error", err);
                     setIsLoading(false);
-                    // Don't throw, let it finish. 
-                    // Or maybe throw to trigger onclose? fetchEventSource retries by default?
                 },
                 onclose() {
                     setIsLoading(false);
-                    // Also trigger thread list refresh?
                 }
             });
         } catch (e) {
@@ -150,83 +162,93 @@ export function ChatInterface({ threadId: propThreadId }: { threadId?: string })
         }
     };
 
+    const handleCitationClick = (id: number) => {
+        // Find the source in the messages
+        for (const msg of messages) {
+            const source = msg.sources?.find(s => s.id === id);
+            if (source) {
+                setSelectedCitation(source);
+                setIsCitationModalOpen(true);
+                return;
+            }
+        }
+    };
+
     return (
         <div className="flex flex-col h-full">
             <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={scrollRef}>
+                {/* Empty State */}
                 {messages.length === 0 && (
-                    <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50">
-                        <Brain className="w-12 h-12 mb-4" />
-                        <p>Ask anything about your documents...</p>
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                        <div className="w-20 h-20 rounded-[2.5rem] bg-white/5 border border-white/10 flex items-center justify-center mb-8 relative group">
+                            <div className="absolute inset-0 rounded-[2.5rem] bg-indigo-500/20 blur-2xl group-hover:bg-indigo-500/30 transition-all duration-700" />
+                            <Brain size={40} className="text-indigo-400/80 relative transition-transform duration-700 group-hover:scale-110" />
+                        </div>
+                        <h2 className="text-xl font-bold text-white mb-3 tracking-tight">Ask anything about your documents</h2>
+                        <p className="text-sm text-gray-500 max-w-sm text-center font-medium leading-relaxed">
+                            I can help you analyze, summarize, or extract key insights from your knowledge base.
+                        </p>
                     </div>
                 )}
 
                 {messages.map((msg) => (
-                    <div
+                    <ChatMessage
                         key={msg.id}
-                        className={cn(
-                            "flex w-full",
-                            msg.role === "user" ? "justify-end" : "justify-start"
-                        )}
-                    >
-                        <div
-                            className={cn(
-                                "flex max-w-[80%] rounded-lg px-4 py-2",
-                                msg.role === "user"
-                                    ? "bg-primary text-primary-foreground"
-                                    : "bg-muted text-foreground"
-                            )}
-                        >
-                            <div className="flex flex-col gap-1">
-                                <div className="whitespace-pre-wrap break-words">{msg.content}</div>
-
-                                {/* Citations / Sources */}
-                                {msg.sources && msg.sources.length > 0 && (
-                                    <div className="mt-2 pt-2 border-t border-border/20 grid grid-cols-1 gap-1">
-                                        <span className="text-xs font-semibold opacity-70">Sources:</span>
-                                        {msg.sources.map((source: any, idx: number) => (
-                                            <button
-                                                key={idx}
-                                                className="flex items-center text-xs opacity-70 hover:opacity-100 bg-background/10 p-1 rounded transition-opacity text-left truncate"
-                                                onClick={() => {
-                                                    // Handle citation click - open preview
-                                                    // For now just alert or log
-                                                    console.log("View source", source);
-                                                }}
-                                            >
-                                                <FileText className="w-3 h-3 mr-1 flex-shrink-0" />
-                                                <span className="truncate">{source.metadata?.name || source.metadata?.source || "Document"}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
+                        message={msg as any}
+                        isLoading={isLoading && msg.id === messages[messages.length - 1]?.id}
+                        onCitationClick={handleCitationClick}
+                    />
                 ))}
-                {isLoading && (
+                {isLoading && messages[messages.length - 1]?.role === "user" && (
                     <div className="flex justify-start">
-                        <div className="bg-muted text-foreground rounded-lg px-4 py-2 flex items-center">
-                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                            <span className="text-sm">Thinking...</span>
+                        <div className="bg-muted text-foreground rounded-2xl px-6 py-4 flex items-center shadow-xl border border-white/5 animate-pulse">
+                            <Loader2 className="w-4 h-4 animate-spin mr-3 text-indigo-500" />
+                            <span className="text-xs font-bold uppercase tracking-widest text-gray-500">Searching and processing...</span>
                         </div>
                     </div>
                 )}
             </div>
 
-            <div className="p-4 border-t bg-background">
-                <form onSubmit={handleSend} className="flex gap-2">
-                    <Input
-                        value={input}
-                        onChange={e => setInput(e.target.value)}
-                        placeholder="Type your message..."
-                        disabled={isLoading}
-                        className="flex-1"
-                    />
-                    <Button type="submit" disabled={isLoading || !input.trim()} size="icon">
-                        <Send className="w-4 h-4" />
-                    </Button>
+            {/* Input Area */}
+            <div className="p-6 shrink-0">
+                <form onSubmit={handleSend} className="max-w-4xl mx-auto relative group">
+                    <div className="relative flex items-center bg-white/[0.03] backdrop-blur-2xl rounded-2xl border border-white/10 p-1.5 transition-all duration-300 focus-within:border-white/20 focus-within:bg-white/[0.05] shadow-2xl">
+                        <Input
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            placeholder="Type your message..."
+                            className="border-0 bg-transparent h-12 px-4 focus-visible:ring-0 text-white placeholder:text-gray-600 focus-visible:ring-offset-0"
+                            disabled={isLoading}
+                        />
+                        <Button
+                            type="submit"
+                            size="icon"
+                            className={cn(
+                                "h-10 w-10 rounded-xl transition-all duration-300",
+                                input.trim()
+                                    ? "bg-indigo-500 hover:bg-indigo-400 text-white shadow-lg shadow-indigo-500/20"
+                                    : "bg-white/5 text-gray-600 border border-white/5"
+                            )}
+                            disabled={isLoading || !input.trim()}
+                        >
+                            {isLoading ? (
+                                <Loader2 className="animate-spin" size={18} />
+                            ) : (
+                                <Send size={18} />
+                            )}
+                        </Button>
+                    </div>
+                    <p className="text-[9px] text-gray-700 font-black uppercase tracking-widest mt-3 text-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        AI-generated responses may be inaccurate. Verify important information.
+                    </p>
                 </form>
             </div>
+
+            <CitationModal
+                isOpen={isCitationModalOpen}
+                onClose={() => setIsCitationModalOpen(false)}
+                source={selectedCitation}
+            />
         </div>
     );
 }

@@ -5,12 +5,19 @@ import { useError } from '@/context/error-context';
 export interface AppSettings {
     llm_provider: string;
     llm_model: string;
+    temperature: number;
+    max_tokens: number;
     embedding_provider: string;
     embedding_model: string;
     search_limit: number;
     hybrid_alpha: number;
+    reranker_enabled: boolean;
+    agentic_enabled: boolean;
+    rag_engine: 'basic' | 'graph';
+    graph_enabled: boolean;
     theme: string;
     show_reasoning: boolean;
+    job_concurrency: number;
 }
 
 export interface SettingMetadata {
@@ -74,7 +81,6 @@ export function useSettings(workspaceId?: string) {
             const rawData = await res.json();
 
             // Runtime Validation - use loose schema as retrieval_mode is removed
-            const { AppResponseSchema } = await import('@/lib/schemas/api');
             const payload = rawData;
 
             if (payload.success && payload.data) {

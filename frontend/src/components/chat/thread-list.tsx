@@ -1,32 +1,38 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import React, { useEffect, useState, useCallback } from "react";
+import { motion } from "framer-motion";
+import { useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Plus, MessageSquare } from "lucide-react";
+import { Plus, MessageSquare, Loader2 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api-client";
+
+interface Thread {
+    id: string;
+    title: string;
+    workspace_id: string;
+    created_at: string;
+    updated_at: string;
+}
 
 export function ThreadList({
     activeThreadId,
-    onSelectThread
+    onSelectThread,
+    workspaceId: propWorkspaceId
 }: {
     activeThreadId?: string | null,
-    onSelectThread: (threadId: string) => void
+    onSelectThread: (threadId: string) => void,
+    workspaceId?: string
 }) {
     const params = useParams();
-    const router = useRouter();
-    const workspaceId = params.id as string;
-    const [threads, setThreads] = useState<any[]>([]);
+    const searchParams = useSearchParams();
+    const workspaceId = propWorkspaceId || (params.id !== "new" ? params.id as string : null) || searchParams.get("workspaceId");
+    const [threads, setThreads] = useState<Thread[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        if (workspaceId) {
-            fetchThreads();
-        }
-    }, [workspaceId]);
-
-    const fetchThreads = async () => {
+    const fetchThreads = React.useCallback(async () => {
         setLoading(true);
         try {
             const res = await api.listChatThreadsChatThreadsGet({ workspaceId });
@@ -36,44 +42,68 @@ export function ThreadList({
         } finally {
             setLoading(false);
         }
-    };
+    }, [workspaceId]);
+
+    useEffect(() => {
+        if (workspaceId) {
+            fetchThreads();
+        }
+    }, [workspaceId, fetchThreads]);
 
     const handleCreateThread = () => {
-        // Deselect current thread to trigger "new thread" state in ChatInterface
-        onSelectThread("");
-        // Alternatively, we could generate a UUID here, but let the interface handle it
+        if (workspaceId) {
+            onSelectThread(`new?workspaceId=${workspaceId}`);
+        } else {
+            onSelectThread("new");
+        }
     };
 
     return (
-        <div className="w-64 border-r flex flex-col bg-muted/5 h-full">
-            <div className="p-4 border-b flex items-center justify-between">
-                <span className="font-medium text-sm">Threads</span>
-                <Button variant="ghost" size="icon" onClick={handleCreateThread} title="New Chat">
+        <div className="w-full flex flex-col bg-[#0d0d0e] h-full shrink-0">
+            <div className="h-16 px-6 border-b border-white/5 flex items-center justify-between shrink-0">
+                <div className="flex flex-col">
+                    <span className="text-sm font-bold uppercase tracking-widest text-white leading-none">History</span>
+                </div>
+                <Button variant="ghost" size="icon" onClick={handleCreateThread} title="New Chat" className="text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all active:scale-90">
                     <Plus className="w-4 h-4" />
                 </Button>
             </div>
-            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            <div className="flex-1 overflow-y-auto p-3 space-y-1.5 custom-scrollbar">
                 {loading ? (
-                    <div className="text-center text-xs text-muted-foreground py-4">Loading threads...</div>
+                    <div className="flex flex-col items-center justify-center py-10 gap-2 opacity-40">
+                        <Loader2 size={16} className="animate-spin text-indigo-500" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-gray-600">Scanning Threads...</span>
+                    </div>
                 ) : threads.length === 0 ? (
-                    <div className="text-center text-xs text-muted-foreground py-4">No threads yet</div>
+                    <div className="flex flex-col items-center justify-center py-20 gap-3 opacity-20">
+                        <div className="w-10 h-10 rounded-full border-2 border-dashed border-gray-600 flex items-center justify-center">
+                            <MessageSquare size={16} />
+                        </div>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-gray-600">Empty Cache</span>
+                    </div>
                 ) : (
                     threads.map((thread) => (
                         <button
                             key={thread.id}
                             onClick={() => onSelectThread(thread.id)}
                             className={cn(
-                                "w-full text-left px-3 py-2 text-sm rounded-xl transition-all flex items-center gap-2 group",
+                                "w-full text-left px-4 py-3 rounded-xl transition-all flex items-center gap-3 group relative overflow-hidden",
                                 activeThreadId === thread.id
-                                    ? "bg-background shadow-sm text-primary ring-1 ring-border"
-                                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                                    ? "bg-white/[0.03] text-indigo-400 border border-white/5 shadow-[0_0_20px_-12px_rgba(99,102,241,0.5)]"
+                                    : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.02] border border-transparent"
                             )}
                         >
+                            {activeThreadId === thread.id && (
+                                <motion.div
+                                    layoutId="active-thread"
+                                    className="absolute left-0 top-1/4 bottom-1/4 w-0.5 bg-indigo-500 rounded-full"
+                                />
+                            )}
                             <MessageSquare className={cn(
-                                "w-3.5 h-3.5 transition-transform group-hover:scale-110",
-                                activeThreadId === thread.id ? "text-primary" : "text-muted-foreground"
+                                "w-4 h-4 transition-transform group-hover:scale-110",
+                                activeThreadId === thread.id ? "text-indigo-500" : "text-gray-600 group-hover:text-gray-400"
                             )} />
-                            <span className="truncate flex-1">{thread.title || "New Chat"}</span>
+                            <span className="truncate flex-1 text-xs font-bold tracking-tight">{thread.title || "Untitled Fragment"}</span>
                         </button>
                     ))
                 )}

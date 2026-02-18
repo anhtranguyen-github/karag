@@ -3,10 +3,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
-    FileText, ArrowLeft, Database, Calendar,
+    ArrowLeft, Database, Calendar,
     Layers, Download, Loader2, AlertCircle,
-    Shield, HardDrive, Info, CheckCircle2,
-    Box, Layout, Network, ChevronDown, Brain
+    Shield, HardDrive, CheckCircle2,
+    Box, Layout, Network, Brain
 } from 'lucide-react';
 import { API_ROUTES } from '@/lib/api-config';
 import { cn } from '@/lib/utils';
@@ -236,7 +236,7 @@ export default function DocumentDetailPage() {
     );
 }
 
-function MetricCard({ label, value, icon: Icon, color = "text-gray-400" }: { label: string, value: string, icon: any, color?: string }) {
+function MetricCard({ label, value, icon: Icon, color = "text-gray-400" }: { label: string, value: string, icon: React.ElementType, color?: string }) {
     return (
         <div className="bg-[#121214] border border-white/5 p-8 rounded-[2.5rem] flex flex-col gap-6 hover:bg-white/[0.03] hover:border-blue-500/20 transition-all shadow-2xl">
             <div className={cn("w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center", color)}>
@@ -250,7 +250,7 @@ function MetricCard({ label, value, icon: Icon, color = "text-gray-400" }: { lab
     );
 }
 
-function MetricDetail({ label, value, icon: Icon }: { label: string, value: string, icon: any }) {
+function MetricDetail({ label, value, icon: Icon }: { label: string, value: string, icon: React.ElementType }) {
     return (
         <div className="bg-white/[0.02] border border-white/5 p-6 rounded-3xl flex items-center gap-5 hover:bg-white/[0.04] transition-all">
             <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">

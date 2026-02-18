@@ -208,7 +208,7 @@ export default function KnowledgePage() {
                                         </p>
                                     </motion.div>
                                 ) : (
-                                    filteredDocs.map((doc: any, idx) => (
+                                    filteredDocs.map((doc, idx) => (
                                         <motion.div
                                             key={doc.id || `${doc.name}-${idx}`}
                                             initial={{ opacity: 0, x: -10 }}
