@@ -52,7 +52,7 @@ async def chat_stream(payload: ChatStreamRequest):
     )
     
     return StreamingResponse(
-        chat_service.stream_updates(payload.message, payload.thread_id, payload.workspace_id),
+        chat_service.stream_updates(payload.message, payload.thread_id, payload.workspace_id, payload.execution),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

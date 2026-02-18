@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-from typing import AsyncGenerator, List, Dict
+from typing import AsyncGenerator, List, Dict, Optional, Any
 
 import structlog
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -215,17 +215,12 @@ class ChatService:
 
     @staticmethod
     async def stream_updates(
-        message: str, thread_id: str, workspace_id: str
+        message: str, thread_id: str, workspace_id: str, execution: Optional[Dict[str, Any]] = None
     ) -> AsyncGenerator[str, None]:
         """Stream event updates from the LangGraph execution with robust error handling."""
-        logger.info("stream_updates_entered", workspace_id=workspace_id, thread_id=thread_id)
-        inputs = {
-            "messages": [HumanMessage(content=message)],
-            "workspace_id": workspace_id,
-        }
-        config = {"configurable": {"thread_id": thread_id}}
-
-        # Track active streams for saturation monitoring
+        logger.info("stream_updates_entered", workspace_id=workspace_id, thread_id=thread_id, execution=execution)
+        
+        # Track active streams
         ACTIVE_STREAMS.inc()
         span = tracer.start_span(
             "chat.stream",
@@ -233,55 +228,101 @@ class ChatService:
                 "thread_id": thread_id,
                 "workspace_id": workspace_id,
                 "message_preview": message[:80],
+                "has_execution_config": execution is not None,
             },
         )
 
         try:
-            async for event in graph_app.astream_events(
-                inputs, config=config, version="v2"
-            ):
-                kind = event["event"]
-                name = event.get("name", "")
+            if execution:
+                # Use the new LangGraph-based adaptive RAG execution
+                from backend.app.rag.graph.orchestrator import rag_executor
+                from backend.app.schemas.execution import RuntimeSettings
 
-                try:
-                    if kind == "on_chain_end" and name in [
-                        "rerank",
-                        "reason",
-                        "generate",
-                    ]:
-                        output = event["data"].get("output", {})
-                        if isinstance(output, dict):
-                            settings = await settings_manager.get_settings(
-                                workspace_id
-                            )
-                            if (
-                                settings.show_reasoning
-                                and "reasoning_steps" in output
-                            ):
-                                db = mongodb_manager.get_async_database()
-                                await db["thread_metadata"].update_one(
-                                    {"thread_id": thread_id},
-                                    {"$set": {"has_thinking": True}},
-                                )
-                                yield f"data: {json.dumps({'type': 'reasoning', 'steps': output['reasoning_steps']})}\n\n"
-                            if "sources" in output:
-                                yield f"data: {json.dumps({'type': 'sources', 'sources': output['sources']})}\n\n"
+                settings = RuntimeSettings(**execution)
+                initial_state = {
+                    "query": message,
+                    "workspace_id": workspace_id,
+                    "settings": settings,
+                    "generated_queries": [],
+                    "retrieved_results": [],
+                    "draft_answers": [],
+                    "loop_count": 0,
+                    "confidence_level": 0.0,
+                    "is_sufficient": False,
+                    "execution_metadata": {"nodes_visited": []}
+                }
 
+                async for event in rag_executor.astream_events(initial_state, version="v2"):
+                    kind = event["event"]
+                    node_name = event.get("name", "")
+
+                    if kind == "on_chain_start":
+                        yield f"data: {json.dumps({'type': 'thought', 'step': f'Entering {node_name} node'})}\n\n"
+                    
                     if kind == "on_chat_model_stream":
                         content = event["data"]["chunk"].content
                         if content:
                             yield f"data: {json.dumps({'type': 'content', 'delta': content})}\n\n"
-                    elif kind == "on_tool_start":
-                        yield f"data: {json.dumps({'type': 'tool_start', 'tool': event['name']})}\n\n"
-                    elif kind == "on_tool_end":
-                        yield f"data: {json.dumps({'type': 'tool_end', 'tool': event['name'], 'output': event['data'].get('output')})}\n\n"
-                except Exception as inner_e:
-                    logger.error(
-                        "chat_stream_event_error",
-                        event_kind=kind,
-                        error=str(inner_e),
-                    )
-                    continue
+                    
+                    if kind == "on_chain_end" and node_name == "LangGraph":
+                        final_output = event["data"].get("output", {})
+                        if "execution_metadata" in final_output:
+                            # Stream final tracing/chasing data
+                            yield f"data: {json.dumps({'type': 'tracing', 'data': final_output['execution_metadata']})}\n\n"
+
+            else:
+                # Fallback to the existing agentic graph
+                inputs = {
+                    "messages": [HumanMessage(content=message)],
+                    "workspace_id": workspace_id,
+                }
+                config = {"configurable": {"thread_id": thread_id}}
+                
+                async for event in graph_app.astream_events(
+                    inputs, config=config, version="v2"
+                ):
+                    kind = event["event"]
+                    name = event.get("name", "")
+
+                    try:
+                        if kind == "on_chain_end" and name in [
+                            "rerank",
+                            "reason",
+                            "generate",
+                        ]:
+                            output = event["data"].get("output", {})
+                            if isinstance(output, dict):
+                                settings = await settings_manager.get_settings(
+                                    workspace_id
+                                )
+                                if (
+                                    settings.show_reasoning
+                                    and "reasoning_steps" in output
+                                ):
+                                    db = mongodb_manager.get_async_database()
+                                    await db["thread_metadata"].update_one(
+                                        {"thread_id": thread_id},
+                                        {"$set": {"has_thinking": True}},
+                                    )
+                                    yield f"data: {json.dumps({'type': 'reasoning', 'steps': output['reasoning_steps']})}\n\n"
+                                if "sources" in output:
+                                    yield f"data: {json.dumps({'type': 'sources', 'sources': output['sources']})}\n\n"
+
+                        if kind == "on_chat_model_stream":
+                            content = event["data"]["chunk"].content
+                            if content:
+                                yield f"data: {json.dumps({'type': 'content', 'delta': content})}\n\n"
+                        elif kind == "on_tool_start":
+                            yield f"data: {json.dumps({'type': 'tool_start', 'tool': event['name']})}\n\n"
+                        elif kind == "on_tool_end":
+                            yield f"data: {json.dumps({'type': 'tool_end', 'tool': event['name'], 'output': event['data'].get('output')})}\n\n"
+                    except Exception as inner_e:
+                        logger.error(
+                            "chat_stream_event_error",
+                            event_kind=kind,
+                            error=str(inner_e),
+                        )
+                        continue
 
         except Exception as e:
             import traceback

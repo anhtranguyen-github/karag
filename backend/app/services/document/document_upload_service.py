@@ -246,6 +246,7 @@ class DocumentUploadService:
                 "minio_path": minio_path,
                 "content_hash": file_hash,
                 "status": "verifying",
+                "workspace_statuses": {workspace_id: "verifying", "vault": "verifying"},
                 "current_version": 1,
                 "shared_with": [],
                 "created_at": datetime.utcnow().isoformat(),
@@ -257,7 +258,14 @@ class DocumentUploadService:
                 await db.documents.delete_one({"id": doc_id})
                 return
 
-            await db.documents.update_one({"id": doc_id}, {"$set": {"status": "uploading"}})
+            await db.documents.update_one(
+                {"id": doc_id}, 
+                {"$set": {
+                    "status": "uploading",
+                    f"workspace_statuses.{workspace_id}": "uploading",
+                    "workspace_statuses.vault": "uploading"
+                }}
+            )
 
             import io
             await minio_manager.upload_file(minio_path, io.BytesIO(content), len(content), content_type)
@@ -269,7 +277,14 @@ class DocumentUploadService:
 
             await task_service.update_task(task_id, progress=50, message="Recording metadata...")
             
-            await db.documents.update_one({"id": doc_id}, {"$set": {"status": "reading"}})
+            await db.documents.update_one(
+                {"id": doc_id}, 
+                {"$set": {
+                    "status": "reading",
+                    f"workspace_statuses.{workspace_id}": "reading",
+                    "workspace_statuses.vault": "reading"
+                }}
+            )
             
             # AUTO-INDEX: Proceed to Phase 2 immediately for all workspaces (including Vault)
             await task_service.update_task(task_id, progress=60, message="Neural infrastructure: Indexing...")

@@ -11,7 +11,7 @@ from backend.app.schemas.documents import (
     UrlImportRequest, 
     SitemapImportRequest, 
     GitHubImportRequest,
-    WorkspaceUpdate
+    DocumentWorkspaceUpdate
 )
 
 router = APIRouter(tags=["documents"])
@@ -165,14 +165,13 @@ async def inspect_document(document_id: str):
 @router.post("/documents/update-workspaces")
 async def update_document_workspaces(
     background_tasks: BackgroundTasks,
-    request: Request
+    payload: DocumentWorkspaceUpdate
 ):
     """Workspace operations using internal IDs."""
-    data = await request.json()
-    document_id = data.get("document_id")
-    target_workspace_id = data.get("target_workspace_id")
-    action = data.get("action", "share")
-    force_reindex = data.get("force_reindex", False)
+    document_id = payload.document_id
+    target_workspace_id = payload.target_workspace_id
+    action = payload.action
+    force_reindex = payload.force_reindex
 
     if not document_id or not target_workspace_id:
         raise ValidationError("document_id and target_workspace_id are required")
