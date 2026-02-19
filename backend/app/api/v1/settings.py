@@ -6,11 +6,13 @@ from backend.app.schemas.base import AppResponse
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
+
 @router.get("/")
 async def get_settings(workspace_id: Optional[str] = Query(None)):
     """Get settings for a specific workspace or global defaults."""
     settings = await settings_manager.get_settings(workspace_id)
     return AppResponse.success_response(data=settings.model_dump())
+
 
 @router.get("/metadata")
 async def get_settings_metadata():
@@ -18,8 +20,11 @@ async def get_settings_metadata():
     metadata = settings_manager.get_settings_metadata()
     return AppResponse.success_response(data=metadata)
 
+
 @router.patch("/")
-async def update_settings(updates: Dict[str, Any], workspace_id: Optional[str] = Query(None)):
+async def update_settings(
+    updates: Dict[str, Any], workspace_id: Optional[str] = Query(None)
+):
     """Update settings for a specific workspace or global defaults."""
     settings = await settings_manager.update_settings(updates, workspace_id)
     return AppResponse.success_response(data=settings.model_dump())

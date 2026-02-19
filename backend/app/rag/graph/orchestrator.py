@@ -2,10 +2,17 @@ from langgraph.graph import StateGraph, END
 from backend.app.rag.graph.state import GraphState
 from backend.app.schemas.execution import ExecutionMode
 from backend.app.rag.graph.nodes import (
-    init_execution, analyze_intent, build_query_context,
-    retrieve_context, blend_results, reflect_and_decide,
-    assemble_context, generate_answer, synthesize_answer
+    init_execution,
+    analyze_intent,
+    build_query_context,
+    retrieve_context,
+    blend_results,
+    reflect_and_decide,
+    assemble_context,
+    generate_answer,
+    synthesize_answer,
 )
+
 
 def build_rag_graph():
     """Build the LangGraph execution graph for RAG."""
@@ -39,17 +46,15 @@ def build_rag_graph():
 
     # Conditional Branch: Reflection
     def should_reflect(state: GraphState):
-        if state["settings"].execution_mode in [ExecutionMode.THINKING, ExecutionMode.DEEP]:
+        if state["settings"].execution_mode in [
+            ExecutionMode.THINKING,
+            ExecutionMode.DEEP,
+        ]:
             return "reflect"
         return "assemble"
 
     workflow.add_conditional_edges(
-        "blend",
-        should_reflect,
-        {
-            "reflect": "reflect",
-            "assemble": "assemble"
-        }
+        "blend", should_reflect, {"reflect": "reflect", "assemble": "assemble"}
     )
 
     # Conditional Branch: To Loop or Not to Loop
@@ -59,12 +64,7 @@ def build_rag_graph():
         return "build_query"
 
     workflow.add_conditional_edges(
-        "reflect",
-        loop_decision,
-        {
-            "assemble": "assemble",
-            "build_query": "build_query"
-        }
+        "reflect", loop_decision, {"assemble": "assemble", "build_query": "build_query"}
     )
 
     # Flow: Assemble -> Generate
@@ -77,17 +77,13 @@ def build_rag_graph():
         return END
 
     workflow.add_conditional_edges(
-        "generate",
-        should_synthesize,
-        {
-            "synthesize": "synthesize",
-            END: END
-        }
+        "generate", should_synthesize, {"synthesize": "synthesize", END: END}
     )
 
     workflow.add_edge("synthesize", END)
 
     return workflow.compile()
+
 
 # Singleton instance
 rag_executor = build_rag_graph()

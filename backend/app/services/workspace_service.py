@@ -8,11 +8,12 @@ from backend.app.core.exceptions import ValidationError, ConflictError, NotFound
 
 logger = structlog.get_logger(__name__)
 
+
 class WorkspaceService:
     @staticmethod
     async def list_all() -> List[Dict]:
         db = mongodb_manager.get_async_database()
-        
+
         # Optimized Aggregation Pipeline to avoid N+1 queries
         pipeline = [
             {
@@ -20,7 +21,7 @@ class WorkspaceService:
                     "from": "documents",
                     "localField": "id",
                     "foreignField": "workspace_id",
-                    "as": "docs"
+                    "as": "docs",
                 }
             },
             {
@@ -28,7 +29,7 @@ class WorkspaceService:
                     "from": "thread_metadata",
                     "localField": "id",
                     "foreignField": "workspace_id",
-                    "as": "threads"
+                    "as": "threads",
                 }
             },
             {
@@ -36,18 +37,14 @@ class WorkspaceService:
                     "from": "workspace_settings",
                     "localField": "id",
                     "foreignField": "workspace_id",
-                    "as": "settings"
+                    "as": "settings",
                 }
             },
-            {
-                "$addFields": {
-                    "settings_doc": {"$arrayElemAt": ["$settings", 0]}
-                }
-            },
+            {"$addFields": {"settings_doc": {"$arrayElemAt": ["$settings", 0]}}},
             {
                 "$project": {
                     "id": 1,
-                    "name": 1, 
+                    "name": 1,
                     "description": 1,
                     "created_at": 1,
                     "updated_at": 1,
@@ -56,12 +53,12 @@ class WorkspaceService:
                     "rag_engine": "$settings_doc.rag_engine",
                     "stats": {
                         "doc_count": {"$size": "$docs"},
-                        "thread_count": {"$size": "$threads"}
-                    }
+                        "thread_count": {"$size": "$threads"},
+                    },
                 }
-            }
+            },
         ]
-        
+
         return await db.workspaces.aggregate(pipeline).to_list(1000)
 
     @staticmethod
@@ -69,22 +66,23 @@ class WorkspaceService:
         """Create a new workspace with specified RAG settings."""
         db = mongodb_manager.get_async_database()
         name = data.get("name", "").strip()
-        
+
         if not name:
             return {
                 "status": "error",
                 "code": "VALIDATION_ERROR",
-                "message": "Workspace name cannot be empty."
+                "message": "Workspace name cannot be empty.",
             }
-            
+
         from backend.app.core.constants import WORKSPACE_NAME_FORBIDDEN
+
         found_chars = [char for char in WORKSPACE_NAME_FORBIDDEN if char in name]
         if found_chars:
             return {
                 "status": "error",
                 "code": "INVALID_NAME",
                 "message": f"Workspace name contains invalid characters: {' '.join(found_chars)}. These are reserved for system safety.",
-                "params": {"found": found_chars, "illegal": WORKSPACE_NAME_FORBIDDEN}
+                "params": {"found": found_chars, "illegal": WORKSPACE_NAME_FORBIDDEN},
             }
 
         # Check for duplicate name
@@ -93,38 +91,52 @@ class WorkspaceService:
             return {
                 "status": "error",
                 "code": "DUPLICATE_NAME",
-                "message": f"A workspace with the name '{name}' already exists."
+                "message": f"A workspace with the name '{name}' already exists.",
             }
 
         workspace_id = str(uuid.uuid4())[:8]
         timestamp = datetime.utcnow().isoformat()
-        
+
         workspace = {
             "id": workspace_id,
             "name": name,
             "description": data.get("description", ""),
             "created_at": timestamp,
-            "updated_at": timestamp
+            "updated_at": timestamp,
         }
-        
+
         await db.workspaces.insert_one(workspace)
 
         # Persist RAG settings via SettingsManager
         # We include all possible fields from WorkspaceCreate to initialize the workspace config
         rag_fields = [
-            "rag_engine", "embedding_provider", "embedding_model", "embedding_dim", 
-            "chunk_size", "chunk_overlap", "neo4j_uri", "neo4j_user", "neo4j_password",
-            "search_limit", "recall_k", "hybrid_alpha", "graph_enabled",
-            "reranker_enabled", "reranker_provider", "rerank_top_k",
-            "agentic_enabled", "llm_provider", "llm_model", "temperature"
+            "rag_engine",
+            "embedding_provider",
+            "embedding_model",
+            "embedding_dim",
+            "chunk_size",
+            "chunk_overlap",
+            "neo4j_uri",
+            "neo4j_user",
+            "neo4j_password",
+            "search_limit",
+            "recall_k",
+            "hybrid_alpha",
+            "graph_enabled",
+            "reranker_enabled",
+            "reranker_provider",
+            "rerank_top_k",
+            "agentic_enabled",
+            "llm_provider",
+            "llm_model",
+            "temperature",
         ]
         settings_to_apply = {k: data[k] for k in rag_fields if k in data}
-        
+
         # We bypass update_settings to avoid immutability check during initial creation
-        await db["workspace_settings"].insert_one({
-            "workspace_id": workspace_id,
-            **settings_to_apply
-        })
+        await db["workspace_settings"].insert_one(
+            {"workspace_id": workspace_id, **settings_to_apply}
+        )
 
         if "_id" in workspace:
             workspace.pop("_id")
@@ -133,57 +145,65 @@ class WorkspaceService:
             "status": "success",
             "code": "WORKSPACE_CREATED",
             "message": f"Workspace '{name}' created successfully.",
-            "data": workspace
+            "data": workspace,
         }
 
     @staticmethod
-    async def update(workspace_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    async def update(
+        workspace_id: str, data: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
         db = mongodb_manager.get_async_database()
 
         # Enforce Immutability of RAG Engine
         if "rag_engine" in data:
             del data["rag_engine"]
-        
+
         if "name" in data:
             new_name = data["name"].strip()
             if not new_name:
                 raise ValidationError("Workspace name cannot be empty.")
-            
+
             from backend.app.core.constants import WORKSPACE_NAME_FORBIDDEN
-            found_chars = [char for char in WORKSPACE_NAME_FORBIDDEN if char in new_name]
+
+            found_chars = [
+                char for char in WORKSPACE_NAME_FORBIDDEN if char in new_name
+            ]
             if found_chars:
                 raise ValidationError(
                     message=f"Workspace name contains invalid characters: {' '.join(found_chars)}. These are reserved for system safety.",
-                    params={"found": found_chars}
+                    params={"found": found_chars},
                 )
-            
-            existing = await db.workspaces.find_one({"name": new_name, "id": {"$ne": workspace_id}})
+
+            existing = await db.workspaces.find_one(
+                {"name": new_name, "id": {"$ne": workspace_id}}
+            )
             if existing:
-                raise ConflictError(f"A workspace with the name '{new_name}' already exists.")
+                raise ConflictError(
+                    f"A workspace with the name '{new_name}' already exists."
+                )
             data["name"] = new_name
 
         data["updated_at"] = datetime.utcnow().isoformat()
-                
+
         result = await db.workspaces.find_one_and_update(
-            {"id": workspace_id},
-            {"$set": data},
-            return_document=True
+            {"id": workspace_id}, {"$set": data}, return_document=True
         )
         if not result:
             raise NotFoundError(f"Workspace {workspace_id} not found.")
-        
+
         if "_id" in result:
             del result["_id"]
-            
+
         return result
 
     @staticmethod
     async def delete(workspace_id: str, vault_delete: bool = False):
         db = mongodb_manager.get_async_database()
-        
+
         # 1. Handle associated documents
         # Batch delete using StorageService optimized method
         from backend.app.services.document_service import document_service
+
         await document_service.delete_many(workspace_id, delete_content=vault_delete)
 
         # 2. Cleanup workspace meta
@@ -199,63 +219,84 @@ class WorkspaceService:
             return None
         if "_id" in ws:
             del ws["_id"]
-        
-        threads = await db["thread_metadata"].find({"workspace_id": workspace_id}).sort("last_active", -1).to_list(100)
+
+        threads = (
+            await db["thread_metadata"]
+            .find({"workspace_id": workspace_id})
+            .sort("last_active", -1)
+            .to_list(100)
+        )
         for t in threads:
             t["id"] = t.get("thread_id", str(t.get("_id", "")))
             if "_id" in t:
                 del t["_id"]
-            
+
         doc_cursor = db.documents.find({"workspace_id": workspace_id})
         docs = await doc_cursor.to_list(length=100)
         for d in docs:
             if "_id" in d:
                 d["_id"] = str(d["_id"])
             d["name"] = d.get("filename")
-        
+
         ws["threads"] = threads
         ws["documents"] = docs
         ws["stats"] = {"thread_count": len(threads), "doc_count": len(docs)}
-        
+
         from backend.app.core.settings_manager import settings_manager
+
         settings = await settings_manager.get_settings(workspace_id)
         ws["settings"] = settings.model_dump()
-        
+
         return ws
 
     @staticmethod
     async def get_graph_data(workspace_id: str) -> Dict:
         """Generate a semantic graph of documents and entities within a workspace."""
         from backend.app.core.settings_manager import settings_manager
+
         settings = await settings_manager.get_settings(workspace_id)
-        
+
         nodes = []
         edges = []
-        
+
         # 1. Document Nodes (Always show document-level relationships)
         centroids = await qdrant.get_document_centroids(workspace_id)
         for doc_id, data in centroids.items():
-            nodes.append({
-                "id": doc_id,
-                "name": data["name"],
-                "val": 15,
-                "type": "document",
-                "color": "#4f46e5"
-            })
-            
+            nodes.append(
+                {
+                    "id": doc_id,
+                    "name": data["name"],
+                    "val": 15,
+                    "type": "document",
+                    "color": "#4f46e5",
+                }
+            )
+
         import numpy as np
+
         doc_ids = list(centroids.keys())
         for i in range(len(doc_ids)):
             for j in range(i + 1, len(doc_ids)):
                 id1, id2 = doc_ids[i], doc_ids[j]
-                v1, v2 = np.array(centroids[id1]["vector"]), np.array(centroids[id2]["vector"])
+                v1, v2 = (
+                    np.array(centroids[id1]["vector"]),
+                    np.array(centroids[id2]["vector"]),
+                )
                 sim = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
-                if sim > 0.8: 
-                    edges.append({"source": id1, "target": id2, "value": float(sim), "type": "SIMILAR_TO"})
+                if sim > 0.8:
+                    edges.append(
+                        {
+                            "source": id1,
+                            "target": id2,
+                            "value": float(sim),
+                            "type": "SIMILAR_TO",
+                        }
+                    )
 
         # 2. Knowledge Graph Nodes (Neo4j)
         if settings.rag_engine == "graph":
             from backend.app.core.neo4j import neo4j_manager
+
             cypher = """
             MATCH (n:Entity {workspace_id: $workspace_id})
             OPTIONAL MATCH (n)-[r]->(m:Entity {workspace_id: $workspace_id})
@@ -263,31 +304,40 @@ class WorkspaceService:
             LIMIT 100
             """
             try:
-                records = await neo4j_manager.execute_query(cypher, {"workspace_id": workspace_id}, workspace_id=workspace_id)
+                records = await neo4j_manager.execute_query(
+                    cypher, {"workspace_id": workspace_id}, workspace_id=workspace_id
+                )
                 entities = {}
                 for rec in records:
                     name = rec["name"]
                     if name not in entities:
                         entities[name] = rec["type"]
-                        nodes.append({
-                            "id": f"entity_{name}",
-                            "name": name,
-                            "val": 8,
-                            "type": "entity",
-                            "entity_type": rec["type"],
-                            "color": "#f59e0b"
-                        })
-                    
+                        nodes.append(
+                            {
+                                "id": f"entity_{name}",
+                                "name": name,
+                                "val": 8,
+                                "type": "entity",
+                                "entity_type": rec["type"],
+                                "color": "#f59e0b",
+                            }
+                        )
+
                     if rec["target"] and rec["rel_type"]:
-                        edges.append({
-                            "source": f"entity_{name}",
-                            "target": f"entity_{rec['target']}",
-                            "value": 1.0,
-                            "type": rec["rel_type"]
-                        })
+                        edges.append(
+                            {
+                                "source": f"entity_{name}",
+                                "target": f"entity_{rec['target']}",
+                                "value": 1.0,
+                                "type": rec["rel_type"],
+                            }
+                        )
             except Exception as e:
-                logger.warning("neo4j_graph_fetch_failed", error=str(e), workspace_id=workspace_id)
-                pass # Fail gracefully if Neo4j is down
+                logger.warning(
+                    "neo4j_graph_fetch_failed", error=str(e), workspace_id=workspace_id
+                )
+                pass  # Fail gracefully if Neo4j is down
         return {"nodes": nodes, "edges": edges}
+
 
 workspace_service = WorkspaceService()

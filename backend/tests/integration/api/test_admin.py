@@ -2,6 +2,7 @@ import pytest
 from httpx import AsyncClient, ASGITransport
 from backend.app.main import app
 
+
 @pytest.mark.asyncio
 async def test_admin_prompts():
     transport = ASGITransport(app=app)
@@ -12,6 +13,7 @@ async def test_admin_prompts():
     assert data["success"] is True
     assert "rag_system" in data["data"]
 
+
 @pytest.mark.asyncio
 async def test_admin_vector_status():
     transport = ASGITransport(app=app)
@@ -21,6 +23,7 @@ async def test_admin_vector_status():
     data = response.json()
     assert data["success"] is True
     assert "collections" in data["data"]
+
 
 @pytest.mark.asyncio
 async def test_admin_ops_overview():

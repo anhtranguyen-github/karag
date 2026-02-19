@@ -6,9 +6,12 @@ from backend.app.core.telemetry import get_tracer
 logger = structlog.get_logger(__name__)
 tracer = get_tracer(__name__)
 
+
 class BaseIngestionStrategy(ABC):
     @abstractmethod
-    async def run(self, task_id: str, workspace_id: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
+    async def run(
+        self, task_id: str, workspace_id: str, metadata: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Execute the ingestion strategy."""
         pass
 

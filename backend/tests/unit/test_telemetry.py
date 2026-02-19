@@ -35,6 +35,7 @@ from backend.app.core.middleware import ObservabilityMiddleware
 # Telemetry Configuration Tests
 # ---------------------------------------------------------------------------
 
+
 class TestConfigureLogging:
     """Test structlog configuration for both formats."""
 
@@ -101,12 +102,15 @@ class TestInitTelemetry:
 # Context Variable Tests
 # ---------------------------------------------------------------------------
 
+
 class TestContextVariables:
     """Test that context variables propagate correctly in async contexts."""
 
     def test_correlation_id_default(self):
         """Default correlation ID should be empty string."""
-        assert correlation_id_var.get() == "" or isinstance(correlation_id_var.get(), str)
+        assert correlation_id_var.get() == "" or isinstance(
+            correlation_id_var.get(), str
+        )
 
     def test_correlation_id_set_and_get(self):
         """Setting correlation ID should be retrievable."""
@@ -125,6 +129,7 @@ class TestContextVariables:
 # Prometheus Metrics Tests
 # ---------------------------------------------------------------------------
 
+
 class TestPrometheusMetrics:
     """Test that metrics are properly defined and can be incremented."""
 
@@ -135,11 +140,15 @@ class TestPrometheusMetrics:
 
     def test_request_latency_exists(self):
         """REQUEST_LATENCY histogram should be defined."""
-        REQUEST_LATENCY.labels(method="POST", endpoint="/chat/stream", status="200").observe(0.5)
+        REQUEST_LATENCY.labels(
+            method="POST", endpoint="/chat/stream", status="200"
+        ).observe(0.5)
 
     def test_error_count_exists(self):
         """ERROR_COUNT counter should be defined."""
-        ERROR_COUNT.labels(method="GET", endpoint="/test", error_type="ValueError").inc()
+        ERROR_COUNT.labels(
+            method="GET", endpoint="/test", error_type="ValueError"
+        ).inc()
 
     def test_rag_retrieval_latency(self):
         """RAG retrieval latency histogram should accept engine and mode labels."""
@@ -162,6 +171,7 @@ class TestPrometheusMetrics:
 # ---------------------------------------------------------------------------
 # Middleware Tests
 # ---------------------------------------------------------------------------
+
 
 class TestMiddlewarePathNormalization:
     """Test that dynamic path segments are normalized for bounded cardinality."""
@@ -198,6 +208,7 @@ class TestMiddlewarePathNormalization:
 # ---------------------------------------------------------------------------
 # @traced Decorator Tests
 # ---------------------------------------------------------------------------
+
 
 class TestTracedDecorator:
     """Test the @traced decorator for async functions."""

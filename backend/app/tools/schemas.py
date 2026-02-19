@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 
+
 class ToolDefinition(BaseModel):
     id: str
     name: str

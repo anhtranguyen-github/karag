@@ -8,37 +8,71 @@ from qdrant_client.http import models as qmodels
 from .document_ingestion_service import document_ingestion_service
 from .base import logger
 
+
 class CrossWorkspaceDocumentService:
     async def run_workspace_op_background(
-        self, task_id: str, doc_id: str, target_workspace_id: str,
-        action: str, force_reindex: bool = False
+        self,
+        task_id: str,
+        doc_id: str,
+        target_workspace_id: str,
+        action: str,
+        force_reindex: bool = False,
     ):
         """Background wrapper for workspace operations."""
         try:
             if await task_service.is_cancelled(task_id):
-                return 
+                return
 
             await task_service.update_task(
-                task_id, status="processing", progress=10,
-                message=f"Executing {action} operation..."
+                task_id,
+                status="processing",
+                progress=10,
+                message=f"Executing {action} operation...",
             )
-            await self.update_workspaces(doc_id, target_workspace_id, action, force_reindex=force_reindex, task_id=task_id)
-            
+            await self.update_workspaces(
+                doc_id,
+                target_workspace_id,
+                action,
+                force_reindex=force_reindex,
+                task_id=task_id,
+            )
+
             if await task_service.is_cancelled(task_id):
                 return
 
             await task_service.update_task(
-                task_id, status="completed", progress=100,
+                task_id,
+                status="completed",
+                progress=100,
                 message=f"Document {action} completed.",
-                result={"document_id": doc_id, "workspace": target_workspace_id, "action": action}
+                result={
+                    "document_id": doc_id,
+                    "workspace": target_workspace_id,
+                    "action": action,
+                },
             )
         except Exception as e:
-            logger.error("background_workspace_op_failed", task_id=task_id, error=str(e), exc_info=True)
+            logger.error(
+                "background_workspace_op_failed",
+                task_id=task_id,
+                error=str(e),
+                exc_info=True,
+            )
             await task_service.update_task(
-                task_id, status="failed", message=str(e), error_code="WORKSPACE_OP_FAILED"
+                task_id,
+                status="failed",
+                message=str(e),
+                error_code="WORKSPACE_OP_FAILED",
             )
 
-    async def update_workspaces(self, doc_id: str, target_workspace_id: str, action: str, force_reindex: bool = False, task_id: str = None):
+    async def update_workspaces(
+        self,
+        doc_id: str,
+        target_workspace_id: str,
+        action: str,
+        force_reindex: bool = False,
+        task_id: str = None,
+    ):
         """Cross-workspace orchestration using internal doc_id."""
         if task_id and await task_service.is_cancelled(task_id):
             return
@@ -49,10 +83,15 @@ class CrossWorkspaceDocumentService:
             raise NotFoundError(f"Document '{doc_id}' not found.")
 
         if action == "link":
-            exists = await db.documents.find_one({"workspace_id": target_workspace_id, "content_hash": res["content_hash"]})
+            exists = await db.documents.find_one(
+                {
+                    "workspace_id": target_workspace_id,
+                    "content_hash": res["content_hash"],
+                }
+            )
             if exists:
-                return 
-                
+                return
+
             new_id = str(uuid.uuid4())[:8]
             new_doc = res.copy()
             if "_id" in new_doc:
@@ -61,45 +100,70 @@ class CrossWorkspaceDocumentService:
             new_doc["workspace_id"] = target_workspace_id
             new_doc["shared_with"] = []
             new_doc["status"] = "indexing"
-            new_doc["workspace_statuses"] = {target_workspace_id: "indexing", "vault": "indexing"}
+            new_doc["workspace_statuses"] = {
+                target_workspace_id: "indexing",
+                "vault": "indexing",
+            }
             new_doc["chunks"] = 0
             new_doc["created_at"] = datetime.utcnow().isoformat()
             new_doc["updated_at"] = new_doc["created_at"]
-            
+
             await db.documents.insert_one(new_doc)
-            await document_ingestion_service.index_document(new_id, target_workspace_id, task_id=task_id)
+            await document_ingestion_service.index_document(
+                new_id, target_workspace_id, task_id=task_id
+            )
             return
 
         # Always re-index if document is not in the target workspace's expected state
-        # or if forced by the user. Moves/Shares across workspaces always trigger 
+        # or if forced by the user. Moves/Shares across workspaces always trigger
         # independent indexing in this architecture.
-        await document_ingestion_service.index_document(res["id"], target_workspace_id, force=force_reindex, task_id=task_id)
+        await document_ingestion_service.index_document(
+            res["id"], target_workspace_id, force=force_reindex, task_id=task_id
+        )
         res = await db.documents.find_one({"id": res["id"]})
 
         if action == "move":
             source_ws_id = res["workspace_id"]
-            await db.documents.update_one({"id": res["id"]}, {"$set": {"workspace_id": target_workspace_id}})
-            
+            await db.documents.update_one(
+                {"id": res["id"]}, {"$set": {"workspace_id": target_workspace_id}}
+            )
+
             if source_ws_id != target_workspace_id:
                 if task_id:
-                    await task_service.update_task(task_id, progress=90, message="Cleaning up source workspace...")
+                    await task_service.update_task(
+                        task_id, progress=90, message="Cleaning up source workspace..."
+                    )
                 # FIX: get_collection_name is async and expects workspace_id
-                source_coll = await qdrant.get_collection_name(workspace_id=source_ws_id)
+                source_coll = await qdrant.get_collection_name(
+                    workspace_id=source_ws_id
+                )
                 if await qdrant.client.collection_exists(source_coll):
                     await qdrant.client.delete(
                         collection_name=source_coll,
-                        points_selector=qmodels.Filter(must=[
-                            qmodels.FieldCondition(key="doc_id", match=qmodels.MatchValue(value=res["id"])),
-                            qmodels.FieldCondition(key="workspace_id", match=qmodels.MatchValue(value=source_ws_id))
-                        ])
+                        points_selector=qmodels.Filter(
+                            must=[
+                                qmodels.FieldCondition(
+                                    key="doc_id",
+                                    match=qmodels.MatchValue(value=res["id"]),
+                                ),
+                                qmodels.FieldCondition(
+                                    key="workspace_id",
+                                    match=qmodels.MatchValue(value=source_ws_id),
+                                ),
+                            ]
+                        ),
                     )
         elif action == "share":
             await db.documents.update_one(
-                {"id": res["id"]}, 
+                {"id": res["id"]},
                 {
                     "$addToSet": {"shared_with": target_workspace_id},
-                    "$set": {f"workspace_statuses.{target_workspace_id}": res.get("status", "uploaded")}
-                }
+                    "$set": {
+                        f"workspace_statuses.{target_workspace_id}": res.get(
+                            "status", "uploaded"
+                        )
+                    },
+                },
             )
             updated_doc = await db.documents.find_one({"id": res["id"]})
             await qdrant.sync_shared_with(res["id"], updated_doc.get("shared_with", []))

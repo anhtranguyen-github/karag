@@ -35,7 +35,7 @@ class RAGService:
 
             span.set_attribute("rag.num_chunks", len(chunks))
             span.set_attribute("rag.text_length", len(text))
-            
+
             logger.debug(
                 "text_chunked",
                 num_chunks=len(chunks),
@@ -50,7 +50,7 @@ class RAGService:
     ) -> List[List[float]]:
         """Generate embeddings using the flexible provider via LangChain Factory."""
         from backend.app.core.factory import LangChainFactory
-        
+
         with tracer.start_as_current_span(
             "rag.generate_embeddings",
             attributes={
@@ -79,6 +79,7 @@ class RAGService:
     ) -> List[float]:
         """Generate embedding for a single query."""
         from backend.app.core.factory import LangChainFactory
+
         provider = await LangChainFactory.get_embeddings(workspace_id)
         return await provider.aembed_query(query)
 
@@ -102,24 +103,23 @@ class RAGService:
             },
         ):
             start = time.perf_counter()
-            
+
             # Use retriever factory to get the configured implementation layer
             retriever = await LangChainFactory.get_retriever(workspace_id)
-            
+
             # Execute retrieval
             # Note: LangChain retrievers return Document objects, we map them back to our result schema
             docs = await retriever.ainvoke(query)
-            
+
             results = []
             for doc in docs:
-                results.append({
-                    "text": doc.page_content,
-                    "payload": {
+                results.append(
+                    {
                         "text": doc.page_content,
-                        **doc.metadata
-                    },
-                    "score": getattr(doc, "score", None)
-                })
+                        "payload": {"text": doc.page_content, **doc.metadata},
+                        "score": getattr(doc, "score", None),
+                    }
+                )
 
             duration = time.perf_counter() - start
             logger.info(
@@ -131,12 +131,11 @@ class RAGService:
 
             return results
 
-
     async def execute(
         self,
         query: str,
         workspace_id: str,
-        settings: Optional[Any] = None, # RuntimeSettings
+        settings: Optional[Any] = None,  # RuntimeSettings
     ) -> Dict[str, Any]:
         """
         Execute the RAG flow via the LangGraph orchestrator.
@@ -177,7 +176,7 @@ class RAGService:
             metadata["loops"] = final_state.get("loop_count", 0)
             metadata["final_confidence"] = final_state.get("confidence_level")
             metadata["queries"] = final_state.get("generated_queries", [])
-            
+
             logger.info(
                 "graph_execution_complete",
                 mode=settings.execution_mode,
@@ -186,9 +185,14 @@ class RAGService:
             )
 
             return {
-                "answer": final_state.get("final_answer") or (final_state.get("draft_answers")[0] if final_state.get("draft_answers") else "No answer generated."),
+                "answer": final_state.get("final_answer")
+                or (
+                    final_state.get("draft_answers")[0]
+                    if final_state.get("draft_answers")
+                    else "No answer generated."
+                ),
                 "context": final_state.get("final_context", ""),
-                "tracing": metadata
+                "tracing": metadata,
             }
 
 

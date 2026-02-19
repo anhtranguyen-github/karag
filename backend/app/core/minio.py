@@ -48,10 +48,17 @@ class MinioManager:
                     try:
                         from minio.versioningconfig import VersioningConfig
                         from minio.commonconfig import ENABLED
-                        self.client.set_bucket_versioning(bucket, VersioningConfig(ENABLED))
+
+                        self.client.set_bucket_versioning(
+                            bucket, VersioningConfig(ENABLED)
+                        )
                         logger.info("minio_versioning_enabled", bucket=bucket)
                     except Exception as ve:
-                        logger.warning("minio_versioning_config_failed", bucket=bucket, error=str(ve))
+                        logger.warning(
+                            "minio_versioning_config_failed",
+                            bucket=bucket,
+                            error=str(ve),
+                        )
                 else:
                     logger.debug("minio_bucket_exists", bucket=bucket)
             except S3Error as e:
@@ -99,16 +106,14 @@ class MinioManager:
         # Strip bucket prefix if present (stored minio_path format: bucket/filename)
         bucket_prefix = f"{ai_settings.MINIO_BUCKET}/"
         if object_name.startswith(bucket_prefix):
-            object_name = object_name[len(bucket_prefix):]
+            object_name = object_name[len(bucket_prefix) :]
 
         with tracer.start_as_current_span(
             "minio.get_file",
             attributes={"minio.object": object_name},
         ):
             try:
-                response = self.client.get_object(
-                    ai_settings.MINIO_BUCKET, object_name
-                )
+                response = self.client.get_object(ai_settings.MINIO_BUCKET, object_name)
                 return response.read()
             except Exception as e:
                 logger.error("minio_download_error", object=object_name, error=str(e))
@@ -127,18 +132,18 @@ class MinioManager:
                 object_name,
                 expires=expires_hours * 3600,
             )
-            
+
             # Rewrite internal Docker hostname to localhost for host-based client access
             if "ai-minio" in url:
                 url = url.replace("ai-minio", "localhost")
-                
+
             return url
         except Exception as e:
             logger.error(
-                "minio_presigned_url_error", 
-                object=object_name, 
+                "minio_presigned_url_error",
+                object=object_name,
                 error=str(e),
-                error_type=type(e).__name__
+                error_type=type(e).__name__,
             )
             return None
 

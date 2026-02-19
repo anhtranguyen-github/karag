@@ -1,7 +1,13 @@
 from langgraph.graph import StateGraph, START, END
 from langgraph.prebuilt import ToolNode
 from backend.app.graph.state import AgentState
-from backend.app.graph.nodes import retrieval_node, rerank_node, reason_node, generate_node, summarize_node
+from backend.app.graph.nodes import (
+    retrieval_node,
+    rerank_node,
+    reason_node,
+    generate_node,
+    summarize_node,
+)
 from backend.app.tools.registry import get_tools
 
 # 1. Initialize Graph
@@ -19,20 +25,18 @@ workflow.add_node("summarize", summarize_node)
 workflow.add_edge(START, "retrieve")
 workflow.add_edge("retrieve", "rerank")
 
+
 def should_reason(state: AgentState):
     """Router to decide if we should use the agentic reasoning loop."""
     if state.get("agentic_enabled", True):
         return "reason"
     return "generate"
 
+
 workflow.add_conditional_edges(
-    "rerank",
-    should_reason,
-    {
-        "reason": "reason",
-        "generate": "generate"
-    }
+    "rerank", should_reason, {"reason": "reason", "generate": "generate"}
 )
+
 
 def should_continue(state: AgentState):
     """Router to decide between tools and final generation."""
@@ -41,16 +45,13 @@ def should_continue(state: AgentState):
         return "tools"
     return "generate"
 
+
 workflow.add_conditional_edges(
-    "reason",
-    should_continue,
-    {
-        "tools": "tools",
-        "generate": "generate"
-    }
+    "reason", should_continue, {"tools": "tools", "generate": "generate"}
 )
 
 workflow.add_edge("tools", "reason")
+
 
 def should_summarize(state: AgentState):
     """Router to decide if history should be summarized."""
@@ -59,13 +60,9 @@ def should_summarize(state: AgentState):
         return "summarize"
     return END
 
+
 workflow.add_conditional_edges(
-    "generate",
-    should_summarize,
-    {
-        "summarize": "summarize",
-        END: END
-    }
+    "generate", should_summarize, {"summarize": "summarize", END: END}
 )
 
 workflow.add_edge("summarize", END)
@@ -73,17 +70,21 @@ workflow.add_edge("summarize", END)
 # 4. Compile with Persistence (Lazy loaded)
 _app = None
 
+
 def get_graph_app():
     global _app
     if _app is None:
         from langgraph.checkpoint.mongodb import MongoDBSaver
         from backend.app.core.config import ai_settings
         from backend.app.core.mongodb import mongodb_manager
-        
+
         # Compile with Persistence
-        checkpointer = MongoDBSaver(mongodb_manager.client, db_name=ai_settings.MONGO_DB)
+        checkpointer = MongoDBSaver(
+            mongodb_manager.client, db_name=ai_settings.MONGO_DB
+        )
         _app = workflow.compile(checkpointer=checkpointer)
     return _app
+
 
 # For backward compatibility with existing imports
 # We create a proxy that calls get_graph_app() or just use the function
@@ -91,8 +92,9 @@ class AppProxy:
     async def ainvoke(self, *args, **kwargs):
         app = get_graph_app()
         return await app.ainvoke(*args, **kwargs)
-    
+
     def __getattr__(self, name):
         return getattr(get_graph_app(), name)
+
 
 app = AppProxy()

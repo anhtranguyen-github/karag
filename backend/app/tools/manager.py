@@ -15,6 +15,7 @@ logger = structlog.get_logger(__name__)
 DATA_DIR = BASE_DIR / "backend" / "data"
 DATA_FILE_ID = "tools.json"
 
+
 class ToolManager:
     def __init__(self):
         self._tools: List[ToolDefinition] = []
@@ -57,27 +58,29 @@ class ToolManager:
                 "id": "calculator",
                 "name": "calculator",
                 "description": "Evaluate a mathematical expression safely.",
-                "type": "system"
+                "type": "system",
             }
         ]
-        
+
         if os.getenv("TAVILY_API_KEY"):
-            system_tools.append({
-                "id": "tavily_search",
-                "name": "tavily_search",
-                "description": "Search the web using Tavily.",
-                "type": "system"
-            })
+            system_tools.append(
+                {
+                    "id": "tavily_search",
+                    "name": "tavily_search",
+                    "description": "Search the web using Tavily.",
+                    "type": "system",
+                }
+            )
 
         changed = False
         existing_ids = {t.id for t in self._tools}
-        
+
         for st in system_tools:
             if st["id"] not in existing_ids:
-                logger.info("system_tool_added", tool=st['name'])
+                logger.info("system_tool_added", tool=st["name"])
                 self._tools.append(ToolDefinition(**st))
                 changed = True
-        
+
         if changed:
             self.save_tools()
 
@@ -97,7 +100,7 @@ class ToolManager:
             self.save_tools()
             return tool
         return None
-    
+
     def add_tool(self, tool: ToolDefinition):
         self._tools.append(tool)
         self.save_tools()
@@ -113,13 +116,14 @@ class ToolManager:
         for t in self._tools:
             if not t.enabled:
                 continue
-            
+
             if t.id == "calculator":
                 active_tools.append(calculator)
             elif t.id == "tavily_search" and os.getenv("TAVILY_API_KEY"):
                 active_tools.append(TavilySearchResults(max_results=3))
             # Future: Handle 'custom' and 'mcp' types here
-        
+
         return active_tools
+
 
 tool_manager = ToolManager()

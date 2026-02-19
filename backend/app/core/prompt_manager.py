@@ -5,11 +5,13 @@ import structlog
 
 logger = structlog.get_logger(__name__)
 
+
 class PromptManager:
     """
-    Central manager for LLM prompts. 
+    Central manager for LLM prompts.
     Supports versioning and hot-reloading (in dev).
     """
+
     def __init__(self, registry_path: Optional[Path] = None):
         self.registry_path = registry_path or Path(__file__).parent / "prompts.yaml"
         self._registry: Dict[str, Any] = {}
@@ -33,7 +35,7 @@ class PromptManager:
         try:
             current = self._registry
             for part in parts:
-                if part == parts[0]: # First part is the task name
+                if part == parts[0]:  # First part is the task name
                     current = current[part][version]
                 else:
                     current = current[part]
@@ -49,6 +51,7 @@ class PromptManager:
     def format_prompt(self, template: str, **kwargs) -> str:
         """Format a template string with provided variables."""
         return template.format(**kwargs)
+
 
 # Global Singleton
 prompt_manager = PromptManager()

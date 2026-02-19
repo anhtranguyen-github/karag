@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 
+
 class AISettings(BaseSettings):
     # LLM Configuration
     LLM_PROVIDER: str = "openai"  # openai, anthropic, ollama, vllm, llama-cpp
@@ -12,7 +13,7 @@ class AISettings(BaseSettings):
     LLAMACPP_BASE_URL: str = "http://localhost:8081/v1"
     BACKEND_HOST: str = "0.0.0.0"  # nosec B104
     BACKEND_PORT: int = 8000
-    
+
     # Embedding Configuration
     EMBEDDING_PROVIDER: str = "openai"  # openai, voyage, local, ollama, vllm, llama-cpp
     EMBEDDING_MODEL: str = "text-embedding-3-small"
@@ -20,12 +21,12 @@ class AISettings(BaseSettings):
     COHERE_API_KEY: Optional[str] = None
     JINA_API_KEY: Optional[str] = None
     LOCAL_EMBEDDING_MODEL: str = "BAAI/bge-large-en-v1.5"
-    
+
     # RAG Configuration
     QDRANT_HOST: str = "localhost"
     QDRANT_PORT: int = 6333
     HYBRID_SEARCH_ALPHA: float = 0.5  # Balance between vector and keyword
-    
+
     # MongoDB Configuration
     MONGO_URI: str = "mongodb://localhost:27017"
     MONGO_DB: str = "ai_architect"
@@ -36,7 +37,7 @@ class AISettings(BaseSettings):
     MINIO_SECRET_KEY: str = "minioadmin"
     MINIO_SECURE: bool = False
     MINIO_BUCKET: str = "rag-docs"
-    
+
     # Neo4j Configuration
     NEO4J_URI: str = "bolt://localhost:7687"
     NEO4J_USER: str = "neo4j"
@@ -54,10 +55,8 @@ class AISettings(BaseSettings):
 
     # API Configuration
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
-    
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        extra="allow"
-    )
+
+    model_config = SettingsConfigDict(env_file=".env", extra="allow")
+
 
 ai_settings = AISettings()

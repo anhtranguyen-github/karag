@@ -120,7 +120,7 @@ ACTIVE_STREAMS = Gauge(
 LLM_TOKEN_USAGE = Counter(
     "llm_tokens_total",
     "Total LLM tokens consumed",
-    ["provider", "model", "token_type"], # token_type = prompt or completion
+    ["provider", "model", "token_type"],  # token_type = prompt or completion
 )
 
 
@@ -143,8 +143,12 @@ def record_llm_usage(
             span.set_attribute("workspace_id", workspace_id)
 
     # Prometheus metrics
-    LLM_TOKEN_USAGE.labels(provider=provider, model=model, token_type="prompt").inc(prompt_tokens)  # nosec B106
-    LLM_TOKEN_USAGE.labels(provider=provider, model=model, token_type="completion").inc(completion_tokens)  # nosec B106
+    LLM_TOKEN_USAGE.labels(provider=provider, model=model, token_type="prompt").inc(
+        prompt_tokens
+    )  # nosec B106
+    LLM_TOKEN_USAGE.labels(provider=provider, model=model, token_type="completion").inc(
+        completion_tokens
+    )  # nosec B106
 
 
 def configure_logging(log_format: str = "json", log_level: str = "INFO") -> None:
@@ -183,7 +187,7 @@ def configure_logging(log_format: str = "json", log_level: str = "INFO") -> None
     # Also configure stdlib logging to use structlog formatting
     # so existing `logging.getLogger()` calls get structured output
     handlers = [logging.StreamHandler()]
-    
+
     if ai_settings.LOG_FILE:
         log_path = Path(ai_settings.LOG_FILE)
         log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -191,14 +195,14 @@ def configure_logging(log_format: str = "json", log_level: str = "INFO") -> None
             RotatingFileHandler(
                 ai_settings.LOG_FILE,
                 maxBytes=10 * 1024 * 1024,  # 10MB
-                backupCount=5
+                backupCount=5,
             )
         )
 
     logging.basicConfig(
         format="%(message)s",
         level=getattr(logging, log_level.upper(), logging.INFO),
-        handlers=handlers
+        handlers=handlers,
     )
 
 
@@ -226,6 +230,7 @@ def configure_tracing(
         from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
             OTLPSpanExporter,
         )
+
         exporter = OTLPSpanExporter(endpoint=endpoint, insecure=True)
         provider.add_span_processor(BatchSpanProcessor(exporter))
     except Exception:
@@ -293,6 +298,7 @@ def traced(
     - correlation_id from ContextVar (if set)
     - Error status + exception details on failure
     """
+
     def decorator(func: Callable) -> Callable:
         name = span_name or f"{func.__module__}.{func.__qualname__}"
         tracer = get_tracer(func.__module__)
@@ -318,4 +324,5 @@ def traced(
                     raise
 
         return wrapper
+
     return decorator

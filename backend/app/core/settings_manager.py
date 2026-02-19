@@ -21,18 +21,20 @@ _CURRENT_FILE = Path(__file__).resolve()
 # .parent -> core
 # .parent -> app
 # .parent -> backend
-# .parent -> karag 
+# .parent -> karag
 PROJECT_ROOT = _CURRENT_FILE.parent.parent.parent.parent
 DATA_DIR = PROJECT_ROOT / "backend/data"
 
+
 class SettingsManager:
-    def __init__(self, config_file: str = "settings.json", config_path: Optional[Path] = None):
+    def __init__(
+        self, config_file: str = "settings.json", config_path: Optional[Path] = None
+    ):
         # INTERNAL ONLY: Controlled mapping to data directory
         if config_path:
             self.config_path = Path(config_path)
         else:
             self.config_path = DATA_DIR / config_file
-
 
         self._global_settings: AppSettings = self._load_initial_settings()
         # Ensure fallback file exists
@@ -57,7 +59,7 @@ class SettingsManager:
                     settings_data = json.load(f)
             except Exception as e:
                 logger.error("settings_load_error", error=str(e))
-        
+
         # Priority: Env Var > settings.json > defaults in config.py
         # Check for environment overrides specifically
         env_overrides = {
@@ -69,7 +71,7 @@ class SettingsManager:
             "neo4j_user": os.getenv("NEO4J_USER"),
             "neo4j_password": os.getenv("NEO4J_PASSWORD"),
         }
-        
+
         # Merge: settings_data has priority over config defaults, but env_overrides has highest priority
         merged_data = {
             "llm_provider": ai_settings.LLM_PROVIDER,
@@ -82,7 +84,7 @@ class SettingsManager:
         }
         merged_data.update(settings_data)
         merged_data.update({k: v for k, v in env_overrides.items() if v is not None})
-        
+
         return AppSettings(**merged_data)
 
     def get_global_settings(self) -> AppSettings:
@@ -97,52 +99,70 @@ class SettingsManager:
             db = mongodb_manager.get_async_database()
             # We store workspace settings in a separate collection or inside the workspace doc
             # Let's use a 'workspace_settings' collection for better isolation
-            ws_settings_doc = await db["workspace_settings"].find_one({"workspace_id": workspace_id})
-            
+            ws_settings_doc = await db["workspace_settings"].find_one(
+                {"workspace_id": workspace_id}
+            )
+
             if not ws_settings_doc:
                 return self._global_settings
 
             # Merge workspace settings over global ones
             merged_data = self._global_settings.model_dump()
             # Remove mongo _id and workspace_id from doc before merging
-            override_data = {k: v for k, v in ws_settings_doc.items() if k not in ["_id", "workspace_id"]}
+            override_data = {
+                k: v
+                for k, v in ws_settings_doc.items()
+                if k not in ["_id", "workspace_id"]
+            }
             merged_data.update(override_data)
-            
+
             try:
                 return AppSettings(**merged_data)
             except PydanticValidationError as e:
-                logger.error("settings_schema_mismatch", workspace_id=workspace_id, error=str(e))
+                logger.error(
+                    "settings_schema_mismatch", workspace_id=workspace_id, error=str(e)
+                )
                 return self._global_settings
         except Exception as e:
-            logger.error("settings_fetch_error", workspace_id=workspace_id, error=str(e))
+            logger.error(
+                "settings_fetch_error", workspace_id=workspace_id, error=str(e)
+            )
             return self._global_settings
 
     def get_settings_metadata(self) -> Dict[str, Any]:
         """Discover settings metadata from the AppSettings schema recursively."""
         return self._discover_metadata(AppSettings)
 
-    def _discover_metadata(self, model_class: Any, prefix: str = "", category: Optional[str] = None, mutable: bool = True) -> Dict[str, Any]:
+    def _discover_metadata(
+        self,
+        model_class: Any,
+        prefix: str = "",
+        category: Optional[str] = None,
+        mutable: bool = True,
+    ) -> Dict[str, Any]:
         """Recursively discover fields in Pydantic models."""
         import typing
         from pydantic import BaseModel
 
         metadata = {}
-        
+
         # Determine fields to iterate
-        fields = model_class.model_fields if hasattr(model_class, "model_fields") else {}
-        
+        fields = (
+            model_class.model_fields if hasattr(model_class, "model_fields") else {}
+        )
+
         for name, field in fields.items():
             full_name = f"{prefix}{name}"
             extra = field.json_schema_extra or {}
-            
+
             # Inherit or override category/mutable
             current_category = extra.get("category", category)
             current_mutable = extra.get("mutable", mutable)
-            
+
             # Resolve annotation
             annotation = field.annotation
             origin = getattr(annotation, "__origin__", None)
-            
+
             # Unwrap Optional
             if origin is typing.Union:
                 args = [a for a in annotation.__args__ if a is not type(None)]
@@ -154,10 +174,10 @@ class SettingsManager:
             if isinstance(annotation, type) and issubclass(annotation, BaseModel):
                 # Recurse into nested model
                 nested_metadata = self._discover_metadata(
-                    annotation, 
-                    prefix=f"{full_name}.", 
+                    annotation,
+                    prefix=f"{full_name}.",
                     category=current_category,
-                    mutable=current_mutable
+                    mutable=current_mutable,
                 )
                 metadata.update(nested_metadata)
                 continue
@@ -165,9 +185,9 @@ class SettingsManager:
             # Case 2: Annotated / Union of Models (Strategies)
             # For now, we only show the shared discriminator if it's at the top level
             # but if it's a nested strategy, we might need a more complex UI
-            # For this simple discovery, we'll skip the nested internal fields of unions 
+            # For this simple discovery, we'll skip the nested internal fields of unions
             # and let the frontend handle "strategy" selection which then toggles others.
-            
+
             # Skip fields without a category if we are at root
             if not category and "category" not in extra:
                 continue
@@ -175,7 +195,7 @@ class SettingsManager:
             field_data: Dict[str, Any] = {
                 "mutable": current_mutable,
                 "category": current_category or "General",
-                "description": field.description or ""
+                "description": field.description or "",
             }
 
             if origin is Literal:
@@ -195,7 +215,7 @@ class SettingsManager:
             if field.default is not None and field.default is not PydanticUndefined:
                 field_data["default"] = field.default
 
-            for constraint in (field.metadata or []):
+            for constraint in field.metadata or []:
                 if hasattr(constraint, "ge"):
                     field_data["min"] = constraint.ge
                 if hasattr(constraint, "le"):
@@ -205,14 +225,14 @@ class SettingsManager:
                 field_data["step"] = 0.05
 
             metadata[full_name] = field_data
-            
+
         return metadata
 
     def _expand_flat_dict(self, flat_dict: Dict[str, Any]) -> Dict[str, Any]:
         """Convert a flat dict with dot-notation keys to a nested dict."""
         nested = {}
         for key, value in flat_dict.items():
-            parts = key.split('.')
+            parts = key.split(".")
             d = nested
             for part in parts[:-1]:
                 if part not in d or not isinstance(d[part], dict):
@@ -221,22 +241,24 @@ class SettingsManager:
             d[parts[-1]] = value
         return nested
 
-    async def update_settings(self, updates: Dict[str, Any], workspace_id: Optional[str] = None) -> AppSettings:
+    async def update_settings(
+        self, updates: Dict[str, Any], workspace_id: Optional[str] = None
+    ) -> AppSettings:
         """Update settings for a workspace or global."""
-        
+
         # 1. Audit: Prevent modification of core parameters based on schema metadata
         metadata = self.get_settings_metadata()
-        
+
         if workspace_id and workspace_id != "default":
             unsupported = []
             for key in updates:
                 if key in metadata and not metadata[key]["mutable"]:
                     unsupported.append(key)
-            
+
             if unsupported:
                 raise ValidationError(
                     message=f"The following parameters are immutable for existing workspaces: {', '.join(unsupported)}. These require workspace re-creation or structural rebuilds.",
-                    params={"immutable_fields": unsupported}
+                    params={"immutable_fields": unsupported},
                 )
 
         try:
@@ -251,30 +273,32 @@ class SettingsManager:
             current = await self.get_settings(workspace_id)
             current_data = current.model_dump()
             expanded_updates = self._expand_flat_dict(updates)
-            
+
             # Deep merge logic for expanded_updates into current_data
             def deep_update(target, source):
                 for k, v in source.items():
-                    if isinstance(v, dict) and k in target and isinstance(target[k], dict):
+                    if (
+                        isinstance(v, dict)
+                        and k in target
+                        and isinstance(target[k], dict)
+                    ):
                         deep_update(target[k], v)
                     else:
                         target[k] = v
-            
+
             deep_update(current_data, expanded_updates)
-            AppSettings(**current_data) # Dry run validation
-            
+            AppSettings(**current_data)  # Dry run validation
+
             db = mongodb_manager.get_async_database()
             await db["workspace_settings"].update_one(
-                {"workspace_id": workspace_id},
-                {"$set": updates},
-                upsert=True
+                {"workspace_id": workspace_id}, {"$set": updates}, upsert=True
             )
             return await self.get_settings(workspace_id)
         except PydanticValidationError as e:
             raise ValidationError(
-                message="Invalid settings configuration.",
-                params={"errors": e.errors()}
+                message="Invalid settings configuration.", params={"errors": e.errors()}
             )
+
 
 # Global singleton
 settings_manager = SettingsManager()

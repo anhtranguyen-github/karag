@@ -99,14 +99,14 @@ class ChatService:
             return {
                 "id": thread_id,
                 "title": f"Chat {thread_id[:8]}",
-                "workspace_id": "default"
+                "workspace_id": "default",
             }
         return {
             "id": thread_id,
             "title": meta.get("title", f"Chat {thread_id[:8]}"),
             "workspace_id": meta.get("workspace_id", "default"),
             "has_thinking": meta.get("has_thinking", False),
-            "tags": meta.get("tags", [])
+            "tags": meta.get("tags", []),
         }
 
     @staticmethod
@@ -150,28 +150,33 @@ class ChatService:
                     return
 
                 from backend.app.core.prompt_manager import prompt_manager
-                sys_tem = prompt_manager.get_prompt("title_generator.system", version="v1")
+
+                sys_tem = prompt_manager.get_prompt(
+                    "title_generator.system", version="v1"
+                )
                 user_msg = prompt_manager.format_prompt(
                     prompt_manager.get_prompt("title_generator.user", version="v1"),
-                    message=message
+                    message=message,
                 )
 
                 llm = await get_llm(workspace_id)
-                response = await llm.ainvoke([
-                    SystemMessage(content=sys_tem),
-                    HumanMessage(content=user_msg)
-                ])
+                response = await llm.ainvoke(
+                    [SystemMessage(content=sys_tem), HumanMessage(content=user_msg)]
+                )
 
                 # Record usage
                 usage = getattr(response, "usage_metadata", {})
                 if usage:
                     from backend.app.core.telemetry import record_llm_usage
+
                     record_llm_usage(
                         provider=type(llm).__name__,
-                        model=getattr(llm, "model_name", getattr(llm, "model", "unknown")),
+                        model=getattr(
+                            llm, "model_name", getattr(llm, "model", "unknown")
+                        ),
                         prompt_tokens=usage.get("input_tokens", 0),
                         completion_tokens=usage.get("output_tokens", 0),
-                        workspace_id=workspace_id
+                        workspace_id=workspace_id,
                     )
                 content = response.content.strip()
 
@@ -215,11 +220,19 @@ class ChatService:
 
     @staticmethod
     async def stream_updates(
-        message: str, thread_id: str, workspace_id: str, execution: Optional[Dict[str, Any]] = None
+        message: str,
+        thread_id: str,
+        workspace_id: str,
+        execution: Optional[Dict[str, Any]] = None,
     ) -> AsyncGenerator[str, None]:
         """Stream event updates from the LangGraph execution with robust error handling."""
-        logger.info("stream_updates_entered", workspace_id=workspace_id, thread_id=thread_id, execution=execution)
-        
+        logger.info(
+            "stream_updates_entered",
+            workspace_id=workspace_id,
+            thread_id=thread_id,
+            execution=execution,
+        )
+
         # Track active streams
         ACTIVE_STREAMS.inc()
         span = tracer.start_span(
@@ -249,21 +262,23 @@ class ChatService:
                     "loop_count": 0,
                     "confidence_level": 0.0,
                     "is_sufficient": False,
-                    "execution_metadata": {"nodes_visited": []}
+                    "execution_metadata": {"nodes_visited": []},
                 }
 
-                async for event in rag_executor.astream_events(initial_state, version="v2"):
+                async for event in rag_executor.astream_events(
+                    initial_state, version="v2"
+                ):
                     kind = event["event"]
                     node_name = event.get("name", "")
 
                     if kind == "on_chain_start":
                         yield f"data: {json.dumps({'type': 'thought', 'step': f'Entering {node_name} node'})}\n\n"
-                    
+
                     if kind == "on_chat_model_stream":
                         content = event["data"]["chunk"].content
                         if content:
                             yield f"data: {json.dumps({'type': 'content', 'delta': content})}\n\n"
-                    
+
                     if kind == "on_chain_end" and node_name == "LangGraph":
                         final_output = event["data"].get("output", {})
                         if "execution_metadata" in final_output:
@@ -277,7 +292,7 @@ class ChatService:
                     "workspace_id": workspace_id,
                 }
                 config = {"configurable": {"thread_id": thread_id}}
-                
+
                 async for event in graph_app.astream_events(
                     inputs, config=config, version="v2"
                 ):
@@ -326,6 +341,7 @@ class ChatService:
 
         except Exception as e:
             import traceback
+
             traceback.print_exc()
             logger.error(
                 "chat_stream_failed",

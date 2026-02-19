@@ -113,7 +113,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
     def _normalize_path(path: str) -> str:
         """
         Replace dynamic path segments with placeholders for bounded cardinality.
-        
+
         Examples:
             /chat/history/abc123 → /chat/history/{id}
             /documents/my-paper.pdf → /documents/{name}

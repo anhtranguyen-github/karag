@@ -26,35 +26,45 @@ async def lifespan(app: FastAPI):
     from backend.app.rag.qdrant_provider import qdrant
 
     from backend.app.core.path_utils import BASE_DIR
-    logger.info("infra_init_start", msg="Initializing Infrastructure...", base_dir=str(BASE_DIR))
+
+    logger.info(
+        "infra_init_start", msg="Initializing Infrastructure...", base_dir=str(BASE_DIR)
+    )
     minio_manager.ensure_bucket()
-    
+
     # Dynamically ensure active collection exists (Must follow AI Settings / OpenAI Contract)
     from backend.app.core.settings_manager import settings_manager
+
     global_settings = settings_manager.get_global_settings()
     target_dim = global_settings.embedding_dim
     coll_name = await qdrant.get_collection_name()
-    
-    logger.info("vector_init", msg=f"Ensuring active collection: {coll_name} (Dim: {target_dim})")
+
+    logger.info(
+        "vector_init",
+        msg=f"Ensuring active collection: {coll_name} (Dim: {target_dim})",
+    )
     await qdrant.create_collection(coll_name, target_dim)
 
     # Cleanup old completed/failed tasks
     from backend.app.services.task.task_service import task_service
+
     await task_service.reset_running_tasks_on_startup()
     await task_service.cleanup_old_tasks(older_than_hours=24)
 
     # Start Background Task Worker for resilience
     from backend.app.services.task.task_worker import task_worker
+
     await task_worker.start()
 
     logger.info("infra_init_complete", msg="Infrastructure ready.")
     yield
-    
+
     # STOP worker on shutdown
     await task_worker.stop()
-    
+
     # Close Neo4j driver
     from backend.app.core.neo4j import neo4j_manager
+
     await neo4j_manager.close()
 
 
@@ -119,26 +129,34 @@ def create_app() -> FastAPI:
         )
         # Manually attach CORS headers to ensure they are present on error responses
         origin = request.headers.get("origin")
-        if origin and (origin in ai_settings.CORS_ORIGINS or "*" in ai_settings.CORS_ORIGINS):
+        if origin and (
+            origin in ai_settings.CORS_ORIGINS or "*" in ai_settings.CORS_ORIGINS
+        ):
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Credentials"] = "true"
         return response
 
     @app.exception_handler(Exception)
     async def catch_all_exception_handler(request: Request, exc: Exception):
-        logger.error("unhandled_exception", error=str(exc), path=request.url.path, exc_info=True)
+        logger.error(
+            "unhandled_exception", error=str(exc), path=request.url.path, exc_info=True
+        )
         response = JSONResponse(
             status_code=500,
             content={
                 "success": False,
                 "code": "INTERNAL_SERVER_ERROR",
                 "message": "An unexpected error occurred.",
-                "data": {"detail": str(exc)} if ai_settings.LOG_LEVEL == "DEBUG" else None,
+                "data": {"detail": str(exc)}
+                if ai_settings.LOG_LEVEL == "DEBUG"
+                else None,
             },
         )
         # Manually attach CORS headers to ensure they are present on error responses
         origin = request.headers.get("origin")
-        if origin and (origin in ai_settings.CORS_ORIGINS or "*" in ai_settings.CORS_ORIGINS):
+        if origin and (
+            origin in ai_settings.CORS_ORIGINS or "*" in ai_settings.CORS_ORIGINS
+        ):
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Credentials"] = "true"
         return response

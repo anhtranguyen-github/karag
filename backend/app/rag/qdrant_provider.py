@@ -25,16 +25,22 @@ class QdrantProvider:
             for c in collections_resp.collections:
                 info = await self.client.get_collection(c.name)
                 # handle both named and simple models
-                collections.append({
-                    "name": c.name,
-                    "status": str(info.status),
-                    "points_count": info.points_count,
-                    "segments_count": info.segments_count,
-                    "config": {
-                        "vector_size": info.config.params.vectors.size if hasattr(info.config.params, 'vectors') else 0,
-                        "distance": str(info.config.params.vectors.distance) if hasattr(info.config.params, 'vectors') else "N/A",
+                collections.append(
+                    {
+                        "name": c.name,
+                        "status": str(info.status),
+                        "points_count": info.points_count,
+                        "segments_count": info.segments_count,
+                        "config": {
+                            "vector_size": info.config.params.vectors.size
+                            if hasattr(info.config.params, "vectors")
+                            else 0,
+                            "distance": str(info.config.params.vectors.distance)
+                            if hasattr(info.config.params, "vectors")
+                            else "N/A",
+                        },
                     }
-                })
+                )
             return {
                 "collections": collections,
                 "host": ai_settings.QDRANT_HOST,
@@ -47,12 +53,11 @@ class QdrantProvider:
     async def get_collection_name(self, workspace_id: Optional[str] = None) -> str:
         """Determines the Qdrant collection name based on current settings."""
         from backend.app.core.settings_manager import settings_manager
+
         settings = await settings_manager.get_settings(workspace_id)
         return f"knowledge_base_{settings.embedding_dim}"
 
-    async def create_collection(
-        self, collection_name: str, vector_size: int = 1536
-    ):
+    async def create_collection(self, collection_name: str, vector_size: int = 1536):
         """Create a new collection with optimized HNSW and keyword indexing."""
         with tracer.start_as_current_span(
             "qdrant.create_collection",
@@ -86,9 +91,7 @@ class QdrantProvider:
                 return True
             return False
 
-    async def upsert_documents(
-        self, collection_name: str, vectors, ids, payloads
-    ):
+    async def upsert_documents(self, collection_name: str, vectors, ids, payloads):
         """Upsert vectors into the collection."""
         with tracer.start_as_current_span(
             "qdrant.upsert",
@@ -378,15 +381,11 @@ class QdrantProvider:
                 return None
 
             try:
-                sorted_points = sorted(
-                    points, key=lambda x: x.payload.get("index", 0)
-                )
+                sorted_points = sorted(points, key=lambda x: x.payload.get("index", 0))
             except Exception:
                 sorted_points = points
 
-            content = "\n\n".join(
-                [p.payload.get("text", "") for p in sorted_points]
-            )
+            content = "\n\n".join([p.payload.get("text", "") for p in sorted_points])
             return content
 
     async def get_document_centroids(self, workspace_id: str):
@@ -450,7 +449,9 @@ class QdrantProvider:
 
     async def sync_shared_with(self, doc_id: str, shared_with: List[str]):
         """Update shared_with list in Qdrant payloads for all points of a document."""
-        with tracer.start_as_current_span("qdrant.sync_shared_with", attributes={"doc_id": doc_id}):
+        with tracer.start_as_current_span(
+            "qdrant.sync_shared_with", attributes={"doc_id": doc_id}
+        ):
             # Iterate through known potential collections
             for dim in [384, 512, 768, 896, 1024, 1536, 1792, 3072]:
                 coll = f"knowledge_base_{dim}"
@@ -458,11 +459,18 @@ class QdrantProvider:
                     await self.client.set_payload(
                         collection_name=coll,
                         payload={"shared_with": shared_with},
-                        points_selector=qmodels.Filter(must=[
-                            qmodels.FieldCondition(key="doc_id", match=qmodels.MatchValue(value=doc_id))
-                        ])
+                        points_selector=qmodels.Filter(
+                            must=[
+                                qmodels.FieldCondition(
+                                    key="doc_id", match=qmodels.MatchValue(value=doc_id)
+                                )
+                            ]
+                        ),
                     )
-            logger.info("qdrant_shared_with_synced", doc_id=doc_id, count=len(shared_with))
+            logger.info(
+                "qdrant_shared_with_synced", doc_id=doc_id, count=len(shared_with)
+            )
+
 
 # Global instance (fixed: removed duplicate)
 qdrant = QdrantProvider()

@@ -4,6 +4,7 @@ Persistent Task Service — MongoDB-backed job tracking.
 All long-running operations (upload, indexing, linking, move/share)
 create a Task record that persists across server restarts.
 """
+
 import uuid
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
@@ -33,12 +34,15 @@ class TaskService:
             "id": task_id,
             "type": task_type,
             "status": "pending",
-            "priority": metadata.get("priority", 1) if metadata else 1, # Default priority 1
+            "priority": metadata.get("priority", 1)
+            if metadata
+            else 1,  # Default priority 1
             "progress": 0,
             "message": "Initializing...",
             "error_code": None,
             "metadata": metadata or {},
-            "workspace_id": workspace_id or (metadata or {}).get("workspace_id", "default"),
+            "workspace_id": workspace_id
+            or (metadata or {}).get("workspace_id", "default"),
             "result": None,
             "created_at": now,
             "updated_at": now,
@@ -105,7 +109,12 @@ class TaskService:
         if not include_completed:
             query["status"] = {"$in": ["pending", "processing"]}
 
-        cursor = db[self.COLLECTION].find(query).sort([("priority", -1), ("created_at", -1)]).limit(limit)
+        cursor = (
+            db[self.COLLECTION]
+            .find(query)
+            .sort([("priority", -1), ("created_at", -1)])
+            .limit(limit)
+        )
         tasks = await cursor.to_list(length=limit)
         for t in tasks:
             if "_id" in t:
@@ -117,21 +126,31 @@ class TaskService:
         """Remove completed/failed/canceled tasks older than the specified window."""
         db = mongodb_manager.get_async_database()
         cutoff = (datetime.utcnow() - timedelta(hours=older_than_hours)).isoformat()
-        result = await db[self.COLLECTION].delete_many({
-            "status": {"$in": ["completed", "failed", "canceled"]},
-            "updated_at": {"$lt": cutoff},
-        })
+        result = await db[self.COLLECTION].delete_many(
+            {
+                "status": {"$in": ["completed", "failed", "canceled"]},
+                "updated_at": {"$lt": cutoff},
+            }
+        )
         if result.deleted_count > 0:
-            logger.info("tasks_cleaned", deleted=result.deleted_count, cutoff_hours=older_than_hours)
+            logger.info(
+                "tasks_cleaned",
+                deleted=result.deleted_count,
+                cutoff_hours=older_than_hours,
+            )
 
     # ── Retry & Cancel ──────────────────────────────────────
     async def mark_retryable(self, task_id: str):
         """Reset a failed task to pending for retry."""
-        await self.update_task(task_id, status="pending", progress=0, message="Retrying...")
+        await self.update_task(
+            task_id, status="pending", progress=0, message="Retrying..."
+        )
 
     async def cancel_task(self, task_id: str):
         """Mark task as canceled."""
-        await self.update_task(task_id, status="canceled", message="Task canceled by user.")
+        await self.update_task(
+            task_id, status="canceled", message="Task canceled by user."
+        )
 
     async def is_cancelled(self, task_id: str) -> bool:
         """Check if task has been canceled."""
@@ -151,24 +170,33 @@ class TaskService:
         if retry_count < max_retries:
             next_count = retry_count + 1
             # Exponential backoff: 30s, 2m, 10m
-            backoff_seconds = (2 ** next_count) * 30
-            next_retry = (datetime.utcnow() + timedelta(seconds=backoff_seconds)).isoformat()
-            
+            backoff_seconds = (2**next_count) * 30
+            next_retry = (
+                datetime.utcnow() + timedelta(seconds=backoff_seconds)
+            ).isoformat()
+
             await self.update_task(
-                task_id, 
+                task_id,
                 status="pending",
                 message=f"Attempt {next_count} failed: {error_message}. Retrying at {next_retry}",
-                metadata={"retry_count": next_count, "next_retry_at": next_retry}
+                metadata={"retry_count": next_count, "next_retry_at": next_retry},
             )
-            logger.info("task_retry_scheduled", task_id=task_id, attempt=next_count, backoff=backoff_seconds)
+            logger.info(
+                "task_retry_scheduled",
+                task_id=task_id,
+                attempt=next_count,
+                backoff=backoff_seconds,
+            )
         else:
             await self.update_task(
-                task_id, 
-                status="failed", 
-                error_code=error_code, 
-                message=f"Failed after {max_retries} retries: {error_message}"
+                task_id,
+                status="failed",
+                error_code=error_code,
+                message=f"Failed after {max_retries} retries: {error_message}",
             )
-            logger.error("task_failed_permanently", task_id=task_id, error=error_message)
+            logger.error(
+                "task_failed_permanently", task_id=task_id, error=error_message
+            )
 
     # ── Resilience ──────────────────────────────────────────
     async def reset_running_tasks_on_startup(self):
@@ -176,12 +204,14 @@ class TaskService:
         db = mongodb_manager.get_async_database()
         result = await db[self.COLLECTION].update_many(
             {"status": "processing"},
-            {"$set": {
-                "status": "failed",
-                "error_code": "SYSTEM_RESTART",
-                "message": "Task interrupted by system restart.",
-                "updated_at": datetime.utcnow().isoformat()
-            }}
+            {
+                "$set": {
+                    "status": "failed",
+                    "error_code": "SYSTEM_RESTART",
+                    "message": "Task interrupted by system restart.",
+                    "updated_at": datetime.utcnow().isoformat(),
+                }
+            },
         )
         if result.modified_count > 0:
             logger.info("tasks_reset_on_startup", count=result.modified_count)
@@ -190,18 +220,17 @@ class TaskService:
         """Fail tasks that have been processing for too long."""
         db = mongodb_manager.get_async_database()
         cutoff = (datetime.utcnow() - timedelta(minutes=timeout_minutes)).isoformat()
-        
+
         result = await db[self.COLLECTION].update_many(
+            {"status": "processing", "updated_at": {"$lt": cutoff}},
             {
-                "status": "processing",
-                "updated_at": {"$lt": cutoff}
+                "$set": {
+                    "status": "failed",
+                    "error_code": "TIMEOUT",
+                    "message": f"Task timed out after {timeout_minutes} minutes.",
+                    "updated_at": datetime.utcnow().isoformat(),
+                }
             },
-            {"$set": {
-                "status": "failed",
-                "error_code": "TIMEOUT",
-                "message": f"Task timed out after {timeout_minutes} minutes.",
-                "updated_at": datetime.utcnow().isoformat()
-            }}
         )
         if result.modified_count > 0:
             logger.info("tasks_timed_out", count=result.modified_count, cutoff=cutoff)

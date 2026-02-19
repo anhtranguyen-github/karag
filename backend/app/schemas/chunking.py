@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import List, Literal, Union, Annotated
 
+
 class RecursiveChunkingConfig(BaseModel):
     strategy: Literal["recursive"] = "recursive"
     max_chunk_size: int = Field(default=800, ge=10, le=4000)
@@ -11,6 +12,7 @@ class RecursiveChunkingConfig(BaseModel):
     trim_whitespace: bool = True
     fallback_to_sentence: bool = False
 
+
 class SentenceChunkingConfig(BaseModel):
     strategy: Literal["sentence"] = "sentence"
     max_sentences_per_chunk: int = Field(default=5, ge=1, le=50)
@@ -19,6 +21,7 @@ class SentenceChunkingConfig(BaseModel):
     language: str = "en"
     respect_paragraphs: bool = True
     merge_short_sentences: bool = True
+
 
 class TokenChunkingConfig(BaseModel):
     strategy: Literal["token"] = "token"
@@ -29,6 +32,7 @@ class TokenChunkingConfig(BaseModel):
     truncate_overflow: bool = False
     strict_token_limit: bool = True
 
+
 class SemanticChunkingConfig(BaseModel):
     strategy: Literal["semantic"] = "semantic"
     embedding_model_ref: str = "text-embedding-3-small"
@@ -38,12 +42,14 @@ class SemanticChunkingConfig(BaseModel):
     merge_small_chunks: bool = True
     semantic_window_size: int = Field(default=3, ge=1, le=10)
 
+
 class FixedLengthChunkingConfig(BaseModel):
     strategy: Literal["fixed"] = "fixed"
     chunk_size: int = Field(default=1000, ge=1, le=10000)
     chunk_overlap: int = Field(default=200, ge=0, le=2000)
     hard_cut: bool = False
     pad_last_chunk: bool = False
+
 
 class DocumentStructureChunkingConfig(BaseModel):
     strategy: Literal["document"] = "document"
@@ -53,6 +59,7 @@ class DocumentStructureChunkingConfig(BaseModel):
     preserve_hierarchy: bool = True
     include_metadata: bool = True
 
+
 ChunkingConfig = Annotated[
     Union[
         RecursiveChunkingConfig,
@@ -60,7 +67,7 @@ ChunkingConfig = Annotated[
         TokenChunkingConfig,
         SemanticChunkingConfig,
         FixedLengthChunkingConfig,
-        DocumentStructureChunkingConfig
+        DocumentStructureChunkingConfig,
     ],
-    Field(discriminator="strategy")
+    Field(discriminator="strategy"),
 ]

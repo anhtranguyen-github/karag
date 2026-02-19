@@ -3,17 +3,20 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 from enum import Enum
 
+
 class EvalStatus(str, Enum):
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
 
+
 class TestCase(BaseModel):
     query: str
     expected_answer: Optional[str] = None
     expected_source_ids: Optional[List[str]] = None
     metadata: Dict[str, Any] = Field(default_factory=dict)
+
 
 class EvalDataset(BaseModel):
     id: str
@@ -22,13 +25,15 @@ class EvalDataset(BaseModel):
     test_cases: List[TestCase]
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
+
 class EvalResult(BaseModel):
     test_case: TestCase
     actual_answer: str
     actual_source_ids: List[str]
-    metrics: Dict[str, float] # e.g., faithfulness, answer_relevancy
+    metrics: Dict[str, float]  # e.g., faithfulness, answer_relevancy
     success: bool
     error: Optional[str] = None
+
 
 class EvalRun(BaseModel):
     id: str

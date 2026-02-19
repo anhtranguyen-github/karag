@@ -44,20 +44,19 @@ class IngestionPipeline:
         """
         Process various file types: PDF, TXT, MD, DOCX, HTML.
         Automatically selects the appropriate loader based on extension.
-        
+
         INTERNAL ONLY: file_path_str must be a trusted internal path (e.g. from tempfile or storage).
         Validated against workspace sandbox roots.
         """
         from backend.app.core.path_utils import validate_safe_path
         from langchain_community.document_loaders import BSHTMLLoader
-        
+
         # Canonicalize and validate path
         file_path = validate_safe_path(file_path_str)
         ext = file_path.suffix.lower()
 
         workspace_id = (metadata or {}).get("workspace_id", "default")
         filename = (metadata or {}).get("filename", file_path.name)
-
 
         with tracer.start_as_current_span(
             "ingestion.process_file",
@@ -76,23 +75,39 @@ class IngestionPipeline:
 
             if doc_id:
                 from backend.app.core.mongodb import mongodb_manager
+
                 db = mongodb_manager.get_async_database()
                 await db.documents.update_one(
                     {"id": doc_id},
-                    {"$set": {
-                        "status": "reading",
-                        f"workspace_statuses.{workspace_id}": "reading"
-                    }}
+                    {
+                        "$set": {
+                            "status": "reading",
+                            f"workspace_statuses.{workspace_id}": "reading",
+                        }
+                    },
                 )
-            
+
             if task_id:
-                await task_service.update_task(task_id, progress=20, message=f"Reading file: {filename}")
+                await task_service.update_task(
+                    task_id, progress=20, message=f"Reading file: {filename}"
+                )
 
             # --- Component 1: Load ---
             load_start = time.perf_counter()
             if ext == ".pdf":
                 loader = PyPDFLoader(str(file_path))
-            elif ext in [".txt", ".log", ".md", ".py", ".js", ".ts", ".tsx", ".json", ".yaml", ".yml"]:
+            elif ext in [
+                ".txt",
+                ".log",
+                ".md",
+                ".py",
+                ".js",
+                ".ts",
+                ".tsx",
+                ".json",
+                ".yaml",
+                ".yml",
+            ]:
                 loader = TextLoader(str(file_path))
             elif ext == ".docx":
                 loader = Docx2txtLoader(str(file_path))
@@ -103,9 +118,9 @@ class IngestionPipeline:
 
             documents = loader.load()
             load_duration = time.perf_counter() - load_start
-            DOCUMENT_INGESTION_LATENCY.labels(
-                extension=ext, stage="load"
-            ).observe(load_duration)
+            DOCUMENT_INGESTION_LATENCY.labels(extension=ext, stage="load").observe(
+                load_duration
+            )
 
             span.set_attribute("ingestion.pages_loaded", len(documents))
             logger.info(
@@ -116,7 +131,11 @@ class IngestionPipeline:
             )
 
             if task_id:
-                await task_service.update_task(task_id, progress=40, message=f"Splitting into fragments ({len(documents)} pages loaded)...")
+                await task_service.update_task(
+                    task_id,
+                    progress=40,
+                    message=f"Splitting into fragments ({len(documents)} pages loaded)...",
+                )
 
             # --- Component 2: Chunk ---
             chunk_start = time.perf_counter()
@@ -128,20 +147,22 @@ class IngestionPipeline:
                 all_chunks.extend(chunks)
 
             if not all_chunks:
-                DOCUMENT_INGESTION_COUNT.labels(
-                    extension=ext, status="empty"
-                ).inc()
+                DOCUMENT_INGESTION_COUNT.labels(extension=ext, status="empty").inc()
                 return 0
 
             chunk_duration = time.perf_counter() - chunk_start
-            DOCUMENT_INGESTION_LATENCY.labels(
-                extension=ext, stage="chunk"
-            ).observe(chunk_duration)
+            DOCUMENT_INGESTION_LATENCY.labels(extension=ext, stage="chunk").observe(
+                chunk_duration
+            )
 
             span.set_attribute("ingestion.num_chunks", len(all_chunks))
 
             if task_id:
-                await task_service.update_task(task_id, progress=60, message=f"Generating embeddings for {len(all_chunks)} fragments (this may take a while)...")
+                await task_service.update_task(
+                    task_id,
+                    progress=60,
+                    message=f"Generating embeddings for {len(all_chunks)} fragments (this may take a while)...",
+                )
 
             # --- Component 3: Embed ---
             embed_start = time.perf_counter()
@@ -149,16 +170,18 @@ class IngestionPipeline:
                 all_chunks, workspace_id=workspace_id
             )
             embed_duration = time.perf_counter() - embed_start
-            DOCUMENT_INGESTION_LATENCY.labels(
-                extension=ext, stage="embed"
-            ).observe(embed_duration)
+            DOCUMENT_INGESTION_LATENCY.labels(extension=ext, stage="embed").observe(
+                embed_duration
+            )
 
             span.set_attribute(
                 "ingestion.embed_duration_ms", round(embed_duration * 1000, 2)
             )
 
             if task_id:
-                await task_service.update_task(task_id, progress=90, message="Storing vectors and finishing up...")
+                await task_service.update_task(
+                    task_id, progress=90, message="Storing vectors and finishing up..."
+                )
 
             # --- Component 4: Store ---
             store_start = time.perf_counter()
@@ -167,8 +190,7 @@ class IngestionPipeline:
                 {
                     **(metadata or {}),
                     "text": chunk,
-                    "source": (metadata or {}).get("filename")
-                    or file_path.name,
+                    "source": (metadata or {}).get("filename") or file_path.name,
                     "extension": ext,
                     "index": i,
                     "workspace_id": workspace_id,
@@ -185,27 +207,27 @@ class IngestionPipeline:
                 target_collection, vectors=embeddings, ids=ids, payloads=payloads
             )
             store_duration = time.perf_counter() - store_start
-            DOCUMENT_INGESTION_LATENCY.labels(
-                extension=ext, stage="store"
-            ).observe(store_duration)
+            DOCUMENT_INGESTION_LATENCY.labels(extension=ext, stage="store").observe(
+                store_duration
+            )
 
             # --- Component 5: Graph Construction (Optional) ---
             from backend.app.core.settings_manager import settings_manager
+
             settings = await settings_manager.get_settings(workspace_id)
             if settings.rag_engine == "graph":
                 from backend.app.services.graph_service import graph_service
+
                 # Use the first ~20,000 characters to extract core graph entities/relations efficiently
                 sample_text = "\n".join([doc.page_content for doc in documents])[:20000]
                 await graph_service.extract_and_store_graph(sample_text, workspace_id)
 
             # --- Pipeline Summary ---
             total_duration = time.perf_counter() - pipeline_start
-            DOCUMENT_INGESTION_LATENCY.labels(
-                extension=ext, stage="total"
-            ).observe(total_duration)
-            DOCUMENT_INGESTION_COUNT.labels(
-                extension=ext, status="success"
-            ).inc()
+            DOCUMENT_INGESTION_LATENCY.labels(extension=ext, stage="total").observe(
+                total_duration
+            )
+            DOCUMENT_INGESTION_COUNT.labels(extension=ext, status="success").inc()
 
             span.set_attribute(
                 "ingestion.total_duration_ms", round(total_duration * 1000, 2)
@@ -262,21 +284,23 @@ class IngestionPipeline:
 
             # Optional Graph Extraction
             from backend.app.core.settings_manager import settings_manager
+
             settings = await settings_manager.get_settings(workspace_id)
             if settings.rag_engine == "graph":
                 from backend.app.services.graph_service import graph_service
+
                 await graph_service.extract_and_store_graph(text, workspace_id)
 
             return len(chunks)
-
 
     async def process_url(self, url: str, metadata: Dict = None):
         """
         Process a web URL using WebBaseLoader.
         """
         from langchain_community.document_loaders import WebBaseLoader
+
         workspace_id = (metadata or {}).get("workspace_id", "default")
-        
+
         with tracer.start_as_current_span(
             "ingestion.process_url",
             attributes={
@@ -290,7 +314,7 @@ class IngestionPipeline:
             # --- Component 1: Load ---
             loader = WebBaseLoader(url)
             documents = loader.load()
-            
+
             span.set_attribute("ingestion.pages_loaded", len(documents))
 
             # --- Component 2: Chunk ---
@@ -326,7 +350,7 @@ class IngestionPipeline:
             await qdrant.upsert_documents(
                 target_collection, vectors=embeddings, ids=ids, payloads=payloads
             )
-            
+
             total_duration = time.perf_counter() - pipeline_start
             logger.info(
                 "ingestion_url_complete",
@@ -336,14 +360,14 @@ class IngestionPipeline:
             )
             return len(all_chunks)
 
-
     async def process_sitemap(self, sitemap_url: str, metadata: Dict = None):
         """
         Process all URLs in a sitemap.
         """
         from langchain_community.document_loaders.sitemap import SitemapLoader
+
         workspace_id = (metadata or {}).get("workspace_id", "default")
-        
+
         with tracer.start_as_current_span(
             "ingestion.process_sitemap",
             attributes={
@@ -354,40 +378,42 @@ class IngestionPipeline:
             # Note: SitemapLoader is synchronous and can be slow
             loader = SitemapLoader(sitemap_url)
             documents = loader.load()
-            
+
             span.set_attribute("ingestion.urls_found", len(documents))
-            logger.info("ingestion_sitemap_loaded", url=sitemap_url, count=len(documents))
-            
+            logger.info(
+                "ingestion_sitemap_loaded", url=sitemap_url, count=len(documents)
+            )
+
             total_chunks = 0
             for doc in documents:
                 # We reuse process_text for each page to handle chunking/embedding/storing
                 chunks = await self.process_text(
-                    doc.page_content, 
+                    doc.page_content,
                     metadata={
                         **(metadata or {}),
                         "source": doc.metadata.get("source", sitemap_url),
                         "title": doc.metadata.get("title", ""),
-                    }
+                    },
                 )
                 total_chunks += chunks
-            
+
             return total_chunks
 
-
-
-    async def _ingest_local_directory(self, directory_path: Path, metadata: Dict = None):
+    async def _ingest_local_directory(
+        self, directory_path: Path, metadata: Dict = None
+    ):
         """
         INTERNAL ONLY: Recursively process files in a system-controlled directory.
         Used by GitHub ingestion and other internal workflows.
         """
         from backend.app.core.path_utils import validate_safe_path
-        
+
         # Strictly sandbox the directory path
         directory_path = validate_safe_path(directory_path)
-        
+
         ignore_dirs = {".git", "__pycache__", ".venv", "node_modules", ".next"}
         total_chunks = 0
-        
+
         for root, dirs, files in os.walk(str(directory_path)):
             dirs[:] = [d for d in dirs if d not in ignore_dirs]
             for file in files:
@@ -402,5 +428,6 @@ class IngestionPipeline:
                     logger.warning("ingestion_file_failed", file_path=str(file_path))
                     continue
         return total_chunks
+
 
 ingestion_pipeline = IngestionPipeline()

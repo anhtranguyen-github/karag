@@ -1,5 +1,15 @@
 from fastapi import APIRouter
-from backend.app.api.v1 import chat, documents, workspaces, settings, tools, search, tasks, eval, admin
+from backend.app.api.v1 import (
+    chat,
+    documents,
+    workspaces,
+    settings,
+    tools,
+    search,
+    tasks,
+    eval,
+    admin,
+)
 
 api_v1_router = APIRouter()
 

@@ -6,10 +6,11 @@ from backend.app.schemas.base import AppResponse
 
 router = APIRouter(prefix="/search", tags=["search"])
 
+
 @router.get("/", response_model=AppResponse)
 async def global_search(
     q: str = Query(..., min_length=2, description="Search query"),
-    workspace_id: Optional[str] = Query(None, description="Optional workspace scope")
+    workspace_id: Optional[str] = Query(None, description="Optional workspace scope"),
 ):
     """
     Perform a unified search across all architectural entities.
