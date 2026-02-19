@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, computed_field
-from typing import List, Literal, Union, Annotated, Optional
+from typing import Literal, Union, Annotated, Optional
 
 class OpenAIEmbeddingConfig(BaseModel):
     provider: Literal["openai"] = "openai"

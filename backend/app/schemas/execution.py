@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional, List, Literal, Union, Annotated
+from typing import Optional, List, Literal
 from pydantic import BaseModel, Field
 
 class ExecutionMode(str, Enum):

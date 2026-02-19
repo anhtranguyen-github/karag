@@ -2,12 +2,8 @@ import time
 from typing import List, Optional, Any, Dict
 
 import structlog
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from backend.app.providers.embedding import get_embeddings
 from backend.app.core.telemetry import (
     get_tracer,
-    RAG_RETRIEVAL_LATENCY,
-    RAG_CHUNKS_RETRIEVED,
     EMBEDDING_REQUEST_LATENCY,
 )
 
@@ -52,27 +48,23 @@ class RAGService:
     async def get_embeddings(
         self, texts: List[str], workspace_id: Optional[str] = None
     ) -> List[List[float]]:
-        """Generate embeddings using the flexible provider."""
+        """Generate embeddings using the flexible provider via LangChain Factory."""
+        from backend.app.core.factory import LangChainFactory
+        
         with tracer.start_as_current_span(
             "rag.generate_embeddings",
             attributes={
                 "rag.num_texts": len(texts),
                 "workspace_id": workspace_id or "default",
             },
-        ) as span:
+        ):
             start = time.perf_counter()
-            provider = await get_embeddings(workspace_id)
+            provider = await LangChainFactory.get_embeddings(workspace_id)
             result = await provider.aembed_documents(texts)
             duration = time.perf_counter() - start
 
-            # Record embedding latency by provider type
             provider_name = type(provider).__name__
             EMBEDDING_REQUEST_LATENCY.labels(provider=provider_name).observe(duration)
-
-            span.set_attribute("rag.embedding_provider", provider_name)
-            span.set_attribute("rag.embedding_duration_ms", round(duration * 1000, 2))
-            if result:
-                span.set_attribute("rag.vector_dim", len(result[0]))
 
             logger.debug(
                 "embeddings_generated",
@@ -86,12 +78,9 @@ class RAGService:
         self, query: str, workspace_id: Optional[str] = None
     ) -> List[float]:
         """Generate embedding for a single query."""
-        with tracer.start_as_current_span(
-            "rag.query_embedding",
-            attributes={"workspace_id": workspace_id or "default"},
-        ):
-            provider = await get_embeddings(workspace_id)
-            return await provider.aembed_query(query)
+        from backend.app.core.factory import LangChainFactory
+        provider = await LangChainFactory.get_embeddings(workspace_id)
+        return await provider.aembed_query(query)
 
     async def search(
         self,
@@ -100,96 +89,48 @@ class RAGService:
         limit: Optional[int] = None,
     ) -> list:
         """
-        Unified modular retrieval pipeline.
-        Executes search modules based on workspace configuration.
+        Modular retrieval using LangChain Retrievers.
+        Decisions are guided by Schema, execution by LangChain.
         """
-        from backend.app.core.settings_manager import settings_manager
-        from backend.app.rag.qdrant_provider import qdrant
-        from backend.app.rag.graph_provider import graph_provider
-
-        settings = await settings_manager.get_settings(workspace_id)
-        config = settings.retrieval
-        search_limit = limit or config.vector.top_k
+        from backend.app.core.factory import LangChainFactory
 
         with tracer.start_as_current_span(
             "rag.search",
             attributes={
-                "rag.vector_enabled": config.vector.enabled,
-                "rag.graph_enabled": config.graph.enabled,
-                "rag.rerank_enabled": config.rerank.enabled,
-                "rag.limit": search_limit,
                 "workspace_id": workspace_id,
                 "rag.query_preview": query[:80],
             },
-        ) as span:
+        ):
             start = time.perf_counter()
-            results = []
-
-            # 1. Graph-Enriched Vector Search or Hybrid Search
-            # We follow the configured modules.
             
-            # Generate Query Vector if vector search is needed
-            query_vector = None
-            if config.vector.enabled or (config.graph.enabled and config.graph.merge_with_vector):
-                query_vector = await self.get_query_embedding(query, workspace_id)
-
-            if config.graph.enabled:
-                # Executes graph search, potentially merging with vector
-                results = await graph_provider.search(
-                    query=query,
-                    query_vector=query_vector,
-                    workspace_id=workspace_id,
-                    limit=search_limit,
-                    # We pass graph-specific overrides from config here if graph_provider supports it
-                    # hops=config.graph.max_hops, etc.
-                )
-            elif config.vector.enabled:
-                # Fallback to standard vector/hybrid search
-                results = await qdrant.hybrid_search(
-                    collection_name="knowledge_base",
-                    query_vector=query_vector,
-                    query_text=query,
-                    limit=search_limit,
-                    alpha=config.vector.dense_weight if config.vector.enable_hybrid else 1.0,
-                    workspace_id=workspace_id,
-                )
-
-            # 2. Optional Reranking
-            if config.rerank.enabled and results:
-                from backend.app.providers.reranker import get_reranker
-                reranker = await get_reranker(workspace_id)
-                if reranker:
-                    rerank_start = time.perf_counter()
-                    results = await reranker.rerank(
-                        query=query, 
-                        documents=results, 
-                        top_k=config.rerank.top_n
-                    )
-                    rerank_duration = time.perf_counter() - rerank_start
-                    span.set_attribute("rag.rerank_duration_ms", round(rerank_duration * 1000, 2))
-                    span.set_attribute("rag.reranker", type(reranker).__name__)
-                    logger.info("rag_rerank_complete", provider=type(reranker).__name__, duration_ms=round(rerank_duration * 1000, 2))
+            # Use retriever factory to get the configured implementation layer
+            retriever = await LangChainFactory.get_retriever(workspace_id)
+            
+            # Execute retrieval
+            # Note: LangChain retrievers return Document objects, we map them back to our result schema
+            docs = await retriever.ainvoke(query)
+            
+            results = []
+            for doc in docs:
+                results.append({
+                    "text": doc.page_content,
+                    "payload": {
+                        "text": doc.page_content,
+                        **doc.metadata
+                    },
+                    "score": getattr(doc, "score", None)
+                })
 
             duration = time.perf_counter() - start
-
-            # Metrics
-            engine_tag = "graph" if config.graph.enabled else "vector"
-            RAG_RETRIEVAL_LATENCY.labels(engine=engine_tag, mode="modular").observe(duration)
-            RAG_CHUNKS_RETRIEVED.labels(engine=engine_tag).observe(len(results))
-
-            span.set_attribute("rag.results_count", len(results))
-            span.set_attribute("rag.duration_ms", round(duration * 1000, 2))
-
             logger.info(
                 "rag_search_complete",
-                engine=engine_tag,
-                mode="modular",
                 results=len(results),
                 duration_ms=round(duration * 1000, 2),
                 workspace_id=workspace_id,
             )
 
             return results
+
 
     async def execute(
         self,
@@ -226,7 +167,7 @@ class RAGService:
                 "mode": settings.execution_mode,
                 "workspace_id": workspace_id,
             },
-        ) as span:
+        ):
             start_time = time.perf_counter()
             final_state = await rag_executor.ainvoke(initial_state)
             duration = (time.perf_counter() - start_time) * 1000

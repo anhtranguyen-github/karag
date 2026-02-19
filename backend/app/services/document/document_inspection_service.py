@@ -72,15 +72,14 @@ class DocumentInspectionService:
     async def get_chunks(self, doc_id: str, limit: int = 100) -> List[Dict]:
         """Retrieve vector chunks associated with a specific document ID."""
         from backend.app.rag.qdrant_provider import qdrant
-        from backend.app.core.settings_manager import settings_manager
 
         doc = await self.get_by_id(doc_id)
         if not doc:
             return []
         
         ws_id = doc.get("workspace_id")
-        settings = await settings_manager.get_settings(ws_id)
-        collection = qdrant.get_collection_name(settings.embedding_dim)
+        # FIX: get_collection_name expects workspace_id (str), not dimension (int)
+        collection = await qdrant.get_collection_name(workspace_id=ws_id)
         
         # Filter strictly by doc_id stored in vector payload
         results = await qdrant.client.scroll(
@@ -114,7 +113,7 @@ class DocumentInspectionService:
         zombies_found = False
         
         for d in related_docs:
-            ws_id = d["workspace_id"]
+            ws_id = d.get("workspace_id", "unknown")
             
             # Identify storage vs indexing
             if ws_id == "vault":
@@ -154,13 +153,13 @@ class DocumentInspectionService:
 
         return {
             "metadata": {
-                "id": doc["id"],
-                "filename": doc["filename"],
-                "extension": doc.get("extension"),
-                "content_type": doc.get("content_type"),
+                "id": doc.get("id", doc_id),
+                "filename": doc.get("filename", "Unknown"),
+                "extension": doc.get("extension", ""),
+                "content_type": doc.get("content_type", "application/octet-stream"),
                 "created_at": doc.get("created_at"),
                 "size": doc.get("size", "Unknown"),
-                "minio_path": doc["minio_path"]
+                "minio_path": doc.get("minio_path", "N/A")
             },
             "relationships": relationships,
             "zombies_detected": zombies_found

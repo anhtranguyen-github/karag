@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, Literal, List, Annotated, Union
+from typing import Optional, Literal, List
 
 class VectorSearchConfig(BaseModel):
     enabled: bool = True

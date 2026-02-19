@@ -1,4 +1,3 @@
-import abc
 from typing import List, Protocol, runtime_checkable
 from backend.app.schemas.chunking import (
     ChunkingConfig, RecursiveChunkingConfig, SentenceChunkingConfig,
