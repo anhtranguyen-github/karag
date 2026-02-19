@@ -36,7 +36,7 @@ export function ThreadList({
         setLoading(true);
         try {
             const res = await api.listChatThreadsChatThreadsGet({ workspaceId: workspaceId as string });
-            setThreads(res.data || []);
+            setThreads((res.data as any) || []);
         } catch (e) {
             console.error("Failed to fetch threads", e);
         } finally {

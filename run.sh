@@ -122,6 +122,9 @@ verify_frontend() {
     
     [ ! -d "node_modules" ] && log_info "Installing dependencies..." && pnpm install --quiet
     
+    log_info "Generating API client..."
+    pnpm run generate-client
+    
     log_info "Checking for TypeScript errors (TSC)..."
     if ! pnpm exec tsc --noEmit > /tmp/tsc.err 2>&1; then
         log_warn "TypeScript errors detected. Use './run.sh verify' to see full log."
@@ -251,6 +254,24 @@ cmd_build() {
     log_success "Build successful. Local code matches CI 'Production' behavior."
 }
 
+cmd_test() {
+    load_env
+    preflight
+    log_phase "TEST (Quality Assurance)"
+    
+    log_info "Running Backend Tests (pytest)..."
+    cd backend
+    uv run pytest tests/unit tests/integration || log_error "Backend tests failed."
+    cd ..
+    
+    log_info "Running Frontend Tests (vitest)..."
+    cd frontend
+    pnpm run test:unit || log_error "Frontend tests failed."
+    cd ..
+    
+    log_success "Testing phase complete."
+}
+
 show_help() {
     echo -e "Usage: ./run.sh [COMMAND] [OPTIONS]"
     echo ""
@@ -258,6 +279,7 @@ show_help() {
     echo "  up           (Default) Verify code, start infra, and launch app"
     echo "  verify       Run backend and frontend correctness checks (lint, types, import)"
     echo "  build        Run full production build pipeline (backend sync + next build)"
+    echo "  test         Run backend and frontend unit/integration tests"
     echo "  infra        Only start infrastructure containers"
     echo "  stop         Stop all processes and containers"
     echo "  clean        Nuke everything: stop, remove volumes, logs, and caches"
@@ -293,6 +315,7 @@ case "$COMMAND" in
     up)    cmd_up ;;
     verify) cmd_verify ;;
     build) cmd_build ;;
+    test)  cmd_test ;;
     infra)
         preflight
         boot_infra 

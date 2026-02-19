@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { vi } from 'vitest';
+import { vi, beforeAll, afterEach, afterAll } from 'vitest';
 
 // Mock Next.js router
 vi.mock('next/navigation', () => ({
@@ -27,5 +27,14 @@ afterEach(() => server.resetHandlers());
 // Clean up after the tests are finished.
 afterAll(() => server.close());
 
-// Mock fetch (optional, as MSW intercepts it, but good for specific spies)
-global.fetch = vi.fn();
+// Mock ResizeObserver
+class ResizeObserverMock {
+    observe = vi.fn();
+    unobserve = vi.fn();
+    disconnect = vi.fn();
+}
+
+vi.stubGlobal('ResizeObserver', ResizeObserverMock);
+if (typeof window !== 'undefined') {
+    window.ResizeObserver = ResizeObserverMock;
+}

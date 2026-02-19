@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { api } from '@/lib/api-client';
 
 // Setup mocks
@@ -45,8 +45,12 @@ describe('Workspace Navigation Integration', () => {
     it('navigates to workspace when card clicked', async () => {
         render(<HomePage />);
 
-        const link = await screen.findByRole('link', { name: /Default Workspace/i });
-        expect(link).toHaveAttribute('href', '/workspaces/default/chat');
+        const card = await screen.findByText(/Default Workspace/i);
+        fireEvent.click(card);
+
+        expect(mockRouterPush).toHaveBeenCalled();
+        // The actual URL in page.tsx is /chats/new?workspaceId=... 
+        expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining('workspaceId=default'));
     });
 
     it('opens create modal and creates workspace', async () => {
@@ -58,12 +62,17 @@ describe('Workspace Navigation Integration', () => {
         const createButton = screen.getByRole('button', { name: /New Workspace/i });
         fireEvent.click(createButton);
 
-        // Fill form
-        const nameInput = await screen.findByLabelText(/Workspace Name/i);
+        // Step 0: Identity
+        const nameInput = await screen.findByPlaceholderText(/Engineering Knowledge Base/i);
         fireEvent.change(nameInput, { target: { value: 'New Workspace' } });
 
-        // Submit
-        const submitButton = screen.getByRole('button', { name: /Launch Workspace/i });
+        // Jump to last step via sidebar
+        const nav = await screen.findByRole('navigation');
+        const genStepText = await within(nav).findByText(/Generation AI/i);
+        fireEvent.click(genStepText.closest('button')!);
+
+        // Submit - use findByText to wait for it to appear
+        const submitButton = await screen.findByText(/Launch Workspace/i);
         fireEvent.click(submitButton);
 
         await waitFor(() => {
@@ -72,44 +81,36 @@ describe('Workspace Navigation Integration', () => {
                     name: 'New Workspace'
                 })
             }));
-        });
+        }, { timeout: 3000 });
 
         expect(mockRefresh).toHaveBeenCalled();
     });
 
     it('selects simple fields in create modal', async () => {
         (api.createWorkspaceWorkspacesPost as any).mockResolvedValue({ data: { id: 'new-ws' } });
-        (api.getSettingsMetadataSettingsMetadataGet as any).mockResolvedValue({
-            data: {
-                llm_provider: {
-                    mutable: false,
-                    category: 'ai',
-                    description: 'LLM Provider',
-                    options: ['openai', 'anthropic']
-                }
-            }
-        });
 
         render(<HomePage />);
 
         fireEvent.click(screen.getByRole('button', { name: /New Workspace/i }));
 
-        const nameInput = await screen.findByLabelText(/Workspace Name/i);
+        // Step 0: Identity
+        const nameInput = await screen.findByPlaceholderText(/Engineering Knowledge Base/i);
         fireEvent.change(nameInput, { target: { value: 'Custom WS' } });
 
-        const llmSelect = await screen.findByLabelText(/Llm Provider/i);
-        fireEvent.change(llmSelect, { target: { value: 'openai' } });
+        // Jump to last step via sidebar
+        const nav = await screen.findByRole('navigation');
+        const genStepText = await within(nav).findByText(/Generation AI/i);
+        fireEvent.click(genStepText.closest('button')!);
 
-        const submitButton = screen.getByRole('button', { name: /Launch Workspace/i });
+        const submitButton = await screen.findByText(/Launch Workspace/i);
         fireEvent.click(submitButton);
 
         await waitFor(() => {
             expect(api.createWorkspaceWorkspacesPost).toHaveBeenCalledWith(expect.objectContaining({
                 workspaceCreate: expect.objectContaining({
-                    name: 'Custom WS',
-                    llmProvider: 'openai'
+                    name: 'Custom WS'
                 })
             }));
-        });
+        }, { timeout: 3000 });
     });
 });

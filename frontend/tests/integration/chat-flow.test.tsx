@@ -32,7 +32,9 @@ vi.mock('@microsoft/fetch-event-source', () => ({
     fetchEventSource: (...args: any[]) => mockFetchEventSource(...args),
 }));
 
-import ChatPage from '@/app/workspaces/[id]/chat/page';
+import ChatPage from '@/app/chats/[id]/page';
+import { ErrorProvider } from '@/context/error-context';
+import { TaskProvider } from '@/context/task-context';
 
 describe('Chat Flow Integration', () => {
     beforeEach(() => {
@@ -41,7 +43,13 @@ describe('Chat Flow Integration', () => {
     });
 
     it('submits message through chat interface', async () => {
-        render(<ChatPage />);
+        render(
+            <ErrorProvider>
+                <TaskProvider>
+                    <ChatPage />
+                </TaskProvider>
+            </ErrorProvider>
+        );
 
         const input = await screen.findByPlaceholderText('Type your message...');
 
@@ -49,7 +57,7 @@ describe('Chat Flow Integration', () => {
         fireEvent.submit(input.closest('form')!);
 
         // Assistant message should appear (thinking)
-        expect(screen.getByText('Thinking...')).toBeInTheDocument();
+        expect(await screen.findByText('Searching and processing...')).toBeInTheDocument();
 
         // fetchEventSource should be called
         expect(mockFetchEventSource).toHaveBeenCalledWith(
@@ -77,7 +85,13 @@ describe('Chat Flow Integration', () => {
             new URLSearchParams('threadId=t1')
         );
 
-        render(<ChatPage />);
+        render(
+            <ErrorProvider>
+                <TaskProvider>
+                    <ChatPage />
+                </TaskProvider>
+            </ErrorProvider>
+        );
 
         expect(await screen.findByText('What is RAG?')).toBeInTheDocument();
         expect(screen.getByText('Retrieval Augmented Generation')).toBeInTheDocument();

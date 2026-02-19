@@ -54,6 +54,9 @@ pipeline {
                                 corepack enable
                                 pnpm install --frozen-lockfile
                                 
+                                # Generate API client from openapi.json
+                                pnpm run generate-client
+                                
                                 # Linting (ESLint)
                                 pnpm run lint
                                 

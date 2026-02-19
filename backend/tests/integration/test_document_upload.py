@@ -21,8 +21,8 @@ def get_mock_db():
     return mock_db, mock_col
 
 @pytest.mark.asyncio
-async def test_upload_to_vault_skip_indexing(mocker):
-    """Test that uploading to 'vault' skips neural indexing."""
+async def test_upload_to_vault_auto_indexes(mocker):
+    """Test that uploading to 'vault' now also triggers neural indexing based on user feedback."""
     mock_db, mock_col = get_mock_db()
     mocker.patch("backend.app.core.mongodb.mongodb_manager.get_async_database", return_value=mock_db)
     
@@ -33,13 +33,13 @@ async def test_upload_to_vault_skip_indexing(mocker):
     # Mocking MinIO
     mocker.patch("backend.app.core.minio.MinioManager.upload_file", new=AsyncMock())
     
-    # Mocking Document Ingestion Service to ensure it's NOT called for vault
-    mock_ingestion = mocker.patch("backend.app.services.document.document_ingestion_service.document_ingestion_service.index_document", new=AsyncMock())
+    # Mocking Document Ingestion Service
+    mock_ingestion = mocker.patch("backend.app.services.document.document_ingestion_service.document_ingestion_service.index_document", new=AsyncMock(return_value=1))
 
     # Create dummy file content
     content = b"test document content"
     
-    # Execute run_ingestion background task (which handles the vault logic)
+    # Execute run_ingestion background task
     await document_service.run_ingestion(
         task_id="task-123",
         safe_filename="test.pdf",
@@ -48,20 +48,8 @@ async def test_upload_to_vault_skip_indexing(mocker):
         workspace_id="vault"
     )
     
-    # Verify DB state
-    # First insert_one, then update_one for verification/uploading, then final status update
-    assert mock_col.insert_one.call_count == 1
-    
-    # Check that status was set to 'uploaded' (reverted from 'stored' based on user request)
-    # We need to check the last update_one call
-    last_update_call = mock_col.update_one.call_args_list[-1]
-    update_data = last_update_call[0][1]["$set"]
-    assert update_data["status"] == "uploaded"
-    assert "workspace_statuses.vault" in update_data
-    assert update_data["workspace_statuses.vault"] == "uploaded"
-    
-    # Verify ingestion service was NEVER called
-    mock_ingestion.assert_not_called()
+    # Verify ingestion service WAS called
+    mock_ingestion.assert_awaited_once()
 
 @pytest.mark.asyncio
 async def test_upload_to_workspace_auto_indexes(mocker):

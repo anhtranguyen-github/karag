@@ -20,7 +20,7 @@ async def test_langgraph_fast_mode_direct_path():
         "execution_metadata": {"nodes_visited": []}
     }
 
-    with patch("backend.app.rag.graph.nodes.get_llm") as mock_get_llm:
+    with patch("backend.app.rag.graph.nodes.LangChainFactory.get_llm") as mock_get_llm:
         mock_llm = MagicMock()
         mock_llm.ainvoke = MagicMock()
         mock_llm.ainvoke.return_value = MagicMock()
@@ -59,15 +59,15 @@ async def test_langgraph_thinking_mode_loop():
         "execution_metadata": {"nodes_visited": []}
     }
 
-    with patch("backend.app.rag.graph.nodes.get_llm") as mock_get_llm:
+    with patch("backend.app.rag.graph.nodes.LangChainFactory.get_llm") as mock_get_llm:
         mock_llm = MagicMock()
         # First reflection returns insufficient, second returns sufficient
         mock_llm.ainvoke = AsyncMock(side_effect=[
             MagicMock(content="complex"), # analyze_intent
             MagicMock(content="query variants"), # build_query_context
-            MagicMock(content="insufficient"), # reflect_and_decide loop 0
+            MagicMock(content="no"), # reflect_and_decide loop 0 (insufficient)
             MagicMock(content="refined query"), # build_query_context loop 1
-            MagicMock(content="sufficient"), # reflect_and_decide loop 1
+            MagicMock(content="yes"), # reflect_and_decide loop 1 (sufficient)
             MagicMock(content="Final answer"), # generate_answer
         ])
         mock_get_llm.return_value = mock_llm
@@ -102,7 +102,7 @@ async def test_langgraph_blending_mode():
         "execution_metadata": {"nodes_visited": []}
     }
 
-    with patch("backend.app.rag.graph.nodes.get_llm") as mock_get_llm:
+    with patch("backend.app.rag.graph.nodes.LangChainFactory.get_llm") as mock_get_llm:
         mock_llm = MagicMock()
         # analyze_intent, build_query_context, generate_answer x2, synthesize_answer
         mock_llm.ainvoke = AsyncMock(side_effect=[
@@ -142,7 +142,7 @@ async def test_langgraph_max_loops_exit():
         "execution_metadata": {"nodes_visited": []}
     }
 
-    with patch("backend.app.rag.graph.nodes.get_llm") as mock_get_llm:
+    with patch("backend.app.rag.graph.nodes.LangChainFactory.get_llm") as mock_get_llm:
         mock_llm = MagicMock()
         mock_llm.ainvoke = AsyncMock(side_effect=[
             MagicMock(content="complex"), # analyze_intent
@@ -182,7 +182,7 @@ async def test_langgraph_empty_retrieval():
         "execution_metadata": {"nodes_visited": []}
     }
 
-    with patch("backend.app.rag.graph.nodes.get_llm") as mock_get_llm:
+    with patch("backend.app.rag.graph.nodes.LangChainFactory.get_llm") as mock_get_llm:
         mock_llm = MagicMock()
         mock_llm.ainvoke = AsyncMock(return_value=MagicMock(content="I don't know."))
         mock_get_llm.return_value = mock_llm

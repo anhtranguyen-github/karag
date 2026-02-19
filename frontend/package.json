@@ -58,5 +58,13 @@
     "workerDirectory": [
       "public"
     ]
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@openapitools/openapi-generator-cli",
+      "esbuild",
+      "msw",
+      "sharp"
+    ]
   }
 }

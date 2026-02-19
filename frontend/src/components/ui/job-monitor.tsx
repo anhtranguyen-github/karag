@@ -21,7 +21,7 @@ export function JobMonitor() {
     const fetchTasks = async () => {
         try {
             const res = await api.listTasksTasksGet({ limit: 5 });
-            setTasks(res.data || []);
+            setTasks((res.data as any) || []);
         } catch (e) {
             console.error("Failed to fetch tasks", e);
         }

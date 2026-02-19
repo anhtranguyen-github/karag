@@ -208,7 +208,7 @@ export function ChatInterface({
                         onCitationClick={handleCitationClick}
                     />
                 ))}
-                {isLoading && messages[messages.length - 1]?.role === "user" && (
+                {isLoading && (messages[messages.length - 1]?.role === "user" || !messages[messages.length - 1]?.content) && (
                     <div className="flex justify-start">
                         <div className="bg-secondary text-foreground rounded-2xl px-6 py-4 flex items-center shadow-xl border border-border animate-pulse">
                             <Loader2 className="w-4 h-4 animate-spin mr-3 text-indigo-500" />

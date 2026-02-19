@@ -37,26 +37,38 @@ vi.mock('@/lib/api-client', () => ({
 }));
 
 // Import after mocks
-import ChatPage from '@/app/workspaces/[id]/chat/page';
+import ChatPage from '@/app/chats/[id]/page';
+import { ErrorProvider } from '@/context/error-context';
+import { TaskProvider } from '@/context/task-context';
 
 describe('ChatPage', () => {
     beforeEach(() => {
         vi.clearAllMocks();
     });
 
-    it('renders thread sidebar', () => {
-        render(<ChatPage />);
-        expect(screen.getByText('Threads')).toBeInTheDocument();
-        expect(screen.getByTitle('New Chat')).toBeInTheDocument();
+    const renderWithProviders = (ui: React.ReactElement) => {
+        return render(
+            <ErrorProvider>
+                <TaskProvider>
+                    {ui}
+                </TaskProvider>
+            </ErrorProvider>
+        );
+    };
+
+    it('renders thread sidebar', async () => {
+        renderWithProviders(<ChatPage />);
+        expect(await screen.findByText('History')).toBeInTheDocument();
+        expect(await screen.findByTitle('New Chat')).toBeInTheDocument();
     });
 
-    it('renders chat input', () => {
-        render(<ChatPage />);
-        expect(screen.getByPlaceholderText('Type your message...')).toBeInTheDocument();
+    it('renders chat input', async () => {
+        renderWithProviders(<ChatPage />);
+        expect(await screen.findByPlaceholderText('Type your message...')).toBeInTheDocument();
     });
 
-    it('shows empty state when no messages', () => {
-        render(<ChatPage />);
-        expect(screen.getByText('Ask anything about your documents...')).toBeInTheDocument();
+    it('shows empty state when no messages', async () => {
+        renderWithProviders(<ChatPage />);
+        expect(await screen.findByText('Ask anything about your documents')).toBeInTheDocument();
     });
 });

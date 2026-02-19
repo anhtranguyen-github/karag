@@ -1,1 +1,2746 @@
-{"openapi":"3.1.0","info":{"title":"Knowledge Bank API","description":"Modular RAG & Agentic Chatbot API","version":"2.0.0"},"paths":{"/":{"get":{"tags":["health"],"summary":"Root","operationId":"root__get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}},"/chat/history/{thread_id}":{"get":{"tags":["chat"],"summary":"Get Chat History","operationId":"get_chat_history_chat_history__thread_id__get","parameters":[{"name":"thread_id","in":"path","required":true,"schema":{"type":"string","title":"Thread Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AppResponse"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/chat/threads":{"get":{"tags":["chat"],"summary":"List Chat Threads","operationId":"list_chat_threads_chat_threads_get","parameters":[{"name":"workspace_id","in":"query","required":true,"schema":{"type":"string","title":"Workspace Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AppResponse"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/chat/threads/{thread_id}/title":{"patch":{"tags":["chat"],"summary":"Update Thread Title","operationId":"update_thread_title_chat_threads__thread_id__title_patch","parameters":[{"name":"thread_id","in":"path","required":true,"schema":{"type":"string","title":"Thread Id"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ThreadTitleUpdate"}}}},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AppResponse"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/chat/threads/{thread_id}":{"get":{"tags":["chat"],"summary":"Get Thread","operationId":"get_thread_chat_threads__thread_id__get","parameters":[{"name":"thread_id","in":"path","required":true,"schema":{"type":"string","title":"Thread Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AppResponse"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"delete":{"tags":["chat"],"summary":"Delete Thread","operationId":"delete_thread_chat_threads__thread_id__delete","parameters":[{"name":"thread_id","in":"path","required":true,"schema":{"type":"string","title":"Thread Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AppResponse"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/chat/stream":{"post":{"tags":["chat"],"summary":"Chat Stream","description":"Stream chat updates using SSE.\nSpawns background title generation for consistent UX.","operationId":"chat_stream_chat_stream_post","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ChatStreamRequest"}}},"required":true},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/upload":{"post":{"tags":["documents"],"summary":"Upload Document","operationId":"upload_document_upload_post","parameters":[{"name":"workspace_id","in":"query","required":false,"schema":{"type":"string","default":"vault","title":"Workspace Id"}},{"name":"strategy","in":"query","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Strategy"}}],"requestBody":{"required":true,"content":{"multipart/form-data":{"schema":{"$ref":"#/components/schemas/Body_upload_document_upload_post"}}}},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AppResponse"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/import-url":{"post":{"tags":["documents"],"summary":"Import Url Document","operationId":"import_url_document_import_url_post","parameters":[{"name":"workspace_id","in":"query","required":false,"schema":{"type":"string","default":"vault","title":"Workspace Id"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/UrlImportRequest"}}}},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AppResponse"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/import-sitemap":{"post":{"tags":["documents"],"summary":"Import Sitemap Document","operationId":"import_sitemap_document_import_sitemap_post","parameters":[{"name":"workspace_id","in":"query","required":false,"schema":{"type":"string","default":"vault","title":"Workspace Id"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/SitemapImportRequest"}}}},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AppResponse"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/import-github":{"post":{"tags":["documents"],"summary":"Import Github Document","operationId":"import_github_document_import_github_post","parameters":[{"name":"workspace_id","in":"query","required":false,"schema":{"type":"string","default":"vault","title":"Workspace Id"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/GitHubImportRequest"}}}},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AppResponse"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/import-audio":{"post":{"tags":["documents"],"summary":"Import Audio Document","operationId":"import_audio_document_import_audio_post","parameters":[{"name":"workspace_id","in":"query","required":false,"schema":{"type":"string","default":"vault","title":"Workspace Id"}}],"requestBody":{"required":true,"content":{"multipart/form-data":{"schema":{"$ref":"#/components/schemas/Body_import_audio_document_import_audio_post"}}}},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/documents":{"get":{"tags":["documents"],"summary":"List Documents","operationId":"list_documents_documents_get","parameters":[{"name":"workspace_id","in":"query","required":false,"schema":{"type":"string","default":"vault","title":"Workspace Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/documents-all":{"get":{"tags":["documents"],"summary":"List All Documents","operationId":"list_all_documents_documents_all_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}},"/vault":{"get":{"tags":["documents"],"summary":"List Vault Documents","operationId":"list_vault_documents_vault_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}},"/documents/{document_id}/chunks":{"get":{"tags":["documents"],"summary":"Get Document Chunks","operationId":"get_document_chunks_documents__document_id__chunks_get","parameters":[{"name":"document_id","in":"path","required":true,"schema":{"type":"string","title":"Document Id"}},{"name":"limit","in":"query","required":false,"schema":{"type":"integer","default":100,"title":"Limit"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/documents/{document_id}/index":{"post":{"tags":["documents"],"summary":"Index Document","description":"Non-blocking indexing triggered by document ID.","operationId":"index_document_documents__document_id__index_post","parameters":[{"name":"document_id","in":"path","required":true,"schema":{"type":"string","title":"Document Id"}},{"name":"workspace_id","in":"query","required":false,"schema":{"type":"string","default":"vault","title":"Workspace Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/documents/{document_id}/inspect":{"get":{"tags":["documents"],"summary":"Inspect Document","operationId":"inspect_document_documents__document_id__inspect_get","parameters":[{"name":"document_id","in":"path","required":true,"schema":{"type":"string","title":"Document Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/documents/update-workspaces":{"post":{"tags":["documents"],"summary":"Update Document Workspaces","description":"Workspace operations using internal IDs.","operationId":"update_document_workspaces_documents_update_workspaces_post","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/DocumentWorkspaceUpdate"}}},"required":true},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/documents/sync-workspaces":{"post":{"tags":["documents"],"summary":"Sync Document Workspaces","operationId":"sync_document_workspaces_documents_sync_workspaces_post","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}},"/documents/{document_id}":{"get":{"tags":["documents"],"summary":"Get Document","operationId":"get_document_documents__document_id__get","parameters":[{"name":"document_id","in":"path","required":true,"schema":{"type":"string","title":"Document Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"delete":{"tags":["documents"],"summary":"Delete Document","operationId":"delete_document_documents__document_id__delete","parameters":[{"name":"document_id","in":"path","required":true,"schema":{"type":"string","title":"Document Id"}},{"name":"workspace_id","in":"query","required":false,"schema":{"type":"string","default":"vault","title":"Workspace Id"}},{"name":"vault_delete","in":"query","required":false,"schema":{"type":"boolean","default":false,"title":"Vault Delete"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/workspaces":{"get":{"tags":["workspaces"],"summary":"List Workspaces","operationId":"list_workspaces_workspaces_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AppResponse_List_Workspace__"}}}}}},"post":{"tags":["workspaces"],"summary":"Create Workspace","operationId":"create_workspace_workspaces_post","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/WorkspaceCreate"}}},"required":true},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/workspaces/":{"get":{"tags":["workspaces"],"summary":"List Workspaces","operationId":"list_workspaces_workspaces__get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AppResponse_List_Workspace__"}}}}}},"post":{"tags":["workspaces"],"summary":"Create Workspace","operationId":"create_workspace_workspaces__post","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/WorkspaceCreate"}}},"required":true},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/workspaces/{workspace_id}":{"patch":{"tags":["workspaces"],"summary":"Update Workspace","operationId":"update_workspace_workspaces__workspace_id__patch","parameters":[{"name":"workspace_id","in":"path","required":true,"schema":{"type":"string","title":"Workspace Id"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/WorkspaceUpdate"}}}},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"delete":{"tags":["workspaces"],"summary":"Delete Workspace","operationId":"delete_workspace_workspaces__workspace_id__delete","parameters":[{"name":"workspace_id","in":"path","required":true,"schema":{"type":"string","title":"Workspace Id"}},{"name":"vault_delete","in":"query","required":false,"schema":{"type":"boolean","default":false,"title":"Vault Delete"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/workspaces/{workspace_id}/details":{"get":{"tags":["workspaces"],"summary":"Get Workspace Details","operationId":"get_workspace_details_workspaces__workspace_id__details_get","parameters":[{"name":"workspace_id","in":"path","required":true,"schema":{"type":"string","title":"Workspace Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/workspaces/{workspace_id}/share-document":{"post":{"tags":["workspaces"],"summary":"Share Document","operationId":"share_document_workspaces__workspace_id__share_document_post","parameters":[{"name":"workspace_id","in":"path","required":true,"schema":{"type":"string","title":"Workspace Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/workspaces/{workspace_id}/graph":{"get":{"tags":["workspaces"],"summary":"Get Workspace Graph","operationId":"get_workspace_graph_workspaces__workspace_id__graph_get","parameters":[{"name":"workspace_id","in":"path","required":true,"schema":{"type":"string","title":"Workspace Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/settings/":{"get":{"tags":["settings"],"summary":"Get Settings","description":"Get settings for a specific workspace or global defaults.","operationId":"get_settings_settings__get","parameters":[{"name":"workspace_id","in":"query","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Workspace Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"patch":{"tags":["settings"],"summary":"Update Settings","description":"Update settings for a specific workspace or global defaults.","operationId":"update_settings_settings__patch","parameters":[{"name":"workspace_id","in":"query","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Workspace Id"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","additionalProperties":true,"title":"Updates"}}}},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/settings/metadata":{"get":{"tags":["settings"],"summary":"Get Settings Metadata","description":"Get metadata describing setting field properties and editability.","operationId":"get_settings_metadata_settings_metadata_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}},"/tools/":{"get":{"tags":["tools"],"summary":"List Tools","description":"List all available tools and their status.","operationId":"list_tools_tools__get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}},"post":{"tags":["tools"],"summary":"Add Tool","description":"Register a new tool (Custom/MCP).","operationId":"add_tool_tools__post","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ToolDefinition"}}},"required":true},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/tools/{tool_id}/toggle":{"post":{"tags":["tools"],"summary":"Toggle Tool","description":"Enable or disable a tool.","operationId":"toggle_tool_tools__tool_id__toggle_post","parameters":[{"name":"tool_id","in":"path","required":true,"schema":{"type":"string","title":"Tool Id"}},{"name":"enabled","in":"query","required":true,"schema":{"type":"boolean","title":"Enabled"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/tools/{tool_id}":{"delete":{"tags":["tools"],"summary":"Delete Tool","description":"Delete a custom tool.","operationId":"delete_tool_tools__tool_id__delete","parameters":[{"name":"tool_id","in":"path","required":true,"schema":{"type":"string","title":"Tool Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/search/":{"get":{"tags":["search"],"summary":"Global Search","description":"Perform a unified search across all architectural entities.","operationId":"global_search_search__get","parameters":[{"name":"q","in":"query","required":true,"schema":{"type":"string","minLength":2,"description":"Search query","title":"Q"},"description":"Search query"},{"name":"workspace_id","in":"query","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"description":"Optional workspace scope","title":"Workspace Id"},"description":"Optional workspace scope"}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AppResponse"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/tasks/":{"get":{"tags":["tasks"],"summary":"List Tasks","description":"List tasks, optionally filtered by type and workspace.","operationId":"list_tasks_tasks__get","parameters":[{"name":"type","in":"query","required":false,"schema":{"type":"string","title":"Type"}},{"name":"workspace_id","in":"query","required":false,"schema":{"type":"string","title":"Workspace Id"}},{"name":"limit","in":"query","required":false,"schema":{"type":"integer","default":50,"title":"Limit"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/tasks/{task_id}":{"get":{"tags":["tasks"],"summary":"Get Task Status","description":"Get the current status of a specific task.","operationId":"get_task_status_tasks__task_id__get","parameters":[{"name":"task_id","in":"path","required":true,"schema":{"type":"string","title":"Task Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/tasks/{task_id}/retry":{"post":{"tags":["tasks"],"summary":"Retry Task","description":"Mark a failed task as retryable and re-dispatch it to background workers.","operationId":"retry_task_tasks__task_id__retry_post","parameters":[{"name":"task_id","in":"path","required":true,"schema":{"type":"string","title":"Task Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/tasks/{task_id}/cancel":{"post":{"tags":["tasks"],"summary":"Cancel Task","description":"Cancel a pending or processing task.","operationId":"cancel_task_tasks__task_id__cancel_post","parameters":[{"name":"task_id","in":"path","required":true,"schema":{"type":"string","title":"Task Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/tasks/cleanup":{"delete":{"tags":["tasks"],"summary":"Cleanup Tasks","description":"Remove completed/failed tasks older than the given number of hours.","operationId":"cleanup_tasks_tasks_cleanup_delete","parameters":[{"name":"older_than_hours","in":"query","required":false,"schema":{"type":"integer","default":24,"title":"Older Than Hours"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/eval/datasets":{"post":{"tags":["Evaluation"],"summary":"Create Dataset","operationId":"create_dataset_eval_datasets_post","parameters":[{"name":"workspace_id","in":"query","required":false,"schema":{"type":"string","default":"default","title":"Workspace Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"get":{"tags":["Evaluation"],"summary":"List Datasets","operationId":"list_datasets_eval_datasets_get","parameters":[{"name":"workspace_id","in":"query","required":false,"schema":{"type":"string","default":"default","title":"Workspace Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/eval/runs":{"post":{"tags":["Evaluation"],"summary":"Run Evaluation","operationId":"run_evaluation_eval_runs_post","parameters":[{"name":"workspace_id","in":"query","required":false,"schema":{"type":"string","default":"default","title":"Workspace Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"get":{"tags":["Evaluation"],"summary":"List Runs","operationId":"list_runs_eval_runs_get","parameters":[{"name":"workspace_id","in":"query","required":false,"schema":{"type":"string","default":"default","title":"Workspace Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/eval/runs/{run_id}":{"get":{"tags":["Evaluation"],"summary":"Get Run","operationId":"get_run_eval_runs__run_id__get","parameters":[{"name":"run_id","in":"path","required":true,"schema":{"type":"string","title":"Run Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/admin/prompts":{"get":{"tags":["Admin & Ops"],"summary":"Get Prompts","description":"List all prompts in the registry.","operationId":"get_prompts_admin_prompts_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}},"/admin/vector/status":{"get":{"tags":["Admin & Ops"],"summary":"Get Vector Status","description":"Get status of the vector store.","operationId":"get_vector_status_admin_vector_status_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}},"/admin/ops/overview":{"get":{"tags":["Admin & Ops"],"summary":"Get Ops Overview","description":"Get a high-level overview of system components.","operationId":"get_ops_overview_admin_ops_overview_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}}},"components":{"schemas":{"AppResponse":{"properties":{"success":{"type":"boolean","title":"Success","default":true},"code":{"type":"string","title":"Code","default":"SUCCESS"},"message":{"type":"string","title":"Message","default":"Operation completed successfully"},"data":{"anyOf":[{},{"type":"null"}],"title":"Data"}},"type":"object","title":"AppResponse"},"AppResponse_List_Workspace__":{"properties":{"success":{"type":"boolean","title":"Success","default":true},"code":{"type":"string","title":"Code","default":"SUCCESS"},"message":{"type":"string","title":"Message","default":"Operation completed successfully"},"data":{"anyOf":[{"items":{"$ref":"#/components/schemas/Workspace"},"type":"array"},{"type":"null"}],"title":"Data"}},"type":"object","title":"AppResponse[List[Workspace]]"},"Body_import_audio_document_import_audio_post":{"properties":{"file":{"type":"string","format":"binary","title":"File"}},"type":"object","required":["file"],"title":"Body_import_audio_document_import_audio_post"},"Body_upload_document_upload_post":{"properties":{"file":{"type":"string","format":"binary","title":"File"}},"type":"object","required":["file"],"title":"Body_upload_document_upload_post"},"ChatStreamRequest":{"properties":{"message":{"type":"string","title":"Message","description":"The user message to process"},"thread_id":{"type":"string","title":"Thread Id","description":"The ID of the chat thread"},"workspace_id":{"type":"string","title":"Workspace Id","description":"The workspace ID context","default":"default"},"execution":{"anyOf":[{"additionalProperties":true,"type":"object"},{"type":"null"}],"title":"Execution","description":"Runtime execution settings"}},"type":"object","required":["message","thread_id"],"title":"ChatStreamRequest"},"DocumentWorkspaceUpdate":{"properties":{"document_id":{"type":"string","title":"Document Id"},"target_workspace_id":{"type":"string","title":"Target Workspace Id"},"action":{"type":"string","title":"Action","default":"share"},"force_reindex":{"type":"boolean","title":"Force Reindex","default":false}},"type":"object","required":["document_id","target_workspace_id"],"title":"DocumentWorkspaceUpdate"},"GitHubImportRequest":{"properties":{"url":{"type":"string","maxLength":2083,"minLength":1,"format":"uri","title":"Url","description":"GitHub repository URL"},"branch":{"type":"string","title":"Branch","description":"Branch name","default":"main"}},"type":"object","required":["url"],"title":"GitHubImportRequest"},"HTTPValidationError":{"properties":{"detail":{"items":{"$ref":"#/components/schemas/ValidationError"},"type":"array","title":"Detail"}},"type":"object","title":"HTTPValidationError"},"SitemapImportRequest":{"properties":{"url":{"type":"string","maxLength":2083,"minLength":1,"format":"uri","title":"Url","description":"Sitemap URL"}},"type":"object","required":["url"],"title":"SitemapImportRequest"},"ThreadTitleUpdate":{"properties":{"title":{"type":"string","maxLength":100,"minLength":1,"title":"Title"}},"type":"object","required":["title"],"title":"ThreadTitleUpdate"},"ToolDefinition":{"properties":{"id":{"type":"string","title":"Id"},"name":{"type":"string","title":"Name"},"description":{"type":"string","title":"Description"},"type":{"type":"string","title":"Type","default":"system"},"enabled":{"type":"boolean","title":"Enabled","default":true},"config":{"anyOf":[{"additionalProperties":true,"type":"object"},{"type":"null"}],"title":"Config","default":{}}},"type":"object","required":["id","name","description"],"title":"ToolDefinition"},"UrlImportRequest":{"properties":{"url":{"type":"string","maxLength":2083,"minLength":1,"format":"uri","title":"Url","description":"URL to import from"},"strategy":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Strategy","description":"Ingestion strategy"}},"type":"object","required":["url"],"title":"UrlImportRequest"},"ValidationError":{"properties":{"loc":{"items":{"anyOf":[{"type":"string"},{"type":"integer"}]},"type":"array","title":"Location"},"msg":{"type":"string","title":"Message"},"type":{"type":"string","title":"Error Type"},"input":{"title":"Input"},"ctx":{"type":"object","title":"Context"}},"type":"object","required":["loc","msg","type"],"title":"ValidationError"},"Workspace":{"properties":{"id":{"type":"string","title":"Id"},"name":{"type":"string","title":"Name"},"description":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Description"},"created_at":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Created At"},"updated_at":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Updated At"},"stats":{"anyOf":[{"$ref":"#/components/schemas/WorkspaceStats"},{"type":"null"}]},"llm_provider":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Llm Provider"},"embedding_provider":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Embedding Provider"},"rag_engine":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Rag Engine"}},"type":"object","required":["id","name"],"title":"Workspace"},"WorkspaceCreate":{"properties":{"name":{"type":"string","maxLength":50,"minLength":1,"pattern":"^[\\w\\s.-]+$","title":"Name"},"description":{"anyOf":[{"type":"string","maxLength":200},{"type":"null"}],"title":"Description"},"embedding_provider":{"type":"string","title":"Embedding Provider","default":"openai"},"embedding_model":{"type":"string","title":"Embedding Model","default":"text-embedding-3-small"},"embedding_dim":{"type":"integer","title":"Embedding Dim","default":1536},"rag_engine":{"type":"string","enum":["basic","graph"],"title":"Rag Engine","default":"basic"},"search_limit":{"type":"integer","maximum":50.0,"minimum":1.0,"title":"Search Limit","default":5},"recall_k":{"type":"integer","maximum":100.0,"minimum":1.0,"title":"Recall K","default":20},"hybrid_alpha":{"type":"number","maximum":1.0,"minimum":0.0,"title":"Hybrid Alpha","default":0.5},"graph_enabled":{"type":"boolean","title":"Graph Enabled","default":true},"reranker_enabled":{"type":"boolean","title":"Reranker Enabled","default":false},"reranker_provider":{"type":"string","title":"Reranker Provider","default":"none"},"rerank_top_k":{"type":"integer","maximum":15.0,"minimum":1.0,"title":"Rerank Top K","default":3},"agentic_enabled":{"type":"boolean","title":"Agentic Enabled","default":true},"llm_provider":{"type":"string","title":"Llm Provider","default":"openai"},"llm_model":{"type":"string","title":"Llm Model","default":"gpt-4o"},"temperature":{"type":"number","maximum":2.0,"minimum":0.0,"title":"Temperature","default":0.7},"chunk_size":{"type":"integer","maximum":4000.0,"minimum":100.0,"title":"Chunk Size","default":800},"chunk_overlap":{"type":"integer","maximum":1000.0,"minimum":0.0,"title":"Chunk Overlap","default":150},"neo4j_uri":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Neo4J Uri"},"neo4j_user":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Neo4J User"},"neo4j_password":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Neo4J Password"}},"type":"object","required":["name"],"title":"WorkspaceCreate"},"WorkspaceStats":{"properties":{"thread_count":{"type":"integer","title":"Thread Count","default":0},"doc_count":{"type":"integer","title":"Doc Count","default":0}},"type":"object","title":"WorkspaceStats"},"WorkspaceUpdate":{"properties":{"name":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Name"},"description":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Description"}},"type":"object","title":"WorkspaceUpdate"}}}}
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Knowledge Bank API",
+        "description": "Modular RAG & Agentic Chatbot API",
+        "version": "2.0.0"
+    },
+    "paths": {
+        "/": {
+            "get": {
+                "tags": [
+                    "health"
+                ],
+                "summary": "Root",
+                "operationId": "root__get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/chat/history/{thread_id}": {
+            "get": {
+                "tags": [
+                    "chat"
+                ],
+                "summary": "Get Chat History",
+                "operationId": "get_chat_history_chat_history__thread_id__get",
+                "parameters": [
+                    {
+                        "name": "thread_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Thread Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/chat/threads": {
+            "get": {
+                "tags": [
+                    "chat"
+                ],
+                "summary": "List Chat Threads",
+                "operationId": "list_chat_threads_chat_threads_get",
+                "parameters": [
+                    {
+                        "name": "workspace_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Workspace Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/chat/threads/{thread_id}/title": {
+            "patch": {
+                "tags": [
+                    "chat"
+                ],
+                "summary": "Update Thread Title",
+                "operationId": "update_thread_title_chat_threads__thread_id__title_patch",
+                "parameters": [
+                    {
+                        "name": "thread_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Thread Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ThreadTitleUpdate"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/chat/threads/{thread_id}": {
+            "get": {
+                "tags": [
+                    "chat"
+                ],
+                "summary": "Get Thread",
+                "operationId": "get_thread_chat_threads__thread_id__get",
+                "parameters": [
+                    {
+                        "name": "thread_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Thread Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "chat"
+                ],
+                "summary": "Delete Thread",
+                "operationId": "delete_thread_chat_threads__thread_id__delete",
+                "parameters": [
+                    {
+                        "name": "thread_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Thread Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/chat/stream": {
+            "post": {
+                "tags": [
+                    "chat"
+                ],
+                "summary": "Chat Stream",
+                "description": "Stream chat updates using SSE.\nSpawns background title generation for consistent UX.",
+                "operationId": "chat_stream_chat_stream_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ChatStreamRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/upload": {
+            "post": {
+                "tags": [
+                    "documents"
+                ],
+                "summary": "Upload Document",
+                "operationId": "upload_document_upload_post",
+                "parameters": [
+                    {
+                        "name": "workspace_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "vault",
+                            "title": "Workspace Id"
+                        }
+                    },
+                    {
+                        "name": "strategy",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Strategy"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Body_upload_document_upload_post"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/import-url": {
+            "post": {
+                "tags": [
+                    "documents"
+                ],
+                "summary": "Import Url Document",
+                "operationId": "import_url_document_import_url_post",
+                "parameters": [
+                    {
+                        "name": "workspace_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "vault",
+                            "title": "Workspace Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UrlImportRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/import-sitemap": {
+            "post": {
+                "tags": [
+                    "documents"
+                ],
+                "summary": "Import Sitemap Document",
+                "operationId": "import_sitemap_document_import_sitemap_post",
+                "parameters": [
+                    {
+                        "name": "workspace_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "vault",
+                            "title": "Workspace Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SitemapImportRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/import-github": {
+            "post": {
+                "tags": [
+                    "documents"
+                ],
+                "summary": "Import Github Document",
+                "operationId": "import_github_document_import_github_post",
+                "parameters": [
+                    {
+                        "name": "workspace_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "vault",
+                            "title": "Workspace Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/GitHubImportRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/import-audio": {
+            "post": {
+                "tags": [
+                    "documents"
+                ],
+                "summary": "Import Audio Document",
+                "operationId": "import_audio_document_import_audio_post",
+                "parameters": [
+                    {
+                        "name": "workspace_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "vault",
+                            "title": "Workspace Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Body_import_audio_document_import_audio_post"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/documents": {
+            "get": {
+                "tags": [
+                    "documents"
+                ],
+                "summary": "List Documents",
+                "operationId": "list_documents_documents_get",
+                "parameters": [
+                    {
+                        "name": "workspace_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "vault",
+                            "title": "Workspace Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/documents-all": {
+            "get": {
+                "tags": [
+                    "documents"
+                ],
+                "summary": "List All Documents",
+                "operationId": "list_all_documents_documents_all_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/vault": {
+            "get": {
+                "tags": [
+                    "documents"
+                ],
+                "summary": "List Vault Documents",
+                "operationId": "list_vault_documents_vault_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/documents/{document_id}/chunks": {
+            "get": {
+                "tags": [
+                    "documents"
+                ],
+                "summary": "Get Document Chunks",
+                "operationId": "get_document_chunks_documents__document_id__chunks_get",
+                "parameters": [
+                    {
+                        "name": "document_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Document Id"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 100,
+                            "title": "Limit"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/documents/{document_id}/index": {
+            "post": {
+                "tags": [
+                    "documents"
+                ],
+                "summary": "Index Document",
+                "description": "Non-blocking indexing triggered by document ID.",
+                "operationId": "index_document_documents__document_id__index_post",
+                "parameters": [
+                    {
+                        "name": "document_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Document Id"
+                        }
+                    },
+                    {
+                        "name": "workspace_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "vault",
+                            "title": "Workspace Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/documents/{document_id}/inspect": {
+            "get": {
+                "tags": [
+                    "documents"
+                ],
+                "summary": "Inspect Document",
+                "operationId": "inspect_document_documents__document_id__inspect_get",
+                "parameters": [
+                    {
+                        "name": "document_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Document Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/documents/update-workspaces": {
+            "post": {
+                "tags": [
+                    "documents"
+                ],
+                "summary": "Update Document Workspaces",
+                "description": "Workspace operations using internal IDs.",
+                "operationId": "update_document_workspaces_documents_update_workspaces_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DocumentWorkspaceUpdate"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/documents/sync-workspaces": {
+            "post": {
+                "tags": [
+                    "documents"
+                ],
+                "summary": "Sync Document Workspaces",
+                "operationId": "sync_document_workspaces_documents_sync_workspaces_post",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/documents/{document_id}": {
+            "get": {
+                "tags": [
+                    "documents"
+                ],
+                "summary": "Get Document",
+                "operationId": "get_document_documents__document_id__get",
+                "parameters": [
+                    {
+                        "name": "document_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Document Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "documents"
+                ],
+                "summary": "Delete Document",
+                "operationId": "delete_document_documents__document_id__delete",
+                "parameters": [
+                    {
+                        "name": "document_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Document Id"
+                        }
+                    },
+                    {
+                        "name": "workspace_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "vault",
+                            "title": "Workspace Id"
+                        }
+                    },
+                    {
+                        "name": "vault_delete",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean",
+                            "default": false,
+                            "title": "Vault Delete"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces": {
+            "get": {
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "List Workspaces",
+                "operationId": "list_workspaces_workspaces_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppResponse_List_Workspace__"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "Create Workspace",
+                "operationId": "create_workspace_workspaces_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/WorkspaceCreate"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces/": {
+            "get": {
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "List Workspaces",
+                "operationId": "list_workspaces_workspaces__get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppResponse_List_Workspace__"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "Create Workspace",
+                "operationId": "create_workspace_workspaces__post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/WorkspaceCreate"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces/{workspace_id}": {
+            "patch": {
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "Update Workspace",
+                "operationId": "update_workspace_workspaces__workspace_id__patch",
+                "parameters": [
+                    {
+                        "name": "workspace_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Workspace Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/WorkspaceUpdate"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "Delete Workspace",
+                "operationId": "delete_workspace_workspaces__workspace_id__delete",
+                "parameters": [
+                    {
+                        "name": "workspace_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Workspace Id"
+                        }
+                    },
+                    {
+                        "name": "vault_delete",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean",
+                            "default": false,
+                            "title": "Vault Delete"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces/{workspace_id}/details": {
+            "get": {
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "Get Workspace Details",
+                "operationId": "get_workspace_details_workspaces__workspace_id__details_get",
+                "parameters": [
+                    {
+                        "name": "workspace_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Workspace Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces/{workspace_id}/share-document": {
+            "post": {
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "Share Document",
+                "operationId": "share_document_workspaces__workspace_id__share_document_post",
+                "parameters": [
+                    {
+                        "name": "workspace_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Workspace Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces/{workspace_id}/graph": {
+            "get": {
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "Get Workspace Graph",
+                "operationId": "get_workspace_graph_workspaces__workspace_id__graph_get",
+                "parameters": [
+                    {
+                        "name": "workspace_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Workspace Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/settings/": {
+            "get": {
+                "tags": [
+                    "settings"
+                ],
+                "summary": "Get Settings",
+                "description": "Get settings for a specific workspace or global defaults.",
+                "operationId": "get_settings_settings__get",
+                "parameters": [
+                    {
+                        "name": "workspace_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Workspace Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "tags": [
+                    "settings"
+                ],
+                "summary": "Update Settings",
+                "description": "Update settings for a specific workspace or global defaults.",
+                "operationId": "update_settings_settings__patch",
+                "parameters": [
+                    {
+                        "name": "workspace_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Workspace Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true,
+                                "title": "Updates"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/settings/metadata": {
+            "get": {
+                "tags": [
+                    "settings"
+                ],
+                "summary": "Get Settings Metadata",
+                "description": "Get metadata describing setting field properties and editability.",
+                "operationId": "get_settings_metadata_settings_metadata_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tools/": {
+            "get": {
+                "tags": [
+                    "tools"
+                ],
+                "summary": "List Tools",
+                "description": "List all available tools and their status.",
+                "operationId": "list_tools_tools__get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "tools"
+                ],
+                "summary": "Add Tool",
+                "description": "Register a new tool (Custom/MCP).",
+                "operationId": "add_tool_tools__post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ToolDefinition"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tools/{tool_id}/toggle": {
+            "post": {
+                "tags": [
+                    "tools"
+                ],
+                "summary": "Toggle Tool",
+                "description": "Enable or disable a tool.",
+                "operationId": "toggle_tool_tools__tool_id__toggle_post",
+                "parameters": [
+                    {
+                        "name": "tool_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Tool Id"
+                        }
+                    },
+                    {
+                        "name": "enabled",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "boolean",
+                            "title": "Enabled"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tools/{tool_id}": {
+            "delete": {
+                "tags": [
+                    "tools"
+                ],
+                "summary": "Delete Tool",
+                "description": "Delete a custom tool.",
+                "operationId": "delete_tool_tools__tool_id__delete",
+                "parameters": [
+                    {
+                        "name": "tool_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Tool Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/search/": {
+            "get": {
+                "tags": [
+                    "search"
+                ],
+                "summary": "Global Search",
+                "description": "Perform a unified search across all architectural entities.",
+                "operationId": "global_search_search__get",
+                "parameters": [
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "minLength": 2,
+                            "description": "Search query",
+                            "title": "Q"
+                        },
+                        "description": "Search query"
+                    },
+                    {
+                        "name": "workspace_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "description": "Optional workspace scope",
+                            "title": "Workspace Id"
+                        },
+                        "description": "Optional workspace scope"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AppResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tasks/": {
+            "get": {
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "List Tasks",
+                "description": "List tasks, optionally filtered by type and workspace.",
+                "operationId": "list_tasks_tasks__get",
+                "parameters": [
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "title": "Type"
+                        }
+                    },
+                    {
+                        "name": "workspace_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "title": "Workspace Id"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 50,
+                            "title": "Limit"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tasks/{task_id}": {
+            "get": {
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "Get Task Status",
+                "description": "Get the current status of a specific task.",
+                "operationId": "get_task_status_tasks__task_id__get",
+                "parameters": [
+                    {
+                        "name": "task_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Task Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tasks/{task_id}/retry": {
+            "post": {
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "Retry Task",
+                "description": "Mark a failed task as retryable and re-dispatch it to background workers.",
+                "operationId": "retry_task_tasks__task_id__retry_post",
+                "parameters": [
+                    {
+                        "name": "task_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Task Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tasks/{task_id}/cancel": {
+            "post": {
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "Cancel Task",
+                "description": "Cancel a pending or processing task.",
+                "operationId": "cancel_task_tasks__task_id__cancel_post",
+                "parameters": [
+                    {
+                        "name": "task_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Task Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tasks/cleanup": {
+            "delete": {
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "Cleanup Tasks",
+                "description": "Remove completed/failed tasks older than the given number of hours.",
+                "operationId": "cleanup_tasks_tasks_cleanup_delete",
+                "parameters": [
+                    {
+                        "name": "older_than_hours",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 24,
+                            "title": "Older Than Hours"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/eval/datasets": {
+            "post": {
+                "tags": [
+                    "Evaluation"
+                ],
+                "summary": "Create Dataset",
+                "operationId": "create_dataset_eval_datasets_post",
+                "parameters": [
+                    {
+                        "name": "workspace_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "default",
+                            "title": "Workspace Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "get": {
+                "tags": [
+                    "Evaluation"
+                ],
+                "summary": "List Datasets",
+                "operationId": "list_datasets_eval_datasets_get",
+                "parameters": [
+                    {
+                        "name": "workspace_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "default",
+                            "title": "Workspace Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/eval/runs": {
+            "post": {
+                "tags": [
+                    "Evaluation"
+                ],
+                "summary": "Run Evaluation",
+                "operationId": "run_evaluation_eval_runs_post",
+                "parameters": [
+                    {
+                        "name": "workspace_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "default",
+                            "title": "Workspace Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "get": {
+                "tags": [
+                    "Evaluation"
+                ],
+                "summary": "List Runs",
+                "operationId": "list_runs_eval_runs_get",
+                "parameters": [
+                    {
+                        "name": "workspace_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "default",
+                            "title": "Workspace Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/eval/runs/{run_id}": {
+            "get": {
+                "tags": [
+                    "Evaluation"
+                ],
+                "summary": "Get Run",
+                "operationId": "get_run_eval_runs__run_id__get",
+                "parameters": [
+                    {
+                        "name": "run_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Run Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/prompts": {
+            "get": {
+                "tags": [
+                    "Admin & Ops"
+                ],
+                "summary": "Get Prompts",
+                "description": "List all prompts in the registry.",
+                "operationId": "get_prompts_admin_prompts_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/vector/status": {
+            "get": {
+                "tags": [
+                    "Admin & Ops"
+                ],
+                "summary": "Get Vector Status",
+                "description": "Get status of the vector store.",
+                "operationId": "get_vector_status_admin_vector_status_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/ops/overview": {
+            "get": {
+                "tags": [
+                    "Admin & Ops"
+                ],
+                "summary": "Get Ops Overview",
+                "description": "Get a high-level overview of system components.",
+                "operationId": "get_ops_overview_admin_ops_overview_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "AppResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "title": "Success",
+                        "default": true
+                    },
+                    "code": {
+                        "type": "string",
+                        "title": "Code",
+                        "default": "SUCCESS"
+                    },
+                    "message": {
+                        "type": "string",
+                        "title": "Message",
+                        "default": "Operation completed successfully"
+                    },
+                    "data": {
+                        "type": "object",
+                        "additionalProperties": true,
+                        "title": "Data"
+                    }
+                },
+                "type": "object",
+                "title": "AppResponse"
+            },
+            "AppResponse_List_Workspace__": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "title": "Success",
+                        "default": true
+                    },
+                    "code": {
+                        "type": "string",
+                        "title": "Code",
+                        "default": "SUCCESS"
+                    },
+                    "message": {
+                        "type": "string",
+                        "title": "Message",
+                        "default": "Operation completed successfully"
+                    },
+                    "data": {
+                        "anyOf": [
+                            {
+                                "items": {
+                                    "$ref": "#/components/schemas/Workspace"
+                                },
+                                "type": "array"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Data"
+                    }
+                },
+                "type": "object",
+                "title": "AppResponse[List[Workspace]]"
+            },
+            "Body_import_audio_document_import_audio_post": {
+                "properties": {
+                    "file": {
+                        "type": "string",
+                        "format": "binary",
+                        "title": "File"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "file"
+                ],
+                "title": "Body_import_audio_document_import_audio_post"
+            },
+            "Body_upload_document_upload_post": {
+                "properties": {
+                    "file": {
+                        "type": "string",
+                        "format": "binary",
+                        "title": "File"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "file"
+                ],
+                "title": "Body_upload_document_upload_post"
+            },
+            "ChatStreamRequest": {
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "title": "Message",
+                        "description": "The user message to process"
+                    },
+                    "thread_id": {
+                        "type": "string",
+                        "title": "Thread Id",
+                        "description": "The ID of the chat thread"
+                    },
+                    "workspace_id": {
+                        "type": "string",
+                        "title": "Workspace Id",
+                        "description": "The workspace ID context",
+                        "default": "default"
+                    },
+                    "execution": {
+                        "anyOf": [
+                            {
+                                "additionalProperties": true,
+                                "type": "object"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Execution",
+                        "description": "Runtime execution settings"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "message",
+                    "thread_id"
+                ],
+                "title": "ChatStreamRequest"
+            },
+            "DocumentWorkspaceUpdate": {
+                "properties": {
+                    "document_id": {
+                        "type": "string",
+                        "title": "Document Id"
+                    },
+                    "target_workspace_id": {
+                        "type": "string",
+                        "title": "Target Workspace Id"
+                    },
+                    "action": {
+                        "type": "string",
+                        "title": "Action",
+                        "default": "share"
+                    },
+                    "force_reindex": {
+                        "type": "boolean",
+                        "title": "Force Reindex",
+                        "default": false
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "document_id",
+                    "target_workspace_id"
+                ],
+                "title": "DocumentWorkspaceUpdate"
+            },
+            "GitHubImportRequest": {
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "maxLength": 2083,
+                        "minLength": 1,
+                        "format": "uri",
+                        "title": "Url",
+                        "description": "GitHub repository URL"
+                    },
+                    "branch": {
+                        "type": "string",
+                        "title": "Branch",
+                        "description": "Branch name",
+                        "default": "main"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "url"
+                ],
+                "title": "GitHubImportRequest"
+            },
+            "HTTPValidationError": {
+                "properties": {
+                    "detail": {
+                        "items": {
+                            "$ref": "#/components/schemas/ValidationError"
+                        },
+                        "type": "array",
+                        "title": "Detail"
+                    }
+                },
+                "type": "object",
+                "title": "HTTPValidationError"
+            },
+            "SitemapImportRequest": {
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "maxLength": 2083,
+                        "minLength": 1,
+                        "format": "uri",
+                        "title": "Url",
+                        "description": "Sitemap URL"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "url"
+                ],
+                "title": "SitemapImportRequest"
+            },
+            "ThreadTitleUpdate": {
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "maxLength": 100,
+                        "minLength": 1,
+                        "title": "Title"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "title"
+                ],
+                "title": "ThreadTitleUpdate"
+            },
+            "ToolDefinition": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "title": "Id"
+                    },
+                    "name": {
+                        "type": "string",
+                        "title": "Name"
+                    },
+                    "description": {
+                        "type": "string",
+                        "title": "Description"
+                    },
+                    "type": {
+                        "type": "string",
+                        "title": "Type",
+                        "default": "system"
+                    },
+                    "enabled": {
+                        "type": "boolean",
+                        "title": "Enabled",
+                        "default": true
+                    },
+                    "config": {
+                        "anyOf": [
+                            {
+                                "additionalProperties": true,
+                                "type": "object"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Config",
+                        "default": {}
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "id",
+                    "name",
+                    "description"
+                ],
+                "title": "ToolDefinition"
+            },
+            "UrlImportRequest": {
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "maxLength": 2083,
+                        "minLength": 1,
+                        "format": "uri",
+                        "title": "Url",
+                        "description": "URL to import from"
+                    },
+                    "strategy": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Strategy",
+                        "description": "Ingestion strategy"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "url"
+                ],
+                "title": "UrlImportRequest"
+            },
+            "ValidationError": {
+                "properties": {
+                    "loc": {
+                        "items": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "integer"
+                                }
+                            ]
+                        },
+                        "type": "array",
+                        "title": "Location"
+                    },
+                    "msg": {
+                        "type": "string",
+                        "title": "Message"
+                    },
+                    "type": {
+                        "type": "string",
+                        "title": "Error Type"
+                    },
+                    "input": {
+                        "title": "Input"
+                    },
+                    "ctx": {
+                        "type": "object",
+                        "title": "Context"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "loc",
+                    "msg",
+                    "type"
+                ],
+                "title": "ValidationError"
+            },
+            "Workspace": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "title": "Id"
+                    },
+                    "name": {
+                        "type": "string",
+                        "title": "Name"
+                    },
+                    "description": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Description"
+                    },
+                    "created_at": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Created At"
+                    },
+                    "updated_at": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Updated At"
+                    },
+                    "stats": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/WorkspaceStats"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "llm_provider": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Llm Provider"
+                    },
+                    "embedding_provider": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Embedding Provider"
+                    },
+                    "rag_engine": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Rag Engine"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "id",
+                    "name"
+                ],
+                "title": "Workspace"
+            },
+            "WorkspaceCreate": {
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 50,
+                        "minLength": 1,
+                        "pattern": "^[\\w\\s.-]+$",
+                        "title": "Name"
+                    },
+                    "description": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "maxLength": 200
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Description"
+                    },
+                    "embedding_provider": {
+                        "type": "string",
+                        "title": "Embedding Provider",
+                        "default": "openai"
+                    },
+                    "embedding_model": {
+                        "type": "string",
+                        "title": "Embedding Model",
+                        "default": "text-embedding-3-small"
+                    },
+                    "embedding_dim": {
+                        "type": "integer",
+                        "title": "Embedding Dim",
+                        "default": 1536
+                    },
+                    "rag_engine": {
+                        "type": "string",
+                        "enum": [
+                            "basic",
+                            "graph"
+                        ],
+                        "title": "Rag Engine",
+                        "default": "basic"
+                    },
+                    "search_limit": {
+                        "type": "integer",
+                        "maximum": 50.0,
+                        "minimum": 1.0,
+                        "title": "Search Limit",
+                        "default": 5
+                    },
+                    "recall_k": {
+                        "type": "integer",
+                        "maximum": 100.0,
+                        "minimum": 1.0,
+                        "title": "Recall K",
+                        "default": 20
+                    },
+                    "hybrid_alpha": {
+                        "type": "number",
+                        "maximum": 1.0,
+                        "minimum": 0.0,
+                        "title": "Hybrid Alpha",
+                        "default": 0.5
+                    },
+                    "graph_enabled": {
+                        "type": "boolean",
+                        "title": "Graph Enabled",
+                        "default": true
+                    },
+                    "reranker_enabled": {
+                        "type": "boolean",
+                        "title": "Reranker Enabled",
+                        "default": false
+                    },
+                    "reranker_provider": {
+                        "type": "string",
+                        "title": "Reranker Provider",
+                        "default": "none"
+                    },
+                    "rerank_top_k": {
+                        "type": "integer",
+                        "maximum": 15.0,
+                        "minimum": 1.0,
+                        "title": "Rerank Top K",
+                        "default": 3
+                    },
+                    "agentic_enabled": {
+                        "type": "boolean",
+                        "title": "Agentic Enabled",
+                        "default": true
+                    },
+                    "llm_provider": {
+                        "type": "string",
+                        "title": "Llm Provider",
+                        "default": "openai"
+                    },
+                    "llm_model": {
+                        "type": "string",
+                        "title": "Llm Model",
+                        "default": "gpt-4o"
+                    },
+                    "temperature": {
+                        "type": "number",
+                        "maximum": 2.0,
+                        "minimum": 0.0,
+                        "title": "Temperature",
+                        "default": 0.7
+                    },
+                    "chunk_size": {
+                        "type": "integer",
+                        "maximum": 4000.0,
+                        "minimum": 100.0,
+                        "title": "Chunk Size",
+                        "default": 800
+                    },
+                    "chunk_overlap": {
+                        "type": "integer",
+                        "maximum": 1000.0,
+                        "minimum": 0.0,
+                        "title": "Chunk Overlap",
+                        "default": 150
+                    },
+                    "neo4j_uri": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Neo4J Uri"
+                    },
+                    "neo4j_user": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Neo4J User"
+                    },
+                    "neo4j_password": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Neo4J Password"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "name"
+                ],
+                "title": "WorkspaceCreate"
+            },
+            "WorkspaceStats": {
+                "properties": {
+                    "thread_count": {
+                        "type": "integer",
+                        "title": "Thread Count",
+                        "default": 0
+                    },
+                    "doc_count": {
+                        "type": "integer",
+                        "title": "Doc Count",
+                        "default": 0
+                    }
+                },
+                "type": "object",
+                "title": "WorkspaceStats"
+            },
+            "WorkspaceUpdate": {
+                "properties": {
+                    "name": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Name"
+                    },
+                    "description": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Description"
+                    }
+                },
+                "type": "object",
+                "title": "WorkspaceUpdate"
+            }
+        }
+    }
+}
