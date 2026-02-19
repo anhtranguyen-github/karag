@@ -1,11 +1,10 @@
 import pytest
-import asyncio
 import httpx
 import uuid
 from langchain_core.messages import HumanMessage, AIMessage
 from backend.app.graph.builder import app as graph_app
 from backend.app.main import app as fastapi_app
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import MagicMock, AsyncMock
 from httpx import AsyncClient
 
 @pytest.mark.asyncio

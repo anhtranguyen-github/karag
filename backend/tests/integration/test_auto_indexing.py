@@ -1,7 +1,6 @@
 import pytest
 from backend.app.services.document_service import document_service
-from backend.app.services.task.task_service import task_service
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 def get_mock_db():
     mock_db = MagicMock()
@@ -31,7 +30,7 @@ async def test_run_ingestion_auto_indexing_triggered_by_workspace(mocker):
     # Mock dependencies
     mock_db, mock_col = get_mock_db()
     mocker.patch("backend.app.core.mongodb.mongodb_manager.get_async_database", return_value=mock_db)
-    mock_minio = mocker.patch("backend.app.services.document.document_upload_service.minio_manager.upload_file", return_value="path/to/file")
+    mocker.patch("backend.app.services.document.document_upload_service.minio_manager.upload_file", return_value="path/to/file")
     mock_indexing = mocker.patch("backend.app.services.document.document_ingestion_service.document_ingestion_service.index_document", new_callable=AsyncMock)
     mock_indexing.return_value = 10 # 10 chunks
     
@@ -60,7 +59,7 @@ async def test_run_ingestion_vault_indexing(mocker):
     # Mock dependencies
     mock_db, mock_col = get_mock_db()
     mocker.patch("backend.app.core.mongodb.mongodb_manager.get_async_database", return_value=mock_db)
-    mock_minio = mocker.patch("backend.app.services.document.document_upload_service.minio_manager.upload_file", return_value="vault/test.pdf")
+    mocker.patch("backend.app.services.document.document_upload_service.minio_manager.upload_file", return_value="vault/test.pdf")
     
     # We want to ensure indexing_service.index_document IS called.
     # Note: indexing_service is imported inside run_ingestion, so we patch the module attribute

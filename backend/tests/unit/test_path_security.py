@@ -11,7 +11,7 @@ async def sec_client():
     test_app.include_router(api_v1_router)
     
     # Register exception handler to convert NotFoundError to 404
-    from backend.app.core.exceptions import NotFoundError, BaseAppException
+    from backend.app.core.exceptions import BaseAppException
     from fastapi.responses import JSONResponse
     from fastapi import Request
     

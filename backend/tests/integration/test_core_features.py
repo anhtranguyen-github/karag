@@ -1,10 +1,8 @@
 import pytest
 import uuid
-import asyncio
 from httpx import AsyncClient, ASGITransport
 from backend.app.main import app
 from backend.app.core.mongodb import mongodb_manager
-from backend.app.schemas.execution import ExecutionMode
 
 @pytest.fixture(autouse=True)
 def reset_mongo():

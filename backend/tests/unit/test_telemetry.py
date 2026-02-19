@@ -10,8 +10,7 @@ Verifies:
 """
 
 import pytest
-import asyncio
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from backend.app.core.telemetry import (
     configure_logging,

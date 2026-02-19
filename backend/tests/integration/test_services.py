@@ -1,8 +1,7 @@
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from backend.app.services.document_service import document_service
 from backend.app.services.workspace_service import workspace_service
-import io
 
 def get_mock_db():
     mock_db = MagicMock()

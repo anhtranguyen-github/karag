@@ -1,8 +1,6 @@
-import pytest
 import asyncio
 from pydantic import TypeAdapter
 from backend.app.rag.chunking.registry import chunking_registry
-from backend.app.schemas.chunking import ChunkingConfig
 from backend.app.schemas.generation import GenerationConfig
 from backend.app.schemas.retrieval import RetrievalConfig
 from backend.app.schemas.execution import RuntimeSettings, ExecutionMode

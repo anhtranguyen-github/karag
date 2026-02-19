@@ -1,4 +1,3 @@
-import pytest
 from fastapi.testclient import TestClient
 from backend.app.main import app
 from contextlib import asynccontextmanager
