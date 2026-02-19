@@ -33,7 +33,7 @@ const TABS: { id: AdminTab; label: string; icon: React.ElementType; description:
 
 export default function AdminConsolePage() {
     const [activeTab, setActiveTab] = useState<AdminTab>('overview');
-    const { updateSettings, refreshSettings } = useSettings();
+    const { settings, updateSettings, refreshSettings } = useSettings();
     const { metadata, refreshSettings: refreshMetadata } = useSettingsMetadata();
     const [isSaving, setIsSaving] = useState<string | null>(null);
 

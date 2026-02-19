@@ -12,6 +12,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
 
+import { ThemeToggle } from "@/components/theme-toggle";
+
 export default function GlobalChatPage() {
     const params = useParams();
     const router = useRouter();
@@ -54,14 +56,14 @@ export default function GlobalChatPage() {
 
     if (isLoading) {
         return (
-            <div className="flex h-full items-center justify-center bg-[#0a0a0b]">
+            <div className="flex h-full items-center justify-center bg-background">
                 <Loader2 className="animate-spin text-indigo-500" size={32} />
             </div>
         );
     }
 
     return (
-        <div className="flex h-full w-full overflow-hidden bg-[#0a0a0b]">
+        <div className="flex h-full w-full overflow-hidden bg-background text-foreground">
             {/* Thread List Sidebar */}
             <AnimatePresence>
                 {isHistoryOpen && (
@@ -70,7 +72,7 @@ export default function GlobalChatPage() {
                         animate={{ width: 256, opacity: 1 }}
                         exit={{ width: 0, opacity: 0 }}
                         transition={{ duration: 0.2, ease: "easeInOut" }}
-                        className="h-full overflow-hidden border-r border-white/5"
+                        className="h-full overflow-hidden border-r border-border bg-card"
                     >
                         <ThreadList
                             activeThreadId={threadId === "new" ? null : threadId}
@@ -84,49 +86,52 @@ export default function GlobalChatPage() {
             {/* Main Chat Area */}
             <div className="flex-1 flex flex-col min-w-0 h-full relative">
                 {/* Workspace Header */}
-                <header className="h-16 border-b border-white/5 flex items-center px-6 justify-between shrink-0 bg-[#0a0a0b]/60 backdrop-blur-xl z-20">
+                <header className="h-16 border-b border-border flex items-center px-6 justify-between shrink-0 bg-background/60 backdrop-blur-xl z-20">
                     <div className="flex items-center gap-4">
                         <button
                             onClick={() => setIsHistoryOpen(!isHistoryOpen)}
-                            className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all mr-2"
+                            className="w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all mr-2"
                             title={isHistoryOpen ? "Close History" : "Open History"}
                         >
-                            <div className="flex flex-col gap-0.5">
+                            <div className="flex flex-col gap-0.5 pointer-events-none">
                                 <div className={cn("w-3 h-0.5 bg-current transition-all", isHistoryOpen ? "rotate-45 translate-y-1" : "")} />
                                 <div className={cn("w-3 h-0.5 bg-current transition-all", isHistoryOpen ? "opacity-0" : "")} />
                                 <div className={cn("w-3 h-0.5 bg-current transition-all", isHistoryOpen ? "-rotate-45 -translate-y-1" : "")} />
                             </div>
                         </button>
-                        <Link href="/" className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all group">
+                        <Link href="/" className="w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all group">
                             <Home size={14} className="group-active:scale-90" />
                         </Link>
                         {workspaceId && (
-                            <div className="flex items-center gap-3 pl-4 border-l border-white/10">
+                            <div className="flex items-center gap-3 pl-4 border-l border-border">
                                 <div className="w-2 h-2 rounded-full bg-indigo-500" />
-                                <span className="text-sm font-bold text-white leading-none">{workspace?.name || "Loading..."}</span>
+                                <span className="text-sm font-bold text-foreground leading-none">{workspace?.name || "Loading..."}</span>
                             </div>
                         )}
                     </div>
 
-                    {workspaceId && (
-                        <div className="flex items-center gap-2">
-                            <Link href={`/workspaces/${workspaceId}/documents`}>
-                                <button className="h-9 px-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/20 transition-all font-bold text-[10px] tracking-widest text-gray-400 hover:text-white flex items-center gap-2 uppercase">
-                                    <FileText size={14} />
-                                    Documents
-                                </button>
-                            </Link>
-                            <Link href={`/workspaces/${workspaceId}/settings`}>
-                                <button className="h-9 px-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/20 transition-all font-bold text-[10px] tracking-widest text-gray-400 hover:text-white flex items-center gap-2 uppercase">
-                                    <Settings size={14} />
-                                    Settings
-                                </button>
-                            </Link>
-                        </div>
-                    )}
+                    <div className="flex items-center gap-3">
+                        <ThemeToggle />
+                        {workspaceId && (
+                            <div className="flex items-center gap-2">
+                                <Link href={`/workspaces/${workspaceId}/documents`}>
+                                    <button className="h-9 px-4 rounded-xl bg-secondary border border-border hover:bg-muted transition-all font-bold text-[10px] tracking-widest text-muted-foreground hover:text-foreground flex items-center gap-2 uppercase">
+                                        <FileText size={14} />
+                                        Documents
+                                    </button>
+                                </Link>
+                                <Link href={`/workspaces/${workspaceId}/settings`}>
+                                    <button className="h-9 px-4 rounded-xl bg-secondary border border-border hover:bg-muted transition-all font-bold text-[10px] tracking-widest text-muted-foreground hover:text-foreground flex items-center gap-2 uppercase">
+                                        <Settings size={14} />
+                                        Settings
+                                    </button>
+                                </Link>
+                            </div>
+                        )}
+                    </div>
                 </header>
 
-                <div className="flex-1 relative overflow-hidden">
+                <div className="flex-1 relative overflow-hidden bg-background">
                     <ChatInterface
                         key={threadId}
                         threadId={threadId === "new" ? undefined : threadId}
