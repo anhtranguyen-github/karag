@@ -1,7 +1,6 @@
 import os
 from backend.app.core.mongodb import mongodb_manager
 from backend.app.core.minio import minio_manager
-from backend.app.core.settings_manager import settings_manager
 from backend.app.core.exceptions import NotFoundError
 from backend.app.services.task.task_service import task_service
 from backend.app.rag.ingestion import ingestion_pipeline
@@ -48,7 +47,6 @@ class DocumentIngestionService:
                 )
                 return 0
 
-            settings = await settings_manager.get_settings(workspace_id)
             target_coll = await qdrant.get_collection_name(workspace_id=workspace_id)
             if await qdrant.client.collection_exists(target_coll):
                 await qdrant.client.delete(
@@ -72,8 +70,6 @@ class DocumentIngestionService:
                     f.write(content)
                     
                 try:
-                    rag_hash = settings.get_rag_hash()
-                    
                     if task_id and await task_service.is_cancelled(task_id):
                         logger.info("indexing_cancelled_before_pipeline", task_id=task_id)
                         await db.documents.update_one(
@@ -99,7 +95,7 @@ class DocumentIngestionService:
                             "version": doc.get("current_version", 1), 
                             "minio_path": doc["minio_path"],
                             "content_hash": doc["content_hash"],
-                            "rag_config_hash": rag_hash
+                            "task_id": task_id
                         }
                     )
                     
@@ -109,7 +105,6 @@ class DocumentIngestionService:
                             "status": "ingested", 
                             f"workspace_statuses.{workspace_id}": "ingested",
                             "chunks": num_chunks, 
-                            "rag_config_hash": rag_hash
                         }}
                     )
                     logger.info("document_indexed_on_demand", filename=doc["filename"], chunks=num_chunks, force=force)

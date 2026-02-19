@@ -1,8 +1,7 @@
 import uuid
 from datetime import datetime
 from backend.app.core.mongodb import mongodb_manager
-from backend.app.core.settings_manager import settings_manager
-from backend.app.core.exceptions import NotFoundError, ConflictError, ValidationError
+from backend.app.core.exceptions import NotFoundError, ValidationError
 from backend.app.services.task.task_service import task_service
 from backend.app.rag.qdrant_provider import qdrant
 from qdrant_client.http import models as qmodels
@@ -49,9 +48,6 @@ class CrossWorkspaceDocumentService:
         if not res:
             raise NotFoundError(f"Document '{doc_id}' not found.")
 
-        target_settings = await settings_manager.get_settings(target_workspace_id)
-        target_rag_hash = target_settings.get_rag_hash()
-        
         if action == "link":
             exists = await db.documents.find_one({"workspace_id": target_workspace_id, "content_hash": res["content_hash"]})
             if exists:
@@ -67,7 +63,6 @@ class CrossWorkspaceDocumentService:
             new_doc["status"] = "indexing"
             new_doc["workspace_statuses"] = {target_workspace_id: "indexing", "vault": "indexing"}
             new_doc["chunks"] = 0
-            new_doc["rag_config_hash"] = target_rag_hash
             new_doc["created_at"] = datetime.utcnow().isoformat()
             new_doc["updated_at"] = new_doc["created_at"]
             
@@ -75,38 +70,21 @@ class CrossWorkspaceDocumentService:
             await document_ingestion_service.index_document(new_id, target_workspace_id, task_id=task_id)
             return
 
-        is_config_compatible = res.get("rag_config_hash") == target_rag_hash
-        
-        # Auto-Fork Logic
-        if action == "share" and not is_config_compatible:
-            logger.info("auto_forking_share_to_link", doc_id=doc_id, target_workspace=target_workspace_id, reason="rag_mismatch")
-            if task_id:
-                await task_service.update_task(
-                    task_id, 
-                    message="RAG configuration mismatch. Automatically forking document to target workspace."
-                )
-            return await self.update_workspaces(doc_id, target_workspace_id, action="link", force_reindex=False, task_id=task_id)
-
-        if action == "move" and not is_config_compatible:
-             force_reindex = True
-
-        if not is_config_compatible and not force_reindex:
-            raise ConflictError(
-                message="Incompatible Workspace: Target RAG config differs from Document",
-                params={"type": "rag_mismatch", "expected": res.get("rag_config_hash"), "actual": target_rag_hash}
-            )
-
-        if force_reindex or (not is_config_compatible) or res.get("status") != "ingested":
-            await document_ingestion_service.index_document(res["id"], target_workspace_id, force=(force_reindex or not is_config_compatible), task_id=task_id)
-            res = await db.documents.find_one({"id": res["id"]})
+        # Always re-index if document is not in the target workspace's expected state
+        # or if forced by the user. Moves/Shares across workspaces always trigger 
+        # independent indexing in this architecture.
+        await document_ingestion_service.index_document(res["id"], target_workspace_id, force=force_reindex, task_id=task_id)
+        res = await db.documents.find_one({"id": res["id"]})
 
         if action == "move":
             source_ws_id = res["workspace_id"]
             await db.documents.update_one({"id": res["id"]}, {"$set": {"workspace_id": target_workspace_id}})
             
             if source_ws_id != target_workspace_id:
-                source_settings = await settings_manager.get_settings(source_ws_id)
-                source_coll = qdrant.get_collection_name(source_settings.embedding_dim)
+                if task_id:
+                    await task_service.update_task(task_id, progress=90, message="Cleaning up source workspace...")
+                # FIX: get_collection_name is async and expects workspace_id
+                source_coll = await qdrant.get_collection_name(workspace_id=source_ws_id)
                 if await qdrant.client.collection_exists(source_coll):
                     await qdrant.client.delete(
                         collection_name=source_coll,

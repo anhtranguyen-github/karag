@@ -45,17 +45,10 @@ class QdrantProvider:
             return {"error": str(e)}
 
     async def get_collection_name(self, workspace_id: Optional[str] = None) -> str:
-        """
-        Deterministic naming based on embedding model and chunking strategy.
-        kb_{hash}_{dim}
-        """
+        """Determines the Qdrant collection name based on current settings."""
         from backend.app.core.settings_manager import settings_manager
         settings = await settings_manager.get_settings(workspace_id)
-        
-        cfg_hash = settings.get_rag_hash()
-        dim = settings.embedding_dim
-        
-        return f"kb_{cfg_hash}_{dim}"
+        return f"knowledge_base_{settings.embedding_dim}"
 
     async def create_collection(
         self, collection_name: str, vector_size: int = 1536

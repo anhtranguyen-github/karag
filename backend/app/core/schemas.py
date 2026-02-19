@@ -2,9 +2,9 @@ from pydantic import BaseModel, Field, model_validator
 from typing import Optional, Literal, Any, Dict
 from backend.app.schemas.chunking import ChunkingConfig, RecursiveChunkingConfig
 from backend.app.schemas.embedding import EmbeddingConfig, OpenAIEmbeddingConfig, HuggingFaceEmbeddingConfig, OllamaEmbeddingConfig
-from backend.app.schemas.generation import GenerationConfig, OpenAIGenerationConfig, LlamaGenerationConfig, VLMGenerationConfig
+from backend.app.schemas.generation import GenerationConfig, OpenAIGenerationConfig, LlamaGenerationConfig
 from backend.app.schemas.retrieval import RetrievalConfig
-from backend.app.schemas.execution import RuntimeSettings, FastModeConfig
+from backend.app.schemas.execution import RuntimeSettings
 
 class AppSettings(BaseModel):
     @classmethod
@@ -260,20 +260,6 @@ class AppSettings(BaseModel):
     @property
     def rerank_top_k(self) -> int:
         return self.retrieval.rerank.top_n
-
-    def get_rag_hash(self) -> str:
-        """Generate a hash based on core RAG parameters affecting state."""
-        import hashlib
-        config_str = (
-            f"{self.embedding.provider}|"
-            f"{self.embedding.model}|"
-            f"{self.embedding.dimensions}|"
-            f"{self.chunking.strategy}|"
-            f"{self.generation.provider}|"
-            f"{self.generation.model}|"
-            f"{self.retrieval.vector.enabled}"
-        )
-        return hashlib.sha256(config_str.encode()).hexdigest()[:12]
 
 class DocumentMetadata(BaseModel):
     id: str
