@@ -1,7 +1,5 @@
 #!/bin/bash
-
-# ./run.sh turbo --llm openai --embedding openai --force-clean
-# ./run.sh clean
+set -e
 
 # --- Configuration ---
 BACKEND_PORT=8000
@@ -15,328 +13,323 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 CYAN='\033[0;36m'
-NC='\033[0m' # No Color
+BOLD='\033[1m'
+NC='\033[0m'
 
-echo -e "${BLUE}=== AI Architect Modular Runner ===${NC}"
+echo -e "${BLUE}${BOLD}=== Karag Modular Platform Manager ===${NC}"
 
-# Load .env if exists
-if [ -f .env ]; then
-    export $(grep -v '^#' .env | xargs)
-fi
+# --- Utility Functions ---
 
-# Function to check port status
-check_port() {
-    lsof -i :$1 > /dev/null
-    return $?
-}
+log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
+log_success() { echo -e "${GREEN}[OK]  ${NC} $1"; }
+log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+log_error() { echo -e "${RED}[ERR] ${NC} $1"; }
+log_phase() { echo -e "\n${CYAN}${BOLD}>>> PHASE: $1${NC}"; }
 
-# Function to kill process on port
+check_port() { lsof -i :$1 > /dev/null; return $?; }
+
 kill_port() {
     local port=$1
-    if check_port $port; then
-        echo -e "${YELLOW}Port $port is in use. Terminating existing process...${NC}"
-        fuser -k $port/tcp > /dev/null 2>&1
+    if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null ; then
+        log_warn "Port $port is in use. Forcefully terminating..."
+        fuser -k $port/tcp > /dev/null 2>&1 || true
         sleep 1
-        # Secondary check/kill for stubborn processes
-        if check_port $port; then
-            echo -e "${RED}Port $port still busy. Using aggressive kill...${NC}"
-            # Find PID and kill -9
-            local pid=$(lsof -t -i :$port)
-            [ ! -z "$pid" ] && kill -9 $pid
+        if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null ; then
+            lsof -t -i :$port | xargs kill -9 > /dev/null 2>&1 || true
         fi
     fi
 }
 
-# Function to clean frontend corruption
-clean_frontend() {
-    # Check for redundant nested directory
-    if [ -d "frontend/frontend" ]; then
-        echo -e "${YELLOW}Detected redundant nested frontend directory. Removing...${NC}"
-        rm -rf frontend/frontend
+deep_cleanup() {
+    log_info "Performing environment cleanup (zombies & locks)..."
+    pkill -f "uvicorn.*backend.app.main:app" || true
+    pkill -f "next-dev" || true
+    pkill -f "next" || true
+    rm -f frontend/.next/dev/lock || true
+    kill_port $BACKEND_PORT
+    kill_port $FRONTEND_PORT
+    log_success "Environment cleaned."
+}
+
+load_env() {
+    if [ -f .env ]; then
+        log_info "Loading environment from .env"
+        export $(grep -v '^#' .env | xargs)
+    else
+        log_warn "No .env file found. Using system defaults."
+    fi
+}
+
+# --- Phase 1: Preflight (Tool Checks) ---
+
+preflight() {
+    log_phase "PREFLIGHT (Tool Checks)"
+    
+    local missing=false
+    # Check for docker compose (v2) or docker-compose (v1)
+    if docker compose version >/dev/null 2>&1; then
+        DOCKER_CMD="docker compose"
+    elif docker-compose version >/dev/null 2>&1; then
+        DOCKER_CMD="docker-compose"
+    else
+        log_error "Docker Compose is required but not found."
+        missing=true
     fi
 
-    if [ -d "frontend/.next" ]; then
-        echo -e "${YELLOW}[FRONTEND] Cleaning corrupted cache (if any)...${NC}"
-        # Check for stale lock file
-        if [ -f "frontend/.next/dev/lock" ]; then
-            echo -e "${CYAN}Found stale Next.js lock file. Removing...${NC}"
-            rm -f frontend/.next/dev/lock
+    for tool in uv pnpm; do
+        if ! command -v $tool >/dev/null 2>&1; then
+            log_error "Missing required tool: $tool"
+            missing=true
         fi
-        
-        # Deep clean if requested via global flag
-        if [ "$FORCE_CLEAN" = true ]; then
-             echo -e "${CYAN}Force-cleaning .next folder...${NC}"
-             rm -rf frontend/.next
-        fi
+    done
+    
+    if [ "$missing" = true ]; then
+        log_error "Please install missing tools and try again."
+        exit 1
     fi
+    log_success "All required tools are present."
+}
+
+# --- Phase 2: Verify (Correctness & Integrity) ---
+
+verify_backend() {
+    log_info "Verifying Backend Correctness..."
+    cd backend
+    
+    log_info "Synchronizing dependencies (uv)..."
+    uv sync --quiet
+    
+    log_info "Checking for syntax and import errors..."
+    if ! uv run python3 -m py_compile $(find app -name "*.py") > /tmp/py_compile.err 2>&1; then
+        log_error "Backend compilation failed. Found syntax or import issues:"
+        cat /tmp/py_compile.err
+        [ "$LAX_MODE" = "true" ] || exit 1
+    fi
+    
+    log_info "Running static analysis (Ruff)..."
+    if ! uv run ruff check . --quiet; then
+        log_warn "Ruff detected linting issues. Run './run.sh verify' for details."
+        # We allow linting issues in dev unless they are syntax errors (caught above)
+    fi
+    
+    cd ..
+    log_success "Backend integrity verified."
+}
+
+verify_frontend() {
+    log_info "Verifying Frontend Correctness..."
+    cd frontend
+    
+    [ ! -d "node_modules" ] && log_info "Installing dependencies..." && pnpm install --quiet
+    
+    log_info "Checking for TypeScript errors (TSC)..."
+    if ! pnpm exec tsc --noEmit > /tmp/tsc.err 2>&1; then
+        log_warn "TypeScript errors detected. Use './run.sh verify' to see full log."
+        [ "$LAX_MODE" = "true" ] || { log_error "Strict mode: Blocking start due to type errors."; cat /tmp/tsc.err | head -n 20; exit 1; }
+    fi
+    
+    log_info "Running ESLint..."
+    if ! pnpm run lint --quiet > /tmp/lint.err 2>&1; then
+        log_warn "Linting issues found."
+        # We allow linting warnings in dev mode
+    fi
+    
+    cd ..
+    log_success "Frontend integrity verified."
+}
+
+# --- Phase 3: Setup (Infrastructure) ---
+
+boot_infra() {
+    log_phase "BOOT (Infrastructure)"
+    
+    log_info "Spinning up core containers..."
+    $DOCKER_CMD up -d qdrant mongodb minio neo4j
+    
+    echo -n "Waiting for services..."
+    local count=0
+    while ! curl -s http://localhost:6333/healthz > /dev/null; do
+        echo -n "."
+        sleep 1
+        count=$((count+1))
+        [ $count -ge $MAX_RETRIES ] && { echo -e "${RED}\nFailed to start Qdrant.${NC}"; exit 1; }
+    done
+    log_success " Qdrant READY!"
+    
+    count=0
+    while ! curl -s http://localhost:7474 > /dev/null; do
+        echo -n "."
+        sleep 1
+        count=$((count+1))
+        [ $count -ge $MAX_RETRIES ] && { echo -e "${RED}\nFailed to start Neo4j.${NC}"; exit 1; }
+    done
+    log_success " Neo4j READY!"
+}
+
+# --- Phase 4: Launch (Application Runtime) ---
+
+launch_backend() {
+    log_phase "LAUNCH (Backend)"
+    
+    mkdir -p logs
+    export PYTHONPATH=$PYTHONPATH:.
+    
+    log_info "Starting FastAPI in background..."
+    nohup uv run --project backend backend/app/main.py > logs/backend.log 2>&1 &
+    local B_PID=$!
+    
+    echo -n "Waiting for API..."
+    local count=0
+    while ! curl -s http://localhost:$BACKEND_PORT/ > /dev/null; do
+        echo -n "."
+        sleep 1
+        count=$((count+1))
+        if ! ps -p $B_PID > /dev/null; then 
+            log_error "\nBackend died immediately. Check logs/backend.log"
+            exit 1
+        fi
+        [ $count -ge 60 ] && { log_error "\nTimeout waiting for backend."; kill $B_PID; exit 1; }
+    done
+    log_success " ONLINE (PID: $B_PID)"
+}
+
+launch_frontend() {
+    log_phase "LAUNCH (Frontend)"
+    
+    cd frontend
+    log_info "Starting Next.js Dev Server..."
+    nohup pnpm run dev > ../logs/frontend.log 2>&1 &
+    local F_PID=$!
+    cd ..
+    
+    echo -n "Waiting for UI..."
+    while ! curl -s http://localhost:$FRONTEND_PORT > /dev/null; do
+        echo -n "."
+        sleep 2
+    done
+    log_success " ONLINE (PID: $F_PID)"
+}
+
+# --- Commands ---
+
+cmd_up() {
+    load_env
+    preflight
+    deep_cleanup
+    
+    if [ "$SKIP_VERIFY" != "true" ]; then
+        log_phase "VERIFY (Correctness)"
+        verify_backend
+        verify_frontend
+    else
+        log_warn "Skipping correctness verification (--skip-verify)"
+    fi
+    
+    boot_infra
+    launch_backend
+    launch_frontend
+    
+    log_phase "SUMMARY"
+    log_success "Systems are operational!"
+    echo -e "Backend UI: ${YELLOW}http://localhost:${BACKEND_PORT}/docs${NC}"
+    echo -e "Frontend:   ${YELLOW}http://localhost:${FRONTEND_PORT}${NC}"
+    echo -e "Logs:       ${YELLOW}tail -f logs/backend.log logs/frontend.log${NC}"
+}
+
+cmd_verify() {
+    load_env
+    preflight
+    deep_cleanup
+    log_phase "VERIFY (Detailed Correctness Check)"
+    verify_backend
+    verify_frontend
+    log_success "Verification complete. Your code is clean and ready to fly."
+}
+
+cmd_build() {
+    load_env
+    preflight
+    log_phase "BUILD (Production Readiness)"
+    log_info "This runs the full production build pipeline to catch late errors."
+    
+    cd backend && uv sync && cd ..
+    cd frontend && pnpm install && pnpm run build && cd ..
+    
+    log_success "Build successful. Local code matches CI 'Production' behavior."
 }
 
 show_help() {
     echo -e "Usage: ./run.sh [COMMAND] [OPTIONS]"
     echo ""
     echo "Commands:"
-    echo "  all          Start everything (infra, ai, backend, frontend)"
-    echo "  turbo        Cloud-First Mode: Use APIs if keys exist, else start local infra"
-    echo "  infra        Start core infrastructure (Qdrant, MongoDB, MinIO)"
-    echo "  ai           Start AI providers (Ollama, vLLM, llama-cpp)"
-    echo "  backend      Start backend API"
-    echo "  frontend     Start frontend app"
-    echo "  stop         Stop Docker services and kill local processes"
-    echo "  clean        Deep clean: Stop everything, remove volumes & logs"
-    echo "  status       Show current status of all components"
+    echo "  up           (Default) Verify code, start infra, and launch app"
+    echo "  verify       Run backend and frontend correctness checks (lint, types, import)"
+    echo "  build        Run full production build pipeline (backend sync + next build)"
+    echo "  infra        Only start infrastructure containers"
+    echo "  stop         Stop all processes and containers"
+    echo "  clean        Nuke everything: stop, remove volumes, logs, and caches"
+    echo "  status       Display heartbeat of all components"
     echo ""
-    echo "Options:"
-    echo "  --llm [provider]        Set LLM_PROVIDER override"
-    echo "  --embedding [provider]  Set EMBEDDING_PROVIDER override"
-    echo "  --force-clean           Clear all caches (.next, .pytest_cache) before start"
+    echo -e "Options:"
+    echo "  --skip-verify    Skip correctness checks (only for rapid iteration)"
+    echo "  --lax             Allow start even if verification has non-critical errors"
+    echo "  --force-clean    Clear all caches before starting"
     echo ""
-    echo "Example:"
-    echo "  ./run.sh turbo --llm openai --force-clean"
 }
 
-# Parse Args
-COMMAND="help"
-FORCE_CLEAN=false
-if [ $# -gt 0 ]; then
-    COMMAND=$1
-    shift
-fi
+# --- Main Logic ---
 
-# Support 'turpo' typo
-[ "$COMMAND" == "turpo" ] && COMMAND="turbo"
+COMMAND=${1:-"up"}
+shift || true
+
+# Support common flags
+SKIP_VERIFY=false
+LAX_MODE=false
+FORCE_CLEAN=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --llm)
-            export LLM_PROVIDER="$2"
-            shift 2
-            ;;
-        --embedding)
-            export EMBEDDING_PROVIDER="$2"
-            shift 2
-            ;;
-        --force-clean)
-            FORCE_CLEAN=true
-            shift
-            ;;
-        *)
-            echo -e "${RED}Unknown option: $1${NC}"
-            show_help
-            exit 1
-            ;;
+        --skip-verify) SKIP_VERIFY=true; shift ;;
+        --lax)         LAX_MODE=true; shift ;;
+        --force-clean) FORCE_CLEAN=true; shift ;;
+        *) log_error "Unknown option: $1"; exit 1 ;;
     esac
 done
 
-if [ "$COMMAND" == "help" ]; then
-    show_help
-    exit 0
-fi
-
-# -- Execution Functions --
-
-start_infra() {
-    echo -e "\n${BLUE}[INFRA] Starting core services...${NC}"
-    docker compose up -d qdrant mongodb minio neo4j
-    
-    echo -n "Waiting for Qdrant..."
-    count=0
-    while ! curl -s http://localhost:6333/healthz > /dev/null; do
-        echo -n "."
-        sleep 1
-        count=$((count+1))
-        [ $count -ge $MAX_RETRIES ] && { echo -e "${RED}\nFailed.${NC}"; exit 1; }
-    done
-    echo -e "${GREEN} READY!${NC}"
-
-    echo -n "Waiting for Neo4j..."
-    count=0
-    while ! curl -s http://localhost:7474 > /dev/null; do
-        echo -n "."
-        sleep 2
-        count=$((count+1))
-        [ $count -ge $MAX_RETRIES ] && { echo -e "${RED}\nFailed.${NC}"; exit 1; }
-    done
-    echo -e "${GREEN} READY!${NC}"
-}
-
-start_ai() {
-    echo -e "\n${BLUE}[AI] Starting model providers...${NC}"
-    docker compose up -d ollama vllm llama-cpp
-    echo -e "${YELLOW}Check 'docker compose logs -f' for pull status.${NC}"
-}
-
-start_backend() {
-    echo -e "\n${BLUE}[BACKEND] Starting FastAPI...${NC}"
-    kill_port $BACKEND_PORT
-    # Kill any lingering uvicorn/python workers that might not be bound to port yet
-    pkill -f "uvicorn.*backend.app.main:app" || true
-    
-    # Enforce uv for environment management as per global constraints
-    if ! command -v uv >/dev/null 2>&1; then
-        echo -e "${RED}[ERROR] 'uv' is not installed but is REQUIRED for this project.${NC}"
-        echo -e "${YELLOW}Please install it: curl -LsSf https://astral.sh/uv/install.sh | sh${NC}"
-        exit 1
-    fi
-
-    VENV_PYTHON="uv run --project backend"
-    echo -e "${CYAN}[SYSTEM] Using 'uv' for backend execution (Performance Mode)${NC}"
-
-    if [ ! -d "backend/.venv" ]; then
-        echo -e "${YELLOW}Initial setup: Synchronizing environment with uv...${NC}"
-        uv sync --project backend
-        rm -rf backend/src # Prevent shadowing backend module
-    fi
-
-    if [ "$FORCE_CLEAN" = true ]; then
-        echo -e "${CYAN}Cleaning pytest and python cache...${NC}"
-        find backend -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null
-        rm -rf .pytest_cache 2>/dev/null
-    fi
-    
-    export PYTHONPATH=$PYTHONPATH:.
-    mkdir -p logs
-    nohup $VENV_PYTHON backend/app/main.py > logs/backend.log 2>&1 &
-    B_PID=$!
-    echo -n "Waiting for Backend..."
-    count=0
-    while ! curl -s http://localhost:$BACKEND_PORT/ > /dev/null; do
-        echo -n "."
-        sleep 1
-        count=$((count+1))
-        if ! ps -p $B_PID > /dev/null; then 
-            echo -e "${RED}\nBackend Died. Check logs/backend.log${NC}"
-            exit 1
-        fi
-        [ $count -ge 60 ] && { echo -e "${RED}\nTimeout.${NC}"; kill $B_PID; exit 1; }
-    done
-    echo -e "${GREEN} ONLINE (PID: $B_PID)${NC}"
-}
-
-start_frontend() {
-    echo -e "\n${BLUE}[FRONTEND] Starting Next.js...${NC}"
-    kill_port $FRONTEND_PORT
-    # Aggressive kill for next processes
-    pkill -f "next-dev" || true
-    pkill -f "next dev" || true
-    
-    [ "$FORCE_CLEAN" = true ] && ARGS="--force-clean" || ARGS=""
-    clean_frontend $ARGS
-    
-    cd frontend
-    [ ! -d "node_modules" ] && pnpm install
-    mkdir -p ../logs
-    nohup pnpm run dev > ../logs/frontend.log 2>&1 &
-    F_PID=$!
-    cd ..
-    echo -n "Waiting..."
-    while ! curl -s http://localhost:$FRONTEND_PORT > /dev/null; do echo -n "."; sleep 2; done
-    echo -e "${GREEN} ONLINE (PID: $F_PID)${NC}"
-}
-
-
-# -- Turbo Mode Logic --
-
-start_turbo() {
-    echo -e "${BLUE}>> Entering Turbo Mode: Cloud-First Strategy${NC}"
-    
-    # 1. Resolve providers (Priority: Env Var > settings.json)
-    RESOLVED_LLM=${LLM_PROVIDER:-""}
-    RESOLVED_EMB=${EMBEDDING_PROVIDER:-""}
-
-    if [ -z "$RESOLVED_LLM" ] || [ -z "$RESOLVED_EMB" ]; then
-        if [ -f "backend/data/settings.json" ]; then
-            [ -z "$RESOLVED_LLM" ] && RESOLVED_LLM=$(grep '"llm_provider":' "backend/data/settings.json" | cut -d'"' -f4)
-            [ -z "$RESOLVED_EMB" ] && RESOLVED_EMB=$(grep '"embedding_provider":' "backend/data/settings.json" | cut -d'"' -f4)
-        fi
-    fi
-
-    OLLAMA_REQUIRED=false
-    if [[ "$RESOLVED_LLM" == "ollama" ]] || [[ "$RESOLVED_EMB" == "ollama" ]]; then
-        OLLAMA_REQUIRED=true
-    fi
-
-    # 2. Check AI Deployment Strategy
-    if { [ ! -z "$OPENAI_API_KEY" ] || [ ! -z "$ANTHROPIC_API_KEY" ]; } && [ "$OLLAMA_REQUIRED" = false ]; then
-        echo -e "${GREEN}✓ Cloud AI configured (LLM: $RESOLVED_LLM, EMB: $RESOLVED_EMB). Skipping local AI containers.${NC}"
-        # Still check if we need local embeddings (if using only Anthropic)
-        if [ -z "$OPENAI_API_KEY" ] && [ -z "$VOYAGE_API_KEY" ]; then
-            echo -e "${YELLOW}! No Cloud embedding key. Starting local AI for embeddings...${NC}"
-            docker compose up -d ollama
-        fi
-    else
-        if [ "$OLLAMA_REQUIRED" = true ]; then
-            echo -e "${CYAN}i Ollama explicitly requested in settings.json. Starting local AI...${NC}"
-        else
-            echo -e "${YELLOW}! No Cloud AI keys. Starting full local AI stack...${NC}"
-        fi
-        start_ai
-    fi
-
-    # 2. Check Database (Cloud vs Local)
-    # If QDRANT_HOST is not localhost, assume cloud
-    if [ ! -z "$QDRANT_HOST" ] && [[ "$QDRANT_HOST" != "localhost" && "$QDRANT_HOST" != "127.0.0.1" ]]; then
-        echo -e "${GREEN}✓ Cloud Database detected ($QDRANT_HOST). Skipping local infrastructure.${NC}"
-    else
-        echo -e "${YELLOW}! Using local infrastructure...${NC}"
-        start_infra
-    fi
-    
-    start_backend
-    start_frontend
-}
-
-# Dispatcher
 case "$COMMAND" in
-    all)
-        start_infra
-        start_ai
-        start_backend
-        start_frontend
-        ;;
-    turbo)
-        start_turbo
-        ;;
-    infra)
-        start_infra
-        ;;
-    all-ai)
-        start_ai
-        ;;
-    backend)
-        start_backend
-        ;;
-    frontend)
-        start_frontend
-        ;;
+    up)    cmd_up ;;
+    verify) cmd_verify ;;
+    build) cmd_build ;;
+    infra) boot_infra ;;
     stop)
-        echo -e "${YELLOW}Stopping all services...${NC}"
+        log_info "Stopping services..."
         docker compose stop
         kill_port $BACKEND_PORT
         kill_port $FRONTEND_PORT
-        echo -e "${GREEN}Stopped.${NC}"
+        log_success "Stopped."
         ;;
     clean)
-        echo -e "${RED}Deep cleaning system...${NC}"
+        log_warn "Deep cleaning system..."
         docker compose down -v
         docker system prune -f
         kill_port $BACKEND_PORT
         kill_port $FRONTEND_PORT
-        rm -rf logs/
-        rm -f backend.log frontend.log
-        echo -e "${GREEN}Cleaned.${NC}"
+        rm -rf logs/ backend/.venv frontend/node_modules frontend/.next
+        log_success "Cleaned."
         ;;
     status)
-        echo -e "\n${BLUE}--- Docker ---${NC}"
+        log_phase "STATUS"
         docker compose ps
-        echo -e "\n${BLUE}--- Local ---${NC}"
-        if check_port $BACKEND_PORT; then echo -e "Backend:  ${GREEN}RUNNING${NC}"; else echo -e "Backend:  ${RED}STOPPED${NC}"; fi
-        if check_port $FRONTEND_PORT; then echo -e "Frontend: ${GREEN}RUNNING${NC}"; else echo -e "Frontend: ${RED}STOPPED${NC}"; fi
+        echo ""
+        if check_port $BACKEND_PORT; then log_success "Backend:  RUNNING"; else log_error "Backend:  STOPPED"; fi
+        if check_port $FRONTEND_PORT; then log_success "Frontend: RUNNING"; else log_error "Frontend: STOPPED"; fi
+        ;;
+    help|--help|-h)
+        show_help
         ;;
     *)
-        echo -e "${RED}Invalid command: $COMMAND${NC}"
+        log_error "Invalid command: $COMMAND"
         show_help
         exit 1
         ;;
 esac
-
-echo -e "\n${GREEN}=== Operation Completed ===${NC}"

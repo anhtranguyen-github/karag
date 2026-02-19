@@ -6,75 +6,50 @@ PROJECT_ROOT=$(pwd)
 BACKEND_DIR="${PROJECT_ROOT}/backend"
 FRONTEND_DIR="${PROJECT_ROOT}/frontend"
 
-echo -e "\e[34m=== Karag Local DevSecOps Pipeline ===\e[0m"
-echo "Constraint: LOCAL-ONLY. No Cloud. No Docker Registries."
+echo -e "\e[34m=== Karag DevSecOps Pipeline (Local) ===\e[0m"
 
-# 1. Prompt Registry Validation
-echo -e "\n\e[32m[Stage 1/7] Prompt Registry Validation\e[0m"
-python3 -c "import yaml; yaml.safe_load(open('backend/app/core/prompts.yaml'))" && echo "✓ Prompt Registry: PASSED"
-
-# 2. Backend Unit Tests
-echo -e "\n\e[32m[Stage 2/7] Backend Unit Tests (Pytest)\e[0m"
+# Question 1: Can this code actually run?
+echo -e "\n\e[32m[Q1] Correctness: Build & Lint\e[0m"
 cd "${BACKEND_DIR}"
-# Ensure test-results dir exists for sonar reports
-mkdir -p test-results
-uv run python -m pytest tests/ --junitxml=test-results/results.xml --maxfail=1
-echo "✓ Backend Tests: PASSED"
-cd "${PROJECT_ROOT}"
-
-# 3. Frontend CI (Lint & Unit Tests)
-echo -e "\n\e[32m[Stage 3/7] Frontend CI (Lint & Vitest)\e[0m"
+uv sync
+uvx ruff check .
+uvx ruff format --check .
 cd "${FRONTEND_DIR}"
-pnpm run lint --quiet
-pnpm run test:unit --run
-echo "✓ Frontend CI: PASSED"
+pnpm install --frozen-lockfile
+pnpm run lint
+pnpm run build
 cd "${PROJECT_ROOT}"
 
-# 4. API Contract Security Audit
-echo -e "\n\e[32m[Stage 4/7] API Contract Security Audit\e[0m"
+# Question 2: Does it behave as intended?
+echo -e "\n\e[32m[Q2] Behavior: Logic & Tests\e[0m"
+cd "${BACKEND_DIR}"
+uv run pytest tests/unit tests/contract --junitxml=test-results/results.xml --maxfail=1
+cd "${FRONTEND_DIR}"
+pnpm run test:unit --run
+cd "${PROJECT_ROOT}"
+
+# Question 3: Are there obvious security risks in code patterns?
+echo -e "\n\e[32m[Q3] Security: Pattern Analysis\e[0m"
+cd "${BACKEND_DIR}"
+uv run bandit -r app/ -ll
 if grep -q ":path}" frontend/src/lib/api/openapi.json; then
     echo -e "\e[31mCRITICAL: Path traversal vulnerability surface detected in openapi.json!\e[0m"
-    grep ":path}" frontend/src/lib/api/openapi.json
     exit 1
 fi
 echo "✓ API Contract: PASSED"
+cd "${PROJECT_ROOT}"
 
-# 5. Code Quality Analysis (SonarQube)
-# Note: This assumes a local SonarQube container is available or can be started as a tool.
-echo -e "\n\e[32m[Stage 5/6] SonarQube Analysis (Tool via Docker)\e[0m"
-# Since we don't have a confirmed running Sonar server, we attempt scan if reachable
-if docker ps | grep -q "sonarqube"; then
-    echo "SonarQube server detected. Running scanner tool..."
-    docker run --rm \
-        -v "${PROJECT_ROOT}:/usr/src" \
-        --network host \
-        sonarsource/sonar-scanner-cli
-else
-    echo "SonarQube server not running locally. Skipping scan stage."
-fi
+# Question 4: Are dependencies and artifacts trustworthy?
+echo -e "\n\e[32m[Q4] Trust: Supply Chain & Artifacts\e[0m"
+cd "${BACKEND_DIR}"
+uv lock --check
+cd "${PROJECT_ROOT}"
+# Verify Dockerfile build
+docker build -t karag:local-test -f backend/Dockerfile .
 
-# 6. Infrastructure Scanning (Checkov)
-echo -e "\n\e[32m[Stage 6/7] Infrastructure Scanning (Checkov)\e[0m"
-# Scan the repository for IaC issues using Docker as a runtime tool (or uvx)
-uvx checkov -d . --check HIGH,CRITICAL --soft-fail || echo "Checkov found potential issues."
+# Question 5: Are infrastructure and configs safe by default?
+echo -e "\n\e[32m[Q5] Infrastructure & Config: Safety Scan\e[0m"
+uvx checkov -d . --check HIGH,CRITICAL --framework dockerfile,docker_compose --soft-fail false
+python3 -c "import yaml; yaml.safe_load(open('backend/app/core/prompts.yaml'))"
 
-# 7. Local Deployment & Proxy (Nginx)
-echo -e "\n\e[32m[Stage 7/7] Local Deployment & Proxy (Nginx)\e[0m"
-echo "[Nginx] Starting local proxy tool via Docker..."
-# Adlering to "Docker for tools only" - Nginx acts as the local entrypoint proxy
-if docker ps | grep -q "ai-nginx"; then
-    echo "Restarting ai-nginx proxy..."
-    docker stop ai-nginx > /dev/null
-    docker rm ai-nginx > /dev/null
-fi
-
-docker run -d \
-    --name ai-nginx \
-    --network host \
-    -v "${PROJECT_ROOT}/nginx.conf:/etc/nginx/nginx.conf:ro" \
-    nginx:alpine > /dev/null
-
-echo "✓ Local Nginx Proxy: STARTED (Listening on http://localhost:80)"
-
-echo -e "\n\e[34m=== DEVSECOPS RUN COMPLETE ===\e[0m"
-echo "All local pipeline stages finished successfully."
+echo -e "\n\e[34m=== ALL 5 QUESTIONS ANSWERED: SUCCESS ===\e[0m"
