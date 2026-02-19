@@ -24,7 +24,6 @@ logger = structlog.get_logger(__name__)
 async def lifespan(app: FastAPI):
     from backend.app.core.minio import minio_manager
     from backend.app.rag.qdrant_provider import qdrant
-    from backend.app.services.workspace_service import workspace_service
 
     from backend.app.core.path_utils import BASE_DIR
     logger.info("infra_init_start", msg="Initializing Infrastructure...", base_dir=str(BASE_DIR))
@@ -109,7 +108,7 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(BaseAppException)
     async def app_exception_handler(request: Request, exc: BaseAppException):
-        return JSONResponse(
+        response = JSONResponse(
             status_code=exc.status_code,
             content={
                 "success": False,
@@ -118,6 +117,31 @@ def create_app() -> FastAPI:
                 "data": exc.params,
             },
         )
+        # Manually attach CORS headers to ensure they are present on error responses
+        origin = request.headers.get("origin")
+        if origin and (origin in ai_settings.CORS_ORIGINS or "*" in ai_settings.CORS_ORIGINS):
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
+
+    @app.exception_handler(Exception)
+    async def catch_all_exception_handler(request: Request, exc: Exception):
+        logger.error("unhandled_exception", error=str(exc), path=request.url.path, exc_info=True)
+        response = JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "code": "INTERNAL_SERVER_ERROR",
+                "message": "An unexpected error occurred.",
+                "data": {"detail": str(exc)} if ai_settings.LOG_LEVEL == "DEBUG" else None,
+            },
+        )
+        # Manually attach CORS headers to ensure they are present on error responses
+        origin = request.headers.get("origin")
+        if origin and (origin in ai_settings.CORS_ORIGINS or "*" in ai_settings.CORS_ORIGINS):
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
 
     return app
 
@@ -129,7 +153,7 @@ if __name__ == "__main__":
 
     uvicorn.run(
         "backend.app.main:app",
-        host="0.0.0.0",
+        host=ai_settings.BACKEND_HOST,
         port=ai_settings.BACKEND_PORT,
         reload=False,
     )

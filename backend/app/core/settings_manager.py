@@ -125,7 +125,6 @@ class SettingsManager:
         """Recursively discover fields in Pydantic models."""
         import typing
         from pydantic import BaseModel
-        from pydantic.fields import FieldInfo
 
         metadata = {}
         
@@ -197,8 +196,10 @@ class SettingsManager:
                 field_data["default"] = field.default
 
             for constraint in (field.metadata or []):
-                if hasattr(constraint, "ge"): field_data["min"] = constraint.ge
-                if hasattr(constraint, "le"): field_data["max"] = constraint.le
+                if hasattr(constraint, "ge"):
+                    field_data["min"] = constraint.ge
+                if hasattr(constraint, "le"):
+                    field_data["max"] = constraint.le
 
             if field_data["field_type"] == "float":
                 field_data["step"] = 0.05
@@ -245,29 +246,30 @@ class SettingsManager:
                 self._global_settings = AppSettings(**current_data)
                 self._save_global_settings()
                 return self._global_settings
-            else:
-                # Validate updates by merging with current and testing against schema
-                current_data = current.model_dump()
-                expanded_updates = self._expand_flat_dict(updates)
-                
-                # Deep merge logic for expanded_updates into current_data
-                def deep_update(target, source):
-                    for k, v in source.items():
-                        if isinstance(v, dict) and k in target and isinstance(target[k], dict):
-                            deep_update(target[k], v)
-                        else:
-                            target[k] = v
-                
-                deep_update(current_data, expanded_updates)
-                AppSettings(**current_data) # Dry run validation
-                
-                db = mongodb_manager.get_async_database()
-                await db["workspace_settings"].update_one(
-                    {"workspace_id": workspace_id},
-                    {"$set": updates},
-                    upsert=True
-                )
-                return await self.get_settings(workspace_id)
+
+            # Validate updates by merging with current and testing against schema
+            current = await self.get_settings(workspace_id)
+            current_data = current.model_dump()
+            expanded_updates = self._expand_flat_dict(updates)
+            
+            # Deep merge logic for expanded_updates into current_data
+            def deep_update(target, source):
+                for k, v in source.items():
+                    if isinstance(v, dict) and k in target and isinstance(target[k], dict):
+                        deep_update(target[k], v)
+                    else:
+                        target[k] = v
+            
+            deep_update(current_data, expanded_updates)
+            AppSettings(**current_data) # Dry run validation
+            
+            db = mongodb_manager.get_async_database()
+            await db["workspace_settings"].update_one(
+                {"workspace_id": workspace_id},
+                {"$set": updates},
+                upsert=True
+            )
+            return await self.get_settings(workspace_id)
         except PydanticValidationError as e:
             raise ValidationError(
                 message="Invalid settings configuration.",
