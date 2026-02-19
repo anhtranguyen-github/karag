@@ -8,6 +8,7 @@ import { Workspace } from "@/lib/api";
 import { WorkspaceWizard } from "@/components/workspace/WorkspaceWizard";
 import { DeleteWorkspaceModal } from "@/components/workspace/delete-workspace-modal";
 import { QuickViewWorkspaceModal } from "@/components/workspace/quick-view-modal";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Search, Trash2, Eye, Database, Plus, Loader2, ArrowRight, Shield, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -31,7 +32,14 @@ export default function Home() {
   const fetchWorkspaces = async () => {
     try {
       const response = await api.listWorkspacesWorkspacesGet();
-      setWorkspaces(response.data);
+      const data = response.data || [];
+      const mappedData = data.map((ws: any) => ({
+        ...ws,
+        llmProvider: ws.llm_provider,
+        embeddingProvider: ws.embedding_provider,
+        ragEngine: ws.rag_engine
+      }));
+      setWorkspaces(mappedData);
     } catch (error) {
       console.error("Failed to fetch workspaces:", error);
     } finally {
@@ -59,25 +67,25 @@ export default function Home() {
       const matchesSearch = ws.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         ws.description?.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesProvider = providerFilter === "all" || ws.llm_provider === providerFilter;
-      const matchesEngine = engineFilter === "all" || ws.rag_engine === engineFilter;
+      const matchesProvider = providerFilter === "all" || ws.llmProvider === providerFilter;
+      const matchesEngine = engineFilter === "all" || ws.ragEngine === engineFilter;
 
       return matchesSearch && matchesProvider && matchesEngine;
     });
   }, [workspaces, searchTerm, providerFilter, engineFilter]);
 
   const uniqueProviders = useMemo(() => {
-    const p = new Set(workspaces.map(ws => ws.llm_provider).filter(Boolean));
+    const p = new Set(workspaces.map(ws => ws.llmProvider).filter(Boolean));
     return Array.from(p);
   }, [workspaces]);
 
   const uniqueEngines = useMemo(() => {
-    const e = new Set(workspaces.map(ws => ws.rag_engine).filter(Boolean));
+    const e = new Set(workspaces.map(ws => ws.ragEngine).filter(Boolean));
     return Array.from(e);
   }, [workspaces]);
 
   return (
-    <main className="min-h-screen bg-[#0a0a0b] text-white selection:bg-indigo-500/30 overflow-x-hidden">
+    <main className="min-h-screen bg-background text-foreground selection:bg-indigo-500/30 overflow-x-hidden">
       {/* Dynamic Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] right-[-5%] w-[50%] h-[50%] bg-indigo-600/10 blur-[120px] rounded-full animate-pulse" />
@@ -85,27 +93,28 @@ export default function Home() {
       </div>
 
       <div className="relative z-10 container mx-auto max-w-5xl py-12 px-6">
-        {/* Hero Section */}
+        {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-end gap-10 mb-12">
           <div className="space-y-4 max-w-xl">
-            <h1 className="text-4xl font-extrabold tracking-tight leading-none text-white">
+            <h1 className="text-4xl font-extrabold tracking-tight leading-none">
               Workspaces
             </h1>
-            <p className="text-gray-500 text-base font-medium leading-relaxed">
+            <p className="text-muted-foreground text-base font-medium leading-relaxed">
               Create and manage your document collections and AI settings.
             </p>
           </div>
 
           <div className="flex items-center gap-4">
+            <ThemeToggle />
             <Link href="/vault">
-              <button className="h-11 px-6 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/20 transition-all font-bold text-[11px] tracking-wide text-gray-400 hover:text-white flex items-center gap-2 active:scale-95 group">
+              <button className="h-11 px-6 rounded-xl bg-secondary border border-border hover:bg-muted transition-all font-bold text-[11px] tracking-wide text-muted-foreground hover:text-foreground flex items-center gap-2 active:scale-95 group">
                 <Database size={16} />
                 Vault
               </button>
             </Link>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="h-11 px-8 rounded-xl bg-white text-black hover:bg-gray-200 transition-all font-bold text-[11px] tracking-wide flex items-center gap-2 shadow-lg active:scale-95"
+              className="h-11 px-8 rounded-xl bg-foreground text-background hover:opacity-90 transition-all font-bold text-[11px] tracking-wide flex items-center gap-2 shadow-lg active:scale-95"
             >
               <Plus size={16} />
               New Workspace
@@ -116,10 +125,10 @@ export default function Home() {
         {/* Search & Stats */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
           <div className="lg:col-span-2 relative group">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600 group-focus-within:text-indigo-400 transition-colors" />
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-indigo-400 transition-colors" />
             <input
               placeholder="Search workspaces..."
-              className="w-full h-12 pl-12 pr-4 rounded-2xl bg-white/[0.03] border border-white/10 focus:border-indigo-500/30 transition-all outline-none font-medium text-white placeholder:text-gray-700 focus:bg-white/[0.05]"
+              className="w-full h-12 pl-12 pr-4 rounded-2xl bg-secondary border border-border focus:border-indigo-500/30 transition-all outline-none font-medium text-foreground placeholder:text-muted-foreground focus:bg-muted"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -129,22 +138,22 @@ export default function Home() {
               title="Provider Filter"
               value={providerFilter}
               onChange={(e) => setProviderFilter(e.target.value)}
-              className="flex-1 h-12 px-4 rounded-2xl bg-white/[0.03] border border-white/10 text-[10px] font-black uppercase tracking-widest outline-none focus:border-indigo-500/30 transition-all text-gray-400 focus:text-indigo-400"
+              className="flex-1 h-12 px-4 rounded-2xl bg-secondary border border-border text-[10px] font-black uppercase tracking-widest outline-none focus:border-indigo-500/30 transition-all text-muted-foreground focus:text-indigo-400"
             >
               <option value="all">ALL PROVIDERS</option>
               {uniqueProviders.map(p => (
-                <option key={p} value={p}>{p?.toUpperCase()}</option>
+                <option key={p || 'none'} value={p || ''}>{p?.toUpperCase() || 'NONE'}</option>
               ))}
             </select>
             <select
               title="Engine Filter"
               value={engineFilter}
               onChange={(e) => setEngineFilter(e.target.value)}
-              className="flex-1 h-12 px-4 rounded-2xl bg-white/[0.03] border border-white/10 text-[10px] font-black uppercase tracking-widest outline-none focus:border-indigo-500/30 transition-all text-gray-400 focus:text-emerald-400"
+              className="flex-1 h-12 px-4 rounded-2xl bg-secondary border border-border text-[10px] font-black uppercase tracking-widest outline-none focus:border-indigo-500/30 transition-all text-muted-foreground focus:text-emerald-400"
             >
               <option value="all">ALL ENGINES</option>
               {uniqueEngines.map(e => (
-                <option key={e} value={e}>{e?.toUpperCase()}</option>
+                <option key={e || 'none'} value={e || ''}>{e?.toUpperCase() || 'NONE'}</option>
               ))}
             </select>
           </div>
@@ -155,16 +164,16 @@ export default function Home() {
           <AnimatePresence mode="popLayout">
             {loading ? (
               Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-[280px] rounded-3xl bg-white/[0.02] border border-white/5 animate-pulse" />
+                <div key={i} className="h-[280px] rounded-3xl bg-card/50 border border-border animate-pulse" />
               ))
             ) : filteredWorkspaces.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="col-span-full py-24 flex flex-col items-center justify-center border border-dashed border-white/5 rounded-3xl bg-white/[0.01]"
+                className="col-span-full py-24 flex flex-col items-center justify-center border border-dashed border-border rounded-3xl bg-secondary/30"
               >
-                <Database size={32} className="text-gray-800 mb-4" />
-                <h3 className="text-lg font-bold text-white mb-1">
+                <Database size={32} className="text-muted-foreground/30 mb-4" />
+                <h3 className="text-lg font-bold text-muted-foreground mb-1">
                   {searchTerm ? "No results" : "Empty"}
                 </h3>
               </motion.div>
@@ -179,7 +188,7 @@ export default function Home() {
                 >
                   <div
                     onClick={() => router.push(`/chats/new?workspaceId=${workspace.id}`)}
-                    className="flex flex-col h-full p-6 rounded-3xl bg-[#121214] border border-white/[0.08] hover:border-indigo-500/40 hover:bg-white/[0.02] transition-all duration-500 shadow-xl relative overflow-hidden group/card cursor-pointer"
+                    className="flex flex-col h-full p-6 rounded-3xl bg-card border border-border hover:border-indigo-500/40 hover:bg-secondary/20 transition-all duration-500 shadow-xl relative overflow-hidden group/card cursor-pointer"
                   >
                     {/* Inner Glow */}
                     <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-3xl group-hover/card:bg-indigo-500/20 transition-all duration-700 pointer-events-none" />
@@ -187,7 +196,7 @@ export default function Home() {
                     <div className="flex justify-end items-start mb-4 relative z-10">
                       <div className="flex gap-2">
                         <button
-                          className="h-8 w-8 flex items-center justify-center rounded-lg bg-white/5 text-gray-500 hover:bg-white/10 hover:text-white transition-all active:scale-90"
+                          className="h-8 w-8 flex items-center justify-center rounded-lg bg-secondary text-muted-foreground hover:bg-muted hover:text-foreground transition-all active:scale-90"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -210,15 +219,15 @@ export default function Home() {
                     </div>
 
                     <div className="relative z-10 flex flex-col h-full">
-                      <h3 className="text-xl font-bold text-white group-hover/card:text-indigo-300 transition-colors mb-2 tracking-tight">
+                      <h3 className="text-xl font-bold text-card-foreground group-hover/card:text-indigo-400 transition-colors mb-2 tracking-tight">
                         {workspace.name}
                       </h3>
 
-                      <p className="text-gray-500 text-xs font-medium line-clamp-2 leading-relaxed flex-grow">
+                      <p className="text-muted-foreground text-xs font-medium line-clamp-2 leading-relaxed flex-grow">
                         {workspace.description || "No description provided."}
                       </p>
 
-                      <div className="mt-6 pt-4 border-t border-white/5 flex justify-end items-center">
+                      <div className="mt-6 pt-4 border-t border-border flex justify-end items-center">
                         <div className="flex items-center gap-1 text-indigo-400 font-bold text-[9px] uppercase tracking-wider group-hover/card:translate-x-1 transition-transform">
                           Open
                           <ArrowRight size={10} />
