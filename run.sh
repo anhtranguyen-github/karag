@@ -108,8 +108,12 @@ verify_backend() {
     
     log_info "Running static analysis (Ruff)..."
     if ! uv run ruff check . --quiet; then
-        log_warn "Ruff detected linting issues. Run './run.sh verify' for details."
-        # We allow linting issues in dev unless they are syntax errors (caught above)
+        log_warn "Ruff detected linting issues."
+    fi
+
+    log_info "Checking code formatting (Ruff)..."
+    if ! uv run ruff format --check .; then
+        log_warn "Formatting issues detected. Run 'uv run ruff format .' in backend to fix."
     fi
     
     cd ..
