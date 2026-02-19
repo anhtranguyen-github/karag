@@ -71,6 +71,8 @@ class IngestionPipeline:
 
             target_collection, _ = await self.get_target_collection(workspace_id)
             doc_id = (metadata or {}).get("doc_id")
+            task_id = (metadata or {}).get("task_id")
+            from backend.app.services.task.task_service import task_service
 
             if doc_id:
                 from backend.app.core.mongodb import mongodb_manager
@@ -82,6 +84,9 @@ class IngestionPipeline:
                         f"workspace_statuses.{workspace_id}": "reading"
                     }}
                 )
+            
+            if task_id:
+                await task_service.update_task(task_id, progress=20, message=f"Reading file: {filename}")
 
             # --- Component 1: Load ---
             load_start = time.perf_counter()
@@ -110,6 +115,9 @@ class IngestionPipeline:
                 duration_ms=round(load_duration * 1000, 2),
             )
 
+            if task_id:
+                await task_service.update_task(task_id, progress=40, message=f"Splitting into fragments ({len(documents)} pages loaded)...")
+
             # --- Component 2: Chunk ---
             chunk_start = time.perf_counter()
             all_chunks = []
@@ -132,6 +140,9 @@ class IngestionPipeline:
 
             span.set_attribute("ingestion.num_chunks", len(all_chunks))
 
+            if task_id:
+                await task_service.update_task(task_id, progress=60, message=f"Generating embeddings for {len(all_chunks)} fragments (this may take a while)...")
+
             # --- Component 3: Embed ---
             embed_start = time.perf_counter()
             embeddings = await rag_service.get_embeddings(
@@ -145,6 +156,9 @@ class IngestionPipeline:
             span.set_attribute(
                 "ingestion.embed_duration_ms", round(embed_duration * 1000, 2)
             )
+
+            if task_id:
+                await task_service.update_task(task_id, progress=90, message="Storing vectors and finishing up...")
 
             # --- Component 4: Store ---
             store_start = time.perf_counter()
@@ -163,7 +177,6 @@ class IngestionPipeline:
                     "version": (metadata or {}).get("version"),
                     "minio_path": (metadata or {}).get("minio_path"),
                     "content_hash": (metadata or {}).get("content_hash"),
-                    "rag_config_hash": (metadata or {}).get("rag_config_hash"),
                 }
                 for i, chunk in enumerate(all_chunks)
             ]
@@ -275,15 +288,12 @@ class IngestionPipeline:
             target_collection, _ = await self.get_target_collection(workspace_id)
 
             # --- Component 1: Load ---
-            load_start = time.perf_counter()
             loader = WebBaseLoader(url)
             documents = loader.load()
-            load_duration = time.perf_counter() - load_start
             
             span.set_attribute("ingestion.pages_loaded", len(documents))
 
             # --- Component 2: Chunk ---
-            chunk_start = time.perf_counter()
             all_chunks = []
             for doc in documents:
                 chunks = await rag_service.chunk_text(
@@ -295,7 +305,6 @@ class IngestionPipeline:
                 return 0
 
             # --- Component 3: Embed ---
-            embed_start = time.perf_counter()
             embeddings = await rag_service.get_embeddings(
                 all_chunks, workspace_id=workspace_id
             )
@@ -382,7 +391,8 @@ class IngestionPipeline:
         for root, dirs, files in os.walk(str(directory_path)):
             dirs[:] = [d for d in dirs if d not in ignore_dirs]
             for file in files:
-                if file.startswith("."): continue
+                if file.startswith("."):
+                    continue
                 file_path = Path(root) / file
                 try:
                     # process_file will also validate each individual file path
