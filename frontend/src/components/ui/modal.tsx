@@ -11,9 +11,10 @@ interface ModalProps {
     title: string
     children: React.ReactNode
     className?: string
+    containerClassName?: string
 }
 
-export function Modal({ isOpen, onClose, title, children, className }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, className, containerClassName }: ModalProps) {
     if (!isOpen) return null
 
     return (
@@ -25,25 +26,11 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
                         onClick={onClose}
                         className="text-muted-foreground hover:text-foreground transition-colors"
                     >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="24"
-                            height="24"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="w-5 h-5"
-                        >
-                            <path d="M18 6 6 18" />
-                            <path d="m6 6 12 12" />
-                        </svg>
+                        <X className="w-5 h-5" />
                         <span className="sr-only">Close</span>
                     </button>
                 </div>
-                <div className="p-6">{children}</div>
+                <div className={cn("p-6", containerClassName)}>{children}</div>
             </div>
         </div>
     )
