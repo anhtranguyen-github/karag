@@ -1,7 +1,6 @@
 from typing import Optional
 from backend.app.core.mongodb import mongodb_manager
 from backend.app.core.minio import minio_manager
-from backend.app.core.settings_manager import settings_manager
 from backend.app.core.exceptions import NotFoundError
 from backend.app.rag.qdrant_provider import qdrant
 from qdrant_client.http import models as qmodels
@@ -69,7 +68,6 @@ class StorageService:
             else:
                 await db.documents.update_one({"id": doc["id"]}, {"$pull": {"shared_with": workspace_id}})
             
-            target_settings = await settings_manager.get_settings(workspace_id)
             coll = await qdrant.get_collection_name(workspace_id)
             if await qdrant.client.collection_exists(coll):
                 await qdrant.client.delete(
@@ -104,7 +102,6 @@ class StorageService:
                 {"$pull": {"shared_with": workspace_id}}
             )
             
-            target_settings = await settings_manager.get_settings(workspace_id)
             coll = await qdrant.get_collection_name(workspace_id)
             if await qdrant.client.collection_exists(coll):
                 await qdrant.client.delete(

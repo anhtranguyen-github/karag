@@ -6,7 +6,6 @@ from typing import List, Dict, Any, Optional
 import structlog
 from backend.app.core.mongodb import mongodb_manager
 from backend.app.schemas.eval import EvalDataset, EvalRun, EvalStatus, EvalResult, TestCase
-from backend.app.rag.rag_service import rag_service
 from backend.app.providers.llm import get_llm
 from backend.app.graph.builder import app as graph_app
 from langchain_core.messages import HumanMessage

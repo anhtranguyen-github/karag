@@ -115,13 +115,15 @@ class DocumentInspectionService:
         
         for d in related_docs:
             ws_id = d["workspace_id"]
-            ws_name = ws_map.get(ws_id)
             
-            if not ws_name and ws_id != "vault":
+            # Identify storage vs indexing
+            if ws_id == "vault":
+                continue # Vault is already in metadata
+
+            ws_name = ws_map.get(ws_id)
+            if not ws_name:
                 ws_name = f"Orphaned ({ws_id})"
                 zombies_found = True
-            elif not ws_name:
-                ws_name = "Global Vault"
 
             relationships.append({
                 "workspace_id": ws_id,
@@ -129,7 +131,8 @@ class DocumentInspectionService:
                 "status": d.get("status", "uploaded"),
                 "chunks": d.get("chunks", 0),
                 "last_indexed": d.get("updated_at") or d.get("created_at"),
-                "is_primary": d.get("id") == doc.get("id")
+                "is_primary": d.get("id") == doc.get("id"),
+                "type": "index"
             })
             
             for shared_ws in d.get("shared_with", []):
@@ -145,7 +148,8 @@ class DocumentInspectionService:
                     "chunks": d.get("chunks", 0),
                     "last_indexed": d.get("updated_at") or d.get("created_at"),
                     "is_primary": False,
-                    "shared_from": ws_id
+                    "shared_from": ws_id,
+                    "type": "shared_ref"
                 })
 
         return {

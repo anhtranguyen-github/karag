@@ -286,14 +286,24 @@ class DocumentUploadService:
                 }}
             )
             
-            # AUTO-INDEX: Proceed to Phase 2 immediately for all workspaces (including Vault)
-            await task_service.update_task(task_id, progress=60, message="Neural infrastructure: Indexing...")
-            from .document_ingestion_service import document_ingestion_service
-            num_chunks = await document_ingestion_service.index_document(doc_id, workspace_id, task_id=task_id)
-            
+            # AUTO-INDEX: Proceed to Phase 2 immediately for workspaces (Skip for Vault storage)
+            if workspace_id != "vault":
+                await task_service.update_task(task_id, progress=60, message="Neural infrastructure: Indexing...")
+                from .document_ingestion_service import document_ingestion_service
+                num_chunks = await document_ingestion_service.index_document(doc_id, workspace_id, task_id=task_id)
+            else:
+                num_chunks = 0
+                await db.documents.update_one(
+                    {"id": doc_id}, 
+                    {"$set": {
+                        "status": "uploaded",
+                        "workspace_statuses.vault": "uploaded"
+                    }}
+                )
+
             await task_service.update_task(
                 task_id, status="completed", progress=100,
-                message=f"Ingestion complete: '{safe_filename}' indexed ({num_chunks} fragments).",
+                message=f"Storage complete: '{safe_filename}' saved to vault." if workspace_id == "vault" else f"Ingestion complete: '{safe_filename}' indexed ({num_chunks} fragments).",
                 result={"doc_id": doc_id, "filename": safe_filename, "chunks": num_chunks}
             )
 

@@ -1,4 +1,4 @@
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from backend.app.services.document.ingestion.base import BaseIngestionStrategy, logger
 from backend.app.services.task.task_service import task_service
 from backend.app.core.error_codes import AppErrorCode
@@ -11,7 +11,7 @@ class URLIngestionStrategy(BaseIngestionStrategy):
     async def run(self, task_id: str, workspace_id: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
         from backend.app.services.document.document_upload_service import document_upload_service
         url = metadata.get("url")
-        filename = metadata.get("filename")
+        url = metadata.get("url")
         
         try:
             if await task_service.is_cancelled(task_id):
@@ -29,7 +29,8 @@ class URLIngestionStrategy(BaseIngestionStrategy):
 
             parsed = urlparse(url)
             actual_filename = parsed.path.split("/")[-1] or "index.html"
-            if "." not in actual_filename: actual_filename += ".html"
+            if "." not in actual_filename:
+                actual_filename += ".html"
 
             await document_upload_service.run_ingestion(task_id, actual_filename, content, content_type, workspace_id)
             return {"url": url}

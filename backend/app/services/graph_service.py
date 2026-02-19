@@ -1,6 +1,6 @@
 import json
 import structlog
-from typing import List, Dict, Any
+from typing import List, Dict
 from backend.app.providers.llm import get_llm
 from backend.app.rag.graph_provider import graph_provider
 
@@ -100,7 +100,8 @@ class GraphService:
         registry = {}
         for ent in entities:
             name = ent.get("name")
-            if not name: continue
+            if not name:
+                continue
             
             if name not in registry:
                 registry[name] = {

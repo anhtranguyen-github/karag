@@ -1,9 +1,12 @@
 import uuid
+import structlog
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 from backend.app.core.mongodb import mongodb_manager
 from backend.app.rag.qdrant_provider import qdrant
 from backend.app.core.exceptions import ValidationError, ConflictError, NotFoundError
+
+logger = structlog.get_logger(__name__)
 
 class WorkspaceService:
     @staticmethod

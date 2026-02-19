@@ -4,15 +4,12 @@ import structlog
 from typing import List, Optional
 from langchain_core.tools import BaseTool
 from langchain_community.tools.tavily_search import TavilySearchResults
+from backend.app.core.path_utils import BASE_DIR
 
 from backend.app.tools.local_tools import calculator
 from backend.app.tools.schemas import ToolDefinition
 
 logger = structlog.get_logger(__name__)
-
-from pathlib import Path
-
-from backend.app.core.path_utils import BASE_DIR
 
 # Fixed base directory for application data
 DATA_DIR = BASE_DIR / "backend" / "data"

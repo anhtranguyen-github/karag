@@ -1,5 +1,4 @@
 import os
-import tempfile
 from typing import Dict, Any
 from backend.app.services.document.ingestion.base import BaseIngestionStrategy, logger
 from backend.app.services.task.task_service import task_service

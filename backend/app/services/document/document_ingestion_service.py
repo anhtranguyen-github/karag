@@ -1,5 +1,4 @@
 import os
-import tempfile
 from backend.app.core.mongodb import mongodb_manager
 from backend.app.core.minio import minio_manager
 from backend.app.core.settings_manager import settings_manager

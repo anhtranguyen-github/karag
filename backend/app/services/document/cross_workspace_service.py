@@ -64,8 +64,9 @@ class CrossWorkspaceDocumentService:
             new_doc["id"] = new_id
             new_doc["workspace_id"] = target_workspace_id
             new_doc["shared_with"] = []
-            new_doc["status"] = "uploaded"
-            new_doc["workspace_statuses"] = {target_workspace_id: "uploaded", "vault": "uploaded"}
+            new_doc["status"] = "indexing"
+            new_doc["workspace_statuses"] = {target_workspace_id: "indexing", "vault": "indexing"}
+            new_doc["chunks"] = 0
             new_doc["rag_config_hash"] = target_rag_hash
             new_doc["created_at"] = datetime.utcnow().isoformat()
             new_doc["updated_at"] = new_doc["created_at"]
@@ -91,7 +92,7 @@ class CrossWorkspaceDocumentService:
 
         if not is_config_compatible and not force_reindex:
             raise ConflictError(
-                message=f"Incompatible Workspace: Target RAG config differs from Document",
+                message="Incompatible Workspace: Target RAG config differs from Document",
                 params={"type": "rag_mismatch", "expected": res.get("rag_config_hash"), "actual": target_rag_hash}
             )
 
