@@ -35,7 +35,7 @@ export function ThreadList({
     const fetchThreads = React.useCallback(async () => {
         setLoading(true);
         try {
-            const res = await api.listChatThreadsChatThreadsGet({ workspaceId });
+            const res = await api.listChatThreadsChatThreadsGet({ workspaceId: workspaceId as string });
             setThreads(res.data || []);
         } catch (e) {
             console.error("Failed to fetch threads", e);
@@ -59,12 +59,12 @@ export function ThreadList({
     };
 
     return (
-        <div className="w-full flex flex-col bg-[#0d0d0e] h-full shrink-0">
-            <div className="h-16 px-6 border-b border-white/5 flex items-center justify-between shrink-0">
+        <div className="w-full flex flex-col bg-card h-full shrink-0 border-r border-border">
+            <div className="h-16 px-6 border-b border-border flex items-center justify-between shrink-0">
                 <div className="flex flex-col">
-                    <span className="text-sm font-bold uppercase tracking-widest text-white leading-none">History</span>
+                    <span className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground leading-none">History</span>
                 </div>
-                <Button variant="ghost" size="icon" onClick={handleCreateThread} title="New Chat" className="text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all active:scale-90">
+                <Button variant="ghost" size="icon" onClick={handleCreateThread} title="New Chat" className="text-muted-foreground hover:text-foreground hover:bg-secondary rounded-xl transition-all active:scale-90">
                     <Plus className="w-4 h-4" />
                 </Button>
             </div>
@@ -72,14 +72,14 @@ export function ThreadList({
                 {loading ? (
                     <div className="flex flex-col items-center justify-center py-10 gap-2 opacity-40">
                         <Loader2 size={16} className="animate-spin text-indigo-500" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-gray-600">Scanning Threads...</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Scanning Threads...</span>
                     </div>
                 ) : threads.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 gap-3 opacity-20">
-                        <div className="w-10 h-10 rounded-full border-2 border-dashed border-gray-600 flex items-center justify-center">
-                            <MessageSquare size={16} />
+                        <div className="w-10 h-10 rounded-full border-2 border-dashed border-border flex items-center justify-center">
+                            <MessageSquare size={16} className="text-muted-foreground" />
                         </div>
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-gray-600">Empty Cache</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Empty Cache</span>
                     </div>
                 ) : (
                     threads.map((thread) => (
@@ -89,8 +89,8 @@ export function ThreadList({
                             className={cn(
                                 "w-full text-left px-4 py-3 rounded-xl transition-all flex items-center gap-3 group relative overflow-hidden",
                                 activeThreadId === thread.id
-                                    ? "bg-white/[0.03] text-indigo-400 border border-white/5 shadow-[0_0_20px_-12px_rgba(99,102,241,0.5)]"
-                                    : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.02] border border-transparent"
+                                    ? "bg-secondary text-indigo-500 border border-border shadow-sm"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/50 border border-transparent"
                             )}
                         >
                             {activeThreadId === thread.id && (
@@ -101,7 +101,7 @@ export function ThreadList({
                             )}
                             <MessageSquare className={cn(
                                 "w-4 h-4 transition-transform group-hover:scale-110",
-                                activeThreadId === thread.id ? "text-indigo-500" : "text-gray-600 group-hover:text-gray-400"
+                                activeThreadId === thread.id ? "text-indigo-500" : "text-muted-foreground group-hover:text-foreground"
                             )} />
                             <span className="truncate flex-1 text-xs font-bold tracking-tight">{thread.title || "Untitled Fragment"}</span>
                         </button>

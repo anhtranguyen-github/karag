@@ -53,7 +53,7 @@ export function ChatInterface({
             try {
                 // Fetch History
                 const histRes = await api.getChatHistoryChatHistoryThreadIdGet({ threadId });
-                const history = (histRes.data as any[]).map((msg: any, idx: number) => ({
+                const history = ((histRes.data as any) || []).map((msg: any, idx: number) => ({
                     id: msg.id || `hist-${idx}`,
                     role: msg.role,
                     content: msg.content,
@@ -184,17 +184,17 @@ export function ChatInterface({
     };
 
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full bg-background">
             <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={scrollRef}>
                 {/* Empty State */}
                 {messages.length === 0 && (
                     <div className="flex-1 flex flex-col items-center justify-center p-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-                        <div className="w-20 h-20 rounded-[2.5rem] bg-white/5 border border-white/10 flex items-center justify-center mb-8 relative group">
+                        <div className="w-20 h-20 rounded-[2.5rem] bg-secondary border border-border flex items-center justify-center mb-8 relative group">
                             <div className="absolute inset-0 rounded-[2.5rem] bg-indigo-500/20 blur-2xl group-hover:bg-indigo-500/30 transition-all duration-700" />
-                            <Brain size={40} className="text-indigo-400/80 relative transition-transform duration-700 group-hover:scale-110" />
+                            <Brain size={40} className="text-indigo-400 group-hover:scale-110 relative transition-transform duration-700" />
                         </div>
-                        <h2 className="text-xl font-bold text-white mb-3 tracking-tight">Ask anything about your documents</h2>
-                        <p className="text-sm text-gray-500 max-w-sm text-center font-medium leading-relaxed">
+                        <h2 className="text-xl font-bold text-foreground mb-3 tracking-tight">Ask anything about your documents</h2>
+                        <p className="text-sm text-muted-foreground max-w-sm text-center font-medium leading-relaxed">
                             I can help you analyze, summarize, or extract key insights from your knowledge base.
                         </p>
                     </div>
@@ -210,16 +210,16 @@ export function ChatInterface({
                 ))}
                 {isLoading && messages[messages.length - 1]?.role === "user" && (
                     <div className="flex justify-start">
-                        <div className="bg-muted text-foreground rounded-2xl px-6 py-4 flex items-center shadow-xl border border-white/5 animate-pulse">
+                        <div className="bg-secondary text-foreground rounded-2xl px-6 py-4 flex items-center shadow-xl border border-border animate-pulse">
                             <Loader2 className="w-4 h-4 animate-spin mr-3 text-indigo-500" />
-                            <span className="text-xs font-bold uppercase tracking-widest text-gray-500">Searching and processing...</span>
+                            <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Searching and processing...</span>
                         </div>
                     </div>
                 )}
             </div>
 
             {/* Input Area */}
-            <div className="p-6 shrink-0 space-y-4">
+            <div className="p-6 shrink-0 space-y-4 bg-background/80 backdrop-blur-xl border-t border-border">
                 <div className="max-w-4xl mx-auto flex items-center justify-center space-x-2">
                     {["fast", "thinking", "deep", "blending"].map((mode) => (
                         <button
@@ -229,8 +229,8 @@ export function ChatInterface({
                             className={cn(
                                 "px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full transition-all duration-200 border",
                                 executionMode === mode
-                                    ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-400 shadow-lg shadow-indigo-500/10"
-                                    : "bg-white/5 border-white/5 text-gray-500 hover:bg-white/10 hover:border-white/10"
+                                    ? "bg-indigo-500/10 border-indigo-500/40 text-indigo-500 shadow-lg shadow-indigo-500/5"
+                                    : "bg-secondary border-border text-muted-foreground hover:bg-muted hover:border-muted-foreground/20"
                             )}
                             disabled={isLoading}
                         >
@@ -240,12 +240,12 @@ export function ChatInterface({
                 </div>
 
                 <form onSubmit={handleSend} className="max-w-4xl mx-auto relative group">
-                    <div className="relative flex items-center bg-white/[0.03] backdrop-blur-2xl rounded-2xl border border-white/10 p-1.5 transition-all duration-300 focus-within:border-white/20 focus-within:bg-white/[0.05] shadow-2xl">
+                    <div className="relative flex items-center bg-secondary/50 backdrop-blur-2xl rounded-2xl border border-border p-1.5 transition-all duration-300 focus-within:border-indigo-500/50 focus-within:bg-secondary shadow-2xl">
                         <Input
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             placeholder="Type your message..."
-                            className="border-0 bg-transparent h-12 px-4 focus-visible:ring-0 text-white placeholder:text-gray-600 focus-visible:ring-offset-0"
+                            className="border-0 bg-transparent h-12 px-4 focus-visible:ring-0 text-foreground placeholder:text-muted-foreground focus-visible:ring-offset-0"
                             disabled={isLoading}
                         />
                         <Button
@@ -255,7 +255,7 @@ export function ChatInterface({
                                 "h-10 w-10 rounded-xl transition-all duration-300",
                                 input.trim()
                                     ? "bg-indigo-500 hover:bg-indigo-400 text-white shadow-lg shadow-indigo-500/20"
-                                    : "bg-white/5 text-gray-600 border border-white/5"
+                                    : "bg-muted text-muted-foreground border border-border"
                             )}
                             disabled={isLoading || !input.trim()}
                         >
@@ -266,7 +266,7 @@ export function ChatInterface({
                             )}
                         </Button>
                     </div>
-                    <p className="text-[9px] text-gray-700 font-black uppercase tracking-widest mt-3 text-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <p className="text-[9px] text-muted-foreground/50 font-black uppercase tracking-widest mt-3 text-center opacity-0 group-hover:opacity-100 transition-opacity">
                         AI-generated responses may be inaccurate. Verify important information.
                     </p>
                 </form>
