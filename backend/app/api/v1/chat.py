@@ -1,11 +1,10 @@
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 import asyncio
 import structlog
 from backend.app.services.chat_service import chat_service
-from backend.app.schemas.chat import ChatStreamRequest, ThreadTitleUpdate, ChatMessage, ChatThread
+from backend.app.schemas.chat import ChatStreamRequest, ThreadTitleUpdate
 from backend.app.schemas.base import AppResponse
-from backend.app.core.exceptions import ValidationError
 
 logger = structlog.get_logger(__name__)
 

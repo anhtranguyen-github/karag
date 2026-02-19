@@ -1,4 +1,5 @@
-name: Development CI
+name: DevSecOps Pipeline
+# Conceptual Model: Correctness -> Behavior -> Security/Trust/IaC
 
 on:
   push:
@@ -7,61 +8,30 @@ on:
     branches: [ main, dev ]
 
 jobs:
-  # --- KIỂM TRA BACKEND ---
-  backend-validation:
-    name: Backend Lint & Test
+  # --- Stage 1: Question 1: Can this code actually run? ---
+  correctness:
+    name: "Q1: Code Correctness (Build & Lint)"
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./backend
-    
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install uv
+      - name: Setup Backend Tooling (uv)
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-          cache-dependency-glob: "backend/requirements.txt"
+          version: "latest"
 
-      - name: Install dependencies
+      - name: Backend Sync & Lint
+        working-directory: ./backend
         run: |
-          uv pip install --system -r requirements.txt
-          uv pip install --system pytest pytest-asyncio httpx
+          uv sync
+          uvx ruff check .
+          uvx ruff format --check .
 
-      - name: Run Pytest
-        env:
-          MONGODB_URL: mongodb://localhost:27017
-          QDRANT_HOST: localhost
-          MINIO_ENDPOINT: localhost:9000
-        run: |
-          mkdir -p tests/results
-          uv run pytest tests/ \
-            --junitxml=tests/results/results.xml \
-            --cov=app \
-            --cov-report=xml:tests/results/coverage.xml \
-            -m "not integration" || echo "Note: Some integration tests skipped in CI environment"
-
-  # --- KIỂM TRA FRONTEND ---
-  frontend-validation:
-    name: Frontend Lint & Build
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./frontend
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+      - name: Setup Frontend Tooling (pnpm)
+        uses: pnpm/action-setup@v4
         with:
-          version: 8
+          version: 9
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -70,38 +40,72 @@ jobs:
           cache: 'pnpm'
           cache-dependency-path: frontend/pnpm-lock.yaml
 
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: TypeScript Check
-        run: pnpm exec tsc --noEmit
-
-      - name: Linting
-        run: pnpm run lint
-
-      - name: Build Check
-        run: pnpm run build
+      - name: Frontend Build & Lint
+        working-directory: ./frontend
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run lint
+          pnpm run build
         env:
           NEXT_PUBLIC_API_URL: http://localhost:8000
 
-  # --- KIỂM TRA BẢO MẬT (DEVSECOPS) ---
-  security-check:
-    name: Security Audit
+  # --- Stage 2: Question 2: Does it behave as intended? ---
+  behavior:
+    name: "Q2: Logical Behavior (Tests)"
+    needs: correctness
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Backend SAST (Bandit)
+      - name: Setup Backend Tooling (uv)
+        uses: astral-sh/setup-uv@v5
+
+      - name: Backend Tests (Unit & Contract)
         working-directory: ./backend
         run: |
-          pip install bandit
-          bandit -r app/ --recursive --skip B101,B104
+          uv run pytest tests/unit tests/contract --junitxml=results-unit.xml
 
-      - name: Frontend Audit (pnpm)
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Frontend Tests (Vitest)
         working-directory: ./frontend
         run: |
-          npm install -g pnpm@8
-          pnpm audit --audit-level high
+          pnpm install
+          pnpm run test:unit
+
+  # --- Stage 3: Question 3, 4 & 5: Security, Trust, and IaC ---
+  security-and-trust:
+    name: "Q3-5: Security, Trust & IaC"
+    needs: behavior
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Backend SAST (Bandit)
+        working-directory: ./backend
+        run: uv run bandit -r app/ -ll
+
+      - name: API Contract Audit
+        run: |
+          if grep -q ":path}" frontend/src/lib/api/openapi.json; then
+            echo "ERROR: Path traversal vulnerability surface detected in openapi.json!"
+            exit 1
+          fi
+
+      - name: Supply Chain Check (uv lock)
+        working-directory: ./backend
+        run: uv lock --check
 
       - name: Secret Scan (TruffleHog)
         uses: trufflesecurity/trufflehog@main
@@ -109,7 +113,7 @@ jobs:
           path: ./
           base: ${{ github.event.repository.default_branch }}
           head: HEAD
-          extra_args: --debug --only-verified
+          extra_args: --only-verified
 
       - name: IaC Scan (Checkov)
         uses: bridgecrewio/checkov-action@master
@@ -117,4 +121,11 @@ jobs:
           directory: ./
           framework: dockerfile,docker_compose
           check: HIGH,CRITICAL
-          soft_fail: true
+          soft_fail: false
+
+      - name: Config Validation (Prompt Registry)
+        run: python3 -c "import yaml; yaml.safe_load(open('backend/app/core/prompts.yaml'))"
+
+      - name: Artifact Verification (Docker Build)
+        run: docker build -t karag:test -f backend/Dockerfile .
+

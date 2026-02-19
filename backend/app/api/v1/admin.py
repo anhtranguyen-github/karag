@@ -1,5 +1,4 @@
-from fastapi import APIRouter, Depends
-from typing import Dict, Any, List
+from fastapi import APIRouter
 from backend.app.core.prompt_manager import prompt_manager
 from backend.app.rag.qdrant_provider import qdrant
 from backend.app.schemas.base import AppResponse

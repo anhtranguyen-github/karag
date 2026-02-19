@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import APIRouter, Request, UploadFile, File, BackgroundTasks
+from fastapi import APIRouter, UploadFile, File, BackgroundTasks
 from fastapi.encoders import jsonable_encoder
 from backend.app.services.document_service import document_service
 from backend.app.services.task.task_service import task_service

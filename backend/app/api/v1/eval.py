@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Request, BackgroundTasks
+from fastapi import APIRouter, Request
 from backend.app.services.eval_service import eval_service
 from backend.app.schemas.base import AppResponse
-from typing import List, Dict, Any
 
 router = APIRouter()
 

@@ -1,11 +1,10 @@
 from fastapi import APIRouter, Query
 from typing import Dict, Any, Optional
-from backend.app.core.schemas import AppSettings
 from backend.app.core.settings_manager import settings_manager
 
-router = APIRouter(prefix="/settings", tags=["settings"])
-
 from backend.app.schemas.base import AppResponse
+
+router = APIRouter(prefix="/settings", tags=["settings"])
 
 @router.get("/")
 async def get_settings(workspace_id: Optional[str] = Query(None)):

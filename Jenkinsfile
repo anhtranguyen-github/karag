@@ -3,202 +3,210 @@ pipeline {
         label 'linux'
     }
 
-    triggers {
-        githubPush()
-    }
-
     environment {
-        // Application specific variables
-        APP_NAME = 'karag-backend'
-        DOCKER_IMAGE = "karag/${APP_NAME}"
+        // App Identity
+        APP_NAME = 'karag'
         
-        // SonarQube credentials and configuration
-        SONAR_CREDENTIALS_ID = 'sonar-token'
-        SONAR_HOST_URL = 'http://sonarqube.example.com'
+        // Directories
+        BACKEND_DIR = 'backend'
+        FRONTEND_DIR = 'frontend'
         
-        // Checkov configuration
-        CHECKOV_REQUISITES_DIR = '.'
-        
-        // Docker configuration
-        DOCKER_TAG = "${env.BUILD_NUMBER}-${env.GIT_COMMIT.take(7)}"
+        // Tooling config
+        UV_PROJECT_ENVIRONMENT = "${WORKSPACE}/${BACKEND_DIR}/.venv"
     }
 
     stages {
-        stage('Checkout') {
+        stage('Step 0: Initialize') {
             steps {
-                // Checkout the source code from the main branch
+                echo "Initializing workspace for ${env.APP_NAME}..."
                 checkout scm
-                echo "Checked out commit: ${env.GIT_COMMIT}"
+                sh 'mkdir -p results'
             }
         }
 
-        stage('Scan IaC (Checkov)') {
-            steps {
-                echo 'Scanning repository for IaC security issues with Checkov (Blocker)...'
-                sh '''
-                    # Scan Dockerfiles and docker-compose. Fail fast on critical issues.
-                    # checkov -d . --check HIGH,CRITICAL --framework dockerfile,docker_compose --soft-fail false
-                    # For demo purposes, we allow soft fail if checkov is strict, but strategy says Blocking.
-                    # Assuming Checkov is installed in the agent environment
-                    checkov -d . --check HIGH,CRITICAL --framework dockerfile,docker_compose --soft-fail false || true
-                '''
-            }
-        }
-
-        stage('Validate Prompt Registry') {
-            steps {
-                echo 'Validating Prompt Registry (YAML syntax + versioning)...'
-                sh '''
-                    # Ensure prompts.yaml is valid YAML
-                    python3 -c "import yaml; yaml.safe_load(open('backend/app/core/prompts.yaml'))"
-                '''
-            }
-        }
-
-        stage('Prepare Environment') {
-            steps {
-                echo 'Installing uv and dependencies...'
-                sh '''
-                    curl -LsSf https://astral.sh/uv/install.sh | sh
-                    export PATH="$HOME/.cargo/bin:$PATH"
-                    cd backend
-                    uv sync
-                    mkdir -p tests/results
-                '''
-            }
-        }
-
-        stage('Parallel Testing') {
+        stage('Question 1: Can this code run?') {
             parallel {
-                stage('Backend Unit') {
+                stage('Backend: Environment & Lint') {
                     steps {
-                        echo 'Running backend unit tests...'
-                        sh '''
-                            export PATH="$HOME/.cargo/bin:$PATH"
-                            cd backend
-                            uv run pytest tests/unit \
-                                --junitxml=tests/results/results-unit.xml \
-                                --cov=app \
-                                --cov-report=xml:tests/results/coverage.xml \
-                                --maxfail=2
-                        '''
-                    }
-                }
-                stage('Backend Contract') {
-                    steps {
-                        echo 'Running backend contract tests...'
-                        sh '''
-                            export PATH="$HOME/.cargo/bin:$PATH"
-                            cd backend
-                            uv run pytest tests/contract \
-                                --junitxml=tests/results/results-contract.xml
-                        '''
-                    }
-                }
-                stage('Frontend CI') {
-                    steps {
-                        echo 'Running frontend CI (Lint & Vitest)...'
-                        dir('frontend') {
+                        dir(BACKEND_DIR) {
                             sh '''
-                                corepack enable
-                                pnpm install
-                                pnpm run lint
-                                pnpm run test:unit
+                                # Install uv if not present
+                                if ! command -v uv &> /dev/null; then
+                                    curl -LsSf https://astral.sh/uv/install.sh | sh
+                                    export PATH="$HOME/.cargo/bin:$PATH"
+                                fi
+                                
+                                # Synchronize dependencies - verify pyproject.toml / uv.lock consistency
+                                uv sync
+                                
+                                # Fast correctness checks (Linting)
+                                # Using uvx for ruff as it is an fast, external tool not in pyproject.toml
+                                uvx ruff check .
+                                uvx ruff format --check .
                             '''
                         }
                     }
                 }
-                stage('Backend SAST') {
+                stage('Frontend: Build & Type Check') {
                     steps {
-                        echo 'Running Bandit security scan...'
-                        sh '''
-                            export PATH="$HOME/.cargo/bin:$PATH"
-                            cd backend
-                            uv run bandit -r app/ -f json -o tests/results/bandit.json || true
-                        '''
+                        dir(FRONTEND_DIR) {
+                            sh '''
+                                corepack enable
+                                pnpm install --frozen-lockfile
+                                
+                                # Linting (ESLint)
+                                pnpm run lint
+                                
+                                # Build (Surfaces broken imports, aliases, and type errors)
+                                pnpm run build
+                            '''
+                        }
                     }
                 }
-                stage('Contract Security Audit') {
+            }
+        }
+
+        stage('Question 2: Does it behave as intended?') {
+            parallel {
+                stage('Backend: Unit & Contract') {
                     steps {
-                        echo 'Auditing API contract for path-based parameters...'
+                        dir(BACKEND_DIR) {
+                            sh '''
+                                export PATH="$HOME/.cargo/bin:$PATH"
+                                # Run unit and contract tests
+                                uv run pytest tests/unit tests/contract \
+                                    --junitxml=../results/backend-tests.xml \
+                                    --cov=app \
+                                    --cov-report=xml:../results/coverage.xml \
+                                    --maxfail=3
+                            '''
+                        }
+                    }
+                }
+                stage('Backend: Integration') {
+                    steps {
+                        dir(BACKEND_DIR) {
+                            sh '''
+                                export PATH="$HOME/.cargo/bin:$PATH"
+                                # Integration tests often catch runtime graph errors
+                                # Note: These should handle their own DB mocks or transient containers
+                                uv run pytest tests/integration --junitxml=../results/backend-integration.xml
+                            '''
+                        }
+                    }
+                }
+                stage('Frontend: Integration (Vitest)') {
+                    steps {
+                        dir(FRONTEND_DIR) {
+                            sh 'pnpm run test:unit'
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Question 3: Are there obvious security risks?') {
+            parallel {
+                stage('Backend: SAST (Bandit)') {
+                    steps {
+                        dir(BACKEND_DIR) {
+                            sh '''
+                                export PATH="$HOME/.cargo/bin:$PATH"
+                                # Analyze code patterns that already passed build/tests
+                                uv run bandit -r app/ -f screen -ll
+                            '''
+                        }
+                    }
+                }
+                stage('Interface: API Audit') {
+                    steps {
+                        echo "Auditing API contracts for common security pitfalls..."
                         sh '''
+                            # Check for uncontrolled path parameters in OpenAPI spec
                             if grep -q ":path}" frontend/src/lib/api/openapi.json; then
-                                echo "CRITICAL: Path traversal vulnerability surface detected in openapi.json!"
-                                grep ":path}" frontend/src/lib/api/openapi.json
+                                echo "ERROR: Path traversal vulnerability surface detected in openapi.json!"
                                 exit 1
                             fi
                         '''
                     }
                 }
+                stage('Backend: Enhanced SAST (Semgrep)') {
+                    steps {
+                        dir(BACKEND_DIR) {
+                            // Using uvx to run semgrep without adding to project deps
+                            sh 'uvx semgrep scan --error --config auto .'
+                        }
+                    }
+                }
             }
         }
 
-        stage('Backend Integration') {
-            steps {
-                echo 'Running backend integration tests (Requires DB)...'
-                sh '''
-                    export PATH="$HOME/.cargo/bin:$PATH"
-                    cd backend
-                    # Assuming Integration tests handle DB connection via fixtures or env
-                    uv run pytest tests/integration \
-                        --junitxml=tests/results/results-integration.xml
-                '''
-            }
-        }
-        
-        stage('Backend E2E') {
-             steps {
-                echo 'Running backend E2E API tests...'
-                sh '''
-                    export PATH="$HOME/.cargo/bin:$PATH"
-                    cd backend
-                    # Only run if tests/e2e exists and has tests
-                    if [ -d "tests/e2e" ] && [ "$(ls -A tests/e2e)" ]; then
-                         uv run pytest tests/e2e \
-                            --junitxml=tests/results/results-e2e.xml
-                    else
-                        echo "No E2E tests found (Skipping)"
-                    fi
-                '''
+        stage('Question 4: Are dependencies and artifacts trustworthy?') {
+            parallel {
+                stage('Supply Chain: uv Audit') {
+                    steps {
+                        dir(BACKEND_DIR) {
+                            sh 'export PATH="$HOME/.cargo/bin:$PATH" && uv lock --check'
+                        }
+                    }
+                }
+                stage('Artifact: Docker Build') {
+                    steps {
+                        echo "Proving the application can be containerized..."
+                        sh "docker build --no-cache -t ${env.APP_NAME}:${env.BUILD_ID} -f backend/Dockerfile ."
+                    }
+                }
             }
         }
 
-        stage('SonarQube Analysis') {
+        stage('Question 5: Are infrastructure and configs safe?') {
+            parallel {
+                stage('IaC Scan: Checkov') {
+                    steps {
+                        dir(BACKEND_DIR) {
+                            sh '''
+                                export PATH="$HOME/.cargo/bin:$PATH"
+                                # Scan Dockerfiles and K8s manifests
+                                uv run checkov -d .. --check HIGH,CRITICAL --framework dockerfile,docker_compose,kubernetes --soft-fail false
+                            '''
+                        }
+                    }
+                }
+                stage('Config: Prompt Validation') {
+                    steps {
+                        echo "Validating Prompt Registry schemas..."
+                        sh 'python3 -c "import yaml; yaml.safe_load(open(\'backend/app/core/prompts.yaml\'))"'
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate: SonarQube') {
             steps {
-                echo 'Performing code quality and security scanning with SonarQube...'
+                echo 'Final code quality report...'
                 withSonarQubeEnv('SonarQubeServer') {
                     sh 'sonar-scanner'
                 }
-            }
-        }
-
-        stage('SonarQube Quality Gate') {
-            steps {
-                echo 'Enforcing SonarQube Quality Gate...'
-                timeout(time: 1, unit: 'HOURS') {
+                timeout(time: 15, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
-            }
-        }
-
-        stage('Docker Build') {
-            steps {
-                echo "Building Docker image: ${DOCKER_IMAGE}:${DOCKER_TAG}"
-                sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} -f backend/Dockerfile ."
             }
         }
     }
 
     post {
         always {
-            echo 'Cleaning up workspace...'
-            deleteDir()
+            // Collect all test results
+            junit allowEmptyResults: true, testResults: 'results/*.xml'
+            echo "Pipeline finished. Cleaning workspace..."
+            cleanWs()
         }
         success {
-            echo 'CI Pipeline completed successfully!'
+            echo "All 5 security/correctness questions answered: YES."
         }
         failure {
-            echo 'CI Pipeline failed. Please check the logs.'
+            echo "CI Pipeline failed. Check the specific 'Question' stage for details."
         }
     }
 }
+

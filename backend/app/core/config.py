@@ -10,6 +10,7 @@ class AISettings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     VLLM_BASE_URL: str = "http://localhost:8008/v1"
     LLAMACPP_BASE_URL: str = "http://localhost:8081/v1"
+    BACKEND_HOST: str = "0.0.0.0"  # nosec B104
     BACKEND_PORT: int = 8000
     
     # Embedding Configuration

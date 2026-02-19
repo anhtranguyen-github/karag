@@ -3,6 +3,7 @@ import time
 import structlog
 from typing import Dict
 from langchain_core.messages import SystemMessage, AIMessage, RemoveMessage
+from langchain_core.runnables import RunnableConfig
 from backend.app.graph.state import AgentState
 from backend.app.rag.rag_service import rag_service
 from backend.app.tools.registry import get_tools
@@ -104,7 +105,6 @@ async def rerank_node(state: AgentState) -> Dict:
         }
 
 
-from langchain_core.runnables import RunnableConfig
 
 
 async def reason_node(state: AgentState, config: RunnableConfig) -> Dict:

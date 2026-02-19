@@ -12,7 +12,6 @@ When OTEL_ENABLED=false, tracing degrades to a no-op with zero overhead.
 
 import logging
 import functools
-import os
 from pathlib import Path
 from logging.handlers import RotatingFileHandler
 from typing import Optional, Callable, Any

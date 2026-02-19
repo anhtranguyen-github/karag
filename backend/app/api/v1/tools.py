@@ -1,9 +1,8 @@
 from fastapi import APIRouter
-from typing import List
 from backend.app.tools.manager import tool_manager
 from backend.app.tools.schemas import ToolDefinition
 
-from backend.app.core.exceptions import ValidationError, NotFoundError, ConflictError
+from backend.app.core.exceptions import NotFoundError
 from backend.app.schemas.base import AppResponse
 
 router = APIRouter(prefix="/tools", tags=["tools"])
