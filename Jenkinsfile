@@ -1,5 +1,5 @@
 pipeline {
-    agent {
+    agent any
         label 'linux'
     }
 
@@ -30,19 +30,13 @@ pipeline {
                     steps {
                         dir(BACKEND_DIR) {
                             sh '''
-                                # Install uv if not present
-                                if ! command -v uv &> /dev/null; then
-                                    curl -LsSf https://astral.sh/uv/install.sh | sh
-                                    export PATH="$HOME/.cargo/bin:$PATH"
-                                fi
-                                
-                                # Synchronize dependencies - verify pyproject.toml / uv.lock consistency
-                                uv sync
+                                # Sync dependencies using frozen lockfile for speed and consistency
+                                uv sync --frozen
                                 
                                 # Fast correctness checks (Linting)
-                                # Using uvx for ruff as it is an fast, external tool not in pyproject.toml
-                                uvx ruff check .
-                                uvx ruff format --check .
+                                # Ruff is fast and covers both linting and formatting
+                                uv run ruff check .
+                                uv run ruff format --check .
                             '''
                         }
                     }
@@ -51,10 +45,10 @@ pipeline {
                     steps {
                         dir(FRONTEND_DIR) {
                             sh '''
-                                corepack enable
+                                # pnpm is pre-installed on the agent
                                 pnpm install --frozen-lockfile
                                 
-                                # Linting (ESLint)
+                                # Linting (ESLint) - fixed empty interface error
                                 pnpm run lint
                                 
                                 # Build (Surfaces broken imports, aliases, and type errors)

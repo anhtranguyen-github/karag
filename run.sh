@@ -144,7 +144,7 @@ boot_infra() {
     log_phase "BOOT (Infrastructure)"
     
     log_info "Spinning up core containers..."
-    $DOCKER_CMD up -d qdrant mongodb minio neo4j jenkins
+    $DOCKER_CMD up -d qdrant mongodb minio neo4j jenkins sonarqube sonarqube_db
     
     echo -n "Waiting for core services..."
     local count=0
@@ -225,6 +225,7 @@ cmd_up() {
     echo -e "Backend UI: ${YELLOW}http://localhost:${BACKEND_PORT}/docs${NC}"
     echo -e "Frontend:   ${YELLOW}http://localhost:${FRONTEND_PORT}${NC}"
     echo -e "Jenkins:    ${YELLOW}http://localhost:8080${NC}"
+    echo -e "SonarQube:  ${YELLOW}http://localhost:9005${NC}"
     echo -e "Logs:       ${YELLOW}tail -f logs/backend.log logs/frontend.log${NC}"
 }
 

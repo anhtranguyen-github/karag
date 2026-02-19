@@ -163,7 +163,6 @@ services:
     container_name: ai-nginx
     ports:
       - "80:80"
-      - "8080:8080"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
@@ -251,17 +250,61 @@ services:
     image: jenkins/jenkins:lts
     container_name: ai-jenkins
     user: root
-    expose:
-      - "8080"
-      - "50000"
+    ports:
+      - "8080:8080"
+      - "50000:50000"
     volumes:
       - ./jenkins_home:/var/jenkins_home:z
       - /var/run/docker.sock:/var/run/docker.sock:z
+      - .:/workspace/karag:ro
     environment:
-      - JAVA_OPTS=-Dhudson.net.HeaderBufferBytes=32768
+      - JAVA_OPTS=-Dhudson.net.HeaderBufferBytes=32768 -Djenkins.install.runSetupWizard=false -Dhudson.plugins.git.GitSCM.ALLOW_LOCAL_CHECKOUT=true
     restart: unless-stopped
     networks:
       - ai_architect_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  sonarqube_db:
+    image: postgres:15
+    container_name: ai-sonarqube-db
+    environment:
+      - POSTGRES_USER=sonar
+      - POSTGRES_PASSWORD=sonar
+      - POSTGRES_DB=sonarqube
+    volumes:
+      - ./sonar_db_data:/var/lib/postgresql/data:z
+    networks:
+      - ai_architect_network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U sonar" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  sonarqube:
+    image: sonarqube:lts-community
+    container_name: ai-sonarqube
+    ports:
+      - "9005:9000"
+    environment:
+      - SONAR_JDBC_URL=jdbc:postgresql://sonarqube_db:5432/sonarqube
+      - SONAR_JDBC_USERNAME=sonar
+      - SONAR_JDBC_PASSWORD=sonar
+    depends_on:
+      sonarqube_db:
+        condition: service_healthy
+    volumes:
+      - ./sonar_data:/opt/sonarqube/data:z
+      - ./sonar_extensions:/opt/sonarqube/extensions:z
+      - ./sonar_logs:/opt/sonarqube/logs:z
+    networks:
+      - ai_architect_network
+    restart: unless-stopped
     logging:
       driver: "json-file"
       options:

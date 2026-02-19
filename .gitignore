@@ -142,3 +142,11 @@ temp/
 neo4j_data/
 neo4j_logs/
 jenkins_home/
+jenkins-cli.jar
+sonar_db_data/
+sonar_data/
+sonar_extensions/
+sonar_logs/
+results/
+*.groovy
+!groovy_scripts/*.groovy
