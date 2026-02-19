@@ -1,7 +1,3 @@
-networks:
-  ai_architect_network:
-    driver: bridge
-
 services:
   qdrant:
     image: qdrant/qdrant:latest
@@ -167,6 +163,7 @@ services:
     container_name: ai-nginx
     ports:
       - "80:80"
+      - "8080:8080"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
@@ -249,3 +246,28 @@ services:
       interval: 20s
       timeout: 10s
       retries: 5
+
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: ai-jenkins
+    user: root
+    expose:
+      - "8080"
+      - "50000"
+    volumes:
+      - ./jenkins_home:/var/jenkins_home:z
+      - /var/run/docker.sock:/var/run/docker.sock:z
+    environment:
+      - JAVA_OPTS=-Dhudson.net.HeaderBufferBytes=32768
+    restart: unless-stopped
+    networks:
+      - ai_architect_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  ai_architect_network:
+    driver: bridge

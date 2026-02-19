@@ -141,3 +141,4 @@ temp/
 *.temp
 neo4j_data/
 neo4j_logs/
+jenkins_home/

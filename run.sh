@@ -144,9 +144,9 @@ boot_infra() {
     log_phase "BOOT (Infrastructure)"
     
     log_info "Spinning up core containers..."
-    $DOCKER_CMD up -d qdrant mongodb minio neo4j
+    $DOCKER_CMD up -d qdrant mongodb minio neo4j jenkins
     
-    echo -n "Waiting for services..."
+    echo -n "Waiting for core services..."
     local count=0
     while ! curl -s http://localhost:6333/healthz > /dev/null; do
         echo -n "."
@@ -154,16 +154,7 @@ boot_infra() {
         count=$((count+1))
         [ $count -ge $MAX_RETRIES ] && { echo -e "${RED}\nFailed to start Qdrant.${NC}"; exit 1; }
     done
-    log_success " Qdrant READY!"
-    
-    count=0
-    while ! curl -s http://localhost:7474 > /dev/null; do
-        echo -n "."
-        sleep 1
-        count=$((count+1))
-        [ $count -ge $MAX_RETRIES ] && { echo -e "${RED}\nFailed to start Neo4j.${NC}"; exit 1; }
-    done
-    log_success " Neo4j READY!"
+    log_success " Infrastructure READY!"
 }
 
 # --- Phase 4: Launch (Application Runtime) ---
@@ -233,6 +224,7 @@ cmd_up() {
     log_success "Systems are operational!"
     echo -e "Backend UI: ${YELLOW}http://localhost:${BACKEND_PORT}/docs${NC}"
     echo -e "Frontend:   ${YELLOW}http://localhost:${FRONTEND_PORT}${NC}"
+    echo -e "Jenkins:    ${YELLOW}http://localhost:8080${NC}"
     echo -e "Logs:       ${YELLOW}tail -f logs/backend.log logs/frontend.log${NC}"
 }
 
@@ -300,17 +292,22 @@ case "$COMMAND" in
     up)    cmd_up ;;
     verify) cmd_verify ;;
     build) cmd_build ;;
-    infra) boot_infra ;;
+    infra)
+        preflight
+        boot_infra 
+        ;;
     stop)
+        preflight
         log_info "Stopping services..."
-        docker compose stop
+        $DOCKER_CMD stop
         kill_port $BACKEND_PORT
         kill_port $FRONTEND_PORT
         log_success "Stopped."
         ;;
     clean)
+        preflight
         log_warn "Deep cleaning system..."
-        docker compose down -v
+        $DOCKER_CMD down -v
         docker system prune -f
         kill_port $BACKEND_PORT
         kill_port $FRONTEND_PORT
@@ -318,8 +315,9 @@ case "$COMMAND" in
         log_success "Cleaned."
         ;;
     status)
+        preflight
         log_phase "STATUS"
-        docker compose ps
+        $DOCKER_CMD ps
         echo ""
         if check_port $BACKEND_PORT; then log_success "Backend:  RUNNING"; else log_error "Backend:  STOPPED"; fi
         if check_port $FRONTEND_PORT; then log_success "Frontend: RUNNING"; else log_error "Frontend: STOPPED"; fi
