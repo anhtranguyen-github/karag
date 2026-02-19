@@ -23,29 +23,27 @@ export function DeleteWorkspaceModal({
     if (!workspace) return null;
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Delete Workspace">
-            <div className="flex flex-col gap-6 p-1">
-                <div className="flex items-start gap-4 p-4 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive">
-                    <AlertTriangle className="w-6 h-6 shrink-0 mt-1" />
-                    <div className="space-y-1">
-                        <h4 className="text-sm font-black uppercase tracking-widest">Permanent Action</h4>
-                        <p className="text-xs font-medium leading-relaxed opacity-80">
-                            You are about to delete <span className="font-bold underline">"{workspace.name}"</span>.
-                            This will permanently remove all associated documents, chat history, and vector embeddings. This action cannot be undone.
-                        </p>
-                    </div>
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Delete Workspace"
+            className="max-w-md"
+        >
+            <div className="flex flex-col gap-4 -mt-4">
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-red-500/5 border border-red-500/10 text-red-500">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    <p className="text-[11px] font-medium leading-tight">
+                        Permanently delete <span className="font-bold">"{workspace.name}"</span>?
+                        This wipes all vectors and history.
+                    </p>
                 </div>
 
-                <div className="space-y-2">
-                    <p className="text-xs font-black uppercase tracking-widest text-muted-foreground text-center">Are you absolutely sure?</p>
-                </div>
-
-                <div className="flex gap-3">
+                <div className="flex gap-2 pt-2">
                     <Button
                         variant="ghost"
                         onClick={onClose}
                         disabled={isDeleting}
-                        className="flex-1 rounded-xl h-12 text-xs font-black tracking-widest uppercase"
+                        className="flex-1 rounded-xl h-10 text-[10px] font-black tracking-widest uppercase hover:bg-white/5"
                     >
                         Cancel
                     </Button>
@@ -53,15 +51,15 @@ export function DeleteWorkspaceModal({
                         variant="destructive"
                         onClick={onConfirm}
                         disabled={isDeleting}
-                        className="flex-[2] rounded-xl h-12 text-xs font-black tracking-widest uppercase shadow-lg shadow-destructive/20"
+                        className="flex-[2] rounded-xl h-10 text-[10px] font-black tracking-widest uppercase bg-red-500 hover:bg-red-400 text-white shadow-lg shadow-red-500/10"
                     >
                         {isDeleting ? (
                             <>
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                Deleting...
+                                <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                                Deleting
                             </>
                         ) : (
-                            "Confirm Deletion"
+                            "Confirm Purge"
                         )}
                     </Button>
                 </div>
