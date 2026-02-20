@@ -125,7 +125,7 @@ async def test_upload_resilience_on_qdrant_403(mocker):
     )
     
     # Mock task update
-    mock_task_update = mocker.patch(
+    mocker.patch(
         "backend.app.services.task.task_service.task_service.update_task",
         new=AsyncMock(),
     )

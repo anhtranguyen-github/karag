@@ -1,6 +1,4 @@
 import pytest
-import os
-import httpx
 from backend.app.rag.qdrant_provider import qdrant
 from backend.app.core.mongodb import mongodb_manager
 

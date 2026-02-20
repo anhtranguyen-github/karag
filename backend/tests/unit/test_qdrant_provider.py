@@ -1,7 +1,6 @@
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 from backend.app.rag.qdrant_provider import QdrantProvider
-from qdrant_client.http import models as qmodels
 
 @pytest.mark.asyncio
 async def test_create_collection_adds_all_indexes(mocker):
