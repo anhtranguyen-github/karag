@@ -19,7 +19,7 @@ test.describe('RAG & Vault E2E', () => {
         }
 
         const docName = await docNameEl.getAttribute('data-doc-name') || '';
-        
+
         // Find delete button WITHIN the same row
         await docRow.locator('button[data-testid^="delete-doc-"]').click();
 
@@ -30,9 +30,9 @@ test.describe('RAG & Vault E2E', () => {
         await page.getByTestId('vault-purge-toggle').click();
 
         // Confirm
-        const deletePromise = page.waitForResponse(res => 
-            res.url().includes(`/documents/${encodeURIComponent(docName)}`) && 
-            res.request().method() === 'DELETE' && 
+        const deletePromise = page.waitForResponse(res =>
+            res.url().includes(`/documents/${encodeURIComponent(docName)}`) &&
+            res.request().method() === 'DELETE' &&
             res.status() === 200
         );
         await page.getByTestId('confirm-purge-btn').click();
@@ -51,17 +51,17 @@ test.describe('RAG & Vault E2E', () => {
         await page.waitForResponse(res => res.url().includes('/documents-all') && res.status() === 200);
 
         // Locate document card
-        const docCard = page.locator('[data-testid="doc-name"]').first().locator('xpath=./../../../../..'); // Go up to the card container
+        const _docCard = page.locator('[data-testid="doc-name"]').first().locator('xpath=./../../../../..'); // Go up to the card container
         // Actually, let's just use the docNameEl to get the name and then find the button.
         const docNameEl = page.getByTestId('doc-name').first();
-        
+
         if (await docNameEl.count() === 0) {
             console.log("No documents in vault, skipping.");
             return;
         }
 
         const docName = await docNameEl.getAttribute('data-doc-name') || '';
-        
+
         // Click delete on KnowledgeBase - using a more robust selector
         await page.locator(`button[data-testid="delete-doc-${docName}"]`).first().click();
 
@@ -69,12 +69,12 @@ test.describe('RAG & Vault E2E', () => {
         await expect(page.getByText('Destructive Operation Pending')).toBeVisible();
 
         // Perform Global Purge
-        const deletePromise = page.waitForResponse(res => 
-            res.url().includes(`/documents/${encodeURIComponent(docName)}`) && 
-            res.request().method() === 'DELETE' && 
+        const deletePromise = page.waitForResponse(res =>
+            res.url().includes(`/documents/${encodeURIComponent(docName)}`) &&
+            res.request().method() === 'DELETE' &&
             res.status() === 200
         );
-        
+
         await page.getByTestId('confirm-purge-btn').click();
         await deletePromise;
 

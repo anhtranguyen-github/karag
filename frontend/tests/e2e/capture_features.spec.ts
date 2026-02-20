@@ -73,13 +73,7 @@ test.describe('Showcase Capture', () => {
         await page.screenshot({ path: '/home/tra01/project/karag/assets/screenshots/ws_03_settings.png' });
     });
 
-    test('capture arxiv modal', async ({ page }) => {
-        await page.goto('http://localhost:3000/workspaces/default/documents', { waitUntil: 'networkidle' });
-        await page.getByText('From ArXiv').click();
-        await page.waitForTimeout(800);
-        await page.screenshot({ path: '/home/tra01/project/karag/assets/screenshots/ux_02_arxiv_modal.png' });
-        await page.screenshot({ path: '/home/tra01/project/karag/assets/screenshots/arxiv_01_upload.png' });
-    });
+
 
     test('capture active chat', async ({ page }) => {
         await page.goto('http://localhost:3000/workspaces/default/chat', { waitUntil: 'networkidle' });
@@ -100,42 +94,4 @@ test.describe('Showcase Capture', () => {
         await page.screenshot({ path: '/home/tra01/project/karag/assets/screenshots/ux_05_unified_search.png' });
     });
 
-    test('capture arxiv workflow', async ({ page }) => {
-        await page.goto('http://localhost:3000/workspaces/default/documents', { waitUntil: 'networkidle' });
-        await page.getByText('From ArXiv').click();
-        await page.waitForTimeout(500);
-        await page.getByPlaceholder('https://arxiv.org/abs/...').fill('2401.03462');
-        await page.getByRole('button', { name: 'Import Paper' }).click();
-        await page.waitForTimeout(2000);
-        await page.goto('http://localhost:3000/vault', { waitUntil: 'networkidle' });
-        await page.waitForTimeout(1000);
-        await page.screenshot({ path: '/home/tra01/project/karag/assets/screenshots/arxiv_step_02_vault.png', fullPage: true });
-        await page.goto('http://localhost:3000/workspaces/default/chat', { waitUntil: 'networkidle' });
-        // Use a more generic selector for the chat input if placeholder varies
-        const input = page.getByRole('textbox');
-        await input.click();
-        await input.fill('What is TinyLlama?');
-        await page.keyboard.press('Enter');
-        await page.waitForTimeout(4000);
-        await page.screenshot({ path: '/home/tra01/project/karag/assets/screenshots/arxiv_step_01_chat.png', fullPage: true });
-        await page.goto('http://localhost:3000/workspaces/default/documents', { waitUntil: 'networkidle' });
-        await page.locator('tbody tr').first().click();
-        await page.waitForTimeout(1000);
-        await page.screenshot({ path: '/home/tra01/project/karag/assets/screenshots/arxiv_step_03_details.png', fullPage: true });
-        await page.goto('http://localhost:3000/workspaces/default/documents', { waitUntil: 'networkidle' });
-        await page.keyboard.press('/');
-        await page.keyboard.type('llama');
-        await page.waitForTimeout(1000);
-        await page.screenshot({ path: '/home/tra01/project/karag/assets/screenshots/arxiv_step_04_search.png', fullPage: true });
-    });
-
-    test('capture job panel', async ({ page }) => {
-        await page.goto('http://localhost:3000/workspaces/default/documents', { waitUntil: 'networkidle' });
-        await page.getByText('From ArXiv').click();
-        await page.getByPlaceholder('https://arxiv.org/abs/...').fill('2310.06825');
-        await page.getByRole('button', { name: 'Import Paper' }).click();
-        await page.goto('http://localhost:3000/vault', { waitUntil: 'networkidle' });
-        await page.waitForTimeout(1000);
-        await page.screenshot({ path: '/home/tra01/project/karag/assets/screenshots/ux_03_job_panel.png', fullPage: true });
-    });
 });
