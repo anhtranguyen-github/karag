@@ -245,8 +245,18 @@ launch_frontend() {
     log_phase "LAUNCH (Frontend)"
     
     cd frontend
-    log_info "Starting Next.js Dev Server..."
-    nohup pnpm run dev > ../logs/frontend.log 2>&1 &
+    if [ "$PROD_MODE" = "true" ]; then
+        log_info "Starting Next.js Production Server..."
+        # Ensure build exists for production mode
+        if [ ! -d ".next" ]; then
+            log_warn "No build found. Running 'pnpm run build'..."
+            pnpm run build
+        fi
+        nohup pnpm run start > ../logs/frontend.log 2>&1 &
+    else
+        log_info "Starting Next.js Dev Server..."
+        nohup pnpm run dev > ../logs/frontend.log 2>&1 &
+    fi
     local F_PID=$!
     cd ..
     
@@ -344,6 +354,7 @@ show_help() {
     echo "  --lax             Allow start even if verification has non-critical errors"
     echo "  --force-clean    Clear all caches before starting"
     echo "  --turbo          Low footprint mode: skip verify + skip heavy containers"
+    echo "  --prod           Run frontend in production mode (requires build)"
     echo ""
 }
 
@@ -356,6 +367,7 @@ shift || true
 SKIP_VERIFY=false
 LAX_MODE=false
 FORCE_CLEAN=false
+PROD_MODE=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -363,6 +375,7 @@ while [[ $# -gt 0 ]]; do
         --lax)         LAX_MODE=true; shift ;;
         --force-clean) FORCE_CLEAN=true; shift ;;
         --turbo)       TURBO_MODE=true; SKIP_VERIFY=true; shift ;;
+        --prod)        PROD_MODE=true; shift ;;
         *) log_error "Unknown option: $1"; exit 1 ;;
     esac
 done

@@ -82,11 +82,11 @@ qdrant_storage/
 ollama_data/
 mongo_data/
 minio_data/
-models/
+/models/
+!frontend/src/lib/api/models/
 model_cache/
 backend/data/*.json
 !backend/data/.keep
-backend/app/tools/arxiv_downloader/downloads/
 *.pdf
 *.zip
 *.tar.gz
