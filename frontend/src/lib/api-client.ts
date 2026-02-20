@@ -8,8 +8,7 @@ import {
     HealthApi,
     SearchApi,
     AdminOpsApi,
-    EvaluationApi,
-    ToolsApi
+    EvaluationApi
 } from "./api";
 
 const config = new Configuration({
@@ -26,7 +25,6 @@ const health = new HealthApi(config);
 const search = new SearchApi(config);
 const adminOps = new AdminOpsApi(config);
 const evaluation = new EvaluationApi(config);
-const tools = new ToolsApi(config);
 
 // Merge them into a single object for convenience
 // Note: This mimics a "DefaultApi" but with all methods
@@ -40,14 +38,17 @@ export const api = {
     ...search,
     ...adminOps,
     ...evaluation,
-    ...tools,
 
     ...getMethods(workspaces),
     ...getMethods(chat),
     ...getMethods(documents),
     ...getMethods(settings),
     ...getMethods(tasks),
-} as WorkspacesApi & ChatApi & DocumentsApi & SettingsApi & TasksApi & HealthApi & SearchApi & AdminOpsApi & EvaluationApi & ToolsApi;
+    ...getMethods(health),
+    ...getMethods(search),
+    ...getMethods(adminOps),
+    ...getMethods(evaluation),
+} as WorkspacesApi & ChatApi & DocumentsApi & SettingsApi & TasksApi & HealthApi & SearchApi & AdminOpsApi & EvaluationApi;
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- dynamic method extraction requires any */
 function getMethods(obj: object) {
