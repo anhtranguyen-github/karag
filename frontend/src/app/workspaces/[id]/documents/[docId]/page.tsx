@@ -124,26 +124,27 @@ export default function DocumentDetailPage() {
 
             {/* Navigation Tabs */}
             <nav className="px-10 h-16 border-b border-white/5 flex items-center gap-10 bg-[#0d0d0e]">
-                {[
-                    { id: 'overview', label: 'Meta Protocol', icon: Database },
-                    { id: 'chunks', label: 'Vector Clusters', icon: Layers },
-                    { id: 'raw', label: 'Knowledge Buffer', icon: Layout }
-                ].map(tab => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id as any)}
-                        className={cn(
-                            "flex items-center gap-3 h-full border-b-2 transition-all text-tiny font-black uppercase tracking-[0.2em] relative",
-                            activeTab === tab.id ? "border-blue-500 text-white" : "border-transparent text-gray-600 hover:text-gray-400"
-                        )}
-                    >
-                        <tab.icon size={14} className={activeTab === tab.id ? "text-blue-500" : "text-gray-600"} />
-                        {tab.label}
-                        {activeTab === tab.id && (
-                            <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 shadow-[0_0_8px_#3b82f6]" />
-                        )}
-                    </button>
-                ))}
+                {(['overview', 'chunks', 'raw'] as const).map(tabId => {
+                    const labels = { overview: 'Meta Protocol', chunks: 'Vector Clusters', raw: 'Knowledge Buffer' };
+                    const icons = { overview: Database, chunks: Layers, raw: Layout };
+                    const Icon = icons[tabId];
+                    return (
+                        <button
+                            key={tabId}
+                            onClick={() => setActiveTab(tabId)}
+                            className={cn(
+                                "flex items-center gap-3 h-full border-b-2 transition-all text-tiny font-black uppercase tracking-[0.2em] relative",
+                                activeTab === tabId ? "border-blue-500 text-white" : "border-transparent text-gray-600 hover:text-gray-400"
+                            )}
+                        >
+                            <Icon size={14} className={activeTab === tabId ? "text-blue-500" : "text-gray-600"} />
+                            {labels[tabId]}
+                            {activeTab === tabId && (
+                                <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 shadow-[0_0_8px_#3b82f6]" />
+                            )}
+                        </button>
+                    );
+                })}
             </nav>
 
             {/* Content Area */}

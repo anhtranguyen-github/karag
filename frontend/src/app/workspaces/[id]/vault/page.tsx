@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import { KnowledgeBase } from '@/components/knowledge-base';
-import { Database, Shield, Layers, HardDrive } from 'lucide-react';
+import { Database, Layers, HardDrive } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function VaultPage() {

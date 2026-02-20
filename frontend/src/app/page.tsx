@@ -9,9 +9,8 @@ import { WorkspaceWizard } from "@/components/workspace/WorkspaceWizard";
 import { DeleteWorkspaceModal } from "@/components/workspace/delete-workspace-modal";
 import { QuickViewWorkspaceModal } from "@/components/workspace/quick-view-modal";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Search, Trash2, Eye, Database, Plus, Loader2, ArrowRight, Shield, Zap } from "lucide-react";
+import { Search, Trash2, Eye, Database, Plus, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
 
 export default function Home() {
   const router = useRouter();
@@ -33,7 +32,7 @@ export default function Home() {
     try {
       const response = await api.listWorkspacesWorkspacesGet();
       const data = response.data || [];
-      const mappedData = data.map((ws: any) => ({
+      const mappedData = data.map((ws: Workspace & { llm_provider?: string, embedding_provider?: string, rag_engine?: string }) => ({
         ...ws,
         llmProvider: ws.llm_provider,
         embeddingProvider: ws.embedding_provider,

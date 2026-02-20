@@ -10,15 +10,7 @@ import { api } from "@/lib/api-client";
 import { Send, Loader2, Brain } from "lucide-react";
 import { CitationModal } from "./citation-modal";
 import { ChatMessage } from "@/components/chat-message";
-
-interface Message {
-    id: string;
-    role: "user" | "assistant";
-    content: string;
-    sources?: any[];
-    reasoning_steps?: any[];
-    timestamp?: number;
-}
+import { Message } from "@/context/chat-context";
 
 export function ChatInterface({
     threadId: propThreadId,
@@ -27,7 +19,6 @@ export function ChatInterface({
     threadId?: string;
     workspaceId?: string;
 }) {
-    const params = useParams();
     const router = useRouter();
     const [workspaceId, setWorkspaceId] = useState<string | undefined>(propWorkspaceId);
 
@@ -39,7 +30,7 @@ export function ChatInterface({
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [executionMode, setExecutionMode] = useState<"fast" | "thinking" | "deep" | "blending">("thinking");
-    const [selectedCitation, setSelectedCitation] = useState<any | null>(null);
+    const [selectedCitation, setSelectedCitation] = useState<Message["sources"] extends (infer U)[] | undefined ? U : never | null>(null);
     const [isCitationModalOpen, setIsCitationModalOpen] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -203,7 +194,7 @@ export function ChatInterface({
                 {messages.map((msg) => (
                     <ChatMessage
                         key={msg.id}
-                        message={msg as any}
+                        message={msg}
                         isLoading={isLoading && msg.id === messages[messages.length - 1]?.id}
                         onCitationClick={handleCitationClick}
                     />

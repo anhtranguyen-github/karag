@@ -11,7 +11,7 @@ interface CitationModalProps {
         id: number;
         name: string;
         content: string;
-        metadata?: any;
+        metadata?: Record<string, unknown>;
     } | null;
 }
 

@@ -1,12 +1,9 @@
 'use client';
 
-import { useParams } from 'next/navigation';
-import { ToolsManager } from '@/components/tools-manager';
-import { Hammer, Zap, Activity, Cpu } from 'lucide-react';
+import { Activity, Cpu } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function ForgePage() {
-    useParams();
 
     return (
         <div className="flex-1 flex flex-col h-full overflow-hidden">

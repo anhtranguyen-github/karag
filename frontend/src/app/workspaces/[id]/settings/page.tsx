@@ -2,14 +2,10 @@
 
 import { useParams } from "next/navigation";
 import { SettingsManager } from "@/components/settings-manager";
-import { useWorkspaces } from "@/hooks/use-workspaces";
-import { Settings, Shield, Loader2 } from "lucide-react";
 
 export default function WorkspaceSettingsPage() {
     const params = useParams();
     const workspaceId = params.id as string;
-    const { workspaces, isLoading } = useWorkspaces();
-    const workspace = workspaces.find(w => w.id === workspaceId);
 
     return (
         <div className="flex-1 flex flex-col min-h-0 bg-transparent">
