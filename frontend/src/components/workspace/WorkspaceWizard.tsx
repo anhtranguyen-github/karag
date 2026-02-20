@@ -3,12 +3,11 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { CreateWorkspaceSchema, CreateWorkspaceInput } from '@/lib/schemas/workspaces';
+import { CreateWorkspaceInput } from '@/lib/schemas/workspaces';
 import { api } from '@/lib/api-client';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -21,7 +20,6 @@ import {
     ChevronLeft,
     Loader2,
     CheckCircle2,
-    Brain,
     Info,
     Zap
 } from 'lucide-react';
@@ -111,6 +109,7 @@ export function WorkspaceWizard({ isOpen, onClose, seedDocumentId, seedDocumentN
         setIsSubmitting(true);
         try {
             const res = await api.createWorkspaceWorkspacesPost({
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 workspaceCreate: values as any
             });
 
@@ -121,6 +120,7 @@ export function WorkspaceWizard({ isOpen, onClose, seedDocumentId, seedDocumentN
                         target_workspace_id: res.data.id,
                         action: 'link',
                         force_reindex: true
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     } as any
                 });
             }

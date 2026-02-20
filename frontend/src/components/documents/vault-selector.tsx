@@ -4,8 +4,14 @@ import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api-client";
-import { FileText, Check } from "lucide-react";
+import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+interface VaultDocument {
+    id: string;
+    name: string;
+    created_at?: string;
+}
 
 export function VaultSelector({
     isOpen,
@@ -18,7 +24,7 @@ export function VaultSelector({
     workspaceId: string,
     onAttachComplete?: () => void
 }) {
-    const [documents, setDocuments] = useState<any[]>([]);
+    const [documents, setDocuments] = useState<VaultDocument[]>([]);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(false);
 
@@ -33,6 +39,7 @@ export function VaultSelector({
         try {
             // Get all vault docs
             const res = await api.listVaultDocumentsVaultGet();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             setDocuments((res.data as any[]) || []);
         } catch (e) {
             console.error(e);
@@ -98,7 +105,7 @@ export function VaultSelector({
                             </div>
                             <div className="flex-1 overflow-hidden">
                                 <div className="font-medium truncate">{doc.name}</div>
-                                <div className="text-xs text-muted-foreground">{new Date(doc.created_at).toLocaleDateString()}</div>
+                                <div className="text-xs text-muted-foreground">{doc.created_at ? new Date(doc.created_at).toLocaleDateString() : 'Unknown date'}</div>
                             </div>
                         </div>
                     ))}

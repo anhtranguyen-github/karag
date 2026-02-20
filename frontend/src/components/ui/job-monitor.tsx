@@ -21,6 +21,7 @@ export function JobMonitor() {
     const fetchTasks = async () => {
         try {
             const res = await api.listTasksTasksGet({ limit: 5 });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             setTasks((res.data as any) || []);
         } catch (e) {
             console.error("Failed to fetch tasks", e);

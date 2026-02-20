@@ -50,7 +50,9 @@ export default function ForgePage() {
                                 <div className="text-tiny font-bold text-gray-700 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">PROXIED VIA BASTION</div>
                             </div>
                         </div>
-                        <ToolsManager />
+                        <div className="flex items-center justify-center p-20 border border-dashed border-white/5 rounded-[2rem] bg-white/[0.02]">
+                            <p className="text-gray-600 font-bold uppercase tracking-widest text-tiny italic">Registry Interface Offline</p>
+                        </div>
                     </div>
                 </div>
             </main>

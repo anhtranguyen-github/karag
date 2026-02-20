@@ -11,8 +11,8 @@ import { API_ROUTES } from '@/lib/api-config';
 import { cn } from '@/lib/utils';
 import { OverviewTab } from '@/components/admin/overview-tab';
 import { LLMOpsTab } from '@/components/admin/llmops-tab';
-import { DataOpsTab } from '@/components/admin/dataops-tab';
-import { PromptOpsTab } from '@/components/admin/promptops-tab';
+import { DataOpsTab, VectorStatus } from '@/components/admin/dataops-tab';
+import { PromptOpsTab, PromptRegistry } from '@/components/admin/promptops-tab';
 import { DevSecOpsTab } from '@/components/admin/devsecops-tab';
 import { SettingsTab } from '@/components/admin/settings-tab';
 import { ObservabilityTab } from '@/components/admin/observability-tab';
@@ -40,8 +40,8 @@ export default function AdminConsolePage() {
     // Operational Data State
     const [rawMetrics, setRawMetrics] = useState('');
     const [metricsError, setMetricsError] = useState<string | null>(null);
-    const [vectorStatus, setVectorStatus] = useState<unknown>(null);
-    const [promptsRegistry, setPromptsRegistry] = useState<unknown>(null);
+    const [vectorStatus, setVectorStatus] = useState<VectorStatus | null>(null);
+    const [promptsRegistry, setPromptsRegistry] = useState<PromptRegistry | null>(null);
     const [lastSync, setLastSync] = useState<Date | null>(null);
 
     const fetchData = useCallback(async () => {

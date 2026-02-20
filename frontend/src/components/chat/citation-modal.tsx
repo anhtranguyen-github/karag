@@ -1,8 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, FileText, Shield, ExternalLink } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { X, FileText, Shield } from "lucide-react";
 
 interface CitationModalProps {
     isOpen: boolean;

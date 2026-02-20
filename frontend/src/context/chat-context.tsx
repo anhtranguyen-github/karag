@@ -193,7 +193,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
                     throw err;
                 }
             });
-        } catch (error) {
+        } catch (_error) {
             setIsLoading(false);
             showError("Dispatch Error", "Failed to reach AI.");
         }

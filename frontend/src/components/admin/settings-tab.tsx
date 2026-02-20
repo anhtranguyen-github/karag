@@ -3,11 +3,12 @@ import { motion } from 'framer-motion';
 import { Cpu, Scale, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PROVIDER_SETTING_KEYS } from '@/lib/constants';
+import { AppSettings, SettingMetadata } from '@/hooks/use-settings';
 
 interface SettingsTabProps {
-    settings: any;
-    metadata: any;
-    handleUpdate: (key: string, value: any) => void;
+    settings: AppSettings | null;
+    metadata: Record<string, SettingMetadata> | null;
+    handleUpdate: (key: string, value: string | number | boolean) => void;
     isSaving: string | null;
 }
 
@@ -26,7 +27,7 @@ export function SettingsTab({ settings, metadata, handleUpdate, isSaving }: Sett
             .map(key => ({
                 key,
                 label: key.replace(/_/g, ' '),
-                type: typeof settings[key] === 'boolean' ? 'bool' : 'select' // Assuming providers use select/bool based on original
+                type: typeof settings[key as keyof AppSettings] === 'boolean' ? 'bool' : 'select' // Assuming providers use select/bool based on original
             }));
     };
 
@@ -57,7 +58,7 @@ export function SettingsTab({ settings, metadata, handleUpdate, isSaving }: Sett
                     </h3>
                     <div className="grid grid-cols-1 gap-3">
                         {otherFields.map(key => (
-                            <ConfigField key={key} field={{ key, label: key.replace(/_/g, ' '), type: typeof settings[key] === 'boolean' ? 'bool' : 'text' }} settings={settings} metadata={metadata} handleUpdate={handleUpdate} isSaving={isSaving} />
+                            <ConfigField key={key} field={{ key, label: key.replace(/_/g, ' '), type: typeof settings[key as keyof AppSettings] === 'boolean' ? 'bool' : 'text' }} settings={settings} metadata={metadata} handleUpdate={handleUpdate} isSaving={isSaving} />
                         ))}
                     </div>
                 </div>
@@ -66,9 +67,15 @@ export function SettingsTab({ settings, metadata, handleUpdate, isSaving }: Sett
     );
 }
 
-function ConfigField({ field, settings, metadata, handleUpdate, isSaving }: any) {
+function ConfigField({ field, settings, metadata, handleUpdate, isSaving }: {
+    field: { key: string; label: string; type: string };
+    settings: AppSettings;
+    metadata: Record<string, SettingMetadata>;
+    handleUpdate: (key: string, value: string | number | boolean) => void;
+    isSaving: string | null;
+}) {
     const meta = metadata[field.key];
-    const value = settings[field.key];
+    const value = settings[field.key as keyof AppSettings];
     const isBool = field.type === 'bool' || typeof value === 'boolean';
     const isNum = typeof value === 'number';
 
@@ -98,7 +105,7 @@ function ConfigField({ field, settings, metadata, handleUpdate, isSaving }: any)
                         onChange={(e) => handleUpdate(field.key, e.target.value)}
                         disabled={!meta?.mutable}
                     >
-                        {meta.options.map((opt: any) => <option key={opt} value={opt}>{opt}</option>)}
+                        {meta.options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                 ) : (
                     <input

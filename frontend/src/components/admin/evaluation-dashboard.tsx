@@ -1,7 +1,6 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Target, Bug, CheckCircle2, AlertTriangle, ExternalLink } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 export function EvaluationDashboard() {
     const data = [

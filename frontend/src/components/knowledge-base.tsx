@@ -99,7 +99,6 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
     const [searchQuery, setSearchQuery] = useState('');
     const [deletingDoc, setDeletingDoc] = useState<Document | null>(null);
     const [managingDoc, setManagingDoc] = useState<Document | null>(null);
-    const [_manageMode] = useState<'move' | 'share'>('share');
     const [isManaging, setIsManaging] = useState(false);
     const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
     const [duplicateData, setDuplicateData] = useState<{
@@ -333,7 +332,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
 
                 showError(title, message, `File: ${file.name}`);
             }
-        } catch (err) {
+        } catch (_err) {
             showError("Network Error", "Could not connect to document service.");
         } finally {
             setIsUploading(false);
@@ -395,7 +394,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                 const payload = await res.json();
                 showError("Import Failed", payload.message || 'Failed to start import', `Source: ${importUrl}`);
             }
-        } catch (err) {
+        } catch (_err) {
             showError("Network Error", "Could not connect to document service.");
         } finally {
             setIsUploading(false);
@@ -1507,7 +1506,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                                         showError("Action Failed", "Could not remove index.");
                                                     }
                                                 }
-                                            } catch (err) {
+                                            } catch (_err) {
                                                 showError("Network Error", "Communication failure.");
                                             } finally {
                                                 setIsManaging(false);

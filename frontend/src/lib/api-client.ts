@@ -49,6 +49,7 @@ export const api = {
     ...getMethods(tasks),
 } as WorkspacesApi & ChatApi & DocumentsApi & SettingsApi & TasksApi & HealthApi & SearchApi & AdminOpsApi & EvaluationApi & ToolsApi;
 
+/* eslint-disable @typescript-eslint/no-explicit-any -- dynamic method extraction requires any */
 function getMethods(obj: object) {
     const methods: Record<string, (...args: any[]) => any> = {};
     const proto = Object.getPrototypeOf(obj);
@@ -59,3 +60,4 @@ function getMethods(obj: object) {
     });
     return methods;
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */

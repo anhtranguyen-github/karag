@@ -2,7 +2,26 @@ import React from 'react';
 import { Database, AlertTriangle, HardDrive, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export function DataOpsTab({ vectorStatus, parseMetric }: any) {
+interface VectorCollection {
+    name: string;
+    config: { vector_size: number; distance: string };
+    segments_count: number;
+    points_count: number;
+    status: string;
+}
+
+export interface VectorStatus {
+    host?: string;
+    port?: number;
+    collections?: VectorCollection[];
+}
+
+interface DataOpsTabProps {
+    vectorStatus: VectorStatus | null;
+    parseMetric: (name: string, labels?: Record<string, string>) => number;
+}
+
+export function DataOpsTab({ vectorStatus, parseMetric }: DataOpsTabProps) {
     return (
         <div className="space-y-8">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -20,7 +39,7 @@ export function DataOpsTab({ vectorStatus, parseMetric }: any) {
                         </div>
 
                         <div className="space-y-3">
-                            {vectorStatus?.collections?.map((c: any) => (
+                            {vectorStatus?.collections?.map((c: VectorCollection) => (
                                 <div key={c.name} className="p-4 rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-between group hover:border-white/10 transition-all">
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400">

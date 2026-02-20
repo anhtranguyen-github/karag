@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     X, Settings, Search, Save,
-    Loader2, Brain, Shield,
+    Loader2, Brain,
     Check, Lock, SlidersHorizontal, Cpu, Sparkles
 } from 'lucide-react';
 import { useSettings, AppSettings, useSettingsMetadata } from '@/hooks/use-settings';

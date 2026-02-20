@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { API_ROUTES } from '@/lib/api-config';
 
 export interface TaskItem {
@@ -81,7 +81,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
                 const data = await res.json();
                 setTasks(data.data || []);
             }
-        } catch (err) {
+        } catch (_err) {
             // Silently fail polling to avoid UI noise
         }
     }, []);

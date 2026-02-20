@@ -1,19 +1,25 @@
 import React, { useMemo } from 'react';
 import { ChevronRight, Code, History, Loader2 } from 'lucide-react';
 
-export function PromptOpsTab({ registry }: any) {
+type RegistryVersions = Record<string, unknown>;
+export type PromptRegistry = Record<string, RegistryVersions>;
+
+interface PromptOpsTabProps {
+    registry: PromptRegistry | null;
+}
+
+export function PromptOpsTab({ registry }: PromptOpsTabProps) {
     const flattenedRegistry = useMemo(() => {
         if (!registry) return null;
-        // console.log removed - violating code quality rules
-        const flat: any = {};
+        const flat: Record<string, RegistryVersions> = {};
         try {
-            Object.entries(registry).forEach(([domain, versions]: [string, any]) => {
+            Object.entries(registry).forEach(([domain, versions]) => {
                 if (!versions || typeof versions !== 'object') return;
 
                 const firstKey = Object.keys(versions)[0];
                 if (firstKey && !firstKey.startsWith('v') && typeof versions[firstKey] === 'object') {
-                    Object.entries(versions).forEach(([sub, subVers]: [string, any]) => {
-                        flat[`${domain}.${sub}`] = subVers;
+                    Object.entries(versions).forEach(([sub, subVers]) => {
+                        flat[`${domain}.${sub}`] = subVers as RegistryVersions;
                     });
                 } else {
                     flat[domain] = versions;
@@ -28,7 +34,7 @@ export function PromptOpsTab({ registry }: any) {
     return (
         <div className="space-y-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {flattenedRegistry ? Object.entries(flattenedRegistry).map(([domain, versions]: [any, any]) => (
+                {flattenedRegistry ? Object.entries(flattenedRegistry).map(([domain, versions]) => (
                     <div key={domain} className="bg-[#121214] border border-white/5 rounded-2xl p-6 space-y-4">
                         <div className="flex items-center justify-between">
                             <h3 className="text-sm font-black tracking-wider uppercase flex items-center gap-2">
@@ -41,14 +47,15 @@ export function PromptOpsTab({ registry }: any) {
                         </div>
 
                         <div className="space-y-2">
-                            {versions && typeof versions === 'object' ? Object.entries(versions).map(([v, content]: [any, any]) => {
+                            {versions && typeof versions === 'object' ? Object.entries(versions).map(([v, content]) => {
                                 let preview = '';
                                 if (typeof content === 'string') {
                                     preview = content;
                                 } else if (content && typeof content === 'object') {
-                                    preview = content.description || content.system || content.user || content.create || content.text || '';
+                                    const contentObj = content as Record<string, unknown>;
+                                    preview = (contentObj.description || contentObj.system || contentObj.user || contentObj.create || contentObj.text || '') as string;
                                     if (typeof preview !== 'string') {
-                                        const firstStr = Object.values(content).find(val => typeof val === 'string');
+                                        const firstStr = Object.values(contentObj).find(val => typeof val === 'string');
                                         preview = (firstStr as string) || JSON.stringify(content);
                                     }
                                 }

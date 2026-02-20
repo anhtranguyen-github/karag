@@ -1,11 +1,12 @@
 import React from 'react';
-import { Database, Activity, AlertTriangle, Package, ShieldCheck, BarChart4, Loader2 } from 'lucide-react';
+import { Database, AlertTriangle, Package, ShieldCheck, BarChart4 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Zap, Users } from 'lucide-react';
+import { AppSettings } from '@/hooks/use-settings';
 
 interface OverviewTabProps {
     parseMetric: (name: string, labels?: Record<string, string>) => number;
-    settings: any;
+    settings: AppSettings | null;
 }
 
 export function OverviewTab({ parseMetric, settings }: OverviewTabProps) {

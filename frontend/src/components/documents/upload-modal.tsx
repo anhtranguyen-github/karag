@@ -10,7 +10,7 @@ import { api } from "@/lib/api-client";
 import { UploadCloud, Link as LinkIcon, Github, FileAudio } from "lucide-react";
 
 // Simple Tabs implementation since we don't have ui/tabs yet
-function SimpleTabs({ options, onChange, value }: { options: { label: string, value: string, icon?: any }[], onChange: (v: string) => void, value: string }) {
+function SimpleTabs({ options, onChange, value }: { options: { label: string, value: string, icon?: React.ElementType }[], onChange: (v: string) => void, value: string }) {
     return (
         <div className="flex space-x-1 rounded-lg bg-muted p-1 mb-4 overflow-x-auto">
             {options.map((opt) => (

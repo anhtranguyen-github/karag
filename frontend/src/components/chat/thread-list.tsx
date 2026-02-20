@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -36,6 +36,7 @@ export function ThreadList({
         setLoading(true);
         try {
             const res = await api.listChatThreadsChatThreadsGet({ workspaceId: workspaceId as string });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             setThreads((res.data as any) || []);
         } catch (e) {
             console.error("Failed to fetch threads", e);

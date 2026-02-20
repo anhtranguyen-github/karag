@@ -9,7 +9,8 @@ export interface Document {
     name: string;
     source?: string;
     created_at: string;
-    [key: string]: any;
+    status?: string;
+    [key: string]: string | undefined;
 }
 
 interface DocumentListProps {

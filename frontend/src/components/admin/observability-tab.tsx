@@ -1,22 +1,12 @@
-import React, { useMemo } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import React from 'react';
 import { Loader2, Activity } from 'lucide-react';
 
-export function ObservabilityTab({ rawMetrics, metricsError }: any) {
-    // Parse Prometheus metrics into chart data
-    const chartData = useMemo(() => {
-        if (!rawMetrics) return [];
+interface ObservabilityTabProps {
+    rawMetrics: string | null;
+    metricsError: string | null;
+}
 
-        // This is a simplified parser for demonstration. Real Prometheus parsing is more complex.
-        // Assuming we want to visualize HTTP requests over time if we had historical data,
-        // but rawMetrics is just a snapshot string.
-        // For this component to be truly useful, we might need time-series data from backend.
-        // Given the original implementation just showed raw text, let's try to visualize something if possible
-        // or just show the structured metrics.
-
-        return [];
-    }, [rawMetrics]);
-
+export function ObservabilityTab({ rawMetrics, metricsError }: ObservabilityTabProps) {
     if (metricsError) return <div className="p-20 text-center text-red-500 font-bold">{metricsError}</div>;
 
     return (

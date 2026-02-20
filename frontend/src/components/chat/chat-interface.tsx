@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, FormEvent } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,7 @@ export function ChatInterface({
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [executionMode, setExecutionMode] = useState<"fast" | "thinking" | "deep" | "blending">("thinking");
-    const [selectedCitation, setSelectedCitation] = useState<Message["sources"] extends (infer U)[] | undefined ? U : never | null>(null);
+    const [selectedCitation, setSelectedCitation] = useState<NonNullable<Message["sources"]>[number] | null>(null);
     const [isCitationModalOpen, setIsCitationModalOpen] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -44,7 +44,8 @@ export function ChatInterface({
             try {
                 // Fetch History
                 const histRes = await api.getChatHistoryChatHistoryThreadIdGet({ threadId });
-                const history = ((histRes.data as any) || []).map((msg: any, idx: number) => ({
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const history = ((histRes.data as any) || []).map((msg: Record<string, string>, idx: number) => ({
                     id: msg.id || `hist-${idx}`,
                     role: msg.role,
                     content: msg.content,
@@ -216,7 +217,7 @@ export function ChatInterface({
                         <button
                             key={mode}
                             type="button"
-                            onClick={() => setExecutionMode(mode as any)}
+                            onClick={() => setExecutionMode(mode as typeof executionMode)}
                             className={cn(
                                 "px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full transition-all duration-200 border",
                                 executionMode === mode

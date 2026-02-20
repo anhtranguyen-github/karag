@@ -2,8 +2,14 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Clock, Zap, Cpu, Server } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AppSettings } from '@/hooks/use-settings';
 
-export function LLMOpsTab({ parseMetric, settings }: any) {
+interface LLMOpsTabProps {
+    parseMetric: (name: string, labels?: Record<string, string>) => number;
+    settings: AppSettings | null;
+}
+
+export function LLMOpsTab({ parseMetric, settings }: LLMOpsTabProps) {
     const providers = ['OpenAI', 'Anthropic', 'Ollama', 'Groq'];
 
     return (

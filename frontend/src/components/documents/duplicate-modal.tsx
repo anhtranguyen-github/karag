@@ -1,6 +1,5 @@
 import React from 'react';
-import { AlertCircle, FileText, Database, Layers, Check, Copy, ArrowRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { AlertCircle, Database, Copy, ArrowRight } from 'lucide-react';
 
 interface DuplicateModalProps {
     isOpen: boolean;

@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useWorkspaceContext } from '@/context/workspace-context';
 import { cn } from '@/lib/utils';
 import {
-    Home, MessageSquare, FileText, Settings,
+    MessageSquare, FileText, Settings,
     ChevronDown, Database, Zap, ShieldCheck
 } from 'lucide-react';
 

@@ -15,7 +15,7 @@ export default function WorkspaceLayout({
     const pathname = usePathname();
     const params = useParams();
     const workspaceId = params.id as string;
-    const { workspaces, isLoading } = useWorkspaces();
+    const { workspaces } = useWorkspaces();
     const workspace = workspaces.find(w => w.id === workspaceId);
 
     return (
