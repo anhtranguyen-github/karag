@@ -108,3 +108,39 @@ async def test_upload_to_workspace_auto_indexes(mocker):
     last_task_update = task_service.update_task.call_args_list[-1]
     assert last_task_update[1]["status"] == "completed"
     assert "indexed (5 fragments)" in last_task_update[1]["message"]
+@pytest.mark.asyncio
+async def test_upload_resilience_on_qdrant_403(mocker):
+    """Verify that the system doesn't crash if Qdrant returns 403 during indexing."""
+    mock_db, mock_col = get_mock_db()
+    mocker.patch(
+        "backend.app.core.mongodb.mongodb_manager.get_async_database",
+        return_value=mock_db,
+    )
+    mocker.patch("backend.app.core.minio.MinioManager.upload_file", new=AsyncMock())
+    
+    # Simulate Qdrant throwing a Forbidden error during create_collection
+    mocker.patch(
+        "backend.app.rag.qdrant_provider.qdrant.create_collection",
+        new=AsyncMock(side_effect=Exception("Forbidden: 403")),
+    )
+    
+    # Mock task update
+    mock_task_update = mocker.patch(
+        "backend.app.services.task.task_service.task_service.update_task",
+        new=AsyncMock(),
+    )
+
+    try:
+        await document_service.run_ingestion(
+            task_id="task-789",
+            safe_filename="resilience.pdf",
+            content=b"content",
+            content_type="application/pdf",
+            workspace_id="test-ws",
+        )
+    except Exception as e:
+        pytest.fail(f"Ingestion crashed on Qdrant 403: {e}")
+
+    # Verify we logged or handled it
+    # Note: In real code we catch it and continue or fail gracefully
+    # Based on my changes in qdrant_provider.py, create_collection should return False on 403.

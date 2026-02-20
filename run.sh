@@ -149,24 +149,59 @@ verify_frontend() {
 boot_infra() {
     log_phase "BOOT (Infrastructure)"
     
-    # Determine if Qdrant is local
-    local IS_LOCAL_QDRANT=false
-    if [[ "$QDRANT_URL" == *"localhost"* ]] || [[ "$QDRANT_URL" == *"127.0.0.1"* ]]; then
-        IS_LOCAL_QDRANT=true
+    # Determine if Cloud Qdrant should be used (default preference)
+    local USE_CLOUD=false
+    if [[ -n "$QDRANT_URL" ]] && [[ "$QDRANT_URL" != *"localhost"* ]] && [[ "$QDRANT_URL" != *"127.0.0.1"* ]] && [[ -n "$QDRANT_API_KEY" ]]; then
+        USE_CLOUD=true
     fi
 
-    log_info "Spinning up core containers..."
-    local services="mongodb minio neo4j jenkins sonarqube sonarqube_db"
-    if [ "$IS_LOCAL_QDRANT" = true ]; then
+    # Determine if Cloud MongoDB should be used
+    local USE_CLOUD_MONGO=false
+    if [[ "$MONGO_URI" != *"localhost"* ]] && [[ "$MONGO_URI" != *"127.0.0.1"* ]]; then
+        USE_CLOUD_MONGO=true
+    fi
+
+    # Determine if Cloud Neo4j should be used
+    local USE_CLOUD_NEO4J=false
+    if [[ "$NEO4J_URI" != *"localhost"* ]] && [[ "$NEO4J_URI" != *"127.0.0.1"* ]] && [[ -n "$NEO4J_URI" ]]; then
+        USE_CLOUD_NEO4J=true
+    fi
+
+    log_info "Calculating infrastructure footprint..."
+    local services="minio"
+    
+    if [ "$USE_CLOUD_MONGO" = false ]; then
+        services="mongodb $services"
+    else
+        log_info "Cloud Protocol Detected: Using MongoDB Atlas/Cloud Cluster"
+    fi
+
+    if [ "$USE_CLOUD_NEO4J" = false ]; then
+        services="neo4j $services"
+    else
+        log_info "Cloud Protocol Detected: Using Neo4j Aura/Cloud Instance"
+    fi
+    
+    if [ "$TURBO_MODE" != "true" ]; then
+        services="$services jenkins sonarqube sonarqube_db"
+    else
+        log_warn "TURBO MODE: Skipping DevSecOps stack (Jenkins/SonarQube) for speed."
+    fi
+
+    if [ "$USE_CLOUD" = true ]; then
+        log_info "Cloud Protocol Detected: Using Qdrant Cloud Cluster"
+    else
+        log_info "Cloud Protocol Missing or Local: Falling back to Docker Container"
         services="qdrant $services"
+        # Ensure fallback URL is set if missing
+        [ -z "$QDRANT_URL" ] && QDRANT_URL="http://localhost:6333"
     fi
     $DOCKER_CMD up -d $services
     
     echo -n "Waiting for core services..."
     local count=0
-    if [ "$IS_LOCAL_QDRANT" = true ]; then
+    if [ "$USE_CLOUD" = false ]; then
         # Check health using the URL from config
-        # Strip trailing slash and add /healthz
         local HEALTH_URL="${QDRANT_URL%/}/healthz"
         while ! curl -s "$HEALTH_URL" > /dev/null; do
             echo -n "."
@@ -175,8 +210,6 @@ boot_infra() {
             [ $count -ge $MAX_RETRIES ] && { echo -e "${RED}\nFailed to start Qdrant local instance at $HEALTH_URL.${NC}"; exit 1; }
         done
         log_success " Local Qdrant READY!"
-    else
-        log_info "Using External/Cloud Qdrant: $QDRANT_URL"
     fi
     log_success " Infrastructure READY!"
 }
@@ -310,6 +343,7 @@ show_help() {
     echo "  --skip-verify    Skip correctness checks (only for rapid iteration)"
     echo "  --lax             Allow start even if verification has non-critical errors"
     echo "  --force-clean    Clear all caches before starting"
+    echo "  --turbo          Low footprint mode: skip verify + skip heavy containers"
     echo ""
 }
 
@@ -328,12 +362,18 @@ while [[ $# -gt 0 ]]; do
         --skip-verify) SKIP_VERIFY=true; shift ;;
         --lax)         LAX_MODE=true; shift ;;
         --force-clean) FORCE_CLEAN=true; shift ;;
+        --turbo)       TURBO_MODE=true; SKIP_VERIFY=true; shift ;;
         *) log_error "Unknown option: $1"; exit 1 ;;
     esac
 done
 
 case "$COMMAND" in
     up)    cmd_up ;;
+    turbo) 
+        TURBO_MODE=true
+        SKIP_VERIFY=true
+        cmd_up
+        ;;
     verify) cmd_verify ;;
     build) cmd_build ;;
     test)  cmd_test ;;

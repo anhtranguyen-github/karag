@@ -65,29 +65,56 @@ class QdrantProvider:
                 "qdrant.vector_size": vector_size,
             },
         ):
-            if not await self.client.collection_exists(collection_name):
-                await self.client.create_collection(
-                    collection_name=collection_name,
-                    vectors_config=qmodels.VectorParams(
-                        size=vector_size,
-                        distance=qmodels.Distance.COSINE,
-                        on_disk=True,
-                    ),
-                    optimizers_config=qmodels.OptimizersConfigDiff(
-                        indexing_threshold=10000,
-                    ),
-                )
-                await self.client.create_payload_index(
-                    collection_name=collection_name,
-                    field_name="text",
-                    field_schema="text",
-                )
-                logger.info(
-                    "qdrant_collection_created",
-                    collection=collection_name,
-                    vector_size=vector_size,
-                )
-                return True
+            try:
+                if not await self.client.collection_exists(collection_name):
+                    await self.client.create_collection(
+                        collection_name=collection_name,
+                        vectors_config=qmodels.VectorParams(
+                            size=vector_size,
+                            distance=qmodels.Distance.COSINE,
+                            on_disk=True,
+                        ),
+                        optimizers_config=qmodels.OptimizersConfigDiff(
+                            indexing_threshold=10000,
+                        ),
+                    )
+                    await self.client.create_payload_index(
+                        collection_name=collection_name,
+                        field_name="text",
+                        field_schema="text",
+                    )
+                    await self.client.create_payload_index(
+                        collection_name=collection_name,
+                        field_name="doc_id",
+                        field_schema=qmodels.PayloadSchemaType.KEYWORD,
+                    )
+                    await self.client.create_payload_index(
+                        collection_name=collection_name,
+                        field_name="workspace_id",
+                        field_schema=qmodels.PayloadSchemaType.KEYWORD,
+                    )
+                    await self.client.create_payload_index(
+                        collection_name=collection_name,
+                        field_name="shared_with",
+                        field_schema=qmodels.PayloadSchemaType.KEYWORD,
+                    )
+                    logger.info(
+                        "qdrant_collection_created",
+                        collection=collection_name,
+                        vector_size=vector_size,
+                    )
+                    return True
+            except Exception as e:
+                # Handle 403 or other permission issues gracefully during startup
+                if "forbidden" in str(e).lower() or "403" in str(e):
+                    logger.warn(
+                        "qdrant_permission_denied",
+                        msg="Forbidden to check/create collection. Assuming it already exists.",
+                        collection=collection_name,
+                        error=str(e),
+                    )
+                    return False
+                raise e
             return False
 
     async def upsert_documents(self, collection_name: str, vectors, ids, payloads):
