@@ -137,7 +137,7 @@ class LangChainFactory:
         collection_name = await qdrant.get_collection_name(workspace_id)
 
         client = AsyncQdrantClient(
-            host=ai_settings.QDRANT_HOST, port=ai_settings.QDRANT_PORT
+            url=ai_settings.QDRANT_URL, api_key=ai_settings.QDRANT_API_KEY
         )
         vectorstore = QdrantVectorStore(
             client=client,

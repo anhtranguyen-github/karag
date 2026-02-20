@@ -23,8 +23,8 @@ class AISettings(BaseSettings):
     LOCAL_EMBEDDING_MODEL: str = "BAAI/bge-large-en-v1.5"
 
     # RAG Configuration
-    QDRANT_HOST: str = "localhost"
-    QDRANT_PORT: int = 6333
+    QDRANT_URL: str = "http://localhost:6333"
+    QDRANT_API_KEY: Optional[str] = None
     HYBRID_SEARCH_ALPHA: float = 0.5  # Balance between vector and keyword
 
     # MongoDB Configuration

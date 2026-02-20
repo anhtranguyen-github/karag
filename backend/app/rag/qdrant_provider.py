@@ -14,7 +14,7 @@ tracer = get_tracer(__name__)
 class QdrantProvider:
     def __init__(self):
         self.client = AsyncQdrantClient(
-            host=ai_settings.QDRANT_HOST, port=ai_settings.QDRANT_PORT
+            url=ai_settings.QDRANT_URL, api_key=ai_settings.QDRANT_API_KEY
         )
 
     async def get_system_info(self):
@@ -43,8 +43,7 @@ class QdrantProvider:
                 )
             return {
                 "collections": collections,
-                "host": ai_settings.QDRANT_HOST,
-                "port": ai_settings.QDRANT_PORT,
+                "url": ai_settings.QDRANT_URL,
             }
         except Exception as e:
             logger.error("qdrant_status_failed", error=str(e))

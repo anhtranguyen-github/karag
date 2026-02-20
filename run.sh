@@ -4,7 +4,6 @@ set -e
 # --- Configuration ---
 BACKEND_PORT=8000
 FRONTEND_PORT=3000
-QDRANT_PORT=6333
 MAX_RETRIES=30
 
 # Colors for output
@@ -150,17 +149,35 @@ verify_frontend() {
 boot_infra() {
     log_phase "BOOT (Infrastructure)"
     
+    # Determine if Qdrant is local
+    local IS_LOCAL_QDRANT=false
+    if [[ "$QDRANT_URL" == *"localhost"* ]] || [[ "$QDRANT_URL" == *"127.0.0.1"* ]]; then
+        IS_LOCAL_QDRANT=true
+    fi
+
     log_info "Spinning up core containers..."
-    $DOCKER_CMD up -d qdrant mongodb minio neo4j jenkins sonarqube sonarqube_db
+    local services="mongodb minio neo4j jenkins sonarqube sonarqube_db"
+    if [ "$IS_LOCAL_QDRANT" = true ]; then
+        services="qdrant $services"
+    fi
+    $DOCKER_CMD up -d $services
     
     echo -n "Waiting for core services..."
     local count=0
-    while ! curl -s http://localhost:6333/healthz > /dev/null; do
-        echo -n "."
-        sleep 1
-        count=$((count+1))
-        [ $count -ge $MAX_RETRIES ] && { echo -e "${RED}\nFailed to start Qdrant.${NC}"; exit 1; }
-    done
+    if [ "$IS_LOCAL_QDRANT" = true ]; then
+        # Check health using the URL from config
+        # Strip trailing slash and add /healthz
+        local HEALTH_URL="${QDRANT_URL%/}/healthz"
+        while ! curl -s "$HEALTH_URL" > /dev/null; do
+            echo -n "."
+            sleep 1
+            count=$((count+1))
+            [ $count -ge $MAX_RETRIES ] && { echo -e "${RED}\nFailed to start Qdrant local instance at $HEALTH_URL.${NC}"; exit 1; }
+        done
+        log_success " Local Qdrant READY!"
+    else
+        log_info "Using External/Cloud Qdrant: $QDRANT_URL"
+    fi
     log_success " Infrastructure READY!"
 }
 
