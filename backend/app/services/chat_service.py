@@ -272,12 +272,40 @@ class ChatService:
                     node_name = event.get("name", "")
 
                     if kind == "on_chain_start":
-                        yield f"data: {json.dumps({'type': 'thought', 'step': f'Entering {node_name} node'})}\n\n"
+                        yield f"data: {json.dumps({'type': 'reasoning', 'steps': [f'Entering {node_name} node']})}\n\n"
 
                     if kind == "on_chat_model_stream":
                         content = event["data"]["chunk"].content
                         if content:
                             yield f"data: {json.dumps({'type': 'content', 'delta': content})}\n\n"
+
+                    if kind == "on_chat_model_end":
+                        # Fallback for models that don't support streaming or if streaming fails
+                        content = event["data"]["output"].content
+                        if content:
+                            yield f"data: {json.dumps({'type': 'content', 'delta': content})}\n\n"
+
+                    if kind == "on_chain_end":
+                        output = event["data"].get("output", {})
+                        if node_name == "retrieve":
+                            # Stream sources back to UI
+                            results = output.get("retrieved_results", [])
+                            if results:
+                                sources = [
+                                    {
+                                        "id": i + 1,
+                                        "name": r.get("source", r.get("payload", {}).get("source", "Unknown")),
+                                        "content": r.get("text", r.get("payload", {}).get("text", ""))
+                                    }
+                                    for i, r in enumerate(results)
+                                ]
+                                yield f"data: {json.dumps({'type': 'sources', 'sources': sources})}\n\n"
+
+                        if node_name in ["generate", "synthesize"]:
+                             # Final fallback to ensure content delivery
+                             content = output.get("final_answer") or (output.get("draft_answers")[0] if output.get("draft_answers") else None)
+                             if content:
+                                 yield f"data: {json.dumps({'type': 'content', 'delta': content})}\n\n"
 
                     if kind == "on_chain_end" and node_name == "LangGraph":
                         final_output = event["data"].get("output", {})
@@ -327,10 +355,7 @@ class ChatService:
                             content = event["data"]["chunk"].content
                             if content:
                                 yield f"data: {json.dumps({'type': 'content', 'delta': content})}\n\n"
-                        elif kind == "on_tool_start":
-                            yield f"data: {json.dumps({'type': 'tool_start', 'tool': event['name']})}\n\n"
-                        elif kind == "on_tool_end":
-                            yield f"data: {json.dumps({'type': 'tool_end', 'tool': event['name'], 'output': event['data'].get('output')})}\n\n"
+
                     except Exception as inner_e:
                         logger.error(
                             "chat_stream_event_error",

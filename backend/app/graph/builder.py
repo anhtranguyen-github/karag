@@ -1,5 +1,4 @@
 from langgraph.graph import StateGraph, START, END
-from langgraph.prebuilt import ToolNode
 from backend.app.graph.state import AgentState
 from backend.app.graph.nodes import (
     retrieval_node,
@@ -8,7 +7,6 @@ from backend.app.graph.nodes import (
     generate_node,
     summarize_node,
 )
-from backend.app.tools.registry import get_tools
 
 # 1. Initialize Graph
 workflow = StateGraph(AgentState)
@@ -17,7 +15,6 @@ workflow = StateGraph(AgentState)
 workflow.add_node("retrieve", retrieval_node)
 workflow.add_node("rerank", rerank_node)
 workflow.add_node("reason", reason_node)
-workflow.add_node("tools", ToolNode(get_tools()))
 workflow.add_node("generate", generate_node)
 workflow.add_node("summarize", summarize_node)
 
@@ -39,18 +36,14 @@ workflow.add_conditional_edges(
 
 
 def should_continue(state: AgentState):
-    """Router to decide between tools and final generation."""
-    last_message = state["messages"][-1]
-    if getattr(last_message, "tool_calls", None):
-        return "tools"
+    """Router to decide next steps. Always goes to generate now as tools are removed."""
     return "generate"
 
 
 workflow.add_conditional_edges(
-    "reason", should_continue, {"tools": "tools", "generate": "generate"}
+    "reason", should_continue, {"generate": "generate"}
 )
 
-workflow.add_edge("tools", "reason")
 
 
 def should_summarize(state: AgentState):

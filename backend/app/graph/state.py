@@ -19,9 +19,6 @@ class AgentState(TypedDict):
     # Internal reasoning steps (for visibility)
     reasoning_steps: List[str]
 
-    # Current tool call information if any
-    current_tool_call: Union[str, None]
-
     # Verification result (if the answer is sufficient)
     is_sufficient: bool
 

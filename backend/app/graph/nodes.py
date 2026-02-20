@@ -6,7 +6,6 @@ from langchain_core.messages import SystemMessage, AIMessage, RemoveMessage
 from langchain_core.runnables import RunnableConfig
 from backend.app.graph.state import AgentState
 from backend.app.rag.rag_service import rag_service
-from backend.app.tools.registry import get_tools
 from backend.app.providers.llm import get_llm
 from backend.app.core.telemetry import (
     get_tracer,
@@ -119,7 +118,6 @@ async def reason_node(state: AgentState, config: RunnableConfig) -> Dict:
         start = time.perf_counter()
 
         llm = await get_llm(workspace_id)
-        llm_with_tools = llm.bind_tools(get_tools())
 
         context_str = ""
         for s in state.get("sources", []):
@@ -152,7 +150,7 @@ async def reason_node(state: AgentState, config: RunnableConfig) -> Dict:
         messages = [system_prompt] + state["messages"]
 
         try:
-            response = await llm_with_tools.ainvoke(messages, config=config)
+            response = await llm.ainvoke(messages, config=config)
         except Exception as e:
             logger.error(
                 "graph_reason_llm_failed", error=str(e), workspace_id=workspace_id
@@ -203,7 +201,6 @@ async def reason_node(state: AgentState, config: RunnableConfig) -> Dict:
         response.additional_kwargs["sources"] = state.get("sources", [])
 
         span.set_attribute("llm.model", model_name)
-        span.set_attribute("graph.has_tool_calls", bool(response.tool_calls))
         span.set_attribute("graph.response_length", len(response.content))
         span.set_attribute("graph.duration_ms", round(duration * 1000, 2))
 
