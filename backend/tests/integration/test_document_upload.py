@@ -108,6 +108,8 @@ async def test_upload_to_workspace_auto_indexes(mocker):
     last_task_update = task_service.update_task.call_args_list[-1]
     assert last_task_update[1]["status"] == "completed"
     assert "indexed (5 fragments)" in last_task_update[1]["message"]
+
+
 @pytest.mark.asyncio
 async def test_upload_resilience_on_qdrant_403(mocker):
     """Verify that the system doesn't crash if Qdrant returns 403 during indexing."""
@@ -117,13 +119,13 @@ async def test_upload_resilience_on_qdrant_403(mocker):
         return_value=mock_db,
     )
     mocker.patch("backend.app.core.minio.MinioManager.upload_file", new=AsyncMock())
-    
+
     # Simulate Qdrant throwing a Forbidden error during create_collection
     mocker.patch(
         "backend.app.rag.qdrant_provider.qdrant.create_collection",
         new=AsyncMock(side_effect=Exception("Forbidden: 403")),
     )
-    
+
     # Mock task update
     mocker.patch(
         "backend.app.services.task.task_service.task_service.update_task",

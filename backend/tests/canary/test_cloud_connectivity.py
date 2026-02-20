@@ -2,6 +2,7 @@ import pytest
 from backend.app.rag.qdrant_provider import qdrant
 from backend.app.core.mongodb import mongodb_manager
 
+
 @pytest.mark.canary
 @pytest.mark.asyncio
 async def test_qdrant_cloud_connectivity():
@@ -9,6 +10,7 @@ async def test_qdrant_cloud_connectivity():
     info = await qdrant.get_system_info()
     assert "error" not in info
     assert "collections" in info
+
 
 @pytest.mark.canary
 @pytest.mark.asyncio
