@@ -4,6 +4,7 @@ import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { CreateWorkspaceInput } from '@/lib/schemas/workspaces';
 import { cn } from '@/lib/utils';
+import { RuntimeSettings } from '@/lib/schemas/runtime';
 import {
     Zap,
     Brain,
@@ -21,7 +22,6 @@ import {
 } from '@/components/ui/form';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { Card, CardContent } from '@/components/ui/card';
 
 interface ExecutionSettingsProps {
     form: UseFormReturn<CreateWorkspaceInput>;
@@ -39,7 +39,6 @@ export function ExecutionSettings({ form }: ExecutionSettingsProps) {
     ];
 
     const sectionClass = "p-5 rounded-2xl bg-card border border-border shadow-sm mb-6";
-    const subSectionClass = "mt-4 p-4 rounded-xl bg-secondary/30 border border-border/50 animate-in fade-in slide-in-from-top-2 duration-300";
     const labelClass = "text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1.5 block";
 
     return (
@@ -65,7 +64,7 @@ export function ExecutionSettings({ form }: ExecutionSettingsProps) {
                             <button
                                 key={m.id}
                                 type="button"
-                                onClick={() => setValue('runtime.mode', m.id as any)}
+                                onClick={() => setValue('runtime.mode', m.id as RuntimeSettings['mode'])}
                                 className={cn(
                                     "p-3 rounded-xl border text-left transition-all group relative overflow-hidden",
                                     isActive

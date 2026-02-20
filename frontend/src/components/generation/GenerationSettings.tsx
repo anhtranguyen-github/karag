@@ -5,9 +5,8 @@ import {
     FormField,
     FormItem,
     FormLabel,
-    FormMessage,
-    FormDescription
 } from '@/components/ui/form';
+import { CreateWorkspaceInput } from '@/lib/schemas/workspaces';
 import {
     Select,
     SelectContent,
@@ -18,9 +17,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bot, Zap, Cpu, ScanEye, Code2, Settings2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { GenerationConfig } from '@/lib/schemas/generation';
 
 const GENERATION_PROVIDERS = [
     { id: 'openai', name: 'OpenAI', icon: Zap, models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4.1'] },
@@ -31,7 +30,7 @@ const GENERATION_PROVIDERS = [
 ] as const;
 
 interface GenerationSettingsProps {
-    form: UseFormReturn<any>;
+    form: UseFormReturn<CreateWorkspaceInput>;
 }
 
 export function GenerationSettings({ form }: GenerationSettingsProps) {
@@ -42,7 +41,6 @@ export function GenerationSettings({ form }: GenerationSettingsProps) {
         , [provider]);
 
     const sectionClass = "p-5 rounded-2xl bg-card border border-border shadow-sm mb-6";
-    const subSectionClass = "mt-4 p-4 rounded-xl bg-secondary/30 border border-border/50 animate-in fade-in slide-in-from-top-2 duration-300";
     const labelClass = "text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1.5 block";
 
     return (
@@ -72,15 +70,17 @@ export function GenerationSettings({ form }: GenerationSettingsProps) {
                                         provider: p.id,
                                         model: p.models[0],
                                         temperature: 0.7,
+                                        top_p: 1.0,
+                                        stop_sequences: [],
                                         max_output_tokens: 2048,
                                         streaming: true,
                                         presence_penalty: 0.0,
                                         frequency_penalty: 0.0,
-                                        ...(p.id === 'azure' ? { deployment_name: '', api_version: '2024-02-15-preview' } : {}),
+                                        ...(p.id === 'azure' ? { deployment_name: 'default', api_version: '2024-02-15-preview' } : {}),
                                         ...(p.id === 'llama' || p.id === 'cdp2' ? { repeat_penalty: 1.1, top_k: 40 } : {}),
                                         ...(p.id === 'llama' ? { device: 'cpu', quantization: 'fp16' } : {}),
                                         ...(p.id === 'vlm' ? { input_modalities: 'both', image_max_resolution: 1024 } : {}),
-                                    });
+                                    } as GenerationConfig);
                                 }}
                                 className={cn(
                                     "p-3 rounded-xl border text-left transition-all group",

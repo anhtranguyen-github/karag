@@ -5,10 +5,9 @@ import {
     Upload, FileText, Trash2, Loader2,
     Database, Search, Eye, Sparkles,
     Plus, Filter, Shield, ArrowRight, AlertTriangle,
-    X, Globe, Link2, Github, Folder, Music, Info,
-    ChevronRight, ChevronDown, ArrowRightLeft, Layers, Zap, HardDrive, Calendar
+    X, Globe, Link2, Github, Music, Info,
+    ArrowRightLeft, Layers, Zap, HardDrive, Calendar
 } from 'lucide-react';
-import Link from 'next/link';
 import { API_ROUTES, API_BASE_URL } from '@/lib/api-config';
 import { SourceViewer } from '@/components/source-viewer';
 import { WorkspaceWizard } from "@/components/workspace/WorkspaceWizard";
@@ -59,6 +58,24 @@ interface Workspace {
     name: string;
 }
 
+interface DocDetails {
+    metadata: {
+        id: string;
+        content_type: string;
+        size: number | string;
+        created_at: string;
+        minio_path: string;
+    };
+    relationships: Array<{
+        workspace_id: string;
+        workspace_name: string;
+        is_primary: boolean;
+        status: string;
+        chunks: number;
+        last_indexed: string;
+    }>;
+}
+
 export interface KnowledgeBaseActions {
     openUpload: () => void;
     triggerSync: () => void;
@@ -76,14 +93,13 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
     const [documents, setDocuments] = useState<Document[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const { showError } = useError();
-    const { activeTasks, recentCompletedTasks } = useTasks();
+    const { recentCompletedTasks } = useTasks();
     const [activeSource, setActiveSource] = useState<{ id: number; name: string; content: string | null; download_url?: string } | null>(null);
-    const [isViewing, setIsViewing] = useState(false);
     const [shareTarget, setShareTarget] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [deletingDoc, setDeletingDoc] = useState<Document | null>(null);
     const [managingDoc, setManagingDoc] = useState<Document | null>(null);
-    const [manageMode, setManageMode] = useState<'move' | 'share'>('share');
+    const [_manageMode] = useState<'move' | 'share'>('share');
     const [isManaging, setIsManaging] = useState(false);
     const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
     const [duplicateData, setDuplicateData] = useState<{
@@ -106,7 +122,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
     const [visibilityFilter, setVisibilityFilter] = useState('all');
 
     // Detailed Management State
-    const [detailsDoc, setDetailsDoc] = useState<any | null>(null);
+    const [detailsDoc, setDetailsDoc] = useState<DocDetails | null>(null);
     const [isDetailsLoading, setIsDetailsLoading] = useState(false);
     const [isWorkspaceModalOpen, setIsWorkspaceModalOpen] = useState(false);
     const [confirmingAction, setConfirmingAction] = useState<{
@@ -207,7 +223,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                 const payload = await res.json();
                 showError("Link Failed", payload.message || 'Could not link document.');
             }
-        } catch (err) {
+        } catch (_err) {
             showError("Network Error", "Transmission interrupted.");
         }
     };
@@ -331,7 +347,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         if (type === 'url' || type === 'sitemap' || type === 'github') {
             try {
                 new URL(importUrl);
-            } catch (e) {
+            } catch (_e) {
                 showError("Invalid URL", "Please provide a valid HTTP/HTTPS URL.");
                 return;
             }
@@ -444,10 +460,10 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
             showError("Network Error", errorMessage);
         }
     };
-
-    const handleManage = async () => {
+    /* // handleManage and handleIndex are currently unused but kept for future features
+    const _handleManage = async () => {
         if (!managingDoc || !shareTarget) return;
-
+    
         setIsManaging(true);
         try {
             const res = await fetch(API_ROUTES.DOCUMENTS_UPDATE_WS, {
@@ -460,7 +476,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                     force_reindex: true
                 })
             });
-
+    
             if (res.ok) {
                 // Fire-and-forget: close modal, progress visible in JobPanel
                 setManagingDoc(null);
@@ -476,10 +492,9 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         } finally {
             setIsManaging(false);
         }
-    };
+    }; */
 
     const handleView = async (id: string, name: string) => {
-        setIsViewing(true);
         try {
             const res = await fetch(API_ROUTES.DOCUMENT_GET(id));
             if (res.ok) {
@@ -501,8 +516,6 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
             console.error('Failed to view document', err);
             const errorMessage = err instanceof Error ? err.message : 'Connection error.';
             showError("Network Error", errorMessage);
-        } finally {
-            setIsViewing(false);
         }
     };
 
@@ -517,7 +530,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
             } else {
                 showError("Inspect Failed", "Could not retrieve document relationships.");
             }
-        } catch (err) {
+        } catch (_err) {
             showError("Network Error", "Connection to metadata server failed.");
         } finally {
             setIsDetailsLoading(false);
@@ -540,7 +553,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     };
 
-    const handleIndex = async (doc: Document) => {
+    /* const _handleIndex = async (doc: Document) => {
         const docId = doc.id || doc.name;
         // Fire-and-forget: submit indexing, progress shown in global JobPanel
         try {
@@ -556,7 +569,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
             console.error('Failed to index document', err);
             showError("Network Error", "Could not reach the indexing service.");
         }
-    };
+    }; */
 
     if (isSidebar) {
         return (
@@ -1007,7 +1020,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                 doc.workspace_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                                 doc.extension?.toLowerCase().includes(searchQuery.toLowerCase());
 
-                            const effectiveStatus = (doc as any).workspace_statuses?.[workspaceId] || doc.status;
+                            const effectiveStatus = doc.workspace_statuses?.[workspaceId] || doc.status;
                             const matchesStatus = isGlobal || statusFilter === 'all' ||
                                 effectiveStatus === statusFilter ||
                                 (statusFilter === 'ingested' && effectiveStatus === 'indexed');
@@ -1050,7 +1063,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                         <div className="flex items-center gap-2 mt-1">
                                             <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em]">{doc.extension?.replace('.', '') || 'File'}</span>
                                             {(() => {
-                                                const effectiveStatus = (doc as any).workspace_statuses?.[workspaceId] || doc.status;
+                                                const effectiveStatus = doc.workspace_statuses?.[workspaceId] || doc.status;
                                                 const isIngested = effectiveStatus === 'ingested' || effectiveStatus === 'indexed';
 
                                                 return (
@@ -1233,7 +1246,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                                 Not indexed in any workspace.
                                             </div>
                                         ) : (
-                                            detailsDoc.relationships.map((rel: any, i: number) => (
+                                            detailsDoc.relationships.map((rel, i) => (
                                                 <div key={i} className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-between">
                                                     <div className="flex items-center gap-4">
                                                         <div className={cn(
@@ -1314,7 +1327,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                         ) : detailsDoc?.relationships.length === 0 ? (
                                             <div className="p-6 text-center rounded-2xl border border-dashed border-white/5 text-gray-600 font-bold text-[11px]">No active workspace indices found.</div>
                                         ) : (
-                                            detailsDoc?.relationships.map((rel: any, i: number) => (
+                                            detailsDoc?.relationships.map((rel, i) => (
                                                 <div key={i} className="p-4 rounded-2xl bg-secondary border border-border flex items-center justify-between group">
                                                     <div className="flex items-center gap-4">
                                                         <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground">

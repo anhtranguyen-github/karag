@@ -3,6 +3,7 @@
 import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { CreateWorkspaceInput } from '@/lib/schemas/workspaces';
+import { ChunkingConfig } from '@/lib/schemas/chunking';
 import { cn } from '@/lib/utils';
 import { Settings2, Type, Hash, Brain, Layers, Layout } from 'lucide-react';
 
@@ -33,7 +34,17 @@ export function ChunkingStrategySelector({ form }: StrategySettingsProps) {
                     <button
                         key={s.id}
                         type="button"
-                        onClick={() => setValue('chunking', { strategy: s.id } as any)}
+                        onClick={() => {
+                            const defaultConfigs: Record<ChunkingConfig['strategy'], ChunkingConfig> = {
+                                recursive: { strategy: 'recursive', max_chunk_size: 800, min_chunk_size: 100, chunk_overlap: 150, separators: ["\n\n", "\n", ". ", " "], keep_separator: true, trim_whitespace: true, fallback_to_sentence: false },
+                                sentence: { strategy: 'sentence', max_sentences_per_chunk: 5, min_sentences_per_chunk: 1, sentence_overlap: 1, language: 'en', respect_paragraphs: true, merge_short_sentences: true },
+                                token: { strategy: 'token', max_tokens: 512, token_overlap: 50, tokenizer_type: 'tiktoken', count_special_tokens: false, truncate_overflow: false, strict_token_limit: true },
+                                semantic: { strategy: 'semantic', embedding_model_ref: 'text-embedding-3-small', similarity_threshold: 0.3, max_chunk_tokens: 1024, min_chunk_tokens: 100, merge_small_chunks: true, semantic_window_size: 3 },
+                                fixed: { strategy: 'fixed', chunk_size: 1000, chunk_overlap: 200, hard_cut: false, pad_last_chunk: false },
+                                document: { strategy: 'document', split_by: 'heading', max_section_length: 2000, fallback_strategy: 'recursive', preserve_hierarchy: true, include_metadata: true }
+                            };
+                            setValue('chunking', defaultConfigs[s.id as ChunkingConfig['strategy']]);
+                        }}
                         className={cn(
                             "p-3 rounded-xl border text-left transition-all group",
                             isActive

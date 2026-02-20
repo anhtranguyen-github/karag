@@ -1,13 +1,12 @@
 import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import {
-    FormControl,
     FormField,
     FormItem,
     FormLabel,
-    FormMessage,
     FormDescription
 } from '@/components/ui/form';
+import { CreateWorkspaceInput } from '@/lib/schemas/workspaces';
 import {
     Select,
     SelectContent,
@@ -18,12 +17,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Search, RotateCcw, Network, Settings2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface RetrievalSettingsProps {
-    form: UseFormReturn<any>;
+    form: UseFormReturn<CreateWorkspaceInput>;
 }
 
 export function RetrievalSettings({ form }: RetrievalSettingsProps) {
