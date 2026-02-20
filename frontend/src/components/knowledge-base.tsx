@@ -112,7 +112,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
     const [vaultDocuments, setVaultDocuments] = useState<Document[]>([]);
     const [isVaultLoading, setIsVaultLoading] = useState(false);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-    const [uploadMode, setUploadMode] = useState<'file' | 'url' | 'github' | 'sitemap' | 'audio'>('file');
+    const [uploadMode, setUploadMode] = useState<'file' | 'link'>('file');
     const [importUrl, setImportUrl] = useState('');
     const [githubBranch, setGithubBranch] = useState('main');
     const [statusFilter, setStatusFilter] = useState('all');
@@ -130,8 +130,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         workspace_name: string;
     } | null>(null);
 
-    const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
-    const [seedDoc, setSeedDoc] = useState<Document | null>(null);
+
 
     // Poll for active tasks
     const fetchDocuments = React.useCallback(async () => {
@@ -356,6 +355,13 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         try {
             let url = '';
             let body: { url?: string; branch?: string; path?: string } = { url: importUrl };
+
+            let type = 'url';
+            if (importUrl.includes('github.com')) {
+                type = 'github';
+            } else if (importUrl.toLowerCase().endsWith('.xml') || importUrl.toLowerCase().includes('sitemap')) {
+                type = 'sitemap';
+            }
 
             switch (type) {
                 case 'url':
@@ -654,15 +660,11 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     {[
                                         { id: 'file', label: 'Local File', icon: Upload },
-                                        { id: 'url', label: 'Web URL', icon: Globe },
-
-                                        { id: 'github', label: 'GitHub', icon: Github },
-                                        { id: 'sitemap', label: 'Sitemap', icon: Link2 },
-                                        { id: 'audio', label: 'Audio', icon: Music },
+                                        { id: 'link', label: 'Link', icon: Globe },
                                     ].map((m) => (
                                         <button
                                             key={m.id}
-                                            onClick={() => setUploadMode(m.id as 'file' | 'url' | 'github' | 'sitemap' | 'audio')}
+                                            onClick={() => setUploadMode(m.id as 'file' | 'link')}
                                             className={cn(
                                                 "flex flex-col items-center justify-center p-4 rounded-2xl border transition-all gap-2",
                                                 uploadMode === m.id ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-500" : "bg-secondary border-border text-muted-foreground hover:bg-muted"
@@ -687,22 +689,18 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                         <div className="space-y-4">
                                             <div className="space-y-2">
                                                 <label className="text-tiny font-black text-gray-500 uppercase tracking-widest ml-1">
-                                                    {uploadMode === 'url' ? 'URL Source' : 'URL Source'}
+                                                    URL Source
                                                 </label>
                                                 <input
                                                     type="text"
-                                                    placeholder={
-
-                                                        uploadMode === 'github' ? "https://github.com/..." :
-                                                            "https://example.com/..."
-                                                    }
+                                                    placeholder="https://example.com/ or https://github.com/..."
                                                     value={importUrl}
                                                     onChange={(e) => setImportUrl(e.target.value)}
                                                     className="w-full bg-secondary border border-border rounded-2xl px-6 h-14 text-caption text-foreground focus:ring-2 ring-indigo-500/20 outline-none transition-all placeholder:text-muted-foreground/30 font-medium"
                                                 />
                                             </div>
 
-                                            {uploadMode === 'github' && (
+                                            {importUrl.includes('github.com') && (
                                                 <div className="space-y-2">
                                                     <label className="text-tiny font-black text-gray-500 uppercase tracking-widest ml-1">Branch</label>
                                                     <input
@@ -715,7 +713,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                             )}
 
                                             <button
-                                                onClick={() => handleImport(uploadMode)}
+                                                onClick={() => handleImport('link')}
                                                 disabled={isUploading || !importUrl}
                                                 className="w-full h-14 bg-white text-black hover:bg-gray-200 rounded-2xl font-black text-tiny tracking-widest transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50 mt-4"
                                             >
@@ -1099,16 +1097,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                 </div>
 
                                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
-                                    <button
-                                        onClick={() => {
-                                            setSeedDoc(doc);
-                                            setIsCreatingWorkspace(true);
-                                        }}
-                                        className="w-10 h-10 flex items-center justify-center rounded-xl text-muted-foreground hover:text-indigo-500 hover:bg-indigo-500/10 transition-all"
-                                        title="Create Workspace"
-                                    >
-                                        <Sparkles size={16} />
-                                    </button>
+
                                     <button
                                         onClick={() => handleView(doc.id!, doc.name)}
                                         className="w-10 h-10 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
@@ -1604,12 +1593,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                 )}
             </AnimatePresence>
 
-            <WorkspaceWizard
-                isOpen={isCreatingWorkspace}
-                onClose={() => setIsCreatingWorkspace(false)}
-                seedDocumentId={seedDoc?.id}
-                seedDocumentName={seedDoc?.name}
-            />
+
         </div>
     );
 }

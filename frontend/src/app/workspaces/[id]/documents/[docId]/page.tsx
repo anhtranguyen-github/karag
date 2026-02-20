@@ -1,12 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
-    ArrowLeft, Database, Calendar,
-    Layers, Download, Loader2, AlertCircle,
-    Shield, HardDrive, CheckCircle2,
-    Box, Layout, Network, Brain
+    ArrowLeft, FileText, Calendar, Clock,
+    HardDrive, Hash, Download, Loader2, AlertCircle,
+    Copy, Check, ChevronRight, ExternalLink, FolderOpen
 } from 'lucide-react';
 import { API_ROUTES } from '@/lib/api-config';
 import { cn } from '@/lib/utils';
@@ -25,11 +24,38 @@ interface DocumentDetail {
     created_at: string;
     updated_at: string;
     shared_with: string[];
-    // Extended RAG info
+    content_type?: string;
+    content?: string | null;
+    download_url?: string;
     embedding_model?: string;
     embedding_dim?: number;
     chunk_size?: number;
     chunk_overlap?: number;
+}
+
+interface ChunkData {
+    id: string | number;
+    text?: string;
+    doc_id?: string;
+    workspace_id?: string;
+    [key: string]: unknown;
+}
+
+interface WorkspaceRelation {
+    workspace_id: string;
+    workspace_name: string;
+    status: string;
+    chunks: number;
+    last_indexed: string;
+    is_primary: boolean;
+    type: string;
+    shared_from?: string;
+}
+
+interface InspectData {
+    metadata: Record<string, unknown>;
+    relationships: WorkspaceRelation[];
+    zombies_detected: boolean;
 }
 
 export default function DocumentDetailPage() {
@@ -40,7 +66,11 @@ export default function DocumentDetailPage() {
 
     const [document, setDocument] = useState<DocumentDetail | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'overview' | 'chunks' | 'raw'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'chunks' | 'workspaces'>('overview');
+    const [chunks, setChunks] = useState<ChunkData[]>([]);
+    const [chunksLoading, setChunksLoading] = useState(false);
+    const [inspectData, setInspectData] = useState<InspectData | null>(null);
+    const [copied, setCopied] = useState(false);
 
     useEffect(() => {
         const fetchDocument = async () => {
@@ -60,175 +90,162 @@ export default function DocumentDetailPage() {
         fetchDocument();
     }, [docId, workspaceId]);
 
+    const fetchChunks = useCallback(async () => {
+        if (chunks.length > 0) return;
+        setChunksLoading(true);
+        try {
+            const res = await fetch(`${API_ROUTES.DOCUMENTS}/${encodeURIComponent(docId)}/chunks`);
+            if (res.ok) {
+                const result = await res.json();
+                setChunks(result.data || result || []);
+            }
+        } catch (err) {
+            console.error('Failed to load chunks:', err);
+        } finally {
+            setChunksLoading(false);
+        }
+    }, [docId, chunks.length]);
+
+    const fetchInspect = useCallback(async () => {
+        if (inspectData) return;
+        try {
+            const res = await fetch(`${API_ROUTES.DOCUMENTS}/${encodeURIComponent(docId)}/inspect`);
+            if (res.ok) {
+                const result = await res.json();
+                setInspectData(result.data || null);
+            }
+        } catch (err) {
+            console.error('Failed to inspect document:', err);
+        }
+    }, [docId, inspectData]);
+
+    useEffect(() => {
+        if (activeTab === 'chunks') fetchChunks();
+        if (activeTab === 'workspaces') fetchInspect();
+    }, [activeTab, fetchChunks, fetchInspect]);
+
+    const copyContent = async () => {
+        if (document?.content) {
+            await navigator.clipboard.writeText(document.content);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        }
+    };
+
     if (isLoading) {
         return (
-            <div className="flex-1 flex flex-col items-center justify-center bg-[#0a0a0b] gap-6">
-                <div className="w-16 h-16 rounded-[2rem] bg-indigo-500/10 flex items-center justify-center">
-                    <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-                </div>
-                <span className="text-gray-500 text-tiny font-black uppercase tracking-[0.3em] animate-pulse">Syncing Knowledge Component...</span>
+            <div className="flex-1 flex flex-col items-center justify-center bg-[#0a0a0b] gap-4">
+                <Loader2 className="w-8 h-8 text-gray-500 animate-spin" />
+                <span className="text-sm text-gray-600">Loading document...</span>
             </div>
         );
     }
 
     if (!document) {
         return (
-            <div className="flex-1 flex flex-col items-center justify-center bg-[#0a0a0b] gap-8">
-                <AlertCircle size={48} className="text-red-500" />
-                <div className="text-center space-y-2">
-                    <h2 className="text-h3 font-black text-white uppercase tracking-tighter">Component Desynchronized</h2>
-                    <p className="text-caption text-gray-600 font-medium">The requested knowledge module could not be located in the current workspace scope.</p>
+            <div className="flex-1 flex flex-col items-center justify-center bg-[#0a0a0b] gap-6">
+                <AlertCircle size={40} className="text-red-500/80" />
+                <div className="text-center space-y-1">
+                    <h2 className="text-lg font-semibold text-white">Document not found</h2>
+                    <p className="text-sm text-gray-500">This document doesn&apos;t exist or you don&apos;t have access.</p>
                 </div>
-                <button onClick={() => router.back()} className="h-14 px-8 rounded-2xl bg-white/5 border border-white/10 text-white text-tiny font-black uppercase tracking-widest hover:bg-white/10 transition-all">
-                    RETURN TO HUB
+                <button onClick={() => router.back()} className="px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white hover:bg-white/10 transition-all">
+                    Go back
                 </button>
             </div>
         );
     }
 
+    const tabs = [
+        { id: 'overview' as const, label: 'Overview' },
+        { id: 'content' as const, label: 'Content' },
+        { id: 'chunks' as const, label: `Chunks (${document.chunks})` },
+        { id: 'workspaces' as const, label: 'Workspaces' },
+    ];
+
     return (
         <div className="flex-1 flex flex-col h-full bg-[#0a0a0b] overflow-hidden">
-            {/* Context Header */}
-            <header className="p-8 border-b border-white/5 flex items-center justify-between bg-[#0a0a0b]/80 backdrop-blur-xl z-20 sticky top-0">
-                <div className="flex items-center gap-6">
+            {/* Header */}
+            <header className="px-6 py-5 border-b border-white/5 flex items-center justify-between bg-[#0a0a0b]/90 backdrop-blur-md sticky top-0 z-20">
+                <div className="flex items-center gap-4">
                     <button
                         onClick={() => router.back()}
-                        className="w-12 h-12 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/10 transition-all transform active:scale-95 group"
+                        className="w-9 h-9 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/10 transition-all"
                     >
-                        <ArrowLeft size={24} className="group-hover:-translate-x-1 transition-transform" />
+                        <ArrowLeft size={16} />
                     </button>
-                    <div className="w-px h-10 bg-white/5" />
                     <div>
-                        <h1 className="text-h3 font-black text-white uppercase tracking-tighter">{document.filename}</h1>
-                        <div className="flex items-center gap-3 mt-1">
-                            <span className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">Type: {document.extension}</span>
-                            <span className="w-1 h-1 rounded-full bg-gray-800" />
-                            <span className="text-[10px] text-blue-500 font-black uppercase tracking-widest">ID: {document.id.substring(0, 12)}</span>
+                        <h1 className="text-base font-semibold text-white flex items-center gap-2">
+                            <FileText size={16} className="text-gray-500" />
+                            {document.filename}
+                        </h1>
+                        <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-600">
+                            <span>{document.extension.toUpperCase()}</span>
+                            <span>·</span>
+                            <span>{formatBytes(document.size_bytes)}</span>
+                            <span>·</span>
+                            <span className={cn(
+                                "px-1.5 py-0.5 rounded text-[10px] font-medium",
+                                document.status === 'indexed' ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"
+                            )}>
+                                {document.status}
+                            </span>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <div className={cn(
-                        "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border",
-                        document.status === 'indexed' ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-blue-500/10 text-blue-400 border-blue-500/20"
-                    )}>
-                        Status: {document.status}
-                    </div>
-                    <button className="h-12 px-6 rounded-2xl bg-white text-black font-black text-tiny tracking-widest uppercase flex items-center gap-3 hover:bg-gray-200 transition-all active:scale-95">
-                        <Download size={18} />
-                        Export Component
-                    </button>
-                </div>
+                {document.download_url && (
+                    <a
+                        href={document.download_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/5 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-all"
+                    >
+                        <Download size={14} />
+                        Download
+                    </a>
+                )}
             </header>
 
-            {/* Navigation Tabs */}
-            <nav className="px-10 h-16 border-b border-white/5 flex items-center gap-10 bg-[#0d0d0e]">
-                {(['overview', 'chunks', 'raw'] as const).map(tabId => {
-                    const labels = { overview: 'Meta Protocol', chunks: 'Vector Clusters', raw: 'Knowledge Buffer' };
-                    const icons = { overview: Database, chunks: Layers, raw: Layout };
-                    const Icon = icons[tabId];
-                    return (
-                        <button
-                            key={tabId}
-                            onClick={() => setActiveTab(tabId)}
-                            className={cn(
-                                "flex items-center gap-3 h-full border-b-2 transition-all text-tiny font-black uppercase tracking-[0.2em] relative",
-                                activeTab === tabId ? "border-blue-500 text-white" : "border-transparent text-gray-600 hover:text-gray-400"
-                            )}
-                        >
-                            <Icon size={14} className={activeTab === tabId ? "text-blue-500" : "text-gray-600"} />
-                            {labels[tabId]}
-                            {activeTab === tabId && (
-                                <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 shadow-[0_0_8px_#3b82f6]" />
-                            )}
-                        </button>
-                    );
-                })}
+            {/* Tabs */}
+            <nav className="px-6 border-b border-white/5 flex items-center gap-1 bg-[#0a0a0b]">
+                {tabs.map(tab => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={cn(
+                            "px-4 py-3 text-sm transition-all relative",
+                            activeTab === tab.id
+                                ? "text-white font-medium"
+                                : "text-gray-600 hover:text-gray-400"
+                        )}
+                    >
+                        {tab.label}
+                        {activeTab === tab.id && (
+                            <motion.div
+                                layoutId="doc-tab"
+                                className="absolute bottom-0 left-2 right-2 h-0.5 bg-blue-500 rounded-full"
+                            />
+                        )}
+                    </button>
+                ))}
             </nav>
 
-            {/* Content Area */}
-            <main className="flex-1 overflow-y-auto p-12 custom-scrollbar">
-                <div className="max-w-6xl mx-auto">
+            {/* Content */}
+            <main className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                <div className="max-w-4xl mx-auto">
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={activeTab}
-                            initial={{ opacity: 0, y: 10 }}
+                            initial={{ opacity: 0, y: 6 }}
                             animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            className="space-y-12"
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
                         >
-                            {activeTab === 'overview' && (
-                                <>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                        <MetricCard label="Magnitude" value={formatBytes(document.size_bytes)} icon={HardDrive} />
-                                        <MetricCard label="Blocks" value={`${document.chunks} Index Units`} icon={Box} />
-                                        <MetricCard label="Ingestion" value={new Date(document.created_at).toLocaleDateString()} icon={Calendar} />
-                                        <MetricCard label="Integrity" value="Verified" icon={CheckCircle2} color="text-emerald-500" />
-                                    </div>
-
-                                    <section className="space-y-6">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-1.5 h-6 bg-blue-600 rounded-full" />
-                                            <h3 className="text-caption font-black text-white uppercase tracking-widest">Storage & Routing</h3>
-                                        </div>
-                                        <div className="grid gap-4">
-                                            <div className="p-8 rounded-[2.5rem] bg-[#121214] border border-white/5 flex items-center justify-between">
-                                                <div className="space-y-1">
-                                                    <p className="text-[10px] font-black text-gray-700 uppercase tracking-widest">Internal MinIO Instance</p>
-                                                    <code className="text-caption font-mono text-gray-500">{document.minio_path}</code>
-                                                </div>
-                                                <Shield size={24} className="text-gray-800" />
-                                            </div>
-                                        </div>
-                                    </section>
-
-                                    <section className="space-y-6">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-1.5 h-6 bg-indigo-600 rounded-full" />
-                                            <h3 className="text-caption font-black text-white uppercase tracking-widest">Cognitive Mapping</h3>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                            <MetricDetail label="Embed Model" value={document.embedding_model || 'text-embedding-3-small'} icon={Brain} />
-                                            <MetricDetail label="Dimensions" value={document.embedding_dim?.toString() || '1536'} icon={Network} />
-                                            <MetricDetail label="RAG Scope" value="Hybrid-Neural" icon={Database} />
-                                        </div>
-                                    </section>
-                                </>
-                            )}
-
-                            {activeTab === 'chunks' && (
-                                <div className="space-y-8">
-                                    <div className="flex items-center justify-between">
-                                        <h3 className="text-h3 font-black text-white uppercase tracking-tighter">Vectorized Chunks</h3>
-                                        <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/5 text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                                            Displaying {document.chunks} mapped units
-                                        </div>
-                                    </div>
-                                    <div className="grid gap-6">
-                                        {/* Placeholder for chunks - usually fetched separately */}
-                                        <div className="p-20 text-center flex flex-col items-center gap-6 bg-white/[0.01] border border-dashed border-white/5 rounded-[3rem]">
-                                            <Loader2 className="w-10 h-10 text-gray-800 animate-spin" />
-                                            <p className="text-tiny font-black text-gray-700 uppercase tracking-[0.3em]">Querying Vector Store...</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === 'raw' && (
-                                <div className="space-y-8">
-                                    <header className="flex items-center justify-between">
-                                        <h3 className="text-h3 font-black text-white uppercase tracking-tighter">Knowledge Buffer</h3>
-                                        <button className="flex items-center gap-2 text-blue-500 text-[10px] font-black uppercase tracking-widest hover:underline">
-                                            Copy Full Content
-                                        </button>
-                                    </header>
-                                    <div className="bg-[#121214] rounded-[3rem] p-12 border border-white/5 text-caption text-gray-400 font-medium leading-relaxed whitespace-pre-wrap shadow-2xl">
-                                        {/* Content would be fetched and displayed here */}
-                                        Fetching synchronized knowledge buffer...
-                                    </div>
-                                </div>
-                            )}
+                            {activeTab === 'overview' && <OverviewTab document={document} />}
+                            {activeTab === 'content' && <ContentTab document={document} copied={copied} onCopy={copyContent} />}
+                            {activeTab === 'chunks' && <ChunksTab chunks={chunks} loading={chunksLoading} />}
+                            {activeTab === 'workspaces' && <WorkspacesTab data={inspectData} />}
                         </motion.div>
                     </AnimatePresence>
                 </div>
@@ -237,36 +254,283 @@ export default function DocumentDetailPage() {
     );
 }
 
-function MetricCard({ label, value, icon: Icon, color = "text-gray-400" }: { label: string, value: string, icon: React.ElementType, color?: string }) {
+/* ── Overview Tab ── */
+function OverviewTab({ document }: { document: DocumentDetail }) {
     return (
-        <div className="bg-[#121214] border border-white/5 p-8 rounded-[2.5rem] flex flex-col gap-6 hover:bg-white/[0.03] hover:border-blue-500/20 transition-all shadow-2xl">
-            <div className={cn("w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center", color)}>
-                <Icon size={24} />
+        <div className="space-y-6">
+            {/* Key stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <StatCard icon={HardDrive} label="File Size" value={formatBytes(document.size_bytes)} />
+                <StatCard icon={Hash} label="Chunks" value={document.chunks.toString()} />
+                <StatCard icon={Calendar} label="Uploaded" value={formatDate(document.created_at)} />
+                <StatCard icon={Clock} label="Last Updated" value={formatDate(document.updated_at)} />
             </div>
-            <div className="space-y-1">
-                <p className="text-[10px] font-black text-gray-700 uppercase tracking-widest">{label}</p>
-                <p className="text-caption font-black text-white uppercase tracking-tight">{value}</p>
+
+            {/* Details table */}
+            <div className="rounded-xl border border-white/5 overflow-hidden">
+                <div className="px-4 py-3 border-b border-white/5 bg-white/[0.02]">
+                    <h3 className="text-sm font-medium text-white">Details</h3>
+                </div>
+                <div className="divide-y divide-white/5">
+                    <DetailRow label="Document ID" value={document.id} mono />
+                    <DetailRow label="Filename" value={document.filename} />
+                    <DetailRow label="Type" value={document.extension.toUpperCase()} />
+                    <DetailRow label="Content Type" value={document.content_type || 'Unknown'} />
+                    <DetailRow label="Status" value={document.status} badge={document.status === 'indexed' ? 'green' : 'amber'} />
+                    <DetailRow label="Version" value={`v${document.current_version}`} />
+                    <DetailRow label="Workspace" value={document.workspace_id} />
+                    <DetailRow label="Storage Path" value={document.minio_path} mono />
+                    {document.shared_with.length > 0 && (
+                        <DetailRow label="Shared With" value={document.shared_with.join(', ')} />
+                    )}
+                </div>
+            </div>
+
+            {/* Embedding info (if available) */}
+            {(document.embedding_model || document.embedding_dim) && (
+                <div className="rounded-xl border border-white/5 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-white/5 bg-white/[0.02]">
+                        <h3 className="text-sm font-medium text-white">Embedding Config</h3>
+                    </div>
+                    <div className="divide-y divide-white/5">
+                        {document.embedding_model && <DetailRow label="Model" value={document.embedding_model} />}
+                        {document.embedding_dim && <DetailRow label="Dimensions" value={document.embedding_dim.toString()} />}
+                        {document.chunk_size && <DetailRow label="Chunk Size" value={`${document.chunk_size} tokens`} />}
+                        {document.chunk_overlap && <DetailRow label="Chunk Overlap" value={`${document.chunk_overlap} tokens`} />}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+/* ── Content Tab ── */
+function ContentTab({ document, copied, onCopy }: { document: DocumentDetail; copied: boolean; onCopy: () => void }) {
+    if (document.content === null || document.content === undefined) {
+        return (
+            <div className="text-center py-16 space-y-3">
+                <FileText size={32} className="mx-auto text-gray-700" />
+                <p className="text-sm text-gray-500">
+                    Content preview is not available for this file type ({document.content_type || document.extension}).
+                </p>
+                {document.download_url && (
+                    <a
+                        href={document.download_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/5 text-sm text-gray-300 hover:bg-white/10 transition-all"
+                    >
+                        <ExternalLink size={14} />
+                        Open file directly
+                    </a>
+                )}
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-3">
+            <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-600">{document.content.length.toLocaleString()} characters</span>
+                <button
+                    onClick={onCopy}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-gray-400 hover:text-white hover:bg-white/5 transition-all"
+                >
+                    {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                    {copied ? 'Copied' : 'Copy'}
+                </button>
+            </div>
+            <div className="rounded-xl border border-white/5 bg-[#111113] p-5 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                <pre className="text-sm text-gray-300 font-mono leading-relaxed whitespace-pre-wrap break-words">
+                    {document.content}
+                </pre>
             </div>
         </div>
     );
 }
 
-function MetricDetail({ label, value, icon: Icon }: { label: string, value: string, icon: React.ElementType }) {
-    return (
-        <div className="bg-white/[0.02] border border-white/5 p-6 rounded-3xl flex items-center gap-5 hover:bg-white/[0.04] transition-all">
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
-                <Icon size={18} />
+/* ── Chunks Tab ── */
+function ChunksTab({ chunks, loading }: { chunks: ChunkData[]; loading: boolean }) {
+    const [expandedChunk, setExpandedChunk] = useState<string | number | null>(null);
+
+    if (loading) {
+        return (
+            <div className="text-center py-16 space-y-3">
+                <Loader2 className="w-6 h-6 mx-auto text-gray-600 animate-spin" />
+                <p className="text-sm text-gray-600">Loading chunks...</p>
             </div>
-            <div>
-                <p className="text-[9px] font-black text-gray-700 uppercase tracking-widest mb-0.5">{label}</p>
-                <p className="text-tiny font-black text-gray-300 uppercase tracking-tight">{value}</p>
+        );
+    }
+
+    if (chunks.length === 0) {
+        return (
+            <div className="text-center py-16 space-y-3">
+                <Hash size={32} className="mx-auto text-gray-700" />
+                <p className="text-sm text-gray-500">No chunks found for this document.</p>
+                <p className="text-xs text-gray-700">The document may not be indexed yet.</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-2">
+            <p className="text-xs text-gray-600 mb-4">{chunks.length} chunks stored in vector database</p>
+            {chunks.map((chunk, i) => {
+                const isExpanded = expandedChunk === chunk.id;
+                const text = chunk.text || JSON.stringify(chunk, null, 2);
+                const preview = text.substring(0, 150);
+
+                return (
+                    <button
+                        key={chunk.id || i}
+                        onClick={() => setExpandedChunk(isExpanded ? null : chunk.id)}
+                        className="w-full text-left rounded-xl border border-white/5 bg-[#111113] hover:bg-white/[0.03] transition-all overflow-hidden"
+                    >
+                        <div className="px-4 py-3 flex items-start gap-3">
+                            <span className="text-[10px] font-mono text-gray-700 bg-white/5 px-1.5 py-0.5 rounded mt-0.5 shrink-0">
+                                #{i + 1}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                                <p className={cn(
+                                    "text-sm text-gray-400 leading-relaxed",
+                                    isExpanded ? "whitespace-pre-wrap" : "line-clamp-2"
+                                )}>
+                                    {isExpanded ? text : preview + (text.length > 150 ? '...' : '')}
+                                </p>
+                            </div>
+                            <ChevronRight size={14} className={cn(
+                                "text-gray-700 shrink-0 mt-1 transition-transform",
+                                isExpanded && "rotate-90"
+                            )} />
+                        </div>
+                    </button>
+                );
+            })}
+        </div>
+    );
+}
+
+/* ── Workspaces Tab ── */
+function WorkspacesTab({ data }: { data: InspectData | null }) {
+    if (!data) {
+        return (
+            <div className="text-center py-16 space-y-3">
+                <Loader2 className="w-6 h-6 mx-auto text-gray-600 animate-spin" />
+                <p className="text-sm text-gray-600">Loading workspace info...</p>
+            </div>
+        );
+    }
+
+    if (data.relationships.length === 0) {
+        return (
+            <div className="text-center py-16 space-y-3">
+                <FolderOpen size={32} className="mx-auto text-gray-700" />
+                <p className="text-sm text-gray-500">This document is only in the vault.</p>
+                <p className="text-xs text-gray-700">Link it to a workspace to start using it for search and chat.</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-4">
+            <p className="text-xs text-gray-600">
+                This document is indexed in {data.relationships.length} workspace{data.relationships.length !== 1 ? 's' : ''}.
+                {data.zombies_detected && (
+                    <span className="text-amber-400 ml-1">Some orphaned references were found.</span>
+                )}
+            </p>
+
+            <div className="rounded-xl border border-white/5 overflow-hidden divide-y divide-white/5">
+                {data.relationships.map((rel, i) => (
+                    <div key={i} className="px-4 py-3 flex items-center justify-between hover:bg-white/[0.02] transition-colors">
+                        <div className="flex items-center gap-3">
+                            <FolderOpen size={14} className="text-gray-600" />
+                            <div>
+                                <p className="text-sm text-white">{rel.workspace_name}</p>
+                                <p className="text-xs text-gray-600 flex items-center gap-2">
+                                    <span>{rel.type === 'shared_ref' ? `Shared from ${rel.shared_from}` : 'Direct index'}</span>
+                                    <span>·</span>
+                                    <span>{rel.chunks} chunks</span>
+                                    {rel.last_indexed && (
+                                        <>
+                                            <span>·</span>
+                                            <span>Updated {formatDate(rel.last_indexed)}</span>
+                                        </>
+                                    )}
+                                </p>
+                            </div>
+                        </div>
+                        <span className={cn(
+                            "text-[10px] px-2 py-0.5 rounded font-medium",
+                            rel.status === 'indexed' ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"
+                        )}>
+                            {rel.status}
+                        </span>
+                    </div>
+                ))}
             </div>
         </div>
     );
 }
+
+/* ── Shared Components ── */
+
+function StatCard({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {
+    return (
+        <div className="rounded-xl border border-white/5 bg-[#111113] p-4 space-y-2">
+            <div className="flex items-center gap-2 text-gray-600">
+                <Icon size={14} />
+                <span className="text-xs">{label}</span>
+            </div>
+            <p className="text-sm font-medium text-white">{value}</p>
+        </div>
+    );
+}
+
+function DetailRow({ label, value, mono, badge }: { label: string; value: string; mono?: boolean; badge?: 'green' | 'amber' }) {
+    return (
+        <div className="px-4 py-2.5 flex items-center justify-between gap-4">
+            <span className="text-xs text-gray-600 shrink-0">{label}</span>
+            {badge ? (
+                <span className={cn(
+                    "text-xs px-2 py-0.5 rounded font-medium",
+                    badge === 'green' ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"
+                )}>
+                    {value}
+                </span>
+            ) : (
+                <span className={cn(
+                    "text-xs text-gray-300 text-right truncate",
+                    mono && "font-mono text-gray-500"
+                )}>
+                    {value}
+                </span>
+            )}
+        </div>
+    );
+}
+
+/* ── Utilities ── */
 
 function formatBytes(bytes: number) {
+    if (!bytes || bytes === 0) return '0 B';
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatDate(dateStr: string) {
+    if (!dateStr) return 'N/A';
+    const d = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }

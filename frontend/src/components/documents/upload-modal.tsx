@@ -47,18 +47,16 @@ export function UploadModal({ isOpen, onClose, workspaceId, onUploadComplete }: 
             if (mode === "file") {
                 if (!file) return;
                 await api.uploadDocumentUploadPost({ file, workspaceId: targetWorkspace });
-            } else if (mode === "url") {
+            } else if (mode === "link") {
                 if (!url) return;
-                await api.importUrlDocumentImportUrlPost({ urlImportRequest: { url }, workspaceId: targetWorkspace });
-            } else if (mode === "github") {
-                if (!url) return;
-                await api.importGithubDocumentImportGithubPost({ gitHubImportRequest: { url, branch }, workspaceId: targetWorkspace });
-
-            } else if (mode === "audio") {
-                if (!file) return;
-                await api.importAudioDocumentImportAudioPost({ file, workspaceId: targetWorkspace });
+                if (url.includes('github.com')) {
+                    await api.importGithubDocumentImportGithubPost({ gitHubImportRequest: { url, branch }, workspaceId: targetWorkspace });
+                } else if (url.toLowerCase().endsWith('.xml') || url.toLowerCase().includes('sitemap')) {
+                    await api.importSitemapDocumentImportSitemapPost({ sitemapImportRequest: { url }, workspaceId: targetWorkspace });
+                } else {
+                    await api.importUrlDocumentImportUrlPost({ urlImportRequest: { url }, workspaceId: targetWorkspace });
+                }
             }
-            // Add other modes...
 
             if (onUploadComplete) onUploadComplete();
             onClose();
@@ -81,10 +79,7 @@ export function UploadModal({ isOpen, onClose, workspaceId, onUploadComplete }: 
                     onChange={setMode}
                     options={[
                         { label: "File", value: "file", icon: UploadCloud },
-                        { label: "URL", value: "url", icon: LinkIcon },
-                        { label: "GitHub", value: "github", icon: Github },
-
-                        { label: "Audio", value: "audio", icon: FileAudio },
+                        { label: "Link", value: "link", icon: LinkIcon },
                     ]}
                 />
 
@@ -96,29 +91,18 @@ export function UploadModal({ isOpen, onClose, workspaceId, onUploadComplete }: 
                             <p className="text-xs text-muted-foreground">PDF, DOCX, TXT, MD supported.</p>
                         </div>
                     )}
-                    {mode === "audio" && (
-                        <div className="grid w-full max-w-sm items-center gap-1.5">
-                            <Label htmlFor="audio-file">Audio File</Label>
-                            <Input id="audio-file" type="file" accept="audio/*" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-                            <p className="text-xs text-muted-foreground">MP3, WAV supported.</p>
-                        </div>
-                    )}
-                    {mode === "url" && (
-                        <div className="grid w-full items-center gap-1.5">
-                            <Label htmlFor="url">URL</Label>
-                            <Input id="url" type="url" placeholder="https://..." value={url} onChange={e => setUrl(e.target.value)} />
-                        </div>
-                    )}
-                    {mode === "github" && (
+                    {mode === "link" && (
                         <>
                             <div className="grid w-full items-center gap-1.5">
-                                <Label htmlFor="gh-url">Repository URL</Label>
-                                <Input id="gh-url" type="url" placeholder="https://github.com/user/repo" value={url} onChange={e => setUrl(e.target.value)} />
+                                <Label htmlFor="url">URL</Label>
+                                <Input id="url" type="url" placeholder="https://..." value={url} onChange={e => setUrl(e.target.value)} />
                             </div>
-                            <div className="grid w-full items-center gap-1.5">
-                                <Label htmlFor="branch">Branch</Label>
-                                <Input id="branch" type="text" value={branch} onChange={e => setBranch(e.target.value)} />
-                            </div>
+                            {url.includes('github.com') && (
+                                <div className="grid w-full items-center gap-1.5">
+                                    <Label htmlFor="branch">Branch</Label>
+                                    <Input id="branch" type="text" value={branch} onChange={e => setBranch(e.target.value)} />
+                                </div>
+                            )}
                         </>
                     )}
                 </div>

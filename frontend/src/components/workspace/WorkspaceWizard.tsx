@@ -32,8 +32,6 @@ import { GenerationSettings } from '../generation/GenerationSettings';
 interface WorkspaceWizardProps {
     isOpen: boolean;
     onClose: () => void;
-    seedDocumentId?: string;
-    seedDocumentName?: string;
 }
 
 const STEPS = [
@@ -44,14 +42,14 @@ const STEPS = [
     { title: 'Generation AI', icon: Wand2, desc: 'Final response settings' },
 ];
 
-export function WorkspaceWizard({ isOpen, onClose, seedDocumentId, seedDocumentName }: WorkspaceWizardProps) {
+export function WorkspaceWizard({ isOpen, onClose }: WorkspaceWizardProps) {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const form = useForm<CreateWorkspaceInput>({
         defaultValues: {
-            name: seedDocumentName ? seedDocumentName.split('.')[0] + ' Research' : '',
+            name: '',
             description: '',
             runtime: {
                 mode: 'fast',
@@ -113,17 +111,7 @@ export function WorkspaceWizard({ isOpen, onClose, seedDocumentId, seedDocumentN
                 workspaceCreate: values as any
             });
 
-            if (seedDocumentId && res.data?.id) {
-                await api.updateDocumentWorkspacesDocumentsUpdateWorkspacesPost({
-                    documentWorkspaceUpdate: {
-                        document_id: seedDocumentId,
-                        target_workspace_id: res.data.id,
-                        action: 'link',
-                        force_reindex: true
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    } as any
-                });
-            }
+
 
             onClose();
             router.refresh();

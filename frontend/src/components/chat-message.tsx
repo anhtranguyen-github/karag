@@ -77,20 +77,8 @@ export function ChatMessage({ message, isLoading, onCitationClick }: ChatMessage
                     <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
 
-                {message.role === 'assistant' && (message.reasoning_steps?.length || message.tools?.length) && (
+                {message.role === 'assistant' && (message.reasoning_steps?.length) && (
                     <div className="w-full flex flex-col gap-3">
-                        {/* Tools list */}
-                        {message.tools && message.tools.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                                {message.tools.map((tool, idx) => (
-                                    <div key={idx} className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[9px] font-bold uppercase tracking-widest shadow-sm">
-                                        <Terminal size={10} />
-                                        {tool}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
                         {/* Reasoning steps */}
                         {(message.reasoning_steps?.length || 0) > 0 && (
                             <div className="w-full overflow-hidden rounded-2xl border border-border bg-secondary/50">

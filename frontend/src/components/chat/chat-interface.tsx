@@ -12,6 +12,10 @@ import { CitationModal } from "./citation-modal";
 import { ChatMessage } from "@/components/chat-message";
 import { Message } from "@/context/chat-context";
 
+// Singleton cache to persist messages across Page re-mounts (common in Next.js route changes)
+const persistenceCache: Record<string, Message[]> = {};
+const persistenceMeta: Record<string, any> = {};
+
 export function ChatInterface({
     threadId: propThreadId,
     workspaceId: propWorkspaceId
@@ -22,23 +26,64 @@ export function ChatInterface({
     const router = useRouter();
     const [workspaceId, setWorkspaceId] = useState<string | undefined>(propWorkspaceId);
 
+    useEffect(() => {
+        return () => { };
+    }, []);
 
     // If no prop threadID, we might be in a "new chat" state or need to redirect
     // For now assume threadId is passed or we generate a new one on first message
     const [threadId, setThreadId] = useState<string | undefined>(propThreadId);
-    const [messages, setMessages] = useState<Message[]>([]);
+
+    // Initialize messages from cache if available (restores state after redirect)
+    const [messages, setMessages] = useState<Message[]>(() => {
+        if (propThreadId && persistenceCache[propThreadId]) {
+            return persistenceCache[propThreadId];
+        }
+        return [];
+    });
+
     const [input, setInput] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(() => {
+        if (propThreadId && persistenceMeta[propThreadId]?.isLoading) {
+            return true;
+        }
+        return false;
+    });
+
     const [executionMode, setExecutionMode] = useState<"fast" | "thinking" | "deep" | "blending">("thinking");
     const [selectedCitation, setSelectedCitation] = useState<NonNullable<Message["sources"]>[number] | null>(null);
     const [isCitationModalOpen, setIsCitationModalOpen] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const isRedirecting = useRef(false);
+
+    // Persist messages to cache whenever they change
+    useEffect(() => {
+        if (threadId) {
+            persistenceCache[threadId] = messages;
+            persistenceMeta[threadId] = { isLoading };
+        }
+    }, [messages, threadId, isLoading]);
 
     // Fetch history and metadata if threadId exists
     useEffect(() => {
         const fetchThreadData = async () => {
             if (!threadId || threadId === "new") {
-                setMessages([]);
+                // Only clear messages if we are explicitly on a "new" route
+                // and NOT currently in the middle of a redirect from a sent message
+                if (!isRedirecting.current) {
+                    setMessages([]);
+                }
+                return;
+            }
+
+            // Prevent fetching empty history if we just started this thread.
+            // We use a counter or check messages to be sure we don't wipe local state.
+            if (isRedirecting.current) {
+                // We keep isRedirecting.current = true for a bit longer or check messages
+                if (messages.length > 0) {
+                    isRedirecting.current = false; // We can reset it now
+                    return;
+                }
                 return;
             }
             try {
@@ -90,6 +135,7 @@ export function ChatInterface({
         let currentThreadId = threadId;
         if (!currentThreadId || currentThreadId === "new") {
             currentThreadId = crypto.randomUUID();
+            isRedirecting.current = true;
             setThreadId(currentThreadId);
             router.push(`/chats/${currentThreadId}`);
         }
@@ -111,36 +157,46 @@ export function ChatInterface({
                     thread_id: currentThreadId,
                     workspace_id: workspaceId || "default",
                     execution: {
-                        execution_mode: executionMode,
-                        max_loops: executionMode === "deep" ? 5 : 3,
-                        enable_tracing: true
+                        mode: executionMode,
+                        [executionMode]: {
+                            max_loops: executionMode === "deep" ? 5 : 3,
+                        },
+                        tracing: {
+                            tracing_enabled: true
+                        }
                     }
                 }),
                 onmessage(msg) {
                     try {
                         const data = JSON.parse(msg.data);
-
                         setMessages((prev) => {
                             const newMsgs = [...prev];
-                            const lastMsg = newMsgs[newMsgs.length - 1];
-
-                            if (lastMsg.id !== assistantMsgId) return prev;
+                            const assistantIdx = newMsgs.findIndex(m => m.id === assistantMsgId);
 
                             if (data.type === "content") {
-                                // Append delta
-                                lastMsg.content += data.delta || "";
-                            } else if (data.type === "thought") {
-                                if (!lastMsg.reasoning_steps) lastMsg.reasoning_steps = [];
-                                lastMsg.reasoning_steps.push(data.step);
-                            } else if (data.type === "reasoning") {
-                                if (!lastMsg.reasoning_steps) lastMsg.reasoning_steps = [];
-                                if (Array.isArray(data.steps)) {
-                                    lastMsg.reasoning_steps = [...lastMsg.reasoning_steps, ...data.steps];
+                                if (assistantIdx !== -1) {
+                                    newMsgs[assistantIdx].content += data.delta;
                                 } else {
-                                    lastMsg.reasoning_steps.push(data.steps);
+                                    newMsgs.push({ id: assistantMsgId, role: "assistant", content: data.delta });
+                                }
+                            } else if (data.type === "reasoning" || data.type === "thought") {
+                                if (assistantIdx === -1) {
+                                    newMsgs.push({
+                                        id: assistantMsgId,
+                                        role: "assistant",
+                                        content: "",
+                                        reasoning_steps: Array.isArray(data.steps) ? data.steps : [data.steps || data.step || data.delta]
+                                    });
+                                } else {
+                                    if (!newMsgs[assistantIdx].reasoning_steps) newMsgs[assistantIdx].reasoning_steps = [];
+                                    if (Array.isArray(data.steps)) {
+                                        newMsgs[assistantIdx].reasoning_steps = [...newMsgs[assistantIdx].reasoning_steps, ...data.steps];
+                                    } else {
+                                        newMsgs[assistantIdx].reasoning_steps.push(data.steps || data.step || data.delta);
+                                    }
                                 }
                             } else if (data.type === "sources") {
-                                lastMsg.sources = data.sources;
+                                if (assistantIdx !== -1) newMsgs[assistantIdx].sources = data.sources;
                             }
 
                             return newMsgs;

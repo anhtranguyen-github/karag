@@ -10,7 +10,6 @@ export interface Message {
     role: 'user' | 'assistant';
     content: string;
     reasoning_steps?: string[];
-    tools?: string[];
     sources?: Array<{ id: number, name: string, content: string }>;
 }
 
@@ -148,7 +147,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
                                 role: 'assistant',
                                 content: accumulatedContent,
                                 reasoning_steps: lastMsg?.reasoning_steps,
-                                tools: lastMsg?.tools,
                                 sources: lastMsg?.sources,
                             };
                             return [...otherMessages, updatedAssistant];
