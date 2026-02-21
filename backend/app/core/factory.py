@@ -128,3 +128,13 @@ class LangChainFactory:
         from backend.app.rag.store.qdrant import QdrantStore
         # Here we could switch based on configuration if we had multiple providers
         return QdrantStore()
+
+    @staticmethod
+    async def get_graph_store(workspace_id: Optional[str] = None):
+        """
+        Returns the appropriate GraphStore implementation.
+        Currently defaults to Neo4jStore.
+        """
+        from backend.app.rag.store.neo4j_store import Neo4jStore
+        # Like VectorStore, this can switch implementations based on settings
+        return Neo4jStore()

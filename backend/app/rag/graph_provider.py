@@ -1,6 +1,5 @@
 import structlog
 from typing import List, Dict, Any
-from backend.app.core.neo4j import neo4j_manager
 from backend.app.core.settings_manager import settings_manager
 from backend.app.providers.llm import get_llm
 
@@ -47,25 +46,14 @@ class GraphProvider:
             extracted_keywords=keywords,
         )
 
-        # STEP 2: Query Neo4j for related nodes and their neighbors (Knowledge Expansion)
-        # Find nodes matching keywords for this specific workspace
-        # We use =~ for partial case-insensitive match
-        cypher = """
-        UNWIND $keywords as word
-        MATCH (n:Entity)
-        WHERE n.workspace_id = $workspace_id 
-        AND n.name =~ ('(?i).*' + word + '.*')
-        WITH n
-        MATCH (n)-[r]-(neighbor:Entity)
-        RETURN n.name as entity, type(r) as relationship, neighbor.name as related_entity
-        LIMIT 30
-        """
-
         try:
-            graph_context = await neo4j_manager.execute_query(
-                cypher,
-                {"keywords": keywords, "workspace_id": workspace_id},
+            from backend.app.core.factory import LangChainFactory
+            graph_store = await LangChainFactory.get_graph_store()
+
+            graph_context = await graph_store.get_related_entities(
+                keywords=keywords,
                 workspace_id=workspace_id,
+                limit=30,
             )
 
             # STEP 3: Build an expanded query string for Hybrid Search
@@ -127,20 +115,11 @@ class GraphProvider:
             return [{"id": res.id, "score": res.score, "payload": res.payload} for res in search_results]
 
     async def upsert_entities(self, entities: List[Dict[str, Any]], workspace_id: str):
-        """Insert or update entities and relationships in Neo4j."""
-        cypher = """
-        UNWIND $entities as ent
-        MERGE (n:Entity {name: ent.name, workspace_id: $workspace_id})
-        SET n.type = ent.type, n.last_updated = timestamp()
-        WITH n, ent
-        UNWIND ent.relationships as rel
-        MERGE (other:Entity {name: rel.target, workspace_id: $workspace_id})
-        MERGE (n)-[r:RELATED {type: rel.type}]->(other)
-        SET r.workspace_id = $workspace_id
-        """
-        await neo4j_manager.execute_query(
-            cypher, {"entities": entities}, workspace_id=workspace_id
-        )
+        """Insert or update entities and relationships using the injected GraphStore."""
+        from backend.app.core.factory import LangChainFactory
+        graph_store = await LangChainFactory.get_graph_store()
+        
+        await graph_store.upsert_entities(entities=entities, workspace_id=workspace_id)
 
 
 graph_provider = GraphProvider()

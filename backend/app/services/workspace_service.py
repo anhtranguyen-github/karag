@@ -308,17 +308,12 @@ class WorkspaceService:
 
         # 2. Knowledge Graph Nodes (Neo4j)
         if settings.rag_engine == "graph":
-            from backend.app.core.neo4j import neo4j_manager
+            from backend.app.core.factory import LangChainFactory
 
-            cypher = """
-            MATCH (n:Entity {workspace_id: $workspace_id})
-            OPTIONAL MATCH (n)-[r]->(m:Entity {workspace_id: $workspace_id})
-            RETURN n.name as name, n.type as type, m.name as target, type(r) as rel_type
-            LIMIT 100
-            """
             try:
-                records = await neo4j_manager.execute_query(
-                    cypher, {"workspace_id": workspace_id}, workspace_id=workspace_id
+                graph_store = await LangChainFactory.get_graph_store()
+                records = await graph_store.get_workspace_graph(
+                    workspace_id=workspace_id, limit=100
                 )
                 entities = {}
                 for rec in records:

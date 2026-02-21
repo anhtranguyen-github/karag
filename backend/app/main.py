@@ -61,10 +61,11 @@ async def lifespan(app: FastAPI):
     # STOP worker on shutdown
     await task_worker.stop()
 
-    # Close Neo4j driver
-    from backend.app.core.neo4j import neo4j_manager
+    # Close graph store driver
+    from backend.app.core.factory import LangChainFactory
 
-    await neo4j_manager.close()
+    graph_store = await LangChainFactory.get_graph_store()
+    await graph_store.close()
 
 
 def create_app() -> FastAPI:
