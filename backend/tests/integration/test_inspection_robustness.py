@@ -71,15 +71,25 @@ async def test_get_chunks_correct_collection(mocker):
         return_value=mock_db,
     )
 
-    # Mock Qdrant
-    mock_qdrant = MagicMock()
-    mock_qdrant.get_collection_name = AsyncMock(return_value="kb_hash_1536")
-    mock_qdrant.client.scroll = AsyncMock(return_value=([], None))
-    mocker.patch("backend.app.rag.qdrant_provider.qdrant", mock_qdrant)
+    # Mock VectorStore
+    mock_store = AsyncMock()
+    mock_store.get_document_chunks = AsyncMock(return_value=[])
+    
+    mocker.patch(
+        "backend.app.core.factory.LangChainFactory.get_vector_store",
+        return_value=mock_store
+    )
+    
+    from backend.app.rag.ingestion import ingestion_pipeline
+    mocker.patch.object(
+        ingestion_pipeline,
+        "get_ingestion_config",
+        return_value=(MagicMock(), mock_store)
+    )
 
     await document_service.get_chunks("doc_123")
 
-    # Verify it called get_collection_name with workspace_id
-    mock_qdrant.get_collection_name.assert_called_once_with(
-        workspace_id="workspace_test"
+    # Verify it called get_ingestion_config with workspace_id
+    ingestion_pipeline.get_ingestion_config.assert_called_once_with(
+        "workspace_test"
     )

@@ -83,7 +83,7 @@ class TestConfigureTracing:
 class TestInitTelemetry:
     """Test the combined initialization entry point."""
 
-    @patch("backend.app.core.config.ai_settings")
+    @patch("backend.app.core.config.karag_settings")
     def test_init_telemetry_with_defaults(self, mock_settings):
         """init_telemetry should configure logging and tracing from settings."""
         mock_settings.OTEL_ENABLED = False

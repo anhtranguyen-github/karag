@@ -101,15 +101,21 @@ async def test_document_service_delete(mocker):
         "backend.app.services.document.storage_service.minio_manager.delete_file"
     )
 
-    # Mock Qdrant client methods
-    mock_qdrant_client = MagicMock()
-    mock_qdrant_client.collection_exists = AsyncMock(
-        return_value=False
-    )  # Skip qdrant loops for simplicity
-    mock_qdrant_client.delete = AsyncMock()
+    # Mock VectorStore adapter
+    mock_store = AsyncMock()
+    mock_store.purge_documents = AsyncMock()
+    mock_store.delete_document = AsyncMock()
+    
     mocker.patch(
-        "backend.app.services.document.storage_service.qdrant.client",
-        mock_qdrant_client,
+        "backend.app.core.factory.LangChainFactory.get_vector_store",
+        return_value=mock_store
+    )
+    
+    from backend.app.rag.ingestion import ingestion_pipeline
+    mocker.patch.object(
+        ingestion_pipeline,
+        "get_ingestion_config",
+        return_value=(MagicMock(), mock_store)
     )
 
     await document_service.delete("doc-123", "default", vault_delete=True)

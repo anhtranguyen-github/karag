@@ -22,7 +22,7 @@ async def test_admin_vector_status():
     assert response.status_code == 200
     data = response.json()
     assert data["success"] is True
-    assert "collections" in data["data"]
+    assert "status" in data["data"]
 
 
 @pytest.mark.asyncio

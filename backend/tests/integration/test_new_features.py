@@ -117,8 +117,8 @@ async def test_ingestion_progress_updates(mocker, mock_db_and_col):
 
     mocker.patch("backend.app.rag.ingestion.ingestion_pipeline.initialize")
     mocker.patch(
-        "backend.app.rag.ingestion.ingestion_pipeline.get_target_collection",
-        return_value=("knowledge_base_1536", 1536),
+        "backend.app.rag.ingestion.ingestion_pipeline.get_ingestion_config",
+        return_value=(MagicMock(), MagicMock()),
     )
 
     mock_loader = MagicMock()
@@ -131,13 +131,15 @@ async def test_ingestion_progress_updates(mocker, mock_db_and_col):
         "backend.app.rag.rag_service.rag_service.get_embeddings",
         return_value=[[0.1] * 1536],
     )
-    mocker.patch("backend.app.rag.qdrant_provider.qdrant.upsert_documents")
+    
+    # Patch the factory or the store methods
+    mock_store = AsyncMock()
     mocker.patch(
-        "backend.app.rag.qdrant_provider.qdrant.client.collection_exists",
-        return_value=True,
+        "backend.app.core.factory.LangChainFactory.get_vector_store",
+        return_value=mock_store
     )
-    # Ensure delete doesn't crash if called
-    mocker.patch("backend.app.rag.qdrant_provider.qdrant.client.delete", AsyncMock())
+    mock_store.upsert_documents = AsyncMock()
+    mock_store.delete_document = AsyncMock()
 
     mock_task = MagicMock()
     mock_task.update_task = AsyncMock()
