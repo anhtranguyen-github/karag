@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 
 
-class AISettings(BaseSettings):
+class KaragSettings(BaseSettings):
     # LLM Configuration
     LLM_PROVIDER: str = "openai"  # openai, anthropic, ollama, vllm, llama-cpp
     LLM_MODEL: str = "gpt-4o"
@@ -59,4 +59,4 @@ class AISettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="allow")
 
 
-ai_settings = AISettings()
+karag_settings = KaragSettings()
