@@ -1,7 +1,7 @@
 from typing import List, Dict, Any, Optional
 import structlog
 import httpx
-from backend.app.core.config import ai_settings
+from backend.app.core.config import karag_settings
 from backend.app.core.telemetry import get_tracer
 
 logger = structlog.get_logger(__name__)
@@ -152,20 +152,20 @@ async def get_reranker(
     provider = config.provider.lower()
 
     if provider == "cohere":
-        if not ai_settings.COHERE_API_KEY:
+        if not karag_settings.COHERE_API_KEY:
             logger.warning(
                 "cohere_api_key_missing",
                 msg="Cohere Reranker requested but no key found.",
             )
             return None
-        return CohereReranker(ai_settings.COHERE_API_KEY, model=config.model)
+        return CohereReranker(karag_settings.COHERE_API_KEY, model=config.model)
     elif provider == "jina":
-        if not ai_settings.JINA_API_KEY:
+        if not karag_settings.JINA_API_KEY:
             logger.warning(
                 "jina_api_key_missing", msg="Jina Reranker requested but no key found."
             )
             return None
-        return JinaReranker(ai_settings.JINA_API_KEY, model=config.model)
+        return JinaReranker(karag_settings.JINA_API_KEY, model=config.model)
     elif provider == "local":
         return LocalReranker(model_name=config.model)
     else:

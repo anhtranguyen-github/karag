@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 
 from backend.app.api.v1.router import api_v1_router
-from backend.app.core.config import ai_settings
+from backend.app.core.config import karag_settings
 from backend.app.core.exceptions import BaseAppException
 from backend.app.core.telemetry import init_telemetry
 from backend.app.core.middleware import ObservabilityMiddleware
@@ -84,14 +84,14 @@ def create_app() -> FastAPI:
     # CORS must be added last so it's the outermost layer (handles errors from other middleware)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=ai_settings.CORS_ORIGINS,
+        allow_origins=karag_settings.CORS_ORIGINS,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
 
     # Prometheus metrics endpoint
-    if ai_settings.METRICS_ENABLED:
+    if karag_settings.METRICS_ENABLED:
         from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
         @app.get("/metrics", tags=["observability"], include_in_schema=False)
@@ -130,7 +130,7 @@ def create_app() -> FastAPI:
         # Manually attach CORS headers to ensure they are present on error responses
         origin = request.headers.get("origin")
         if origin and (
-            origin in ai_settings.CORS_ORIGINS or "*" in ai_settings.CORS_ORIGINS
+            origin in karag_settings.CORS_ORIGINS or "*" in karag_settings.CORS_ORIGINS
         ):
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Credentials"] = "true"
@@ -148,14 +148,14 @@ def create_app() -> FastAPI:
                 "code": "INTERNAL_SERVER_ERROR",
                 "message": "An unexpected error occurred.",
                 "data": {"detail": str(exc)}
-                if ai_settings.LOG_LEVEL == "DEBUG"
+                if karag_settings.LOG_LEVEL == "DEBUG"
                 else None,
             },
         )
         # Manually attach CORS headers to ensure they are present on error responses
         origin = request.headers.get("origin")
         if origin and (
-            origin in ai_settings.CORS_ORIGINS or "*" in ai_settings.CORS_ORIGINS
+            origin in karag_settings.CORS_ORIGINS or "*" in karag_settings.CORS_ORIGINS
         ):
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Credentials"] = "true"
@@ -171,7 +171,7 @@ if __name__ == "__main__":
 
     uvicorn.run(
         "backend.app.main:app",
-        host=ai_settings.BACKEND_HOST,
-        port=ai_settings.BACKEND_PORT,
+        host=karag_settings.BACKEND_HOST,
+        port=karag_settings.BACKEND_PORT,
         reload=False,
     )

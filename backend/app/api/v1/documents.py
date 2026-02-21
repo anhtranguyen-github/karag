@@ -232,7 +232,7 @@ async def sync_document_workspaces():
 @router.get("/documents/{document_id}")
 async def get_document(document_id: str):
     from backend.app.core.minio import minio_manager
-    from backend.app.core.config import ai_settings
+    from backend.app.core.config import karag_settings
 
     doc = await document_service.get_by_id(document_id)
     if not doc:
@@ -240,7 +240,7 @@ async def get_document(document_id: str):
 
     minio_path = doc.get("minio_path")
     if minio_path:
-        bucket_prefix = f"{ai_settings.MINIO_BUCKET}/"
+        bucket_prefix = f"{karag_settings.MINIO_BUCKET}/"
         object_name = minio_path
         if object_name.startswith(bucket_prefix):
             object_name = object_name[len(bucket_prefix) :]
