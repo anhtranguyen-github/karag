@@ -11,6 +11,7 @@ class TaskWorker:
         self.poll_interval = poll_interval
         self._running = False
         self._task: asyncio.Task = None
+        self._last_sync = 0
 
     async def start(self):
         if self._running:
@@ -30,11 +31,23 @@ class TaskWorker:
         logger.info("task_worker_stopped")
 
     async def _loop(self):
+        import time
+        from backend.app.services.document_service import document_service
+
         while self._running:
             try:
                 await self._process_pending_tasks()
                 # Check for stuck processing tasks (e.g. if a worker died without updating status)
                 await task_service.timeout_stuck_tasks(timeout_minutes=60)
+
+                # Periodic Workspace Sync (Every 1 hour)
+                now = time.time()
+                if now - self._last_sync > 3600:
+                    logger.info("background_sync_start", msg="Executing periodic workspace synchronization...")
+                    await document_service.sync_workspaces()
+                    self._last_sync = now
+                    logger.info("background_sync_complete")
+
             except Exception as e:
                 logger.error("task_worker_loop_error", error=str(e), exc_info=True)
 

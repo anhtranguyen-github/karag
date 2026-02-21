@@ -30,7 +30,7 @@ class ThreadTitleUpdate(BaseModel):
 class ChatStreamRequest(BaseModel):
     message: str = Field(..., description="The user message to process")
     thread_id: str = Field(..., description="The ID of the chat thread")
-    workspace_id: str = Field("default", description="The workspace ID context")
+    workspace_id: str = Field("vault", description="The workspace ID context")
     execution: Optional[Dict[str, Any]] = Field(
         None, description="Runtime execution settings"
     )

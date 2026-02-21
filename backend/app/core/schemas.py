@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, computed_field
 from typing import Optional, Literal, Any, Dict
 from backend.app.schemas.chunking import ChunkingConfig, RecursiveChunkingConfig
 from backend.app.schemas.embedding import (
@@ -249,26 +249,32 @@ class AppSettings(BaseModel):
     neo4j_password: Optional[str] = Field(default=None)
 
     # --- Compatibility Proxies (for legacy / flat access) ---
+    @computed_field
     @property
     def embedding_provider(self) -> str:
         return self.embedding.provider
 
+    @computed_field
     @property
     def embedding_model(self) -> str:
         return self.embedding.model
 
+    @computed_field
     @property
     def embedding_dim(self) -> int:
         return self.embedding.dimensions
 
+    @computed_field
     @property
     def llm_provider(self) -> str:
         return self.generation.provider
 
+    @computed_field
     @property
     def llm_model(self) -> str:
         return self.generation.model
 
+    @computed_field
     @property
     def chunk_size(self) -> int:
         return (
@@ -277,6 +283,7 @@ class AppSettings(BaseModel):
             else 800
         )
 
+    @computed_field
     @property
     def chunk_overlap(self) -> int:
         return (
@@ -285,14 +292,17 @@ class AppSettings(BaseModel):
             else 150
         )
 
+    @computed_field
     @property
     def search_limit(self) -> int:
         return self.retrieval.vector.top_k
 
+    @computed_field
     @property
     def reranker_enabled(self) -> bool:
         return self.retrieval.rerank.enabled
 
+    @computed_field
     @property
     def rerank_top_k(self) -> int:
         return self.retrieval.rerank.top_n

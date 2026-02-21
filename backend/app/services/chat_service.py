@@ -25,31 +25,55 @@ class ChatService:
             "chat.get_history",
             attributes={"thread_id": thread_id},
         ):
+            # First try LangGraph checkpoint (for non-execution path)
             config = {"configurable": {"thread_id": thread_id}}
             state = await graph_app.aget_state(config)
 
-            if not state or "messages" not in state.values:
-                return []
+            if state and "messages" in state.values and state.values["messages"]:
+                history = []
+                for msg in state.values["messages"]:
+                    msg_data = {
+                        "role": "user" if msg.type == "human" else "assistant",
+                        "content": msg.content,
+                        "id": getattr(msg, "id", None),
+                    }
+                    if hasattr(msg, "additional_kwargs"):
+                        if "reasoning_steps" in msg.additional_kwargs:
+                            msg_data["reasoning_steps"] = msg.additional_kwargs[
+                                "reasoning_steps"
+                            ]
+                        if "sources" in msg.additional_kwargs:
+                            msg_data["sources"] = msg.additional_kwargs["sources"]
+                    history.append(msg_data)
+                return history
 
-            history = []
-            for msg in state.values["messages"]:
-                msg_data = {
-                    "role": "user" if msg.type == "human" else "assistant",
-                    "content": msg.content,
-                    "id": getattr(msg, "id", None),
-                }
-                if hasattr(msg, "additional_kwargs"):
-                    if "reasoning_steps" in msg.additional_kwargs:
-                        msg_data["reasoning_steps"] = msg.additional_kwargs[
-                            "reasoning_steps"
-                        ]
-                    if "sources" in msg.additional_kwargs:
-                        msg_data["sources"] = msg.additional_kwargs["sources"]
-                history.append(msg_data)
-            return history
+            # Fallback: read from chat_messages collection (for execution/RAG path)
+            db = mongodb_manager.get_async_database()
+            msg_col = db["chat_messages"]
+            docs = await msg_col.find(
+                {"thread_id": thread_id},
+                {"_id": 0, "thread_id": 0}
+            ).sort("created_at", 1).to_list(None)
+            
+            if docs:
+                history = []
+                for i, doc in enumerate(docs):
+                    msg_data = {
+                        "role": doc.get("role", "user"),
+                        "content": doc.get("content", ""),
+                        "id": str(doc.get("_id", f"msg-{i}")),
+                    }
+                    if "reasoning_steps" in doc:
+                        msg_data["reasoning_steps"] = doc["reasoning_steps"]
+                    if "sources" in doc:
+                        msg_data["sources"] = doc["sources"]
+                    history.append(msg_data)
+                return history
+
+            return []
 
     @staticmethod
-    async def list_threads(workspace_id: str = "default") -> List[Dict]:
+    async def list_threads(workspace_id: str = "vault") -> List[Dict]:
         """List all available chat threads for a workspace."""
         with tracer.start_as_current_span(
             "chat.list_threads",
@@ -83,7 +107,7 @@ class ChatService:
             return [
                 {
                     "id": tid,
-                    "title": meta_map.get(tid, {}).get("title", f"Chat {tid[:8]}"),
+                    "title": meta_map.get(tid, {}).get("title", "New chat"),
                     "has_thinking": meta_map.get(tid, {}).get("has_thinking", False),
                     "tags": meta_map.get(tid, {}).get("tags", []),
                 }
@@ -98,13 +122,13 @@ class ChatService:
         if not meta:
             return {
                 "id": thread_id,
-                "title": f"Chat {thread_id[:8]}",
-                "workspace_id": "default",
+                "title": "New chat",
+                "workspace_id": "vault",
             }
         return {
             "id": thread_id,
-            "title": meta.get("title", f"Chat {thread_id[:8]}"),
-            "workspace_id": meta.get("workspace_id", "default"),
+            "title": meta.get("title", "New chat"),
+            "workspace_id": meta.get("workspace_id", "vault"),
             "has_thinking": meta.get("has_thinking", False),
             "tags": meta.get("tags", []),
         }
@@ -131,7 +155,7 @@ class ChatService:
 
     @staticmethod
     async def generate_title(
-        message: str, thread_id: str, workspace_id: str = "default"
+        message: str, thread_id: str, workspace_id: str = "vault"
     ):
         """Automatically generate a title and metadata tags for a new thread."""
         with tracer.start_as_current_span(
@@ -144,10 +168,27 @@ class ChatService:
             try:
                 db = mongodb_manager.get_async_database()
                 col = db["thread_metadata"]
-                if await col.find_one(
-                    {"thread_id": thread_id, "title": {"$exists": True}}
-                ):
+                history = await ChatService.get_history(thread_id)
+                db_meta = await col.find_one({"thread_id": thread_id})
+                logger.info("generate_title_check", thread_id=thread_id, history_len=len(history), has_meta=db_meta is not None, current_title=db_meta.get("title") if db_meta else None)
+
+                # If we have less than 5 messages, just ensure it's "New chat"
+                if len(history) < 5:
+                    if len(history) >= 1 and (not db_meta or "title" not in db_meta):
+                        await col.update_one(
+                            {"thread_id": thread_id},
+                            {"$set": {"title": "New chat", "workspace_id": workspace_id}},
+                            upsert=True
+                        )
+                    logger.info("generate_title_skipped", reason="under_5_messages", count=len(history))
                     return
+
+                # If we have >= 5 messages, we generate if title is missing or still "New chat"
+                if db_meta and "title" in db_meta and db_meta["title"] != "New chat":
+                    logger.info("generate_title_skipped", reason="already_has_title", title=db_meta["title"])
+                    return
+                
+                logger.info("generate_title_proceeding", thread_id=thread_id)
 
                 from backend.app.core.prompt_manager import prompt_manager
 
@@ -265,53 +306,87 @@ class ChatService:
                     "execution_metadata": {"nodes_visited": []},
                 }
 
-                async for event in rag_executor.astream_events(
-                    initial_state, version="v2"
-                ):
-                    kind = event["event"]
-                    node_name = event.get("name", "")
+                collected_sources = []
+                collected_reasoning = []
+                collected_content = []
+                stream_error = None
 
-                    if kind == "on_chain_start":
-                        yield f"data: {json.dumps({'type': 'reasoning', 'steps': [f'Entering {node_name} node']})}\n\n"
+                try:
+                    async for event in rag_executor.astream_events(
+                        initial_state, version="v2"
+                    ):
+                        kind = event["event"]
+                        node_name = event.get("name", "")
 
-                    if kind == "on_chat_model_stream":
-                        content = event["data"]["chunk"].content
-                        if content:
-                            yield f"data: {json.dumps({'type': 'content', 'delta': content})}\n\n"
+                        if kind == "on_chain_start":
+                            step_msg = f"Entering {node_name} node"
+                            collected_reasoning.append(step_msg)
+                            yield f"data: {json.dumps({'type': 'reasoning', 'steps': [step_msg]})}\n\n"
 
-                    if kind == "on_chat_model_end":
-                        # Fallback for models that don't support streaming or if streaming fails
-                        content = event["data"]["output"].content
-                        if content:
-                            yield f"data: {json.dumps({'type': 'content', 'delta': content})}\n\n"
+                        if kind == "on_chat_model_stream":
+                            content = event["data"]["chunk"].content
+                            if content:
+                                collected_content.append(content)
+                                yield f"data: {json.dumps({'type': 'content', 'delta': content})}\n\n"
 
-                    if kind == "on_chain_end":
-                        output = event["data"].get("output", {})
-                        if node_name == "retrieve":
-                            # Stream sources back to UI
-                            results = output.get("retrieved_results", [])
-                            if results:
-                                sources = [
-                                    {
-                                        "id": i + 1,
-                                        "name": r.get("source", r.get("payload", {}).get("source", "Unknown")),
-                                        "content": r.get("text", r.get("payload", {}).get("text", ""))
-                                    }
-                                    for i, r in enumerate(results)
-                                ]
-                                yield f"data: {json.dumps({'type': 'sources', 'sources': sources})}\n\n"
+                        if kind == "on_chat_model_end":
+                            # Fallback for models that don't support streaming or if streaming fails
+                            content = event["data"]["output"].content
+                            if content:
+                                collected_content.append(content)
+                                yield f"data: {json.dumps({'type': 'content', 'delta': content})}\n\n"
 
-                        if node_name in ["generate", "synthesize"]:
-                             # Final fallback to ensure content delivery
-                             content = output.get("final_answer") or (output.get("draft_answers")[0] if output.get("draft_answers") else None)
-                             if content:
-                                 yield f"data: {json.dumps({'type': 'content', 'delta': content})}\n\n"
+                        if kind == "on_chain_end":
+                            output = event["data"].get("output", {})
+                            if node_name == "retrieve":
+                                # Stream sources back to UI
+                                results = output.get("retrieved_results", [])
+                                if results:
+                                    sources = [
+                                        {
+                                            "id": i + 1,
+                                            "name": r.get("source", r.get("payload", {}).get("source", "Unknown")),
+                                            "content": r.get("text", r.get("payload", {}).get("text", ""))
+                                        }
+                                        for i, r in enumerate(results)
+                                    ]
+                                    collected_sources = sources
+                                    yield f"data: {json.dumps({'type': 'sources', 'sources': sources})}\n\n"
 
-                    if kind == "on_chain_end" and node_name == "LangGraph":
-                        final_output = event["data"].get("output", {})
-                        if "execution_metadata" in final_output:
-                            # Stream final tracing/chasing data
-                            yield f"data: {json.dumps({'type': 'tracing', 'data': final_output['execution_metadata']})}\n\n"
+                            if isinstance(output, dict) and "execution_metadata" in output:
+                                yield f"data: {json.dumps({'type': 'tracing', 'data': output['execution_metadata']})}\n\n"
+                except Exception as stream_exc:
+                    stream_error = stream_exc
+                    logger.error("rag_stream_error", thread_id=thread_id, error=str(stream_exc))
+                    yield f"data: {json.dumps({'type': 'error', 'message': str(stream_exc)})}\n\n"
+                finally:
+                    # Always persist history (even partial) to MongoDB
+                    ai_content = "".join(collected_content) or ("Error during processing." if stream_error else "No answer generated.")
+                    try:
+                        db = mongodb_manager.get_async_database()
+                        msg_col = db["chat_messages"]
+                        user_doc = {
+                            "thread_id": thread_id,
+                            "role": "user",
+                            "content": message,
+                            "created_at": datetime.utcnow().isoformat(),
+                        }
+                        ai_doc = {
+                            "thread_id": thread_id,
+                            "role": "assistant",
+                            "content": ai_content,
+                            "created_at": datetime.utcnow().isoformat(),
+                        }
+                        if collected_reasoning:
+                            ai_doc["reasoning_steps"] = collected_reasoning
+                        if collected_sources:
+                            ai_doc["sources"] = collected_sources
+                        await msg_col.insert_many([user_doc, ai_doc])
+                        logger.info("history_persisted", thread_id=thread_id, msg_count=2)
+                        # Generate title after history is persisted
+                        await ChatService.generate_title(message, thread_id, workspace_id)
+                    except Exception as e:
+                        logger.error("history_sync_failed", error=str(e))
 
             else:
                 # Fallback to the existing agentic graph

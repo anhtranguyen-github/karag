@@ -256,7 +256,6 @@ async def get_document(document_id: str):
             "video/",
             "application/pdf",
             "application/zip",
-            "application/octet-stream",
         ]
     )
 

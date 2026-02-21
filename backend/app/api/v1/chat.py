@@ -52,12 +52,6 @@ async def chat_stream(payload: ChatStreamRequest):
     Spawns background title generation for consistent UX.
     """
     logger.info("chat_stream_request", payload=payload.model_dump())
-    # Spawn title generation in background (non-blocking)
-    asyncio.create_task(
-        chat_service.generate_title(
-            payload.message, payload.thread_id, payload.workspace_id
-        )
-    )
 
     return StreamingResponse(
         chat_service.stream_updates(
