@@ -2,7 +2,6 @@ import structlog
 from typing import List, Dict, Any
 from backend.app.core.neo4j import neo4j_manager
 from backend.app.core.settings_manager import settings_manager
-from backend.app.rag.qdrant_provider import qdrant
 from backend.app.providers.llm import get_llm
 
 logger = structlog.get_logger(__name__)
@@ -91,14 +90,17 @@ class GraphProvider:
                 )
 
             # STEP 4: Final retrieval from Vector DB (ranked chunks)
-            results = await qdrant.hybrid_search(
-                collection_name="knowledge_base",
+            from backend.app.core.factory import LangChainFactory
+            store = await LangChainFactory.get_vector_store()
+            
+            search_results = await store.search(
+                config=settings.retrieval,
                 query_vector=query_vector,
                 query_text=refined_query,
-                limit=limit,
-                alpha=settings.hybrid_alpha,
                 workspace_id=workspace_id,
             )
+            
+            results = [{"id": res.id, "score": res.score, "payload": res.payload} for res in search_results]
 
             # Annotate results with graph metadata
             for res in results:
@@ -113,14 +115,16 @@ class GraphProvider:
                 "graph_retrieval_failed", error=str(e), workspace_id=workspace_id
             )
             # Fallback to basic search if Neo4j is down or fails
-            return await qdrant.hybrid_search(
-                collection_name="knowledge_base",
+            from backend.app.core.factory import LangChainFactory
+            store = await LangChainFactory.get_vector_store()
+            
+            search_results = await store.search(
+                config=settings.retrieval,
                 query_vector=query_vector,
                 query_text=query,
-                limit=limit,
-                alpha=settings.hybrid_alpha,
                 workspace_id=workspace_id,
             )
+            return [{"id": res.id, "score": res.score, "payload": res.payload} for res in search_results]
 
     async def upsert_entities(self, entities: List[Dict[str, Any]], workspace_id: str):
         """Insert or update entities and relationships in Neo4j."""

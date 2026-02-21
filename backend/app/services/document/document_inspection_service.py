@@ -43,7 +43,12 @@ class DocumentInspectionService:
         db = mongodb_manager.get_async_database()
         pipeline = [
             {"$sort": {"updated_at": -1}},
-            {"$group": {"_id": "$content_hash", "doc": {"$first": "$$ROOT"}}},
+            {
+                "$group": {
+                    "_id": {"$ifNull": ["$content_hash", "$id"]},
+                    "doc": {"$first": "$$ROOT"},
+                }
+            },
             {"$replaceRoot": {"newRoot": "$doc"}},
         ]
         cursor = db.documents.aggregate(pipeline)
@@ -76,25 +81,15 @@ class DocumentInspectionService:
 
     async def get_chunks(self, doc_id: str, limit: int = 100) -> List[Dict]:
         """Retrieve vector chunks associated with a specific document ID."""
-        from backend.app.rag.qdrant_provider import qdrant
-
         doc = await self.get_by_id(doc_id)
         if not doc:
             return []
 
         ws_id = doc.get("workspace_id")
-        # FIX: get_collection_name expects workspace_id (str), not dimension (int)
-        collection = await qdrant.get_collection_name(workspace_id=ws_id)
-
-        # Filter strictly by doc_id stored in vector payload
-        results = await qdrant.client.scroll(
-            collection_name=collection,
-            scroll_filter={"must": [{"key": "doc_id", "match": {"value": doc_id}}]},
-            limit=limit,
-            with_payload=True,
-            with_vectors=False,
-        )
-        return [{"id": p.id, **p.payload} for p in results[0]]
+        from backend.app.rag.ingestion import ingestion_pipeline
+        
+        config, store = await ingestion_pipeline.get_ingestion_config(ws_id)
+        return await store.get_document_chunks(config, doc_id, limit)
 
     async def inspect(self, doc_id: str) -> Dict:
         """Inspect document state and relationships using its internal ID."""
@@ -116,7 +111,6 @@ class DocumentInspectionService:
             if ws.get("id")
         }
         ws_map["vault"] = "Global Vault"
-        ws_map["default"] = "Default Workspace"
 
         relationships = []
         zombies_found = False
@@ -133,12 +127,17 @@ class DocumentInspectionService:
                 ws_name = f"Orphaned ({ws_id})"
                 zombies_found = True
 
+            from backend.app.core.settings_manager import settings_manager
+            settings = await settings_manager.get_settings(ws_id)
+            
             relationships.append(
                 {
                     "workspace_id": ws_id,
                     "workspace_name": ws_name,
                     "status": d.get("status", "uploaded"),
                     "chunks": d.get("chunks", 0),
+                    "embedding_dim": settings.embedding_dim,
+                    "model": settings.embedding_model,
                     "last_indexed": d.get("updated_at") or d.get("created_at"),
                     "is_primary": d.get("id") == doc.get("id"),
                     "type": "index",
@@ -151,12 +150,15 @@ class DocumentInspectionService:
                     s_ws_name = f"Orphaned ({shared_ws})"
                     zombies_found = True
 
+                s_settings = await settings_manager.get_settings(shared_ws)
                 relationships.append(
                     {
                         "workspace_id": shared_ws,
                         "workspace_name": s_ws_name,
                         "status": d.get("status", "uploaded"),
                         "chunks": d.get("chunks", 0),
+                        "embedding_dim": s_settings.embedding_dim,
+                        "model": s_settings.embedding_model,
                         "last_indexed": d.get("updated_at") or d.get("created_at"),
                         "is_primary": False,
                         "shared_from": ws_id,

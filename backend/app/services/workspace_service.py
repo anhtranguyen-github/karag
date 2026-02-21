@@ -3,7 +3,7 @@ import structlog
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 from backend.app.core.mongodb import mongodb_manager
-from backend.app.rag.qdrant_provider import qdrant
+
 from backend.app.core.exceptions import ValidationError, ConflictError, NotFoundError
 
 logger = structlog.get_logger(__name__)
@@ -211,6 +211,9 @@ class WorkspaceService:
         await db["workspace_settings"].delete_one({"workspace_id": workspace_id})
         await db["thread_metadata"].delete_many({"workspace_id": workspace_id})
 
+        # 3. Automatic Synchronization
+        await document_service.sync_workspaces()
+
     @staticmethod
     async def get_details(workspace_id: str) -> Optional[Dict]:
         db = mongodb_manager.get_async_database()
@@ -260,7 +263,17 @@ class WorkspaceService:
         edges = []
 
         # 1. Document Nodes (Always show document-level relationships)
-        centroids = await qdrant.get_document_centroids(workspace_id)
+        from backend.app.rag.ingestion import ingestion_pipeline
+        config, store = await ingestion_pipeline.get_ingestion_config(workspace_id)
+        centroids_list = await store.get_document_centroids(config)
+        
+        centroids = {}
+        for c in centroids_list:
+            centroids[c["source"]] = {
+                "name": c["title"],
+                "vector": c["centroid"]
+            }
+
         for doc_id, data in centroids.items():
             nodes.append(
                 {

@@ -94,6 +94,7 @@ class RAGService:
         Decisions are guided by Schema, execution by LangChain.
         """
         from backend.app.core.factory import LangChainFactory
+        from backend.app.core.settings_manager import settings_manager
 
         with tracer.start_as_current_span(
             "rag.search",
@@ -104,20 +105,26 @@ class RAGService:
         ):
             start = time.perf_counter()
 
-            # Use retriever factory to get the configured implementation layer
-            retriever = await LangChainFactory.get_retriever(workspace_id)
+            # Execute retrieval via adapter pattern
+            store = await LangChainFactory.get_vector_store(workspace_id)
+            settings = await settings_manager.get_settings(workspace_id)
 
-            # Execute retrieval
-            # Note: LangChain retrievers return Document objects, we map them back to our result schema
-            docs = await retriever.ainvoke(query)
+            query_vector = await self.get_query_embedding(query, workspace_id)
+
+            search_results = await store.search(
+                config=settings.retrieval,
+                query_vector=query_vector,
+                query_text=query,
+                workspace_id=workspace_id
+            )
 
             results = []
-            for doc in docs:
+            for res in search_results:
                 results.append(
                     {
-                        "text": doc.page_content,
-                        "payload": {"text": doc.page_content, **doc.metadata},
-                        "score": getattr(doc, "score", None),
+                        "text": res.payload.get("text", ""),
+                        "payload": res.payload,
+                        "score": res.score,
                     }
                 )
 

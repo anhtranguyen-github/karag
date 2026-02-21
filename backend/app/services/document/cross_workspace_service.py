@@ -3,8 +3,6 @@ from datetime import datetime
 from backend.app.core.mongodb import mongodb_manager
 from backend.app.core.exceptions import NotFoundError, ValidationError
 from backend.app.services.task.task_service import task_service
-from backend.app.rag.qdrant_provider import qdrant
-from qdrant_client.http import models as qmodels
 from .document_ingestion_service import document_ingestion_service
 from .base import logger
 
@@ -83,12 +81,14 @@ class CrossWorkspaceDocumentService:
             raise NotFoundError(f"Document '{doc_id}' not found.")
 
         if action == "link":
-            exists = await db.documents.find_one(
-                {
-                    "workspace_id": target_workspace_id,
-                    "content_hash": res["content_hash"],
-                }
-            )
+            content_hash = res.get("content_hash")
+            query = {"workspace_id": target_workspace_id}
+            if content_hash:
+                query["content_hash"] = content_hash
+            else:
+                query["id"] = res.get("id")
+
+            exists = await db.documents.find_one(query)
             if exists:
                 return
 
@@ -133,26 +133,10 @@ class CrossWorkspaceDocumentService:
                     await task_service.update_task(
                         task_id, progress=90, message="Cleaning up source workspace..."
                     )
-                # FIX: get_collection_name is async and expects workspace_id
-                source_coll = await qdrant.get_collection_name(
-                    workspace_id=source_ws_id
-                )
-                if await qdrant.client.collection_exists(source_coll):
-                    await qdrant.client.delete(
-                        collection_name=source_coll,
-                        points_selector=qmodels.Filter(
-                            must=[
-                                qmodels.FieldCondition(
-                                    key="doc_id",
-                                    match=qmodels.MatchValue(value=res["id"]),
-                                ),
-                                qmodels.FieldCondition(
-                                    key="workspace_id",
-                                    match=qmodels.MatchValue(value=source_ws_id),
-                                ),
-                            ]
-                        ),
-                    )
+                from backend.app.rag.ingestion import ingestion_pipeline
+                config, store = await ingestion_pipeline.get_ingestion_config(source_ws_id)
+                await store.delete_document(config, res.get("filename", res.get("id")))
+                
         elif action == "share":
             await db.documents.update_one(
                 {"id": res["id"]},
@@ -166,6 +150,9 @@ class CrossWorkspaceDocumentService:
                 },
             )
             updated_doc = await db.documents.find_one({"id": res["id"]})
-            await qdrant.sync_shared_with(res["id"], updated_doc.get("shared_with", []))
+            
+            from backend.app.rag.ingestion import ingestion_pipeline
+            config, store = await ingestion_pipeline.get_ingestion_config(res["workspace_id"])
+            await store.sync_shared_with(config, res["id"], updated_doc.get("shared_with", []))
         else:
             raise ValidationError(f"Invalid action: {action}")

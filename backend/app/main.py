@@ -22,8 +22,8 @@ logger = structlog.get_logger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from backend.app.rag.ingestion import ingestion_pipeline
     from backend.app.core.minio import minio_manager
-    from backend.app.rag.qdrant_provider import qdrant
 
     from backend.app.core.path_utils import BASE_DIR
 
@@ -37,13 +37,12 @@ async def lifespan(app: FastAPI):
 
     global_settings = settings_manager.get_global_settings()
     target_dim = global_settings.embedding_dim
-    coll_name = await qdrant.get_collection_name()
 
     logger.info(
         "vector_init",
-        msg=f"Ensuring active collection: {coll_name} (Dim: {target_dim})",
+        msg=f"Ensuring active collection (Dim: {target_dim})",
     )
-    await qdrant.create_collection(coll_name, target_dim)
+    await ingestion_pipeline.initialize("default")
 
     # Cleanup old completed/failed tasks
     from backend.app.services.task.task_service import task_service

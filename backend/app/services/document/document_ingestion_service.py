@@ -4,8 +4,6 @@ from backend.app.core.minio import minio_manager
 from backend.app.core.exceptions import NotFoundError
 from backend.app.services.task.task_service import task_service
 from backend.app.rag.ingestion import ingestion_pipeline
-from backend.app.rag.qdrant_provider import qdrant
-from qdrant_client.http import models as qmodels
 from .base import logger
 
 
@@ -58,22 +56,9 @@ class DocumentIngestionService:
                 )
                 return 0
 
-            target_coll = await qdrant.get_collection_name(workspace_id=workspace_id)
-            if await qdrant.client.collection_exists(target_coll):
-                await qdrant.client.delete(
-                    collection_name=target_coll,
-                    points_selector=qmodels.Filter(
-                        must=[
-                            qmodels.FieldCondition(
-                                key="doc_id", match=qmodels.MatchValue(value=doc["id"])
-                            ),
-                            qmodels.FieldCondition(
-                                key="workspace_id",
-                                match=qmodels.MatchValue(value=workspace_id),
-                            ),
-                        ]
-                    ),
-                )
+            config, store = await ingestion_pipeline.get_ingestion_config(workspace_id)
+            # Use adapter to delete old indexes for this document (re-indexing case)
+            await store.delete_document(config, doc.get("filename", doc.get("id")))
 
             content = minio_manager.get_file(doc["minio_path"])
             if not content:

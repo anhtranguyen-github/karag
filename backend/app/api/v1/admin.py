@@ -1,6 +1,5 @@
 from fastapi import APIRouter
 from backend.app.core.prompt_manager import prompt_manager
-from backend.app.rag.qdrant_provider import qdrant
 from backend.app.schemas.base import AppResponse
 
 router = APIRouter(prefix="/admin", tags=["Admin & Ops"])
@@ -15,7 +14,9 @@ async def get_prompts():
 @router.get("/vector/status")
 async def get_vector_status():
     """Get status of the vector store."""
-    status = await qdrant.get_system_info()
+    from backend.app.core.factory import LangChainFactory
+    store = await LangChainFactory.get_vector_store()
+    status = await store.get_system_info()
     return AppResponse.success_response(data=status)
 
 

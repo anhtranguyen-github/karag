@@ -120,64 +120,11 @@ class LangChainFactory:
             )
 
     @staticmethod
-    async def get_retriever(workspace_id: Optional[str] = None) -> BaseRetriever:
+    async def get_vector_store(workspace_id: Optional[str] = None):
         """
-        Builds a LangChain BaseRetriever that respects the RetrievalConfig schema.
-        Maps retrieval strategy (vector, rerank, etc.) to LC components.
+        Returns the appropriate VectorStore implementation.
+        Currently defaults to QdrantStore.
         """
-        settings = await settings_manager.get_settings(workspace_id)
-        config: RetrievalConfig = settings.retrieval
-
-        # 1. Base VectorStore initialization
-        embeddings = await LangChainFactory.get_embeddings(workspace_id)
-
-        # We use a deterministic collection name based on the workspace settings
-        from backend.app.rag.qdrant_provider import qdrant
-
-        collection_name = await qdrant.get_collection_name(workspace_id)
-
-        client = AsyncQdrantClient(
-            url=ai_settings.QDRANT_URL, api_key=ai_settings.QDRANT_API_KEY
-        )
-        vectorstore = QdrantVectorStore(
-            client=client,
-            collection_name=collection_name,
-            embeddings=embeddings,
-        )
-
-        # 2. Base Retriever Configuration
-        retriever = vectorstore.as_retriever(
-            search_type="similarity",
-            search_kwargs={
-                "k": config.vector.top_k,
-                "score_threshold": config.vector.score_threshold,
-                "filter": {"workspace_id": workspace_id} if workspace_id else None,
-            },
-        )
-
-        # 3. Add Reranking if enabled in schema
-        if config.rerank.enabled:
-            from langchain.retrievers import ContextualCompressionRetriever
-
-            if config.rerank.provider == "cohere":
-                from langchain_cohere import CohereRerank
-
-                compressor = CohereRerank(
-                    model=config.rerank.model,
-                    top_n=config.rerank.top_n,
-                    cohere_api_key=ai_settings.COHERE_API_KEY,
-                )
-            else:
-                # Fallback to a custom or local LC-compatible compressor if needed
-                # For this refactor, we focus on standard integrations
-                logger.warning(
-                    "rerank_provider_unsupported_in_retriever_factory",
-                    provider=config.rerank.provider,
-                )
-                return retriever
-
-            retriever = ContextualCompressionRetriever(
-                base_compressor=compressor, base_retriever=retriever
-            )
-
-        return retriever
+        from backend.app.rag.store.qdrant import QdrantStore
+        # Here we could switch based on configuration if we had multiple providers
+        return QdrantStore()

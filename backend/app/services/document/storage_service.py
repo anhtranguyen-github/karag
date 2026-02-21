@@ -2,8 +2,6 @@ from typing import Optional
 from backend.app.core.mongodb import mongodb_manager
 from backend.app.core.minio import minio_manager
 from backend.app.core.exceptions import NotFoundError
-from backend.app.rag.qdrant_provider import qdrant
-from qdrant_client.http import models as qmodels
 from .base import logger
 
 
@@ -27,7 +25,7 @@ class StorageService:
         db = mongodb_manager.get_async_database()
 
         query = {"id": doc_id}
-        if not (vault_delete and workspace_id == "vault"):
+        if not vault_delete:
             query["$or"] = [
                 {"workspace_id": workspace_id},
                 {"shared_with": workspace_id},
@@ -37,62 +35,50 @@ class StorageService:
         if not doc:
             raise NotFoundError(f"Document '{doc_id}' not found.")
 
+        from backend.app.core.factory import LangChainFactory
+        store = await LangChainFactory.get_vector_store()
+
         if vault_delete:
-            # Check if this content is used elsewhere
-            others = await db.documents.count_documents(
-                {"minio_path": doc["minio_path"], "id": {"$ne": doc["id"]}}
-            )
+            content_hash = doc.get("content_hash")
+            minio_path = doc.get("minio_path")
 
-            if others == 0:
+            # Find all related document IDs sharing this content
+            related_ids = [doc_id]
+            if content_hash:
+                cursor = db.documents.find({"content_hash": content_hash}, {"id": 1})
+                related_docs = await cursor.to_list(1000)
+                related_ids = list(set([r["id"] for r in related_docs] + [doc_id]))
+
+            # 1. Cleanup MinIO file (if it exists)
+            if minio_path:
                 try:
-                    minio_manager.delete_file(doc["minio_path"])
+                    minio_manager.delete_file(minio_path)
                 except Exception as e:
-                    logger.error("minio_delete_failed", error=str(e))
+                    logger.error("minio_delete_failed", error=str(e), doc_id=doc_id)
 
-            # Cleanup all vector collections
-            for dim in [384, 512, 768, 896, 1024, 1536, 1792, 3072]:
-                coll = f"knowledge_base_{dim}"
-                if await qdrant.client.collection_exists(coll):
-                    await qdrant.client.delete(
-                        collection_name=coll,
-                        points_selector=qmodels.Filter(
-                            must=[
-                                qmodels.FieldCondition(
-                                    key="doc_id",
-                                    match=qmodels.MatchValue(value=doc["id"]),
-                                )
-                            ]
-                        ),
-                    )
+            # 2. Cleanup all vector collections for all related IDs
+            await store.purge_documents(related_ids)
 
-            await db.documents.delete_many({"id": doc["id"]})
+            # 3. Permanent wipe from MongoDB
+            if content_hash:
+                await db.documents.delete_many({"content_hash": content_hash})
+            else:
+                await db.documents.delete_many({"id": doc_id})
         else:
             # Soft delete logic
-            if doc["workspace_id"] == workspace_id:
+            doc_workspace = doc.get("workspace_id")
+            if doc_workspace == workspace_id:
                 await db.documents.update_one(
-                    {"id": doc["id"]}, {"$set": {"workspace_id": "vault"}}
+                    {"id": doc_id}, {"$set": {"workspace_id": "vault"}}
                 )
             else:
                 await db.documents.update_one(
-                    {"id": doc["id"]}, {"$pull": {"shared_with": workspace_id}}
+                    {"id": doc_id}, {"$pull": {"shared_with": workspace_id}}
                 )
 
-            coll = await qdrant.get_collection_name(workspace_id)
-            if await qdrant.client.collection_exists(coll):
-                await qdrant.client.delete(
-                    collection_name=coll,
-                    points_selector=qmodels.Filter(
-                        must=[
-                            qmodels.FieldCondition(
-                                key="doc_id", match=qmodels.MatchValue(value=doc["id"])
-                            ),
-                            qmodels.FieldCondition(
-                                key="workspace_id",
-                                match=qmodels.MatchValue(value=workspace_id),
-                            ),
-                        ]
-                    ),
-                )
+            from backend.app.rag.ingestion import ingestion_pipeline
+            config, store = await ingestion_pipeline.get_ingestion_config(workspace_id)
+            await store.delete_document(config, doc.get("filename", doc_id))
 
     async def delete_many(self, workspace_id: str, delete_content: bool = False):
         """Batch delete all documents in a workspace."""
@@ -115,16 +101,6 @@ class StorageService:
                 {"shared_with": workspace_id}, {"$pull": {"shared_with": workspace_id}}
             )
 
-            coll = await qdrant.get_collection_name(workspace_id)
-            if await qdrant.client.collection_exists(coll):
-                await qdrant.client.delete(
-                    collection_name=coll,
-                    points_selector=qmodels.Filter(
-                        must=[
-                            qmodels.FieldCondition(
-                                key="workspace_id",
-                                match=qmodels.MatchValue(value=workspace_id),
-                            )
-                        ]
-                    ),
-                )
+            from backend.app.core.factory import LangChainFactory
+            store = await LangChainFactory.get_vector_store()
+            await store.purge_workspace(workspace_id)

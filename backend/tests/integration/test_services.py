@@ -116,4 +116,5 @@ async def test_document_service_delete(mocker):
 
     # Assertions should remain the same as they check the internal cleanup logic
     mock_minio.assert_called_once_with("ws/doc/v1/test.pdf")
-    mock_col.delete_many.assert_called_once_with({"id": "doc-123"})
+    # Implementation uses content_hash for delete_many if present
+    mock_col.delete_many.assert_called_once_with({"content_hash": "hash-123"})

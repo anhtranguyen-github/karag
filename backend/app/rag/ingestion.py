@@ -1,10 +1,9 @@
 import time
 import uuid
 import os
-from typing import Dict
+from typing import Dict, Any
 
 import structlog
-from backend.app.rag.qdrant_provider import qdrant
 from backend.app.rag.rag_service import rag_service
 from backend.app.core.telemetry import (
     get_tracer,
@@ -18,27 +17,35 @@ from langchain_community.document_loaders import (
     Docx2txtLoader,
 )
 
+from backend.app.core.factory import LangChainFactory
+from backend.app.schemas.database import IngestionConfig
+from backend.app.rag.store.base import DocumentPoint
+
 logger = structlog.get_logger(__name__)
 tracer = get_tracer(__name__)
-
 
 class IngestionPipeline:
     def __init__(self):
         pass
 
-    async def get_target_collection(self, workspace_id: str) -> tuple:
-        """Determine collection name based on workspace embedding dimensions."""
+    async def get_ingestion_config(self, workspace_id: str) -> tuple[IngestionConfig, Any]:
+        """Get the ingestion config and the store instance for the workspace."""
         from backend.app.core.settings_manager import settings_manager
-
+        
         settings = await settings_manager.get_settings(workspace_id)
-        coll_name = await qdrant.get_collection_name(workspace_id=workspace_id)
-        return coll_name, settings.embedding.dimensions
+        config = IngestionConfig(
+            workspace_id=workspace_id,
+            vector_size=settings.embedding.dimensions,
+            chunking=settings.chunking
+        )
+        store = await LangChainFactory.get_vector_store(workspace_id)
+        return config, store
 
     async def initialize(self, workspace_id: str = "default"):
         """Ensure the workspace's target collection exists."""
-        name, dim = await self.get_target_collection(workspace_id)
-        await qdrant.create_collection(name, vector_size=dim)
-        return name
+        config, store = await self.get_ingestion_config(workspace_id)
+        await store.create_collection_if_not_exists(config)
+        return config.collection_name_override or f"knowledge_base_{config.vector_size}"
 
     async def process_file(self, file_path_str: str, metadata: Dict = None):
         """
@@ -68,7 +75,8 @@ class IngestionPipeline:
         ) as span:
             pipeline_start = time.perf_counter()
 
-            target_collection, _ = await self.get_target_collection(workspace_id)
+            config, store = await self.get_ingestion_config(workspace_id)
+            
             doc_id = (metadata or {}).get("doc_id")
             task_id = (metadata or {}).get("task_id")
             from backend.app.services.task.task_service import task_service
@@ -185,9 +193,10 @@ class IngestionPipeline:
 
             # --- Component 4: Store ---
             store_start = time.perf_counter()
-            ids = [str(uuid.uuid4()) for _ in all_chunks]
-            payloads = [
-                {
+            
+            points = []
+            for i, chunk in enumerate(all_chunks):
+                payload = {
                     **(metadata or {}),
                     "text": chunk,
                     "source": (metadata or {}).get("filename") or file_path.name,
@@ -200,12 +209,16 @@ class IngestionPipeline:
                     "minio_path": (metadata or {}).get("minio_path"),
                     "content_hash": (metadata or {}).get("content_hash"),
                 }
-                for i, chunk in enumerate(all_chunks)
-            ]
+                points.append(
+                    DocumentPoint(
+                        id=str(uuid.uuid4()),
+                        vector=embeddings[i],
+                        payload=payload
+                    )
+                )
 
-            await qdrant.upsert_documents(
-                target_collection, vectors=embeddings, ids=ids, payloads=payloads
-            )
+            await store.upsert_documents(config=config, points=points)
+            
             store_duration = time.perf_counter() - store_start
             DOCUMENT_INGESTION_LATENCY.labels(extension=ext, stage="store").observe(
                 store_duration
@@ -259,28 +272,31 @@ class IngestionPipeline:
                 "workspace_id": workspace_id,
             },
         ):
-            target_collection, _ = await self.get_target_collection(workspace_id)
+            config, store = await self.get_ingestion_config(workspace_id)
 
             chunks = await rag_service.chunk_text(text, workspace_id=workspace_id)
             embeddings = await rag_service.get_embeddings(
                 chunks, workspace_id=workspace_id
             )
 
-            ids = [str(uuid.uuid4()) for _ in chunks]
-            payloads = [
-                {
+            points = []
+            for i, chunk in enumerate(chunks):
+                payload = {
                     **(metadata or {}),
                     "text": chunk,
                     "index": i,
                     "workspace_id": workspace_id,
                     "shared_with": (metadata or {}).get("shared_with", []),
                 }
-                for i, chunk in enumerate(chunks)
-            ]
+                points.append(
+                    DocumentPoint(
+                        id=str(uuid.uuid4()),
+                        vector=embeddings[i],
+                        payload=payload
+                    )
+                )
 
-            await qdrant.upsert_documents(
-                target_collection, vectors=embeddings, ids=ids, payloads=payloads
-            )
+            await store.upsert_documents(config=config, points=points)
 
             # Optional Graph Extraction
             from backend.app.core.settings_manager import settings_manager
@@ -309,7 +325,7 @@ class IngestionPipeline:
             },
         ) as span:
             pipeline_start = time.perf_counter()
-            target_collection, _ = await self.get_target_collection(workspace_id)
+            config, store = await self.get_ingestion_config(workspace_id)
 
             # --- Component 1: Load ---
             loader = WebBaseLoader(url)
@@ -334,9 +350,9 @@ class IngestionPipeline:
             )
 
             # --- Component 4: Store ---
-            ids = [str(uuid.uuid4()) for _ in all_chunks]
-            payloads = [
-                {
+            points = []
+            for i, chunk in enumerate(all_chunks):
+                payload = {
                     **(metadata or {}),
                     "text": chunk,
                     "source": url,
@@ -344,12 +360,15 @@ class IngestionPipeline:
                     "index": i,
                     "workspace_id": workspace_id,
                 }
-                for i, chunk in enumerate(all_chunks)
-            ]
+                points.append(
+                    DocumentPoint(
+                        id=str(uuid.uuid4()),
+                        vector=embeddings[i],
+                        payload=payload
+                    )
+                )
 
-            await qdrant.upsert_documents(
-                target_collection, vectors=embeddings, ids=ids, payloads=payloads
-            )
+            await store.upsert_documents(config=config, points=points)
 
             total_duration = time.perf_counter() - pipeline_start
             logger.info(
