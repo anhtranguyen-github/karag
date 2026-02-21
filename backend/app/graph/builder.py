@@ -68,12 +68,12 @@ def get_graph_app():
     global _app
     if _app is None:
         from langgraph.checkpoint.mongodb import MongoDBSaver
-        from backend.app.core.config import ai_settings
+        from backend.app.core.config import karag_settings
         from backend.app.core.mongodb import mongodb_manager
 
         # Compile with Persistence
         checkpointer = MongoDBSaver(
-            mongodb_manager.client, db_name=ai_settings.MONGO_DB
+            mongodb_manager.client, db_name=karag_settings.MONGO_DB
         )
         _app = workflow.compile(checkpointer=checkpointer)
     return _app

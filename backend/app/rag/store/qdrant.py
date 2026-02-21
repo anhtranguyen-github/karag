@@ -5,7 +5,7 @@ import structlog
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.http import models as qmodels
 
-from backend.app.core.config import ai_settings
+from backend.app.core.config import karag_settings
 from backend.app.core.telemetry import get_tracer, VECTOR_STORE_LATENCY
 
 from backend.app.schemas.database import IngestionConfig
@@ -17,10 +17,10 @@ tracer = get_tracer(__name__)
 
 class QdrantStore(VectorStore):
     def __init__(self):
-        client_kwargs = {"url": ai_settings.QDRANT_URL}
-        if ai_settings.QDRANT_API_KEY:
-            client_kwargs["api_key"] = ai_settings.QDRANT_API_KEY
-            if ai_settings.QDRANT_URL.startswith("http://"):
+        client_kwargs = {"url": karag_settings.QDRANT_URL}
+        if karag_settings.QDRANT_API_KEY:
+            client_kwargs["api_key"] = karag_settings.QDRANT_API_KEY
+            if karag_settings.QDRANT_URL.startswith("http://"):
                 logger.warn(
                     "qdrant_insecure_connection",
                     msg="Using API key over unencrypted HTTP. Not recommended for production.",

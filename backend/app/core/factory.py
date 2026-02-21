@@ -15,7 +15,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.embeddings import Embeddings
 from langchain_core.retrievers import BaseRetriever
 
-from backend.app.core.config import ai_settings
+from backend.app.core.config import karag_settings
 from backend.app.core.settings_manager import settings_manager
 from backend.app.schemas.embedding import (
     EmbeddingConfig,
@@ -58,7 +58,7 @@ class LangChainFactory:
         if isinstance(config, OpenAIGenerationConfig):
             model = ChatOpenAI(
                 model=config.model,
-                api_key=ai_settings.OPENAI_API_KEY,
+                api_key=karag_settings.OPENAI_API_KEY,
                 presence_penalty=config.presence_penalty,
                 frequency_penalty=config.frequency_penalty,
                 **base_kwargs,
@@ -67,7 +67,7 @@ class LangChainFactory:
             model = AzureChatOpenAI(
                 azure_deployment=config.deployment_name,
                 openai_api_version=config.api_version,
-                api_key=ai_settings.AZURE_OPENAI_API_KEY,
+                api_key=karag_settings.AZURE_OPENAI_API_KEY,
                 **base_kwargs,
             )
         elif isinstance(
@@ -75,7 +75,7 @@ class LangChainFactory:
         ):
             # Local models are routed through Ollama to reduce custom protocol code
             model = ChatOllama(
-                model=config.model, base_url=ai_settings.OLLAMA_BASE_URL, **base_kwargs
+                model=config.model, base_url=karag_settings.OLLAMA_BASE_URL, **base_kwargs
             )
         else:
             raise ValueError(f"Unsupported LLM provider in schema: {config.provider}")
@@ -90,18 +90,18 @@ class LangChainFactory:
         if isinstance(config, OpenAIEmbeddingConfig):
             return OpenAIEmbeddings(
                 model=config.model,
-                api_key=ai_settings.OPENAI_API_KEY,
+                api_key=karag_settings.OPENAI_API_KEY,
             )
         elif isinstance(config, AzureOpenAIEmbeddingConfig):
             return AzureOpenAIEmbeddings(
                 azure_deployment=config.deployment_name,
                 openai_api_version=config.api_version,
-                api_key=ai_settings.AZURE_OPENAI_API_KEY,
+                api_key=karag_settings.AZURE_OPENAI_API_KEY,
             )
         elif isinstance(config, VoyageEmbeddingConfig):
             return VoyageAIEmbeddings(
                 model=config.model,
-                voyage_api_key=ai_settings.VOYAGE_API_KEY,
+                voyage_api_key=karag_settings.VOYAGE_API_KEY,
             )
         elif isinstance(config, HuggingFaceEmbeddingConfig):
             return HuggingFaceEmbeddings(
@@ -112,7 +112,7 @@ class LangChainFactory:
         elif isinstance(config, OllamaEmbeddingConfig):
             return OllamaEmbeddings(
                 model=config.model,
-                base_url=ai_settings.OLLAMA_BASE_URL,
+                base_url=karag_settings.OLLAMA_BASE_URL,
             )
         else:
             raise ValueError(

@@ -1,7 +1,7 @@
 import structlog
 from typing import List, Dict, Any
 from neo4j import AsyncGraphDatabase
-from backend.app.core.config import ai_settings
+from backend.app.core.config import karag_settings
 from backend.app.rag.store.graph_base import GraphStore
 
 logger = structlog.get_logger(__name__)
@@ -16,10 +16,10 @@ class Neo4jStore(GraphStore):
     def get_driver(self):
         if not self.driver:
             self.driver = AsyncGraphDatabase.driver(
-                ai_settings.NEO4J_URI,
-                auth=(ai_settings.NEO4J_USER, ai_settings.NEO4J_PASSWORD),
+                karag_settings.NEO4J_URI,
+                auth=(karag_settings.NEO4J_USER, karag_settings.NEO4J_PASSWORD),
             )
-            logger.info("neo4j_driver_initialized", uri=ai_settings.NEO4J_URI)
+            logger.info("neo4j_driver_initialized", uri=karag_settings.NEO4J_URI)
         return self.driver
 
     async def execute_query(
