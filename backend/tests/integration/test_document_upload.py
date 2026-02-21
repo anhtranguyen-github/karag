@@ -122,7 +122,7 @@ async def test_upload_resilience_on_qdrant_403(mocker):
 
     # Simulate Qdrant throwing a Forbidden error during create_collection
     mocker.patch(
-        "backend.app.rag.qdrant_provider.qdrant.create_collection",
+        "backend.app.rag.store.qdrant.QdrantStore.create_collection_if_not_exists",
         new=AsyncMock(side_effect=Exception("Forbidden: 403")),
     )
 
@@ -142,7 +142,3 @@ async def test_upload_resilience_on_qdrant_403(mocker):
         )
     except Exception as e:
         pytest.fail(f"Ingestion crashed on Qdrant 403: {e}")
-
-    # Verify we logged or handled it
-    # Note: In real code we catch it and continue or fail gracefully
-    # Based on my changes in qdrant_provider.py, create_collection should return False on 403.
