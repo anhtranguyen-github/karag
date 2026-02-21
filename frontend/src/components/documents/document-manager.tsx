@@ -152,10 +152,10 @@ export function DocumentManager({ workspaceId, isGlobal = false }: DocumentManag
                     <button
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isUploading}
-                        className="h-12 px-6 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-tiny font-black tracking-widest transition-all flex items-center gap-3 shadow-xl shadow-blue-600/10 active:scale-95 disabled:opacity-50"
+                        className="h-12 px-6 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-tiny font-bold tracking-widest transition-all flex items-center gap-3 shadow-xl shadow-blue-600/10 active:scale-95 disabled:opacity-50"
                     >
                         {isUploading ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
-                        {isUploading ? 'ENCRYPTING...' : 'INGEST DOC'}
+                        {isUploading ? 'Uploading...' : 'Upload file'}
                     </button>
                 </div>
             </div>
@@ -164,16 +164,16 @@ export function DocumentManager({ workspaceId, isGlobal = false }: DocumentManag
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center py-24 gap-6 opacity-50">
                     <Loader2 size={40} className="animate-spin text-blue-500" />
-                    <p className="text-tiny font-black uppercase tracking-[0.3em] text-gray-500">Retrieving Knowledge Buffer...</p>
+                    <p className="text-tiny font-bold tracking-[0.3em] text-gray-500">Loading files...</p>
                 </div>
             ) : filteredDocs.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-24 text-center">
                     <div className="w-20 h-20 rounded-[2.5rem] bg-white/5 border border-white/5 flex items-center justify-center text-gray-700 mb-6">
                         <FileText size={32} />
                     </div>
-                    <h3 className="text-h3 font-black text-white mb-2 uppercase tracking-tight">No match found</h3>
+                    <h3 className="text-h3 font-bold text-white mb-2 tracking-tight">No files found</h3>
                     <p className="text-caption text-gray-600 max-w-xs font-medium leading-relaxed">
-                        Try refining your search or ingest a new document module into this workspace.
+                        Try refining your search or upload a new file to this workspace.
                     </p>
                 </div>
             ) : viewMode === 'list' ? (
@@ -181,11 +181,11 @@ export function DocumentManager({ workspaceId, isGlobal = false }: DocumentManag
                     <table className="w-full text-left">
                         <thead>
                             <tr className="border-b border-white/5 h-14 bg-white/[0.02]">
-                                <th className="pl-8 text-[10px] font-black uppercase tracking-widest text-gray-600">Document Hub</th>
-                                <th className="text-[10px] font-black uppercase tracking-widest text-gray-600">Metric</th>
-                                <th className="text-[10px] font-black uppercase tracking-widest text-gray-600">Protocol</th>
-                                <th className="text-[10px] font-black uppercase tracking-widest text-gray-600">Status</th>
-                                <th className="pr-8 text-right text-[10px] font-black uppercase tracking-widest text-gray-600">Auth</th>
+                                <th className="pl-8 text-[10px] font-bold text-gray-600">File</th>
+                                <th className="text-[10px] font-bold text-gray-600">Size</th>
+                                <th className="text-[10px] font-bold text-gray-600">Details</th>
+                                <th className="text-[10px] font-bold text-gray-600">Status</th>
+                                <th className="pr-8 text-right text-[10px] font-bold text-gray-600">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -201,16 +201,16 @@ export function DocumentManager({ workspaceId, isGlobal = false }: DocumentManag
                                                 <FileText size={18} />
                                             </div>
                                             <div>
-                                                <p className="text-tiny font-black text-gray-200 group-hover:text-blue-400 transition-colors uppercase tracking-tight">{doc.filename}</p>
-                                                <p className="text-[9px] text-gray-600 font-bold uppercase tracking-widest">{doc.extension} • {formatDate(doc.created_at)}</p>
+                                                <p className="text-tiny font-bold text-gray-200 group-hover:text-blue-400 transition-colors tracking-tight">{doc.filename}</p>
+                                                <p className="text-[9px] text-gray-600 font-bold">{doc.extension} • {formatDate(doc.created_at)}</p>
                                             </div>
                                         </div>
                                     </td>
                                     <td className="text-tiny font-bold text-gray-400">{formatBytes(doc.size_bytes)}</td>
-                                    <td className="text-tiny font-bold text-gray-400">{doc.chunks} Blocks</td>
+                                    <td className="text-tiny font-bold text-gray-400">{doc.chunks} chunks</td>
                                     <td>
                                         <div className={cn(
-                                            "inline-flex items-center gap-2 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest",
+                                            "inline-flex items-center gap-2 px-3 py-1 rounded-full text-[9px] font-bold",
                                             doc.status === 'indexed' ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
                                         )}>
                                             <div className={cn("w-1 h-1 rounded-full", doc.status === 'indexed' ? "bg-emerald-400 shadow-[0_0_5px_#10b981]" : "bg-blue-400 animate-pulse")} />
@@ -251,21 +251,21 @@ export function DocumentManager({ workspaceId, isGlobal = false }: DocumentManag
                                 </button>
                             </div>
 
-                            <h4 className="text-caption font-black text-white group-hover:text-blue-400 transition-colors uppercase tracking-tight line-clamp-1 mb-2">
+                            <h4 className="text-caption font-bold text-white group-hover:text-blue-400 transition-colors tracking-tight line-clamp-1 mb-2">
                                 {doc.filename}
                             </h4>
-                            <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest mb-6">
+                            <p className="text-[10px] text-gray-600 font-bold mb-6">
                                 {doc.extension} • {formatBytes(doc.size_bytes)}
                             </p>
 
                             <div className="flex items-center justify-between">
                                 <div className={cn(
-                                    "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border",
+                                    "px-3 py-1 rounded-full text-[9px] font-bold border",
                                     doc.status === 'indexed' ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-blue-500/10 text-blue-400 border-blue-500/20"
                                 )}>
                                     {doc.status}
                                 </div>
-                                <div className="text-[10px] font-bold text-gray-700">{doc.chunks} Blocks</div>
+                                <div className="text-[10px] font-bold text-gray-700">{doc.chunks} chunks</div>
                             </div>
                         </motion.div>
                     ))}
@@ -335,11 +335,11 @@ function DocumentDetailPanel({ doc, onClose }: { doc: Document, workspaceId?: st
                             <FileText size={28} />
                         </div>
                         <div>
-                            <h2 className="text-h3 font-black text-white uppercase tracking-tighter">{doc.filename}</h2>
+                            <h2 className="text-h3 font-bold text-white tracking-tighter">{doc.filename}</h2>
                             <div className="flex items-center gap-3 mt-1">
-                                <span className="text-tiny font-black text-gray-500 uppercase tracking-widest">{doc.extension} Module</span>
+                                <span className="text-tiny font-bold text-gray-500">{doc.extension} file</span>
                                 <span className="w-1 h-1 rounded-full bg-gray-800" />
-                                <span className="text-tiny font-black text-blue-500 uppercase tracking-widest">ID: {doc.id.substring(0, 12)}</span>
+                                <span className="text-tiny font-bold text-blue-500">ID: {doc.id.substring(0, 12)}</span>
                             </div>
                         </div>
                     </div>
@@ -351,14 +351,14 @@ function DocumentDetailPanel({ doc, onClose }: { doc: Document, workspaceId?: st
                 {/* Navigation */}
                 <div className="px-10 h-16 border-b border-white/5 flex items-center gap-8">
                     {[
-                        { id: 'content', label: 'Knowledge Buffer', icon: LayoutGrid },
-                        { id: 'metadata', label: 'Meta Protocol', icon: Database }
+                        { id: 'content', label: 'Content', icon: LayoutGrid },
+                        { id: 'metadata', label: 'Details', icon: Database }
                     ].map(tab => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as 'content' | 'metadata')}
                             className={cn(
-                                "flex items-center gap-3 h-full border-b-2 transition-all text-tiny font-black uppercase tracking-[0.2em]",
+                                "flex items-center gap-3 h-full border-b-2 transition-all text-tiny font-bold",
                                 activeTab === tab.id ? "border-blue-500 text-white" : "border-transparent text-gray-600 hover:text-gray-400"
                             )}
                         >
@@ -376,7 +376,7 @@ function DocumentDetailPanel({ doc, onClose }: { doc: Document, workspaceId?: st
                                 <div className="flex items-center justify-center py-20 opacity-30 animate-pulse">
                                     <div className="flex flex-col items-center gap-4">
                                         <Loader2 size={32} className="animate-spin" />
-                                        <span className="text-tiny font-black tracking-widest uppercase">Deciphering...</span>
+                                        <span className="text-tiny font-bold tracking-widest">Loading...</span>
                                     </div>
                                 </div>
                             ) : content ? (
@@ -388,41 +388,41 @@ function DocumentDetailPanel({ doc, onClose }: { doc: Document, workspaceId?: st
                             ) : (
                                 <div className="flex flex-col items-center justify-center py-20 text-gray-700">
                                     <AlertCircle size={40} className="mb-4" />
-                                    <p className="font-black uppercase tracking-widest">Buffer Empty</p>
+                                    <p className="font-bold tracking-widest">Empty</p>
                                 </div>
                             )}
                         </div>
                     ) : (
                         <div className="space-y-12">
                             <div className="grid grid-cols-2 gap-4">
-                                <MetaStat label="File Magnitude" value={formatBytes(doc.size_bytes)} icon={HardDrive} />
-                                <MetaStat label="Cognitive Chunks" value={`${doc.chunks} Units`} icon={Database} />
-                                <MetaStat label="Registry Date" value={formatDate(doc.created_at)} icon={Calendar} />
-                                <MetaStat label="Protocol State" value={doc.status.toUpperCase()} icon={CheckCircle2} color="text-emerald-500" />
+                                <MetaStat label="File size" value={formatBytes(doc.size_bytes)} icon={HardDrive} />
+                                <MetaStat label="Chunks" value={`${doc.chunks} units`} icon={Database} />
+                                <MetaStat label="Created at" value={formatDate(doc.created_at)} icon={Calendar} />
+                                <MetaStat label="Status" value={doc.status} icon={CheckCircle2} color="text-emerald-500" />
                             </div>
 
                             <section className="space-y-4">
-                                <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-700 ml-1">Workspace Allocation</h4>
+                                <h4 className="text-[10px] font-bold text-gray-700 ml-1">Workspace</h4>
                                 <div className="p-4 rounded-3xl bg-white/[0.02] border border-white/5 flex items-center justify-between">
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 rounded-xl bg-blue-600/10 flex items-center justify-center text-blue-500 border border-blue-500/20">
                                             <Shield size={18} />
                                         </div>
                                         <div>
-                                            <p className="text-tiny font-black text-white uppercase tracking-tight">{doc.workspace_name || 'Global System Vault'}</p>
-                                            <p className="text-[9px] text-gray-600 font-bold uppercase tracking-widest">{doc.workspace_id || 'SYSTEM_ROOT'}</p>
+                                            <p className="text-tiny font-bold text-white tracking-tight">{doc.workspace_name || 'Vault'}</p>
+                                            <p className="text-[9px] text-gray-600 font-bold">{doc.workspace_id || 'SYSTEM_ROOT'}</p>
                                         </div>
                                     </div>
-                                    <div className="px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 text-[9px] font-black tracking-widest uppercase border border-emerald-500/20">
-                                        ACTIVE INDEX
+                                    <div className="px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 text-[9px] font-bold border border-emerald-500/20">
+                                        Indexed
                                     </div>
                                 </div>
                             </section>
 
                             <div className="p-6 rounded-3xl bg-indigo-500/5 border border-indigo-500/10 flex items-start gap-4">
                                 <Info size={18} className="text-indigo-400 shrink-0 mt-1" />
-                                <p className="text-tiny text-indigo-400/60 font-medium leading-relaxed italic">
-                                    This document is part of the localized knowledge core. Deletion here will only purge the workspace-specific embeddings unless executed via the Global Vault.
+                                <p className="text-tiny text-indigo-400/60 font-medium leading-relaxed">
+                                    This document is part of the workspace. Deletion here will only remove the workspace-specific embeddings unless executed via the Vault.
                                 </p>
                             </div>
                         </div>
@@ -438,8 +438,8 @@ function MetaStat({ label, value, icon: Icon, color = "text-gray-400" }: { label
         <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 flex items-start gap-4 hover:bg-white/[0.04] transition-all">
             <div className={cn("mt-1", color)}><Icon size={18} /></div>
             <div>
-                <p className="text-[10px] font-black text-gray-700 uppercase tracking-widest mb-1">{label}</p>
-                <p className="text-caption font-black text-gray-300">{value}</p>
+                <p className="text-[10px] font-bold text-gray-700 mb-1">{label}</p>
+                <p className="text-caption font-bold text-gray-300">{value}</p>
             </div>
         </div>
     );

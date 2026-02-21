@@ -21,8 +21,6 @@ export default function Home() {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [workspaceToDelete, setWorkspaceToDelete] = useState<Workspace | null>(null);
   const [workspaceToView, setWorkspaceToView] = useState<Workspace | null>(null);
-  const [providerFilter, setProviderFilter] = useState("all");
-  const [engineFilter, setEngineFilter] = useState("all");
 
   useEffect(() => {
     fetchWorkspaces();
@@ -63,25 +61,10 @@ export default function Home() {
 
   const filteredWorkspaces = useMemo(() => {
     return workspaces.filter(ws => {
-      const matchesSearch = ws.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      return ws.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         ws.description?.toLowerCase().includes(searchTerm.toLowerCase());
-
-      const matchesProvider = providerFilter === "all" || ws.llmProvider === providerFilter;
-      const matchesEngine = engineFilter === "all" || ws.ragEngine === engineFilter;
-
-      return matchesSearch && matchesProvider && matchesEngine;
     });
-  }, [workspaces, searchTerm, providerFilter, engineFilter]);
-
-  const uniqueProviders = useMemo(() => {
-    const p = new Set(workspaces.map(ws => ws.llmProvider).filter(Boolean));
-    return Array.from(p);
-  }, [workspaces]);
-
-  const uniqueEngines = useMemo(() => {
-    const e = new Set(workspaces.map(ws => ws.ragEngine).filter(Boolean));
-    return Array.from(e);
-  }, [workspaces]);
+  }, [workspaces, searchTerm]);
 
   return (
     <main className="min-h-screen bg-background text-foreground selection:bg-indigo-500/30 overflow-x-hidden">
@@ -122,40 +105,14 @@ export default function Home() {
         </div>
 
         {/* Search & Stats */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
-          <div className="lg:col-span-2 relative group">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-indigo-400 transition-colors" />
-            <input
-              placeholder="Search workspaces..."
-              className="w-full h-12 pl-12 pr-4 rounded-2xl bg-secondary border border-border focus:border-indigo-500/30 transition-all outline-none font-medium text-foreground placeholder:text-muted-foreground focus:bg-muted"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <div className="flex gap-4">
-            <select
-              title="Provider Filter"
-              value={providerFilter}
-              onChange={(e) => setProviderFilter(e.target.value)}
-              className="flex-1 h-12 px-4 rounded-2xl bg-secondary border border-border text-[10px] font-black uppercase tracking-widest outline-none focus:border-indigo-500/30 transition-all text-muted-foreground focus:text-indigo-400"
-            >
-              <option value="all">ALL PROVIDERS</option>
-              {uniqueProviders.map(p => (
-                <option key={p || 'none'} value={p || ''}>{p?.toUpperCase() || 'NONE'}</option>
-              ))}
-            </select>
-            <select
-              title="Engine Filter"
-              value={engineFilter}
-              onChange={(e) => setEngineFilter(e.target.value)}
-              className="flex-1 h-12 px-4 rounded-2xl bg-secondary border border-border text-[10px] font-black uppercase tracking-widest outline-none focus:border-indigo-500/30 transition-all text-muted-foreground focus:text-emerald-400"
-            >
-              <option value="all">ALL ENGINES</option>
-              {uniqueEngines.map(e => (
-                <option key={e || 'none'} value={e || ''}>{e?.toUpperCase() || 'NONE'}</option>
-              ))}
-            </select>
-          </div>
+        <div className="max-w-xl mx-auto mb-12 relative group w-full">
+          <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-indigo-400 transition-colors" />
+          <input
+            placeholder="Search environments by name or identifier..."
+            className="w-full h-16 pl-16 pr-6 rounded-[2rem] bg-secondary border border-border focus:border-indigo-500/30 transition-all outline-none font-bold text-lg text-foreground placeholder:text-muted-foreground focus:bg-muted shadow-2xl shadow-indigo-500/5"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
 
         {/* Workspaces Grid */}

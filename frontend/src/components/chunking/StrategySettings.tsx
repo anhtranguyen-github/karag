@@ -5,7 +5,14 @@ import { UseFormReturn } from 'react-hook-form';
 import { CreateWorkspaceInput } from '@/lib/schemas/workspaces';
 import { ChunkingConfig } from '@/lib/schemas/chunking';
 import { cn } from '@/lib/utils';
-import { Settings2, Type, Hash, Brain, Layers, Layout } from 'lucide-react';
+import { Settings2, Type, Hash, Brain, Layers, Layout, ChevronDown } from 'lucide-react';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 
 interface StrategySettingsProps {
     form: UseFormReturn<CreateWorkspaceInput>;
@@ -16,16 +23,16 @@ export function ChunkingStrategySelector({ form }: StrategySettingsProps) {
     const currentStrategy = watch('chunking.strategy');
 
     const strategies = [
-        { id: 'recursive', label: 'Recursive', icon: Layers, desc: 'Optimized for structured text' },
-        { id: 'sentence', label: 'Sentence', icon: Type, desc: 'Grammar-aware natural splits' },
-        { id: 'token', label: 'Token', icon: Hash, desc: 'Strict LLM token limit splits' },
-        { id: 'semantic', label: 'Semantic', icon: Brain, desc: 'Meaning-preserving clusters' },
-        { id: 'fixed', label: 'Fixed', icon: Settings2, desc: 'Simple character length splits' },
-        { id: 'document', label: 'Document', icon: Layout, desc: 'Layout & structural splits' },
+        { id: 'recursive', label: 'Recursive', icon: Layers },
+        { id: 'sentence', label: 'Sentence', icon: Type },
+        { id: 'token', label: 'Token', icon: Hash },
+        { id: 'semantic', label: 'Semantic', icon: Brain },
+        { id: 'fixed', label: 'Fixed', icon: Settings2 },
+        { id: 'document', label: 'Document', icon: Layout },
     ];
 
     return (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-2.5">
             {strategies.map((s) => {
                 const Icon = s.icon;
                 const isActive = currentStrategy === s.id;
@@ -46,20 +53,32 @@ export function ChunkingStrategySelector({ form }: StrategySettingsProps) {
                             setValue('chunking', defaultConfigs[s.id as ChunkingConfig['strategy']]);
                         }}
                         className={cn(
-                            "p-3 rounded-xl border text-left transition-all group",
+                            "group relative flex items-center gap-4 p-3.5 rounded-2xl border text-left transition-all duration-200",
                             isActive
-                                ? "bg-indigo-500/10 border-indigo-500 text-foreground shadow-lg shadow-indigo-500/5"
-                                : "bg-secondary/50 border-border text-muted-foreground hover:border-indigo-500/30 hover:bg-secondary"
+                                ? "bg-indigo-500/10 border-indigo-500/50 text-foreground ring-1 ring-indigo-500/20 shadow-[0_8px_20px_-6px_rgba(99,102,241,0.15)]"
+                                : "bg-card/40 border-border/60 text-muted-foreground hover:bg-secondary/80 hover:border-indigo-500/30"
                         )}
                     >
                         <div className={cn(
-                            "w-8 h-8 rounded-lg flex items-center justify-center mb-2 transition-colors",
-                            isActive ? "bg-indigo-500 text-white" : "bg-card border border-border text-muted-foreground group-hover:text-foreground"
+                            "flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300",
+                            isActive
+                                ? "bg-indigo-500 text-white scale-110 shadow-lg shadow-indigo-500/25"
+                                : "bg-secondary/80 border border-border/50 text-muted-foreground group-hover:bg-indigo-500/20 group-hover:text-indigo-500"
                         )}>
-                            <Icon size={16} />
+                            <Icon size={18} />
                         </div>
-                        <div className="font-bold text-[11px] mb-0.5">{s.label}</div>
-                        <div className="text-[9px] opacity-60 leading-tight">{s.desc}</div>
+                        <div className="flex flex-col min-w-0">
+                            <div className={cn(
+                                "font-bold text-xs mb-0.5 tracking-tight transition-colors",
+                                isActive ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
+                            )}>
+                                {s.label}
+                            </div>
+                        </div>
+
+                        {isActive && (
+                            <div className="absolute right-3 w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                        )}
                     </button>
                 );
             })}
@@ -68,209 +87,236 @@ export function ChunkingStrategySelector({ form }: StrategySettingsProps) {
 }
 
 export function ChunkingStrategyDetails({ form }: StrategySettingsProps) {
-    const { register, watch } = form;
+    const { register, watch, setValue } = form;
     const strategy = watch('chunking.strategy');
 
-    const inputClass = "w-full bg-secondary border border-border rounded-xl px-3 py-2 text-caption focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-foreground";
-    const labelClass = "text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1.5 block";
+    const inputClass = "w-full h-11 bg-secondary/50 border border-border/60 rounded-xl px-4 text-xs font-bold focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/40 outline-none transition-all text-foreground placeholder:text-muted-foreground/30";
+    const labelClass = "text-[10px] font-black text-muted-foreground/80 uppercase tracking-widest mb-2 block px-1";
 
     switch (strategy) {
         case 'recursive':
             return (
-                <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                            <label className={labelClass}>Max Chunk Size</label>
-                            <input type="number" {...register('chunking.max_chunk_size', { valueAsNumber: true })} className={inputClass} />
+                <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-5">
+                        <div className="space-y-2">
+                            <label className={labelClass}>Max Chunk Size (Tokens/Chars)</label>
+                            <input type="number" {...register('chunking.max_chunk_size', { valueAsNumber: true })} className={inputClass} placeholder="800" />
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                             <label className={labelClass}>Min Chunk Size</label>
-                            <input type="number" {...register('chunking.min_chunk_size', { valueAsNumber: true })} className={inputClass} />
+                            <input type="number" {...register('chunking.min_chunk_size', { valueAsNumber: true })} className={inputClass} placeholder="100" />
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                             <label className={labelClass}>Overlap</label>
-                            <input type="number" {...register('chunking.chunk_overlap', { valueAsNumber: true })} className={inputClass} />
+                            <input type="number" {...register('chunking.chunk_overlap', { valueAsNumber: true })} className={inputClass} placeholder="200" />
                         </div>
-                        <div className="space-y-1">
-                            <label className={labelClass}>Separators (JSON)</label>
+                        <div className="space-y-2">
+                            <label className={labelClass}>Separators (Regex/JSON)</label>
                             <input {...register('chunking.separators')} className={inputClass} placeholder='["\n\n", "\n", " "]' />
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="flex items-center gap-2">
-                            <input type="checkbox" {...register('chunking.keep_separator')} id="keep_sep" className="rounded bg-secondary border-border" />
-                            <label htmlFor="keep_sep" className="text-[10px] text-muted-foreground font-black uppercase tracking-widest cursor-pointer">Keep Separator</label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <input type="checkbox" {...register('chunking.trim_whitespace')} id="trim_ws" className="rounded bg-secondary border-border" />
-                            <label htmlFor="trim_ws" className="text-[10px] text-muted-foreground font-black uppercase tracking-widest cursor-pointer">Trim Whitespace</label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <input type="checkbox" {...register('chunking.fallback_to_sentence')} id="fallback_sent" className="rounded bg-secondary border-border" />
-                            <label htmlFor="fallback_sent" className="text-[10px] text-muted-foreground font-black uppercase tracking-widest cursor-pointer">Fallback to Sentence</label>
-                        </div>
+
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+                        <label className="group flex items-center gap-3 p-3 rounded-2xl bg-secondary/30 border border-border/40 hover:bg-secondary/50 transition-all cursor-pointer">
+                            <input type="checkbox" {...register('chunking.keep_separator')} className="w-4 h-4 rounded-md border-border bg-card text-indigo-500 focus:ring-indigo-500/20" />
+                            <span className="text-[10px] font-black text-muted-foreground group-hover:text-foreground uppercase tracking-widest transition-colors">Keep Sep.</span>
+                        </label>
+                        <label className="group flex items-center gap-3 p-3 rounded-2xl bg-secondary/30 border border-border/40 hover:bg-secondary/50 transition-all cursor-pointer">
+                            <input type="checkbox" {...register('chunking.trim_whitespace')} className="w-4 h-4 rounded-md border-border bg-card text-indigo-500 focus:ring-indigo-500/20" />
+                            <span className="text-[10px] font-black text-muted-foreground group-hover:text-foreground uppercase tracking-widest transition-colors">Trim WS</span>
+                        </label>
+                        <label className="group flex items-center gap-3 p-3 rounded-2xl bg-secondary/30 border border-border/40 hover:bg-secondary/50 transition-all cursor-pointer">
+                            <input type="checkbox" {...register('chunking.fallback_to_sentence')} className="w-4 h-4 rounded-md border-border bg-card text-indigo-500 focus:ring-indigo-500/20" />
+                            <span className="text-[10px] font-black text-muted-foreground group-hover:text-foreground uppercase tracking-widest transition-colors">Fallback</span>
+                        </label>
                     </div>
                 </div>
             );
         case 'sentence':
             return (
-                <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                            <label className={labelClass}>Max Sentences</label>
-                            <input type="number" {...register('chunking.max_sentences_per_chunk', { valueAsNumber: true })} className={inputClass} />
+                <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-5">
+                        <div className="space-y-2">
+                            <label className={labelClass}>Max Sentences / Chunk</label>
+                            <input type="number" {...register('chunking.max_sentences_per_chunk', { valueAsNumber: true })} className={inputClass} placeholder="5" />
                         </div>
-                        <div className="space-y-1">
-                            <label className={labelClass}>Min Sentences</label>
-                            <input type="number" {...register('chunking.min_sentences_per_chunk', { valueAsNumber: true })} className={inputClass} />
+                        <div className="space-y-2">
+                            <label className={labelClass}>Min Sentences / Chunk</label>
+                            <input type="number" {...register('chunking.min_sentences_per_chunk', { valueAsNumber: true })} className={inputClass} placeholder="1" />
                         </div>
-                        <div className="space-y-1">
-                            <label className={labelClass}>Overlap</label>
-                            <input type="number" {...register('chunking.sentence_overlap', { valueAsNumber: true })} className={inputClass} />
+                        <div className="space-y-2">
+                            <label className={labelClass}>Sentence Overlap</label>
+                            <input type="number" {...register('chunking.sentence_overlap', { valueAsNumber: true })} className={inputClass} placeholder="1" />
                         </div>
-                        <div className="space-y-1">
-                            <label className={labelClass}>Language</label>
+                        <div className="space-y-2">
+                            <label className={labelClass}>Natural Language</label>
                             <input {...register('chunking.language')} className={inputClass} placeholder="en" />
                         </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                            <input type="checkbox" {...register('chunking.respect_paragraphs')} id="resp_para" className="rounded bg-secondary border-border" />
-                            <label htmlFor="resp_para" className="text-[10px] text-muted-foreground font-black uppercase tracking-widest cursor-pointer">Respect Paragraphs</label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <input type="checkbox" {...register('chunking.merge_short_sentences')} id="merge_short" className="rounded bg-secondary border-border" />
-                            <label htmlFor="merge_short" className="text-[10px] text-muted-foreground font-black uppercase tracking-widest cursor-pointer">Merge Short</label>
-                        </div>
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                        <label className="group flex items-center gap-3 p-3 rounded-2xl bg-secondary/30 border border-border/40 hover:bg-secondary/50 transition-all cursor-pointer">
+                            <input type="checkbox" {...register('chunking.respect_paragraphs')} className="w-4 h-4 rounded-md border-border bg-card text-indigo-500 focus:ring-indigo-500/20" />
+                            <span className="text-[10px] font-black text-muted-foreground group-hover:text-foreground uppercase tracking-widest transition-colors">Respect Paragraphs</span>
+                        </label>
+                        <label className="group flex items-center gap-3 p-3 rounded-2xl bg-secondary/30 border border-border/40 hover:bg-secondary/50 transition-all cursor-pointer">
+                            <input type="checkbox" {...register('chunking.merge_short_sentences')} className="w-4 h-4 rounded-md border-border bg-card text-indigo-500 focus:ring-indigo-500/20" />
+                            <span className="text-[10px] font-black text-muted-foreground group-hover:text-foreground uppercase tracking-widest transition-colors">Merge Short</span>
+                        </label>
                     </div>
                 </div>
             );
         case 'token':
             return (
-                <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                            <label className={labelClass}>Max Tokens</label>
-                            <input type="number" {...register('chunking.max_tokens', { valueAsNumber: true })} className={inputClass} />
+                <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-5">
+                        <div className="space-y-2">
+                            <label className={labelClass}>Max Token Limit</label>
+                            <input type="number" {...register('chunking.max_tokens', { valueAsNumber: true })} className={inputClass} placeholder="512" />
                         </div>
-                        <div className="space-y-1">
-                            <label className={labelClass}>Overlap</label>
-                            <input type="number" {...register('chunking.token_overlap', { valueAsNumber: true })} className={inputClass} />
+                        <div className="space-y-2">
+                            <label className={labelClass}>Token Overlap</label>
+                            <input type="number" {...register('chunking.token_overlap', { valueAsNumber: true })} className={inputClass} placeholder="50" />
                         </div>
-                        <div className="space-y-1">
-                            <label className={labelClass}>Tokenizer</label>
-                            <select {...register('chunking.tokenizer_type')} className={inputClass}>
-                                <option value="tiktoken">TikToken</option>
-                                <option value="sentencepiece">SentencePiece</option>
-                                <option value="hf">HuggingFace</option>
-                            </select>
+                        <div className="space-y-2">
+                            <label className={labelClass}>Tokenizer Engine</label>
+                            <Select
+                                onValueChange={(v) => setValue('chunking.tokenizer_type', v as any)}
+                                value={watch('chunking.tokenizer_type')}
+                            >
+                                <SelectTrigger className={inputClass}>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="tiktoken">TikToken (OpenAI)</SelectItem>
+                                    <SelectItem value="sentencepiece">SentencePiece</SelectItem>
+                                    <SelectItem value="hf">HuggingFace</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="flex items-center gap-2">
-                            <input type="checkbox" {...register('chunking.count_special_tokens')} id="special_toks" className="rounded bg-secondary border-border" />
-                            <label htmlFor="special_toks" className="text-[10px] text-muted-foreground font-black uppercase tracking-widest cursor-pointer">Special Tokens</label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <input type="checkbox" {...register('chunking.truncate_overflow')} id="trunc_over" className="rounded bg-secondary border-border" />
-                            <label htmlFor="trunc_over" className="text-[10px] text-muted-foreground font-black uppercase tracking-widest cursor-pointer">Truncate Overflow</label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <input type="checkbox" {...register('chunking.strict_token_limit')} id="strict_lim" className="rounded bg-secondary border-border" />
-                            <label htmlFor="strict_lim" className="text-[10px] text-muted-foreground font-black uppercase tracking-widest cursor-pointer">Strict Limit</label>
-                        </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+                        <label className="group flex items-center gap-3 p-3 rounded-2xl bg-secondary/30 border border-border/40 hover:bg-secondary/50 transition-all cursor-pointer">
+                            <input type="checkbox" {...register('chunking.count_special_tokens')} className="w-4 h-4 rounded-md border-border bg-card text-indigo-500 focus:ring-indigo-500/20" />
+                            <span className="text-[10px] font-black text-muted-foreground group-hover:text-foreground uppercase tracking-widest transition-colors">Special Tok.</span>
+                        </label>
+                        <label className="group flex items-center gap-3 p-3 rounded-2xl bg-secondary/30 border border-border/40 hover:bg-secondary/50 transition-all cursor-pointer">
+                            <input type="checkbox" {...register('chunking.truncate_overflow')} className="w-4 h-4 rounded-md border-border bg-card text-indigo-500 focus:ring-indigo-500/20" />
+                            <span className="text-[10px] font-black text-muted-foreground group-hover:text-foreground uppercase tracking-widest transition-colors">Truncate</span>
+                        </label>
+                        <label className="group flex items-center gap-3 p-3 rounded-2xl bg-secondary/30 border border-border/40 hover:bg-secondary/50 transition-all cursor-pointer">
+                            <input type="checkbox" {...register('chunking.strict_token_limit')} className="w-4 h-4 rounded-md border-border bg-card text-indigo-500 focus:ring-indigo-500/20" />
+                            <span className="text-[10px] font-black text-muted-foreground group-hover:text-foreground uppercase tracking-widest transition-colors">Strict Limit</span>
+                        </label>
                     </div>
                 </div>
             );
         case 'semantic':
             return (
-                <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                            <label className={labelClass}>Embedding Ref</label>
+                <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-5">
+                        <div className="space-y-2">
+                            <label className={labelClass}>Embedding Model Ref</label>
                             <input {...register('chunking.embedding_model_ref')} className={inputClass} placeholder="text-embedding-3-small" />
                         </div>
-                        <div className="space-y-1">
-                            <label className={labelClass}>Threshold</label>
-                            <input type="number" step="0.05" {...register('chunking.similarity_threshold', { valueAsNumber: true })} className={inputClass} />
+                        <div className="space-y-2">
+                            <label className={labelClass}>Similarity Threshold</label>
+                            <input type="number" step="0.05" {...register('chunking.similarity_threshold', { valueAsNumber: true })} className={inputClass} placeholder="0.3" />
                         </div>
-                        <div className="space-y-1">
-                            <label className={labelClass}>Max Tokens</label>
-                            <input type="number" {...register('chunking.max_chunk_tokens', { valueAsNumber: true })} className={inputClass} />
+                        <div className="space-y-2">
+                            <label className={labelClass}>Max Tokens/Chunk</label>
+                            <input type="number" {...register('chunking.max_chunk_tokens', { valueAsNumber: true })} className={inputClass} placeholder="1024" />
                         </div>
-                        <div className="space-y-1">
-                            <label className={labelClass}>Min Tokens</label>
-                            <input type="number" {...register('chunking.min_chunk_tokens', { valueAsNumber: true })} className={inputClass} />
+                        <div className="space-y-2">
+                            <label className={labelClass}>Min Tokens/Chunk</label>
+                            <input type="number" {...register('chunking.min_chunk_tokens', { valueAsNumber: true })} className={inputClass} placeholder="100" />
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                             <label className={labelClass}>Window Size</label>
-                            <input type="number" {...register('chunking.semantic_window_size', { valueAsNumber: true })} className={inputClass} />
+                            <input type="number" {...register('chunking.semantic_window_size', { valueAsNumber: true })} className={inputClass} placeholder="3" />
                         </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <input type="checkbox" {...register('chunking.merge_small_chunks')} id="merge_small" className="rounded bg-secondary border-border" />
-                        <label htmlFor="merge_small" className="text-[10px] text-muted-foreground font-black uppercase tracking-widest cursor-pointer">Merge Small Chunks</label>
+                        <div className="flex items-end pb-1 px-1">
+                            <label className="group flex items-center gap-3 p-3 rounded-2xl bg-secondary/30 border border-border/40 hover:bg-secondary/50 transition-all cursor-pointer w-full">
+                                <input type="checkbox" {...register('chunking.merge_small_chunks')} className="w-4 h-4 rounded-md border-border bg-card text-indigo-500 focus:ring-indigo-500/20" />
+                                <span className="text-[10px] font-black text-muted-foreground group-hover:text-foreground uppercase tracking-widest transition-colors">Merge Small</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
             );
         case 'fixed':
             return (
-                <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                            <label className={labelClass}>Chunk Size</label>
-                            <input type="number" {...register('chunking.chunk_size', { valueAsNumber: true })} className={inputClass} />
+                <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-5">
+                        <div className="space-y-2">
+                            <label className={labelClass}>Static Chunk Size</label>
+                            <input type="number" {...register('chunking.chunk_size', { valueAsNumber: true })} className={inputClass} placeholder="1000" />
                         </div>
-                        <div className="space-y-1">
-                            <label className={labelClass}>Overlap</label>
-                            <input type="number" {...register('chunking.chunk_overlap', { valueAsNumber: true })} className={inputClass} />
+                        <div className="space-y-2">
+                            <label className={labelClass}>Exact Overlap</label>
+                            <input type="number" {...register('chunking.chunk_overlap', { valueAsNumber: true })} className={inputClass} placeholder="200" />
                         </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                            <input type="checkbox" {...register('chunking.hard_cut')} id="hard_cut" className="rounded bg-secondary border-border" />
-                            <label htmlFor="hard_cut" className="text-[10px] text-muted-foreground font-black uppercase tracking-widest cursor-pointer">Hard Cut</label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <input type="checkbox" {...register('chunking.pad_last_chunk')} id="pad_last" className="rounded bg-secondary border-border" />
-                            <label htmlFor="pad_last" className="text-[10px] text-muted-foreground font-black uppercase tracking-widest cursor-pointer">Pad Last</label>
-                        </div>
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                        <label className="group flex items-center gap-3 p-3 rounded-2xl bg-secondary/30 border border-border/40 hover:bg-secondary/50 transition-all cursor-pointer">
+                            <input type="checkbox" {...register('chunking.hard_cut')} className="w-4 h-4 rounded-md border-border bg-card text-indigo-500 focus:ring-indigo-500/20" />
+                            <span className="text-[10px] font-black text-muted-foreground group-hover:text-foreground uppercase tracking-widest transition-colors">Hard Character Cut</span>
+                        </label>
+                        <label className="group flex items-center gap-3 p-3 rounded-2xl bg-secondary/30 border border-border/40 hover:bg-secondary/50 transition-all cursor-pointer">
+                            <input type="checkbox" {...register('chunking.pad_last_chunk')} className="w-4 h-4 rounded-md border-border bg-card text-indigo-500 focus:ring-indigo-500/20" />
+                            <span className="text-[10px] font-black text-muted-foreground group-hover:text-foreground uppercase tracking-widest transition-colors">Pad Terminal</span>
+                        </label>
                     </div>
                 </div>
             );
         case 'document':
             return (
-                <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                            <label className={labelClass}>Split By</label>
-                            <select {...register('chunking.split_by')} className={inputClass}>
-                                <option value="heading">Heading</option>
-                                <option value="section">Section</option>
-                                <option value="page">Page</option>
-                            </select>
+                <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-5">
+                        <div className="space-y-2">
+                            <label className={labelClass}>Split Hierarchy By</label>
+                            <Select
+                                onValueChange={(v) => setValue('chunking.split_by', v as any)}
+                                value={watch('chunking.split_by')}
+                            >
+                                <SelectTrigger className={inputClass}>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="heading">Heading Hierarchy</SelectItem>
+                                    <SelectItem value="section">Logical Section</SelectItem>
+                                    <SelectItem value="page">Physical Page</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                             <label className={labelClass}>Max Section Length</label>
-                            <input type="number" {...register('chunking.max_section_length', { valueAsNumber: true })} className={inputClass} />
+                            <input type="number" {...register('chunking.max_section_length', { valueAsNumber: true })} className={inputClass} placeholder="2000" />
                         </div>
-                        <div className="space-y-1">
-                            <label className={labelClass}>Fallback Strategy</label>
-                            <select {...register('chunking.fallback_strategy')} className={inputClass}>
-                                <option value="recursive">Recursive</option>
-                                <option value="fixed">Fixed</option>
-                            </select>
+                        <div className="space-y-2">
+                            <label className={labelClass}>Safety Fallback</label>
+                            <Select
+                                onValueChange={(v) => setValue('chunking.fallback_strategy', v as any)}
+                                value={watch('chunking.fallback_strategy')}
+                            >
+                                <SelectTrigger className={inputClass}>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="recursive">Recursive Splitting</SelectItem>
+                                    <SelectItem value="fixed">Fixed Size Catch-all</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                            <input type="checkbox" {...register('chunking.preserve_hierarchy')} id="pres_hier" className="rounded bg-secondary border-border" />
-                            <label htmlFor="pres_hier" className="text-[10px] text-muted-foreground font-black uppercase tracking-widest cursor-pointer">Preserve Hierarchy</label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <input type="checkbox" {...register('chunking.include_metadata')} id="inc_meta" className="rounded bg-secondary border-border" />
-                            <label htmlFor="inc_meta" className="text-[10px] text-muted-foreground font-black uppercase tracking-widest cursor-pointer">Include Metadata</label>
-                        </div>
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                        <label className="group flex items-center gap-3 p-3 rounded-2xl bg-secondary/30 border border-border/40 hover:bg-secondary/50 transition-all cursor-pointer">
+                            <input type="checkbox" {...register('chunking.preserve_hierarchy')} className="w-4 h-4 rounded-md border-border bg-card text-indigo-500 focus:ring-indigo-500/20" />
+                            <span className="text-[10px] font-black text-muted-foreground group-hover:text-foreground uppercase tracking-widest transition-colors">Preserve Nesting</span>
+                        </label>
+                        <label className="group flex items-center gap-3 p-3 rounded-2xl bg-secondary/30 border border-border/40 hover:bg-secondary/50 transition-all cursor-pointer">
+                            <input type="checkbox" {...register('chunking.include_metadata')} className="w-4 h-4 rounded-md border-border bg-card text-indigo-500 focus:ring-indigo-500/20" />
+                            <span className="text-[10px] font-black text-muted-foreground group-hover:text-foreground uppercase tracking-widest transition-colors">Rich Metadata</span>
+                        </label>
                     </div>
                 </div>
             );

@@ -18,6 +18,8 @@ export interface AppSettings {
     theme: string;
     show_reasoning: boolean;
     job_concurrency: number;
+    system_prompt: string;
+    chunking_strategy: string;
 }
 
 export interface SettingMetadata {
@@ -25,6 +27,10 @@ export interface SettingMetadata {
     category: string;
     description: string;
     options?: string[];
+    field_type: 'string' | 'int' | 'float' | 'bool' | 'select';
+    min?: number;
+    max?: number;
+    step?: number;
 }
 
 export function useSettingsMetadata() {
@@ -75,7 +81,7 @@ export function useSettings(workspaceId?: string) {
                 : API_ROUTES.SETTINGS;
             const res = await fetch(url);
             if (!res.ok) {
-                showError("Configuration Hub Offline", "Unable to retrieve synchronization parameters. Defaulting to local cache.");
+                showError("Connection error", "Unable to retrieve settings. Please check your connection.");
                 return;
             }
             const rawData = await res.json();
@@ -111,11 +117,10 @@ export function useSettings(workspaceId?: string) {
                 setSettings(newSettings);
                 return newSettings;
             } else {
-                let title = "Deployment Failed";
-                const message = data.message || data.detail || "The cluster rejected the configuration update.";
-
+                let title = "Failed to save";
+                const message = data.message || data.detail || "The server rejected the configuration update.";
                 if (data.code === "VALIDATION_ERROR") {
-                    title = "Invalid Parameter Scope";
+                    title = "Invalid input";
                 }
 
                 showError(title, message, data.params ? JSON.stringify(data.params) : undefined);
@@ -123,7 +128,7 @@ export function useSettings(workspaceId?: string) {
             }
         } catch (err) {
             console.error('Failed to update settings:', err);
-            showError("Transmission Failure", "Handshake timed out while deploying neural parameters.");
+            showError("Network error", "Action failed. Please try again.");
             return null;
         }
     };

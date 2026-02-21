@@ -6,9 +6,10 @@ import {
     Database, Search, Eye, Sparkles,
     Plus, Filter, Shield, ArrowRight, AlertTriangle,
     X, Globe, Link2, Github, Music, Info,
-    ArrowRightLeft, Layers, Zap, HardDrive, Calendar
+    ArrowRightLeft, Layers, Zap, HardDrive, Calendar, Cpu
 } from 'lucide-react';
 import { API_ROUTES, API_BASE_URL } from '@/lib/api-config';
+import { Modal } from '@/components/ui/modal';
 import { SourceViewer } from '@/components/source-viewer';
 import { WorkspaceWizard } from "@/components/workspace/WorkspaceWizard";
 import { cn } from '@/lib/utils';
@@ -61,6 +62,7 @@ interface Workspace {
 interface DocDetails {
     metadata: {
         id: string;
+        filename: string;
         content_type: string;
         size: number | string;
         created_at: string;
@@ -72,13 +74,15 @@ interface DocDetails {
         is_primary: boolean;
         status: string;
         chunks: number;
+        embedding_dim: number;
+        model: string;
         last_indexed: string;
+        type?: 'shared_ref' | 'primary';
     }>;
 }
 
 export interface KnowledgeBaseActions {
     openUpload: () => void;
-    triggerSync: () => void;
 }
 
 interface KnowledgeBaseProps {
@@ -129,6 +133,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         workspace_id: string;
         workspace_name: string;
     } | null>(null);
+    const [deleteTargetWs, setDeleteTargetWs] = useState<string>('');
 
 
 
@@ -161,16 +166,6 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         if (onActionsReady) {
             onActionsReady({
                 openUpload: () => setIsUploadModalOpen(true),
-                triggerSync: async () => {
-                    try {
-                        const res = await fetch(`${API_BASE_URL}/documents/sync-workspaces`, { method: 'POST' });
-                        if (res.ok) {
-                            fetchDocuments();
-                        }
-                    } catch (err) {
-                        console.error('Sync failed:', err);
-                    }
-                },
             });
         }
     }, [onActionsReady, fetchDocuments]);
@@ -441,8 +436,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
     const handleDelete = async (id: string, vaultDelete: boolean = false) => {
         try {
             const url = new URL(API_ROUTES.DOCUMENT_DELETE(id));
-            // FIXED: Use specific document workspace context to avoid 404 in Global view
-            const targetWs = deletingDoc?.workspace_id || workspaceId;
+            const targetWs = deleteTargetWs || deletingDoc?.workspace_id || workspaceId;
             url.searchParams.append('workspace_id', targetWs);
 
             if (vaultDelete) {
@@ -621,236 +615,221 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
     return (
         <div className="flex flex-col gap-8 bg-transparent h-full overflow-hidden relative">
 
-            {/* Unified Upload Modal */}
-            <AnimatePresence>
-                {isUploadModalOpen && (
-                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-black/80 backdrop-blur-md"
-                            onClick={() => setIsUploadModalOpen(false)}
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="relative w-full max-w-2xl bg-card border border-border rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
-                        >
-                            <div className="p-8 border-b border-border bg-secondary/50 flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500">
-                                        <Upload size={24} />
-                                    </div>
-                                    <div>
-                                        <h4 className="text-h3 font-black text-white  tracking-tight">Add Documents</h4>
-                                        <p className="text-tiny text-gray-500 font-bold  ">Choose a method to import content</p>
-                                    </div>
-                                </div>
+            <Modal
+                isOpen={isUploadModalOpen}
+                onClose={() => setIsUploadModalOpen(false)}
+                title={(
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500 border border-indigo-500/20">
+                            <Upload size={16} />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-sm font-bold text-foreground leading-none">Ingestion Portal</span>
+                            <span className="text-[9px] text-muted-foreground font-black tracking-widest mt-1 opacity-60">Source Data Import</span>
+                        </div>
+                    </div>
+                )}
+                className="max-w-2xl"
+                containerClassName="p-0"
+            >
+                <div className="flex flex-col h-[550px]">
+                    <div className="flex-1 overflow-y-auto px-10 pt-6 space-y-8 custom-scrollbar">
+                        <div className="grid grid-cols-2 gap-4">
+                            {[
+                                { id: 'file', label: 'Local Artifact', icon: Upload, desc: 'Direct upload from filesystem' },
+                                { id: 'link', label: 'External Node', icon: Globe, desc: 'Import via HTTPS / Public URL' },
+                            ].map((m) => (
                                 <button
-                                    onClick={() => setIsUploadModalOpen(false)}
-                                    className="p-2 text-gray-500 hover:text-white transition-colors"
+                                    key={m.id}
+                                    onClick={() => setUploadMode(m.id as 'file' | 'link')}
+                                    className={cn(
+                                        "flex flex-col items-start p-6 rounded-[2rem] border transition-all gap-3 group relative overflow-hidden",
+                                        uploadMode === m.id
+                                            ? "bg-indigo-500/5 border-indigo-500/30 text-indigo-500 shadow-xl shadow-indigo-500/5"
+                                            : "bg-secondary/40 border-border text-muted-foreground hover:bg-secondary/60"
+                                    )}
                                 >
-                                    <X size={20} />
+                                    <div className={cn(
+                                        "w-10 h-10 rounded-xl flex items-center justify-center border transition-all",
+                                        uploadMode === m.id ? "bg-indigo-500 border-indigo-400 text-white" : "bg-background border-border"
+                                    )}>
+                                        <m.icon size={20} />
+                                    </div>
+                                    <div className="space-y-0.5">
+                                        <span className="text-[11px] font-black tracking-widest text-foreground block">{m.label}</span>
+                                        <span className="text-[9px] font-medium opacity-60">{m.desc}</span>
+                                    </div>
+                                    {uploadMode === m.id && (
+                                        <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                                    )}
                                 </button>
-                            </div>
+                            ))}
+                        </div>
 
-                            <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    {[
-                                        { id: 'file', label: 'Local File', icon: Upload },
-                                        { id: 'link', label: 'Link', icon: Globe },
-                                    ].map((m) => (
-                                        <button
-                                            key={m.id}
-                                            onClick={() => setUploadMode(m.id as 'file' | 'link')}
-                                            className={cn(
-                                                "flex flex-col items-center justify-center p-4 rounded-2xl border transition-all gap-2",
-                                                uploadMode === m.id ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-500" : "bg-secondary border-border text-muted-foreground hover:bg-muted"
-                                            )}
-                                        >
-                                            <m.icon size={20} />
-                                            <span className="text-[10px] font-black uppercase tracking-wider">{m.label}</span>
-                                        </button>
-                                    ))}
-                                </div>
+                        <div className="p-8 rounded-[2.5rem] bg-secondary/20 border border-border space-y-6">
+                            {uploadMode === 'file' && (
+                                <label className="flex flex-col items-center justify-center h-56 border-2 border-dashed border-border rounded-[2rem] cursor-pointer hover:border-indigo-500/30 transition-all hover:bg-indigo-500/5 group relative overflow-hidden">
+                                    <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/0 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <Upload className="mb-4 text-muted-foreground/40 group-hover:text-indigo-500 transition-all group-hover:scale-110" size={40} />
+                                    <div className="text-center space-y-1 relative">
+                                        <span className="text-xs font-black text-foreground tracking-widest block">Drop Material Here</span>
+                                        <span className="text-[10px] text-muted-foreground font-medium">PDF, TXT, MD, DOCX, HTML, CSV, JSON</span>
+                                    </div>
+                                    <input type="file" className="hidden" onChange={handleUpload} />
+                                </label>
+                            )}
 
-                                <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-4">
-                                    {uploadMode === 'file' && (
-                                        <label className="flex flex-col items-center justify-center h-48 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-indigo-500/30 transition-all hover:bg-indigo-500/5 group">
-                                            <Upload className="mb-4 text-gray-600 group-hover:text-indigo-500 transition-colors" size={32} />
-                                            <span className="text-tiny font-bold text-gray-500 group-hover:text-gray-300">Choose a file to upload</span>
-                                            <input type="file" className="hidden" onChange={handleUpload} />
+                            {uploadMode !== 'file' && (
+                                <div className="space-y-6">
+                                    <div className="space-y-3">
+                                        <label className="text-[9px] font-black text-muted-foreground tracking-[0.3em] ml-1">
+                                            Resource Identifier (URL)
                                         </label>
-                                    )}
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                placeholder="https://content-source.com/artifact..."
+                                                value={importUrl}
+                                                onChange={(e) => setImportUrl(e.target.value)}
+                                                className="w-full bg-background border border-border rounded-2xl px-6 h-14 text-[11px] text-foreground focus:ring-2 ring-indigo-500/20 outline-none transition-all placeholder:text-muted-foreground/20 font-bold"
+                                            />
+                                            <Link2 size={16} className="absolute right-5 top-1/2 -translate-y-1/2 text-muted-foreground/30" />
+                                        </div>
+                                    </div>
 
-                                    {uploadMode !== 'file' && (
-                                        <div className="space-y-4">
-                                            <div className="space-y-2">
-                                                <label className="text-tiny font-black text-gray-500 uppercase tracking-widest ml-1">
-                                                    URL Source
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    placeholder="https://example.com/ or https://github.com/..."
-                                                    value={importUrl}
-                                                    onChange={(e) => setImportUrl(e.target.value)}
-                                                    className="w-full bg-secondary border border-border rounded-2xl px-6 h-14 text-caption text-foreground focus:ring-2 ring-indigo-500/20 outline-none transition-all placeholder:text-muted-foreground/30 font-medium"
-                                                />
-                                            </div>
-
-                                            {importUrl.includes('github.com') && (
-                                                <div className="space-y-2">
-                                                    <label className="text-tiny font-black text-gray-500 uppercase tracking-widest ml-1">Branch</label>
-                                                    <input
-                                                        type="text"
-                                                        value={githubBranch}
-                                                        onChange={(e) => setGithubBranch(e.target.value)}
-                                                        className="w-full bg-secondary border border-border rounded-2xl px-6 h-14 text-caption text-foreground focus:ring-2 ring-indigo-500/20 outline-none transition-all font-medium"
-                                                    />
-                                                </div>
-                                            )}
-
-                                            <button
-                                                onClick={() => handleImport('link')}
-                                                disabled={isUploading || !importUrl}
-                                                className="w-full h-14 bg-white text-black hover:bg-gray-200 rounded-2xl font-black text-tiny tracking-widest transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50 mt-4"
-                                            >
-                                                {isUploading ? <Loader2 className="animate-spin" size={16} /> : <ArrowRight size={16} />}
-                                                START IMPORT
-                                            </button>
+                                    {importUrl.includes('github.com') && (
+                                        <div className="space-y-3 animate-in slide-in-from-top-2">
+                                            <label className="text-[9px] font-black text-muted-foreground tracking-[0.3em] ml-1">Repository Branch</label>
+                                            <input
+                                                type="text"
+                                                value={githubBranch}
+                                                onChange={(e) => setGithubBranch(e.target.value)}
+                                                className="w-full bg-background border border-border rounded-2xl px-6 h-12 text-[11px] text-foreground focus:ring-2 ring-indigo-500/20 outline-none transition-all font-bold"
+                                            />
                                         </div>
                                     )}
-                                </div>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
 
-            {/* Vault Browser Modal */}
-            <AnimatePresence>
-                {isVaultBrowserOpen && (
-                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-black/80 backdrop-blur-md"
-                            onClick={() => setIsVaultBrowserOpen(false)}
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="relative w-full max-w-2xl bg-card border border-border rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col max-h-[80vh]"
-                        >
-                            <div className="p-8 border-b border-border bg-secondary/50 flex items-center justify-between shrink-0">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500">
-                                        <Database size={24} />
-                                    </div>
-                                    <div>
-                                        <h4 className="text-h3 font-black text-foreground tracking-tight">Vault Browser</h4>
-                                        <p className="text-tiny text-muted-foreground font-bold">Select Intelligence to Link</p>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => setIsVaultBrowserOpen(false)}
-                                    className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-                                >
-                                    <X size={20} />
-                                </button>
-                            </div>
-
-                            <div className="flex-1 overflow-y-auto p-6 space-y-3 custom-scrollbar">
-                                {isVaultLoading ? (
-                                    <div className="flex flex-col items-center justify-center py-20 gap-4">
-                                        <Loader2 size={32} className="animate-spin text-indigo-500" />
-                                        <span className="text-tiny font-black text-muted-foreground">Scanning Vault...</span>
-                                    </div>
-                                ) : vaultDocuments.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-40">
-                                        <Database size={48} className="text-muted-foreground" />
-                                        <span className="text-tiny font-black text-muted-foreground">No Documents Found</span>
-                                    </div>
-                                ) : (
-                                    vaultDocuments.map((doc) => (
-                                        <div key={doc.id} className="flex items-center justify-between p-5 rounded-[1.5rem] bg-secondary border border-border hover:border-indigo-500/30 transition-all group">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center group-hover:bg-indigo-500/10">
-                                                    <FileText size={18} className="text-muted-foreground group-hover:text-indigo-500" />
-                                                </div>
-                                                <div className="flex flex-col">
-                                                    <span className="text-caption font-bold text-foreground tracking-tight">{doc.name}</span>
-                                                    <span className="text-tiny text-muted-foreground font-medium">{doc.extension?.replace('.', '')} • FROM {doc.workspace_name}</span>
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => handleLinkFromVault(doc)}
-                                                disabled={isLinking}
-                                                className="h-10 px-6 rounded-xl bg-foreground text-background hover:opacity-90 text-tiny font-black transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
-                                            >
-                                                {isLinking ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
-                                                Link
-                                            </button>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
-
-            {/* Duplicate Confirmation Modal */}
-            <AnimatePresence>
-                {duplicateData && (
-                    <div className="fixed inset-0 z-[210] flex items-center justify-center p-4">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-black/80 backdrop-blur-xl"
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.9, y: 30 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 30 }}
-                            className="relative w-full max-w-lg bg-card border border-border rounded-[3rem] overflow-hidden shadow-2xl"
-                        >
-                            <div className="p-10 text-center space-y-8">
-                                <div className="w-24 h-24 rounded-[2rem] bg-indigo-500/10 flex items-center justify-center mx-auto border border-indigo-500/20">
-                                    <AlertTriangle size={40} className="text-indigo-500" />
-                                </div>
-                                <div className="space-y-3">
-                                    <p className="text-caption text-muted-foreground font-medium leading-relaxed px-4">
-                                        This document is already in the <span className="text-indigo-500 font-bold">Vault</span>.
-                                        Would you like to link the existing record to this workspace instead of creating a duplicate?
-                                    </p>
-                                </div>
-                                <div className="flex flex-col gap-3">
                                     <button
-                                        onClick={handleConfirmLink}
+                                        onClick={() => handleImport('link')}
+                                        disabled={isUploading || !importUrl}
+                                        className="w-full h-14 bg-indigo-500 text-white hover:bg-indigo-600 rounded-2xl font-black text-[10px] tracking-[0.2em] transition-all active:scale-95 flex items-center justify-center gap-3 disabled:grayscale disabled:opacity-50 mt-4 shadow-xl shadow-indigo-500/20"
+                                    >
+                                        {isUploading ? <Loader2 className="animate-spin" size={16} /> : <Sparkles size={16} />}
+                                        START INGESTION
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </Modal>
+
+            <Modal
+                isOpen={isVaultBrowserOpen}
+                onClose={() => setIsVaultBrowserOpen(false)}
+                title={(
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500 border border-indigo-500/20">
+                            <Database size={16} />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-sm font-bold text-foreground leading-none">Vault Browser</span>
+                            <span className="text-[9px] text-muted-foreground font-black tracking-widest mt-1 opacity-60">Global Asset Discovery</span>
+                        </div>
+                    </div>
+                )}
+                className="max-w-2xl"
+                containerClassName="p-0"
+            >
+                <div className="flex flex-col h-[550px]">
+                    <div className="flex-1 overflow-y-auto p-8 space-y-4 custom-scrollbar">
+                        {isVaultLoading ? (
+                            <div className="flex flex-col items-center justify-center py-24 gap-6">
+                                <div className="w-20 h-20 rounded-[2rem] bg-indigo-500/5 flex items-center justify-center relative">
+                                    <div className="absolute inset-0 rounded-[2rem] border border-indigo-500/20 animate-pulse" />
+                                    <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
+                                </div>
+                                <span className="text-[10px] font-black text-muted-foreground tracking-[0.3em]">Mapping Cold Storage...</span>
+                            </div>
+                        ) : vaultDocuments.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-24 gap-6 opacity-20">
+                                <div className="w-20 h-20 rounded-[2rem] bg-secondary border border-border flex items-center justify-center">
+                                    <Database size={32} className="text-muted-foreground" />
+                                </div>
+                                <span className="text-[10px] font-black text-muted-foreground tracking-[0.2em]">Matrix Empty</span>
+                            </div>
+                        ) : (
+                            vaultDocuments.map((doc) => (
+                                <div key={doc.id} className="flex items-center justify-between p-5 rounded-[2rem] bg-secondary/30 border border-border hover:border-indigo-500/30 transition-all group overflow-hidden relative">
+                                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/0 to-indigo-500/[0.02] opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <div className="flex items-center gap-5 relative">
+                                        <div className="w-12 h-12 rounded-xl bg-background border border-border flex items-center justify-center group-hover:bg-indigo-500/10 transition-colors">
+                                            <FileText size={20} className="text-muted-foreground group-hover:text-indigo-500 transition-colors" />
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-black text-foreground tracking-tight group-hover:text-indigo-400 transition-colors">{doc.name}</span>
+                                            <span className="text-[9px] text-muted-foreground font-black tracking-widest mt-0.5 opacity-60">
+                                                {doc.extension?.replace('.', '') || 'UNKNOWN'} • ORIGIN: {doc.workspace_name || 'SYSTEM'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => handleLinkFromVault(doc)}
                                         disabled={isLinking}
-                                        className="w-full h-16 bg-foreground text-background hover:opacity-90 rounded-[1.5rem] font-black text-tiny  tracking-[0.2em] transition-all active:scale-95 flex items-center justify-center gap-3"
+                                        className="h-10 px-6 rounded-xl bg-foreground text-background hover:opacity-90 text-[10px] font-black tracking-[0.2em] transition-all active:scale-95 disabled:grayscale disabled:opacity-50 flex items-center gap-2 relative"
                                     >
-                                        {isLinking ? <Loader2 className="animate-spin" /> : <ArrowRightLeft size={18} />}
-                                        Link Existing Entry
-                                    </button>
-                                    <button
-                                        onClick={() => setDuplicateData(null)}
-                                        className="w-full h-16 bg-secondary text-muted-foreground hover:text-foreground hover:bg-muted rounded-[1.5rem] font-black text-tiny  tracking-[0.2em] transition-all"
-                                    >
-                                        Continue with New Upload
+                                        {isLinking ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
+                                        Deploy
                                     </button>
                                 </div>
-                            </div>
-                        </motion.div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            </Modal>
+
+            <Modal
+                isOpen={!!duplicateData}
+                onClose={() => setDuplicateData(null)}
+                title={(
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500 border border-indigo-500/20">
+                            <AlertTriangle size={16} />
+                        </div>
+                        <span className="text-indigo-500">Asset Conflict</span>
                     </div>
                 )}
-            </AnimatePresence>
+                className="max-w-md"
+            >
+                <div className="p-4 text-center space-y-8">
+                    <div className="w-20 h-20 rounded-[2rem] bg-indigo-500/5 flex items-center justify-center mx-auto border border-indigo-500/10">
+                        <Database size={32} className="text-indigo-500/40" />
+                    </div>
+                    <div className="space-y-3 px-4">
+                        <p className="text-xs font-bold text-foreground tracking-widest">Duplicate Detected</p>
+                        <p className="text-[11px] text-muted-foreground font-medium leading-relaxed">
+                            This artifact already exists within the <span className="text-indigo-500 font-bold">Global Knowledge Vault</span>.
+                            Deploy the existing entry to this node instead of creating a redundant copy?
+                        </p>
+                    </div>
+                    <div className="flex flex-col gap-4">
+                        <button
+                            onClick={handleConfirmLink}
+                            disabled={isLinking}
+                            className="w-full h-14 bg-indigo-600 text-white hover:bg-indigo-500 rounded-2xl font-black text-[10px] tracking-[0.2em] transition-all active:scale-95 flex items-center justify-center gap-3 shadow-xl shadow-indigo-600/20"
+                        >
+                            {isLinking ? <Loader2 className="animate-spin" /> : <ArrowRightLeft size={16} />}
+                            Link Existing Entry
+                        </button>
+                        <button
+                            onClick={() => setDuplicateData(null)}
+                            className="w-full h-14 bg-secondary text-muted-foreground hover:text-foreground rounded-2xl font-black text-[10px] tracking-[0.2em] transition-all border border-border hover:border-indigo-500/30"
+                        >
+                            Continue with New Asset
+                        </button>
+                    </div>
+                </div>
+            </Modal>
 
             {/* Header and Primary Actions — hidden when isGlobal (Vault page renders them in its own header) */}
             {!isGlobal && (
@@ -865,22 +844,6 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                         >
                             <Database size={14} />
                             Add from Vault
-                        </button>
-                        <button
-                            onClick={async () => {
-                                try {
-                                    const res = await fetch(`${API_BASE_URL}/documents/sync-workspaces`, { method: 'POST' });
-                                    if (res.ok) {
-                                        fetchDocuments();
-                                    }
-                                } catch (err) {
-                                    console.error('Sync failed:', err);
-                                }
-                            }}
-                            className="h-10 px-4 rounded-xl bg-secondary border border-border text-muted-foreground hover:text-indigo-500 hover:border-indigo-500/30 transition-all font-bold text-xs flex items-center gap-2"
-                        >
-                            <ArrowRightLeft size={16} />
-                            Sync
                         </button>
                         <button
                             onClick={() => setIsUploadModalOpen(true)}
@@ -1058,7 +1021,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                     <div className="flex flex-col min-w-0">
                                         <span className="text-xs font-bold text-foreground truncate max-w-[280px] tracking-tight">{doc.name}</span>
                                         <div className="flex items-center gap-2 mt-1">
-                                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em]">{doc.extension?.replace('.', '') || 'File'}</span>
+                                            <span className="text-[10px] font-black text-muted-foreground tracking-[0.15em]">{doc.extension?.replace('.', '') || 'File'}</span>
                                             {(() => {
                                                 const effectiveStatus = doc.workspace_statuses?.[workspaceId] || doc.status;
                                                 const isIngested = effectiveStatus === 'ingested' || effectiveStatus === 'indexed';
@@ -1067,13 +1030,13 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                                     <>
                                                         <span className="w-1 h-1 rounded-full bg-border" />
                                                         {isIngested && !isGlobal ? (
-                                                            <span className="text-[10px] text-emerald-400 font-black tracking-widest uppercase flex items-center gap-1.5">
+                                                            <span className="text-[10px] text-emerald-400 font-black tracking-widest flex items-center gap-1.5">
                                                                 <Shield className="w-2.5 h-2.5" />
                                                                 {doc.chunks || 0} Fragments
                                                             </span>
                                                         ) : (
                                                             <span className={cn(
-                                                                "text-[10px] font-black flex items-center gap-2 uppercase tracking-widest",
+                                                                "text-[10px] font-black flex items-center gap-2 tracking-widest",
                                                                 effectiveStatus === 'failed' ? "text-red-500" :
                                                                     isGlobal ? "text-indigo-500" :
                                                                         effectiveStatus === 'embedding' || effectiveStatus === 'indexing' || effectiveStatus === 'ingesting' ? "text-indigo-500 animate-pulse" :
@@ -1086,7 +1049,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                                         {isGlobal && doc.workspace_name && doc.workspace_name !== 'Unknown' && doc.workspace_name !== 'Unknown Workspace' && doc.workspace_id !== 'vault' && (
                                                             <>
                                                                 <span className="w-1 h-1 rounded-full bg-border" />
-                                                                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight">{doc.workspace_name}</span>
+                                                                <span className="text-[10px] text-muted-foreground font-bold tracking-tight">{doc.workspace_name}</span>
                                                             </>
                                                         )}
                                                     </>
@@ -1120,7 +1083,10 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                         <ArrowRightLeft size={16} />
                                     </button>
                                     <button
-                                        onClick={() => setDeletingDoc(doc)}
+                                        onClick={() => {
+                                            setDeletingDoc(doc);
+                                            setDeleteTargetWs(workspaceId === 'vault' ? (doc.workspace_id || '') : workspaceId);
+                                        }}
                                         className="w-10 h-10 flex items-center justify-center rounded-xl text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-all"
                                         title="Delete"
                                     >
@@ -1145,444 +1111,436 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
             )}
 
             {/* Details Modal */}
-            <AnimatePresence>
-                {detailsDoc && (
-                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-black/80 backdrop-blur-md"
-                            onClick={() => setDetailsDoc(null)}
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="relative w-full max-w-2xl bg-card border border-border rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
-                        >
-                            <div className="p-8 border-b border-border bg-secondary/50 flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500">
-                                        <Info size={24} />
-                                    </div>
-                                    <div>
-                                        <h4 className="text-h3 font-black text-white  tracking-tight">Document Details</h4>
-                                        <p className="text-tiny text-gray-500 font-bold  ">Metadata & Indexing Relationships</p>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => setDetailsDoc(null)}
-                                    className="p-2 text-gray-500 hover:text-white transition-colors"
-                                >
-                                    <X size={20} />
-                                </button>
+            {/* Remade Details Modal */}
+            <Modal
+                isOpen={!!detailsDoc}
+                onClose={() => setDetailsDoc(null)}
+                title={(
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-3">
+                            <div className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[8px] font-black text-indigo-500 tracking-[0.2em] uppercase">
+                                Document Profile
                             </div>
-
-                            <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
-                                {/* Global Info */}
-                                <section className="space-y-4">
-                                    <h5 className="text-tiny font-black text-gray-500 uppercase tracking-widest ml-1">Global Metadata</h5>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        {[
-                                            { label: 'Document ID', value: detailsDoc.metadata.id, icon: Database },
-                                            { label: 'File Type', value: detailsDoc.metadata.content_type, icon: FileText },
-                                            { label: 'File Size', value: formatSize(detailsDoc.metadata.size), icon: HardDrive },
-                                            { label: 'Added On', value: new Date(detailsDoc.metadata.created_at).toLocaleDateString(), icon: Calendar },
-                                        ].map((item, i) => (
-                                            <div key={i} className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 flex items-start gap-4">
-                                                <div className="mt-1 text-gray-600"><item.icon size={16} /></div>
-                                                <div>
-                                                    <div className="text-[10px] font-black text-gray-600 uppercase tracking-wider">{item.label}</div>
-                                                    <div className="text-caption font-bold text-gray-300 mt-1 truncate">{item.value}</div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5">
-                                        <div className="text-[10px] font-black text-gray-600 uppercase tracking-wider">Internal Storage Root</div>
-                                        <div className="text-tiny font-mono text-gray-500 mt-1 truncate">{detailsDoc.metadata.minio_path}</div>
-                                    </div>
-                                </section>
-
-                                {/* Storage Context */}
-                                <section className="space-y-4">
-                                    <h5 className="text-tiny font-black text-gray-500 uppercase tracking-widest ml-1">Storage Origin</h5>
-                                    <div className="p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 flex items-center justify-between">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500">
-                                                <HardDrive size={18} />
-                                            </div>
-                                            <div>
-                                                <div className="text-tiny font-black text-white">Global Vault</div>
-                                                <div className="flex items-center gap-2 mt-0.5">
-                                                    <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Master File Stored</span>
-                                                    <span className="w-1 h-1 rounded-full bg-gray-800" />
-                                                    <span className="text-[10px] font-bold text-gray-600">No Neural Index</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </section>
-
-                                {/* Workspace Relationships */}
-                                <section className="space-y-4">
-                                    <h5 className="text-tiny font-black text-gray-500 uppercase tracking-widest ml-1">Active Neural Indices</h5>
-                                    <div className="space-y-3">
-                                        {detailsDoc.relationships.length === 0 ? (
-                                            <div className="p-8 text-center rounded-2xl border border-dashed border-white/5 text-gray-600 font-bold text-tiny">
-                                                Not indexed in any workspace.
-                                            </div>
-                                        ) : (
-                                            detailsDoc.relationships.map((rel, i) => (
-                                                <div key={i} className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-between">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className={cn(
-                                                            "w-10 h-10 rounded-xl flex items-center justify-center",
-                                                            rel.is_primary ? "bg-indigo-500/10 text-indigo-500" : "bg-emerald-500/10 text-emerald-400"
-                                                        )}>
-                                                            {rel.is_primary ? <Database size={18} /> : <ArrowRightLeft size={18} />}
-                                                        </div>
-                                                        <div>
-                                                            <div className="text-tiny font-black text-white">{rel.workspace_name}</div>
-                                                            <div className="flex items-center gap-2 mt-0.5">
-                                                                <span className={cn(
-                                                                    "text-[10px] font-black uppercase tracking-widest",
-                                                                    rel.status === 'ingested' || rel.status === 'indexed' ? "text-emerald-500/80" : "text-amber-500/80"
-                                                                )}>{rel.status}</span>
-                                                                <span className="w-1 h-1 rounded-full bg-border" />
-                                                                <span className="text-[10px] font-bold text-gray-600">{rel.chunks} Chunks</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <div className="text-[10px] font-black text-gray-700 uppercase tracking-wider">Indexed On</div>
-                                                        <div className="text-tiny font-bold text-gray-500 mt-0.5">{new Date(rel.last_indexed).toLocaleDateString()}</div>
-                                                    </div>
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-                                </section>
+                            <div className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[8px] font-black text-emerald-500 tracking-[0.2em] uppercase">
+                                {detailsDoc?.metadata.content_type.split('/')[1] || 'FILE'}
                             </div>
-                        </motion.div>
+                        </div>
+                        <h2 className="text-xl font-bold text-foreground tracking-tight leading-none break-all">
+                            {detailsDoc?.metadata.filename}
+                        </h2>
+                        <div className="flex items-center gap-4 text-[10px] text-muted-foreground font-bold">
+                            <div className="flex items-center gap-2">
+                                <Calendar size={12} className="text-indigo-500/40" />
+                                {detailsDoc && new Date(detailsDoc.metadata.created_at).toLocaleDateString()}
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <HardDrive size={12} className="text-indigo-500/40" />
+                                {detailsDoc && formatSize(detailsDoc.metadata.size)}
+                            </div>
+                        </div>
                     </div>
                 )}
-            </AnimatePresence>
-
-            {/* Workspace Indexing Management Modal */}
-            <AnimatePresence>
-                {isWorkspaceModalOpen && managingDoc && (
-                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-black/80 backdrop-blur-md"
-                            onClick={() => setIsWorkspaceModalOpen(false)}
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="relative w-full max-w-2xl bg-card border border-border rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
-                        >
-                            <div className="p-8 border-b border-border bg-secondary/50 flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500">
-                                        <ArrowRightLeft size={24} />
-                                    </div>
-                                    <div>
-                                        <h4 className="text-h3 font-black text-white  tracking-tight">Indexing Manager</h4>
-                                        <p className="text-tiny text-gray-500 font-bold  ">Workspace Retrievability Controls</p>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => setIsWorkspaceModalOpen(false)}
-                                    className="p-2 text-gray-500 hover:text-white transition-colors"
-                                >
-                                    <X size={20} />
-                                </button>
-                            </div>
-
-                            <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
-                                {/* Current Workspace Indexes */}
-                                <section className="space-y-4">
-                                    <h5 className="text-tiny font-black text-gray-500 uppercase tracking-widest ml-1">Active Indices</h5>
-                                    <div className="space-y-3">
-                                        {isDetailsLoading ? (
-                                            <div className="flex items-center justify-center py-10"><Loader2 className="animate-spin text-gray-600" /></div>
-                                        ) : detailsDoc?.relationships.length === 0 ? (
-                                            <div className="p-6 text-center rounded-2xl border border-dashed border-white/5 text-gray-600 font-bold text-[11px]">No active workspace indices found.</div>
-                                        ) : (
-                                            detailsDoc?.relationships.map((rel, i) => (
-                                                <div key={i} className="p-4 rounded-2xl bg-secondary border border-border flex items-center justify-between group">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground">
-                                                            <Database size={16} />
-                                                        </div>
-                                                        <div>
-                                                            <div className="text-tiny font-black text-foreground">{rel.workspace_name}</div>
-                                                            <div className="text-[10px] font-bold text-indigo-500/60 uppercase tracking-wider">{rel.is_primary ? 'Primary Index' : 'Shared Reference'}</div>
-                                                        </div>
-                                                    </div>
-                                                    <button
-                                                        onClick={() => setConfirmingAction({ type: 'de-index', workspace_id: rel.workspace_id, workspace_name: rel.workspace_name })}
-                                                        className="h-10 px-4 rounded-xl border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest"
-                                                    >
-                                                        Remove Index
-                                                    </button>
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-                                </section>
-
-                                {/* Add to Workspace */}
-                                <section className="space-y-4">
-                                    <h5 className="text-tiny font-black text-muted-foreground uppercase tracking-widest ml-1">New Workspace Exposure</h5>
-                                    <div className="p-6 rounded-3xl bg-secondary border border-border space-y-4">
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] ml-1">Select Target Workspace</label>
-                                            <div className="group">
-                                                <Select value={shareTarget} onValueChange={setShareTarget}>
-                                                    <SelectTrigger className="w-full h-14 rounded-2xl px-6 bg-secondary border-border text-caption font-medium">
-                                                        <SelectValue placeholder="Choose destination..." />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {workspaces.map((ws) => (
-                                                            <SelectItem key={ws.id} value={ws.id}>{ws.name}</SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                        </div>
-                                        <button
-                                            onClick={() => {
-                                                const ws = workspaces.find(w => w.id === shareTarget);
-                                                if (ws) setConfirmingAction({ type: 'index', workspace_id: ws.id, workspace_name: ws.name });
-                                            }}
-                                            disabled={!shareTarget || isManaging}
-                                            className="w-full h-14 bg-white text-black hover:bg-gray-200 rounded-2xl font-black text-tiny tracking-widest transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
-                                        >
-                                            <Plus size={16} />
-                                            ADD INDEXING
-                                        </button>
-                                    </div>
-                                </section>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
-
-            {/* Explicit Confirmation Modal */}
-            <AnimatePresence>
-                {confirmingAction && (
-                    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-black/90 backdrop-blur-sm"
-                            onClick={() => setConfirmingAction(null)}
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            className="relative w-full max-w-lg bg-card border border-border rounded-[2.5rem] p-10 overflow-hidden shadow-2xl"
-                        >
-                            <div className="flex flex-col items-center text-center space-y-6">
-                                <div className={cn(
-                                    "w-20 h-20 rounded-[2rem] flex items-center justify-center mb-2",
-                                    confirmingAction.type === 'index' ? "bg-indigo-500/10 text-indigo-500" : "bg-red-500/10 text-red-500"
-                                )}>
-                                    {confirmingAction.type === 'index' ? <Zap size={40} /> : <AlertTriangle size={40} />}
+                className="max-w-2xl"
+                containerClassName="p-0"
+            >
+                <div className="flex flex-col max-h-[70vh]">
+                    <div className="flex-1 overflow-y-auto px-10 pb-10 pt-4 custom-scrollbar">
+                        <div className="grid grid-cols-1 gap-8">
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between px-1">
+                                    <h5 className="text-[10px] font-black text-muted-foreground tracking-widest">Search indices</h5>
+                                    <span className="text-[10px] font-bold text-gray-500">{detailsDoc?.relationships.length || 0} location(s)</span>
                                 </div>
 
                                 <div className="space-y-4">
-                                    <h2 className="text-h2 font-black text-foreground tracking-tight">
-                                        {confirmingAction.type === 'index' ? 'Add Workspace Index' : 'Remove Workspace Index'}
-                                    </h2>
-
-                                    <div className="p-6 rounded-2xl bg-secondary/50 border border-border space-y-4 text-left">
-                                        <div className="space-y-2">
-                                            <h6 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Consequences</h6>
-                                            <ul className="space-y-3">
-                                                {confirmingAction.type === 'index' ? (
-                                                    <>
-                                                        <li className="flex gap-3 text-tiny text-muted-foreground font-bold leading-snug">
-                                                            <div className="mt-1 text-indigo-500"><Plus size={12} /></div>
-                                                            Create dedicated vectors for workspace '{confirmingAction.workspace_name}'.
-                                                        </li>
-                                                        <li className="flex gap-3 text-tiny text-muted-foreground font-bold leading-snug">
-                                                            <div className="mt-1 text-indigo-500"><Plus size={12} /></div>
-                                                            Consume background compute resources for processing.
-                                                        </li>
-                                                        <li className="flex gap-3 text-tiny text-muted-foreground font-bold leading-snug">
-                                                            <div className="mt-1 text-indigo-500"><Plus size={12} /></div>
-                                                            Enable retrieval and chat context for this document in target workspace.
-                                                        </li>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <li className="flex gap-3 text-tiny text-muted-foreground font-bold leading-snug">
-                                                            <div className="mt-1 text-red-500"><Trash2 size={12} /></div>
-                                                            Remove from search and retrieval in workspace '{confirmingAction.workspace_name}'.
-                                                        </li>
-                                                        <li className="flex gap-3 text-tiny text-muted-foreground font-bold leading-snug">
-                                                            <div className="mt-1 text-red-500"><Trash2 size={12} /></div>
-                                                            Delete all workspace-specific vector fragments and metadata.
-                                                        </li>
-                                                        <li className="flex gap-3 text-tiny text-muted-foreground font-bold leading-snug">
-                                                            <div className="mt-1 text-amber-500"><AlertTriangle size={12} /></div>
-                                                            Existing RAG flows in this workspace will lose access to this source.
-                                                        </li>
-                                                    </>
-                                                )}
-                                            </ul>
+                                    {!detailsDoc || detailsDoc.relationships.length === 0 ? (
+                                        <div className="py-12 text-center rounded-[2rem] border border-dashed border-border/50 text-muted-foreground font-bold text-tiny bg-secondary/10">
+                                            This file is stored but not yet indexed for search.
                                         </div>
+                                    ) : (
+                                        detailsDoc.relationships.map((rel, i) => (
+                                            <div
+                                                key={i}
+                                                className="group relative p-6 rounded-[2rem] bg-secondary/30 border border-border hover:border-indigo-500/30 transition-all overflow-hidden"
+                                            >
+                                                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-3xl -mr-16 -mt-16 group-hover:bg-indigo-500/10 transition-colors" />
 
-                                        <div className="pt-4 border-t border-border">
-                                            <p className="text-[10px] text-muted-foreground/60 font-black uppercase tracking-widest">
-                                                Note: Global document existence (MinIO storage) will NOT be affected.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
+                                                <div className="relative flex items-center justify-between">
+                                                    <div className="flex items-center gap-5">
+                                                        <div className={cn(
+                                                            "w-12 h-12 rounded-xl flex items-center justify-center border",
+                                                            rel.is_primary
+                                                                ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-500"
+                                                                : "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+                                                        )}>
+                                                            {rel.is_primary ? <Database size={20} /> : <ArrowRightLeft size={20} />}
+                                                        </div>
+                                                        <div className="space-y-0.5">
+                                                            <div className="text-xs font-black text-foreground tracking-tight">
+                                                                {rel.workspace_name}
+                                                                {rel.type === 'shared_ref' && (
+                                                                    <span className="ml-2 py-0.5 px-2 rounded-md bg-emerald-500/10 text-[8px] text-emerald-500 tracking-widest font-black">Shared</span>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="flex items-center gap-2">
+                                                                    <Layers size={10} className="text-muted-foreground/40" />
+                                                                    <span className="text-[10px] font-bold text-muted-foreground">{rel.chunks} Chunks</span>
+                                                                </div>
+                                                                <div className="w-1 h-1 rounded-full bg-border" />
+                                                                <div className="flex items-center gap-2">
+                                                                    <Cpu size={10} className="text-muted-foreground/40" />
+                                                                    <span className="text-[10px] font-bold text-muted-foreground">{rel.embedding_dim} Dims</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
 
-                                <div className="grid grid-cols-2 gap-4 w-full pt-4">
-                                    <button
-                                        onClick={() => setConfirmingAction(null)}
-                                        className="h-14 rounded-2xl bg-secondary border border-border text-muted-foreground hover:text-foreground transition-all font-black text-tiny tracking-widest"
-                                    >
-                                        CANCEL
-                                    </button>
-                                    <button
-                                        onClick={async () => {
-                                            if (!managingDoc) return;
-                                            setIsManaging(true);
-                                            try {
-                                                if (confirmingAction.type === 'index') {
-                                                    // Start indexing via orchestration to handle existence logic
-                                                    const res = await fetch(API_ROUTES.DOCUMENTS_UPDATE_WS, {
-                                                        method: 'POST',
-                                                        headers: { 'Content-Type': 'application/json' },
-                                                        body: JSON.stringify({
-                                                            document_id: managingDoc.id,
-                                                            target_workspace_id: confirmingAction.workspace_id,
-                                                            action: 'link'
-                                                        })
-                                                    });
-                                                    if (res.ok) {
-                                                        setConfirmingAction(null);
-                                                        setIsWorkspaceModalOpen(false);
-                                                        fetchDocuments();
-                                                    } else {
-                                                        showError("Action Failed", "Could not initiate indexing.");
-                                                    }
-                                                } else {
-                                                    // Remove index
-                                                    const res = await fetch(`${API_ROUTES.DOCUMENTS}/${encodeURIComponent(managingDoc.id!)}?workspace_id=${encodeURIComponent(confirmingAction.workspace_id)}&vault_delete=false`, {
-                                                        method: 'DELETE'
-                                                    });
-                                                    if (res.ok) {
-                                                        setConfirmingAction(null);
-                                                        handleDetailView(managingDoc); // Refresh details within modal
-                                                        fetchDocuments();
-                                                    } else {
-                                                        showError("Action Failed", "Could not remove index.");
-                                                    }
-                                                }
-                                            } catch (_err) {
-                                                showError("Network Error", "Communication failure.");
-                                            } finally {
-                                                setIsManaging(false);
-                                            }
-                                        }}
-                                        disabled={isManaging}
-                                        className={cn(
-                                            "h-14 rounded-2xl font-black text-tiny tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2",
-                                            confirmingAction.type === 'index' ? "bg-foreground text-background hover:opacity-90" : "bg-red-500 text-white hover:bg-red-400 shadow-xl shadow-red-500/20"
-                                        )}
-                                    >
-                                        {isManaging ? <Loader2 className="animate-spin" size={16} /> : (confirmingAction.type === 'index' ? <Plus size={16} /> : <Trash2 size={16} />)}
-                                        CONFIRM
-                                    </button>
+                                                    <div className="text-right space-y-1">
+                                                        <div className={cn(
+                                                            "text-[9px] font-black tracking-[0.2em]",
+                                                            rel.status === 'ingested' || rel.status === 'indexed' ? "text-emerald-500" : "text-amber-500"
+                                                        )}>
+                                                            <span className="animate-pulse">●</span> {rel.status}
+                                                        </div>
+                                                        <div className="text-[9px] font-bold text-muted-foreground/60">
+                                                            {rel.model?.split('/').pop() || 'STATIC'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
                                 </div>
                             </div>
-                        </motion.div>
+                        </div>
                     </div>
-                )}
-            </AnimatePresence>
-
-            <AnimatePresence>
-                {deletingDoc && (
-                    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-black/90 backdrop-blur-xl"
-                            onClick={() => setDeletingDoc(null)}
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="relative w-full max-w-md bg-card border border-red-500/20 rounded-[2rem] overflow-hidden shadow-[0_0_50px_rgba(239,68,68,0.15)]"
+                    <div className="p-6 border-t border-border bg-secondary/20 flex justify-end">
+                        <button
+                            onClick={() => setDetailsDoc(null)}
+                            className="px-8 py-3 rounded-xl bg-foreground text-background text-[10px] font-black tracking-widest transition-all active:scale-95 uppercase"
                         >
-                            <div className="p-8 text-center">
-                                <div className="w-16 h-16 rounded-[1.5rem] bg-red-500/10 flex items-center justify-center text-red-500 mx-auto mb-6 animate-pulse">
-                                    <AlertTriangle size={32} />
-                                </div>
-                                <h4 className="text-caption font-black text-foreground mb-2">Destructive Operation Pending</h4>
-                                <p className="text-tiny text-muted-foreground leading-relaxed max-w-[280px] mx-auto font-medium mb-8">
-                                    Please specify the scope of removal for <span className="text-foreground font-bold">{deletingDoc.name}</span>.
-                                </p>
+                            Close Profile
+                        </button>
+                    </div>
+                </div>
+            </Modal>
 
-                                <div className="space-y-4 mb-8 text-left px-2">
-                                    <div className="p-4 rounded-xl bg-secondary border border-border space-y-2">
-                                        <h6 className="text-[10px] font-black text-foreground uppercase tracking-widest">Option A: Workspace Removal</h6>
-                                        <p className="text-[11px] font-medium text-muted-foreground leading-relaxed">
-                                            Removes this document from the current workspace search index. Master file remains.
-                                        </p>
-                                    </div>
-                                    <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/10 space-y-2">
-                                        <h6 className="text-[10px] font-black text-red-500 uppercase tracking-widest">Option B: Global Deletion</h6>
-                                        <p className="text-[11px] font-medium text-muted-foreground leading-relaxed">
-                                            Permanently deletes the file and wipes all indices. <span className="text-red-500 font-bold uppercase">Irreversible</span>.
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="flex flex-col gap-2">
-                                    <button
-                                        onClick={() => handleDelete(deletingDoc.id!)}
-                                        className="w-full py-4 rounded-xl bg-secondary border border-border text-foreground hover:bg-muted transition-all text-tiny font-black tracking-widest"
-                                    >
-                                        REMOVE FROM WORKSPACE ONLY
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(deletingDoc.id!, true)}
-                                        data-testid="confirm-purge-btn"
-                                        className="w-full py-4 rounded-xl bg-red-500 text-white hover:bg-red-400 transition-all text-tiny font-black tracking-widest shadow-xl shadow-red-500/20"
-                                    >
-                                        DELETE FROM ENTIRE SYSTEM
-                                    </button>
-                                    <button
-                                        onClick={() => setDeletingDoc(null)}
-                                        className="w-full py-3 text-tiny text-muted-foreground font-black hover:text-foreground transition-colors tracking-widest"
-                                    >
-                                        CANCEL ACTION
-                                    </button>
-                                </div>
-                            </div>
-                        </motion.div>
+            {/* Workspace Indexing Management Modal */}
+            <Modal
+                isOpen={isWorkspaceModalOpen}
+                onClose={() => setIsWorkspaceModalOpen(false)}
+                title={(
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500 border border-indigo-500/20">
+                            <ArrowRightLeft size={16} />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-sm font-bold text-foreground leading-none">Manage indexing</span>
+                            <span className="text-[9px] text-muted-foreground font-black tracking-widest mt-1 opacity-60">Control document visibility across workspaces</span>
+                        </div>
                     </div>
                 )}
-            </AnimatePresence>
+                className="max-w-xl"
+                containerClassName="p-0"
+            >
+                <div className="flex flex-col h-[550px]">
+                    <div className="flex-1 overflow-y-auto px-10 pt-6 space-y-8 custom-scrollbar">
+                        {/* Current Workspace Indexes */}
+                        <section className="space-y-4">
+                            <h5 className="text-[10px] font-black text-muted-foreground tracking-widest ml-1">Workspaces</h5>
+                            <div className="space-y-3">
+                                {isDetailsLoading ? (
+                                    <div className="flex items-center justify-center py-10"><Loader2 className="animate-spin text-indigo-500" size={24} /></div>
+                                ) : !detailsDoc || detailsDoc.relationships.length === 0 ? (
+                                    <div className="p-8 text-center rounded-2xl border border-dashed border-border bg-secondary/10 text-muted-foreground font-bold text-[11px]">No active workspace indices deployed.</div>
+                                ) : (
+                                    detailsDoc.relationships.map((rel, i) => (
+                                        <div key={i} className="p-4 rounded-xl bg-secondary/40 border border-border flex items-center justify-between group hover:bg-secondary/60 transition-all">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 rounded-xl bg-background border border-border flex items-center justify-center text-muted-foreground group-hover:text-indigo-500 transition-colors">
+                                                    <Database size={16} />
+                                                </div>
+                                                <div>
+                                                    <div className="text-xs font-black text-foreground tracking-tight">{rel.workspace_name}</div>
+                                                    <div className="text-[9px] font-bold text-indigo-500/40 tracking-widest">{rel.is_primary ? 'Primary Host' : 'Shared Reference'}</div>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => setConfirmingAction({ type: 'de-index', workspace_id: rel.workspace_id, workspace_name: rel.workspace_name })}
+                                                className="h-10 px-4 rounded-xl bg-red-500/5 text-red-500 hover:bg-red-500 hover:text-white transition-all text-[9px] font-black tracking-widest border border-red-500/10"
+                                            >
+                                                Remove index
+                                            </button>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </section>
+
+                        {/* Add to Workspace */}
+                        <section className="space-y-4 pb-8">
+                            <h5 className="text-[10px] font-black text-muted-foreground tracking-widest ml-1">Node Expansion</h5>
+                            <div className="p-8 rounded-[2.5rem] bg-indigo-500/5 border border-indigo-500/10 space-y-6">
+                                <div className="space-y-3">
+                                    <label className="text-[9px] font-black text-indigo-500 tracking-[0.2em] ml-1">Select workspace</label>
+                                    <Select value={shareTarget} onValueChange={setShareTarget}>
+                                        <SelectTrigger className="w-full h-12 rounded-2xl px-6 bg-background border-border text-[11px] font-bold focus:ring-2 ring-indigo-500/20">
+                                            <SelectValue placeholder="Select target node..." />
+                                        </SelectTrigger>
+                                        <SelectContent className="rounded-2xl border-border bg-background shadow-2xl">
+                                            {workspaces.map((ws) => (
+                                                <SelectItem key={ws.id} value={ws.id} className="text-[11px] font-bold rounded-xl focus:bg-indigo-500 focus:text-white m-1">
+                                                    {ws.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        const ws = workspaces.find(w => w.id === shareTarget);
+                                        if (ws) setConfirmingAction({ type: 'index', workspace_id: ws.id, workspace_name: ws.name });
+                                    }}
+                                    disabled={!shareTarget || isManaging}
+                                    className="w-full h-12 bg-indigo-500 text-white hover:bg-indigo-600 rounded-2xl font-black text-[10px] tracking-[0.2em] transition-all active:scale-95 flex items-center justify-center gap-3 shadow-lg shadow-indigo-500/20 disabled:grayscale disabled:opacity-50"
+                                >
+                                    <Plus size={16} />
+                                    Add index
+                                </button>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </Modal>
+
+            <Modal
+                isOpen={!!confirmingAction}
+                onClose={() => setConfirmingAction(null)}
+                title={(
+                    <div className="flex items-center gap-3">
+                        <div className={cn(
+                            "w-8 h-8 rounded-lg flex items-center justify-center border",
+                            confirmingAction?.type === 'index' ? "bg-indigo-500/10 text-indigo-500 border-indigo-500/20" : "bg-red-500/10 text-red-500 border-red-500/20"
+                        )}>
+                            {confirmingAction?.type === 'index' ? <Zap size={16} /> : <AlertTriangle size={16} />}
+                        </div>
+                        <span className={cn(confirmingAction?.type === 'index' ? "text-indigo-500" : "text-red-500")}>
+                            Confirm action
+                        </span>
+                    </div>
+                )}
+                className="max-w-md"
+            >
+                <div className="flex flex-col items-center text-center space-y-8 pt-4">
+                    <div className="space-y-4">
+                        <h2 className="text-xl font-black text-foreground tracking-tight">
+                            {confirmingAction?.type === 'index' ? 'Add index' : 'Remove connection'}
+                        </h2>
+
+                        <div className="p-6 rounded-[2rem] bg-secondary/40 border border-border space-y-6 text-left relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 blur-2xl" />
+                            <div className="space-y-4 relative">
+                                <h6 className="text-[9px] font-black text-muted-foreground tracking-[0.2em]">Impact</h6>
+                                <ul className="space-y-4">
+                                    {confirmingAction?.type === 'index' ? (
+                                        <>
+                                            <li className="flex gap-4 text-[10px] text-muted-foreground font-bold leading-relaxed px-1">
+                                                <div className="shrink-0 text-indigo-500 mt-0.5"><Plus size={12} /></div>
+                                                Initialize dedicated vector representation for '{confirmingAction.workspace_name}'.
+                                            </li>
+                                            <li className="flex gap-4 text-[10px] text-muted-foreground font-bold leading-relaxed px-1">
+                                                <div className="shrink-0 text-indigo-500 mt-0.5"><Plus size={12} /></div>
+                                                Consume background compute for neural processing.
+                                            </li>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <li className="flex gap-4 text-[10px] text-red-500 font-bold leading-relaxed px-1">
+                                                <div className="shrink-0 text-red-500 mt-0.5"><Trash2 size={12} /></div>
+                                                Remove from neural space in node '{confirmingAction?.workspace_name}'.
+                                            </li>
+                                            <li className="flex gap-4 text-[10px] text-red-500 font-bold leading-relaxed px-1">
+                                                <div className="shrink-0 text-red-500 mt-0.5"><AlertTriangle size={12} /></div>
+                                                Active RAG flows will lose access to this source artifact.
+                                            </li>
+                                        </>
+                                    )}
+                                </ul>
+                            </div>
+
+                            <div className="pt-4 border-t border-border/50">
+                                <p className="text-[9px] text-muted-foreground/40 font-black tracking-widest leading-tight">
+                                    Note: the file will remain safe in your vault.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 w-full pt-2">
+                        <button
+                            onClick={() => setConfirmingAction(null)}
+                            className="h-12 rounded-2xl bg-secondary border border-border text-muted-foreground hover:text-foreground transition-all font-black text-[9px] tracking-[0.2em] active:scale-95"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={async () => {
+                                if (!managingDoc || !confirmingAction) return;
+                                setIsManaging(true);
+                                try {
+                                    if (confirmingAction.type === 'index') {
+                                        const res = await fetch(API_ROUTES.DOCUMENTS_UPDATE_WS, {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                document_id: managingDoc.id,
+                                                target_workspace_id: confirmingAction.workspace_id,
+                                                action: 'link'
+                                            })
+                                        });
+                                        if (res.ok) {
+                                            setConfirmingAction(null);
+                                            setIsWorkspaceModalOpen(false);
+                                            fetchDocuments();
+                                        } else {
+                                            showError("Action Failed", "Inference initiation failure.");
+                                        }
+                                    } else {
+                                        const res = await fetch(`${API_ROUTES.DOCUMENTS}/${encodeURIComponent(managingDoc.id!)}?workspace_id=${encodeURIComponent(confirmingAction.workspace_id)}&vault_delete=false`, {
+                                            method: 'DELETE'
+                                        });
+                                        if (res.ok) {
+                                            setConfirmingAction(null);
+                                            handleDetailView(managingDoc);
+                                            fetchDocuments();
+                                        } else {
+                                            showError("Action Failed", "Index removal failure.");
+                                        }
+                                    }
+                                } catch (_err) {
+                                    showError("Network Error", "Protocol synchronization error.");
+                                } finally {
+                                    setIsManaging(false);
+                                }
+                            }}
+                            disabled={isManaging}
+                            className={cn(
+                                "h-12 rounded-2xl font-black text-[9px] tracking-[0.2em] transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg",
+                                confirmingAction?.type === 'index' ? "bg-indigo-600 text-white shadow-indigo-500/20" : "bg-red-500 text-white shadow-red-500/20"
+                            )}
+                        >
+                            {isManaging ? <Loader2 className="animate-spin" size={14} /> : "Confirm"}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
+            <Modal
+                isOpen={!!deletingDoc}
+                onClose={() => setDeletingDoc(null)}
+                title={(
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500 border border-red-500/20">
+                            <Trash2 size={16} />
+                        </div>
+                        <span className="text-red-500">Delete file</span>
+                    </div>
+                )}
+                className="max-w-xl"
+            >
+                <div className="flex flex-col gap-10 pt-4">
+                    <div className="text-center space-y-4">
+                        <div className="w-16 h-16 rounded-[1.5rem] bg-red-500/5 border border-red-500/10 flex items-center justify-center mx-auto text-red-500 mb-2">
+                            <AlertTriangle size={32} />
+                        </div>
+                        <h3 className="text-xl font-black text-foreground tracking-tight">Delete file</h3>
+                        <p className="text-[11px] text-muted-foreground font-medium leading-relaxed px-8">
+                            Choose how you wish to delete <span className="text-foreground font-black">"{deletingDoc?.name}"</span>.
+                            This action cannot be easily undone once confirmed.
+                        </p>
+                    </div>
+
+                    <div className="grid gap-6">
+                        {/* Unlink from Workspace */}
+                        <div className="p-8 rounded-[2.5rem] bg-secondary/30 border border-border space-y-6 relative overflow-hidden group hover:bg-secondary/50 transition-all">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <span className="text-[9px] font-black text-muted-foreground tracking-[0.2em] block">Remove from workspace</span>
+                                    <span className="text-[10px] font-black text-indigo-500 tracking-widest">Keep in vault</span>
+                                </div>
+                                <div className="w-8 h-8 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-500 opacity-40 group-hover:opacity-100 transition-opacity">
+                                    <Database size={14} />
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3">
+                                <div className="flex-1">
+                                    <Select
+                                        value={deleteTargetWs}
+                                        onValueChange={setDeleteTargetWs}
+                                    >
+                                        <SelectTrigger className="h-12 rounded-2xl bg-background border-border text-[11px] font-bold">
+                                            <SelectValue placeholder="Select workspace..." />
+                                        </SelectTrigger>
+                                        <SelectContent className="rounded-2xl border-border bg-background shadow-2xl">
+                                            {(() => {
+                                                if (!deletingDoc) return null;
+                                                const docWorkspaces = new Set([deletingDoc.workspace_id, ...(deletingDoc.shared_with || [])]);
+                                                return Array.from(docWorkspaces)
+                                                    .filter(Boolean)
+                                                    .map(wsId => {
+                                                        const ws = workspaces.find(w => w.id === wsId);
+                                                        return (
+                                                            <SelectItem key={wsId} value={wsId!} className="text-[11px] font-bold rounded-xl focus:bg-indigo-500 focus:text-white m-1">
+                                                                {ws?.name || wsId}
+                                                            </SelectItem>
+                                                        );
+                                                    });
+                                            })()}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <button
+                                    onClick={() => deletingDoc && handleDelete(deletingDoc.id!)}
+                                    disabled={!deleteTargetWs}
+                                    className="h-12 px-8 bg-indigo-500 text-white rounded-2xl font-black text-[9px] tracking-[0.2em] transition-all shadow-lg shadow-indigo-500/10 active:scale-95 disabled:grayscale disabled:opacity-50"
+                                >
+                                    Remove
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Global Delete */}
+                        <div className="p-8 rounded-[2.5rem] bg-red-500/5 border border-red-500/10 space-y-6 group hover:bg-red-500/10 transition-all">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <span className="text-[9px] font-black text-red-500 tracking-[0.2em] block">Delete everywhere</span>
+                                    <span className="text-[10px] font-black text-red-600 tracking-widest animate-pulse">Permanent deletion</span>
+                                </div>
+                                <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 opacity-40 group-hover:opacity-100 transition-opacity">
+                                    <Trash2 size={14} />
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => deletingDoc && handleDelete(deletingDoc.id!, true)}
+                                className="w-full h-14 bg-red-500 text-white hover:bg-red-400 rounded-2xl font-black text-[10px] tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-xl shadow-red-500/20 active:scale-95"
+                            >
+                                Delete file everywhere
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-center pb-4">
+                        <button
+                            onClick={() => setDeletingDoc(null)}
+                            className="text-[9px] text-muted-foreground/40 font-black hover:text-foreground transition-colors tracking-[0.3em]"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </Modal>
 
             <AnimatePresence>
                 {activeSource && (

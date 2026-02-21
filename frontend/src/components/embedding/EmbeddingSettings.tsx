@@ -7,8 +7,15 @@ import { MODEL_DIMENSIONS, EmbeddingConfig } from '@/lib/schemas/embedding';
 import { cn } from '@/lib/utils';
 import {
     Cloud, Server, Cpu, Brain, Database,
-    Info, ShieldCheck
+    Info, ShieldCheck, ChevronDown
 } from 'lucide-react';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 
 interface EmbeddingSettingsProps {
     form: UseFormReturn<CreateWorkspaceInput>;
@@ -19,15 +26,15 @@ export function EmbeddingProviderSelector({ form }: EmbeddingSettingsProps) {
     const currentProvider = watch('embedding.provider');
 
     const providers = [
-        { id: 'openai', label: 'OpenAI', icon: Cloud, desc: 'Industry standard APIs' },
-        { id: 'azure', label: 'Azure OpenAI', icon: ShieldCheck, desc: 'Enterprise-grade hosting' },
-        { id: 'voyage', label: 'Voyage AI', icon: Cloud, desc: 'Top-tier retrieval models' },
-        { id: 'cohere', label: 'Cohere', icon: Cloud, desc: 'Specialized search embeddings' },
-        { id: 'huggingface', label: 'HuggingFace', icon: Server, desc: 'Local or API models' },
-        { id: 'ollama', label: 'Ollama', icon: Cpu, desc: 'Local self-hosted models' },
-        { id: 'llama', label: 'LLaMA Local', icon: Cpu, desc: 'Native LLaMA embeddings' },
-        { id: 'cdp2', label: 'LLaMA CDP2', icon: Database, desc: 'Internal custom models' },
-        { id: 'vlm', label: 'Multimodal VLM', icon: Brain, desc: 'Text & Visual embeddings' },
+        { id: 'openai', label: 'OpenAI', icon: Cloud },
+        { id: 'azure', label: 'Azure OpenAI', icon: ShieldCheck },
+        { id: 'voyage', label: 'Voyage AI', icon: Cloud },
+        { id: 'cohere', label: 'Cohere', icon: Cloud },
+        { id: 'huggingface', label: 'HuggingFace', icon: Server },
+        { id: 'ollama', label: 'Ollama', icon: Cpu },
+        { id: 'llama', label: 'LLaMA Local', icon: Cpu },
+        { id: 'cdp2', label: 'LLaMA CDP2', icon: Database },
+        { id: 'vlm', label: 'Multimodal VLM', icon: Brain },
     ];
 
     return (
@@ -55,7 +62,6 @@ export function EmbeddingProviderSelector({ form }: EmbeddingSettingsProps) {
                             <Icon size={16} />
                         </div>
                         <div className="font-bold text-[11px] mb-0.5">{p.label}</div>
-                        <div className="text-[9px] opacity-60 leading-tight">{p.desc}</div>
                     </button>
                 );
             })}
@@ -95,11 +101,19 @@ export function EmbeddingModelSelector({ form }: EmbeddingSettingsProps) {
         <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
                 <label className={labelClass}>Model</label>
-                <select {...register('embedding.model')} className={inputClass}>
-                    {models.map(m => (
-                        <option key={m} value={m}>{m}</option>
-                    ))}
-                </select>
+                <Select
+                    onValueChange={(v) => setValue('embedding.model', v as EmbeddingConfig['model'])}
+                    value={currentModel}
+                >
+                    <SelectTrigger className={inputClass}>
+                        <SelectValue placeholder="Select model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {models.map(m => (
+                            <SelectItem key={m} value={m}>{m}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
             <div className="space-y-1">
                 <label className={labelClass}>Dimension (Derived)</label>
@@ -112,7 +126,7 @@ export function EmbeddingModelSelector({ form }: EmbeddingSettingsProps) {
 }
 
 export function EmbeddingConfigDetails({ form }: EmbeddingSettingsProps) {
-    const { register, watch } = form;
+    const { register, watch, setValue } = form;
     const provider = watch('embedding.provider');
 
     const inputClass = "w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-caption focus:ring-1 focus:ring-blue-500 outline-none transition-all";
@@ -168,20 +182,36 @@ export function EmbeddingConfigDetails({ form }: EmbeddingSettingsProps) {
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1 text-xs">
                         <label className={labelClass}>Input Type</label>
-                        <select {...register('embedding.input_type')} className={inputClass}>
-                            <option value="search_query">Search Query</option>
-                            <option value="search_document">Search Document</option>
-                            <option value="classification">Classification</option>
-                            <option value="clustering">Clustering</option>
-                        </select>
+                        <Select
+                            onValueChange={(v) => setValue('embedding.input_type', v as any)}
+                            value={watch('embedding.input_type')}
+                        >
+                            <SelectTrigger className={inputClass}>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="search_query">Search Query</SelectItem>
+                                <SelectItem value="search_document">Search Document</SelectItem>
+                                <SelectItem value="classification">Classification</SelectItem>
+                                <SelectItem value="clustering">Clustering</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                     <div className="space-y-1">
                         <label className={labelClass}>Truncate</label>
-                        <select {...register('embedding.truncate')} className={inputClass}>
-                            <option value="NONE">None</option>
-                            <option value="START">Start</option>
-                            <option value="END">End</option>
-                        </select>
+                        <Select
+                            onValueChange={(v) => setValue('embedding.truncate', v as any)}
+                            value={watch('embedding.truncate')}
+                        >
+                            <SelectTrigger className={inputClass}>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="NONE">None</SelectItem>
+                                <SelectItem value="START">Start</SelectItem>
+                                <SelectItem value="END">End</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                     <div className="space-y-1">
                         <label className={labelClass}>Batch Size</label>
@@ -194,11 +224,19 @@ export function EmbeddingConfigDetails({ form }: EmbeddingSettingsProps) {
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                         <label className={labelClass}>Device</label>
-                        <select {...register('embedding.device')} className={inputClass}>
-                            <option value="cpu">CPU</option>
-                            <option value="cuda">CUDA</option>
-                            <option value="mps">MPS</option>
-                        </select>
+                        <Select
+                            onValueChange={(v) => setValue('embedding.device', v as any)}
+                            value={watch('embedding.device')}
+                        >
+                            <SelectTrigger className={inputClass}>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="cpu">CPU</SelectItem>
+                                <SelectItem value="cuda">CUDA</SelectItem>
+                                <SelectItem value="mps">MPS</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                     <div className="space-y-1">
                         <label className={labelClass}>Batch Size</label>
@@ -223,11 +261,19 @@ export function EmbeddingConfigDetails({ form }: EmbeddingSettingsProps) {
                     </div>
                     <div className="space-y-1">
                         <label className={labelClass}>Quantization</label>
-                        <select {...register('embedding.quantization')} className={inputClass}>
-                            <option value="fp16">Full (fp16)</option>
-                            <option value="int8">Int8</option>
-                            <option value="int4">Int4</option>
-                        </select>
+                        <Select
+                            onValueChange={(v) => setValue('embedding.quantization', v as any)}
+                            value={watch('embedding.quantization')}
+                        >
+                            <SelectTrigger className={inputClass}>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="fp16">Full (fp16)</SelectItem>
+                                <SelectItem value="int8">Int8</SelectItem>
+                                <SelectItem value="int4">Int4</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                     <div className="space-y-1">
                         <label className={labelClass}>Device Map</label>
@@ -265,11 +311,19 @@ export function EmbeddingConfigDetails({ form }: EmbeddingSettingsProps) {
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                         <label className={labelClass}>Input Modalities</label>
-                        <select {...register('embedding.input_modalities')} className={inputClass}>
-                            <option value="text">Text Only</option>
-                            <option value="image">Image Only</option>
-                            <option value="both">Both</option>
-                        </select>
+                        <Select
+                            onValueChange={(v) => setValue('embedding.input_modalities', v as any)}
+                            value={watch('embedding.input_modalities')}
+                        >
+                            <SelectTrigger className={inputClass}>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="text">Text Only</SelectItem>
+                                <SelectItem value="image">Image Only</SelectItem>
+                                <SelectItem value="both">Both</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                     <div className="space-y-1">
                         <label className={labelClass}>Image Res</label>

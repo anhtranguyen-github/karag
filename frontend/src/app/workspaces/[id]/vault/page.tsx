@@ -22,10 +22,10 @@ export default function VaultPage() {
                         >
                             <div className="flex items-center gap-3 text-gray-500">
                                 <Layers size={18} />
-                                <span className="text-tiny font-black  tracking-[0.2em]">Neural Shards</span>
+                                <span className="text-tiny font-bold tracking-[0.2em]">Indexed files</span>
                             </div>
-                            <div className="text-h2 font-black text-white">INDEXED</div>
-                            <div className="text-tiny text-gray-600 font-bold leading-relaxed">Cross-referenced via Qdrant vector isolation.</div>
+                            <div className="text-h2 font-bold text-white">Ready</div>
+                            <div className="text-tiny text-gray-600 font-bold leading-relaxed">Your files are ready for search.</div>
                         </motion.div>
 
                         <motion.div
@@ -36,10 +36,10 @@ export default function VaultPage() {
                         >
                             <div className="flex items-center gap-3 text-gray-500">
                                 <HardDrive size={18} />
-                                <span className="text-tiny font-black  tracking-[0.2em]">Storage State</span>
+                                <span className="text-tiny font-bold tracking-[0.2em]">Storage</span>
                             </div>
-                            <div className="text-h2 font-black text-white">PERSISTED</div>
-                            <div className="text-tiny text-gray-600 font-bold leading-relaxed">Versioned binary objects stored in MinIO.</div>
+                            <div className="text-h2 font-bold text-white">Active</div>
+                            <div className="text-tiny text-gray-600 font-bold leading-relaxed">Files are stored securely.</div>
                         </motion.div>
 
                         <motion.div
@@ -50,18 +50,17 @@ export default function VaultPage() {
                         >
                             <div className="flex items-center gap-3 text-indigo-400">
                                 <Database size={18} />
-                                <span className="text-tiny font-black  tracking-[0.2em]">Vector Space</span>
+                                <span className="text-tiny font-bold tracking-[0.2em]">Search space</span>
                             </div>
-                            <div className="text-h2 font-black text-indigo-500  ">Isolated</div>
-                            <div className="text-tiny text-indigo-400/50 font-bold leading-relaxed">Workspace-scoped embedding namespace.</div>
+                            <div className="text-h2 font-bold text-indigo-500">Active</div>
+                            <div className="text-tiny text-indigo-400/50 font-bold leading-relaxed">Searching in this workspace.</div>
                         </motion.div>
                     </div>
 
                     {/* Main UI */}
                     <div className="bg-[#121214] border border-white/10 rounded-[2.5rem] shadow-2xl p-8 min-h-[500px]">
                         <div className="mb-8 flex items-center justify-between">
-                            <h3 className="text-h3 font-black  ">Inventory Manager</h3>
-                            <span className="px-3 py-1 rounded-lg bg-white/5 text-tiny font-bold text-gray-600 border border-white/5">DB REVISION: 1.04</span>
+                            <h3 className="text-h3 font-bold">Files</h3>
                         </div>
                         <KnowledgeBase workspaceId={workspaceId} />
                     </div>

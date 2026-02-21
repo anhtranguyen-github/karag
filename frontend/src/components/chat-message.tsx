@@ -73,7 +73,7 @@ export function ChatMessage({ message, isLoading, onCitationClick }: ChatMessage
                 message.role === 'user' ? "items-end text-right" : "items-start"
             )}>
                 {/* Meta Header */}
-                <div className="flex items-center gap-3 px-1 text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                <div className="flex items-center gap-3 px-1 text-[9px] font-bold text-muted-foreground">
                     <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
 
@@ -88,7 +88,7 @@ export function ChatMessage({ message, isLoading, onCitationClick }: ChatMessage
                                 >
                                     <div className="flex items-center gap-3">
                                         <Sparkles size={14} className="text-indigo-500" />
-                                        <span className="text-[9px] font-bold uppercase tracking-widest text-indigo-500/60">Thought</span>
+                                        <span className="text-[9px] font-bold text-indigo-500/60">Thinking</span>
                                         <span className="text-[9px] font-bold text-muted-foreground/60 ml-2">[{message.reasoning_steps?.length}]</span>
                                     </div>
                                     <div className="w-6 h-6 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground">
@@ -146,7 +146,7 @@ export function ChatMessage({ message, isLoading, onCitationClick }: ChatMessage
                             <button
                                 key={source.id}
                                 onClick={() => onCitationClick(source.id)}
-                                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-secondary border border-border text-[9px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground hover:bg-indigo-500/10 hover:border-indigo-500/30 transition-all group/src"
+                                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-secondary border border-border text-[9px] font-bold text-muted-foreground hover:text-foreground hover:bg-indigo-500/10 hover:border-indigo-500/30 transition-all group/src"
                             >
                                 <Shield size={10} className="text-muted-foreground/60 group-hover/src:text-indigo-500" />
                                 Source [{source.id}]

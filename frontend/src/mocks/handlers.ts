@@ -8,9 +8,9 @@ export const handlers = [
             success: true,
             data: [
                 {
-                    id: 'default',
-                    name: 'Default Workspace',
-                    description: 'Mocked Default Workspace',
+                    id: 'vault',
+                    name: 'Vault',
+                    description: 'Primary knowledge storage',
                     llm_provider: 'openai',
                     embedding_provider: 'openai',
                     rag_engine: 'simple',
@@ -43,7 +43,7 @@ export const handlers = [
             success: true,
             data: {
                 id: params.id,
-                workspace_id: 'default',
+                workspace_id: 'vault',
                 title: 'Mock Thread'
             }
         });
@@ -57,7 +57,7 @@ export const handlers = [
                 {
                     id: 'doc-1',
                     name: 'research_paper.pdf',
-                    workspace_id: 'default',
+                    workspace_id: 'vault',
                     status: 'indexed',
                     size_bytes: 102400,
                     created_at: new Date().toISOString()
@@ -83,7 +83,7 @@ export const handlers = [
                     id: 'res-1',
                     title: 'Search Result 1',
                     snippet: 'This is a mocked search result for: ' + query,
-                    workspace_id: 'default'
+                    workspace_id: 'vault'
                 }
             ]
         });

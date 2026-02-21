@@ -22,7 +22,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/lib/api-client', () => ({
     api: {
         getChatHistoryChatHistoryThreadIdGet: vi.fn().mockResolvedValue({ data: [] }),
-        getThreadsChatThreadsGet: vi.fn().mockResolvedValue({ data: [] }),
+        listChatThreadsChatThreadsGet: vi.fn().mockResolvedValue({ data: [] }),
     }
 }));
 
@@ -64,11 +64,15 @@ describe('Chat Flow Integration', () => {
         // fetchEventSource should be called
         expect(mockFetchEventSource).toHaveBeenCalled();
 
+        const { act } = await import('@testing-library/react');
+
         // Simulate SSE messages
         const onmessage = mockFetchEventSource.mock.calls[0][1].onmessage;
-        onmessage({ data: JSON.stringify({ type: 'thought', step: 'Searching documents...' }) });
-        onmessage({ data: JSON.stringify({ type: 'content', delta: 'Hello!' }) });
-        onmessage({ data: JSON.stringify({ type: 'content', delta: ' How can I help?' }) });
+        await act(async () => {
+            onmessage({ data: JSON.stringify({ type: 'thought', step: 'Searching documents...' }) });
+            onmessage({ data: JSON.stringify({ type: 'content', delta: 'Hello!' }) });
+            onmessage({ data: JSON.stringify({ type: 'content', delta: ' How can I help?' }) });
+        });
 
         // Final content should appear
         expect(await screen.findByText(/Hello! How can I help?/)).toBeInTheDocument();

@@ -1,13 +1,13 @@
 'use client';
 
 import React from 'react';
-import { X, FileText, Database, Hash, Layers, Box, LucideIcon } from 'lucide-react';
+import { FileText, Database, Hash, Layers, Box, LucideIcon } from 'lucide-react';
+import { Modal } from '@/components/ui/modal';
 
 interface CitationSource {
     id: number;
     name: string;
     content: string;
-    // Extended metadata
     doc_id?: string;
     workspace_id?: string;
     minio_path?: string;
@@ -27,106 +27,91 @@ interface CitationModalProps {
 
 export function CitationModal({ source, onClose }: CitationModalProps) {
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            {/* Backdrop */}
-            <div
-                className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-                onClick={onClose}
-            />
-
-            {/* Modal */}
-            <div className="relative bg-[#0f0f10] border border-white/10 rounded-2xl w-full max-w-3xl max-h-[80vh] overflow-hidden shadow-2xl">
-                {/* Header */}
-                <div className="p-4 border-b border-white/10 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-blue-600/20 flex items-center justify-center">
-                            <FileText size={20} className="text-blue-500" />
-                        </div>
-                        <div>
-                            <h3 className="text-h3 font-bold text-white">{source.name}</h3>
-                            <p className="text-tiny text-gray-500">
-                                Citation [{source.id}] • {source.workspace_id ? `Workspace: ${source.workspace_id}` : 'Document Source'}
-                            </p>
-                        </div>
+        <Modal
+            isOpen={true}
+            onClose={onClose}
+            title={(
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 border border-indigo-500/20">
+                        <FileText size={20} />
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all"
-                    >
-                        <X size={20} className="text-gray-400" />
-                    </button>
+                    <div>
+                        <h3 className="text-lg font-bold text-foreground leading-tight">{source.name}</h3>
+                        <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-0.5">
+                            Citation Artifact [{source.id}]
+                        </p>
+                    </div>
                 </div>
-
-                {/* Content */}
-                <div className="p-6 overflow-y-auto max-h-[60vh]">
+            )}
+            className="max-w-3xl"
+            containerClassName="p-0"
+        >
+            <div className="flex flex-col max-h-[75vh]">
+                <div className="p-8 overflow-y-auto flex-1 custom-scrollbar">
                     {/* Metadata Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                         {source.doc_id && (
-                            <MetaItem icon={Hash} label="Document ID" value={source.doc_id} />
+                            <MetaItem icon={Hash} label="Document ID" value={source.doc_id.slice(0, 12)} />
+                        )}
+                        {source.workspace_id && (
+                            <MetaItem icon={Database} label="Workspace" value={source.workspace_id} />
                         )}
                         {source.chunk_index !== undefined && (
                             <MetaItem
                                 icon={Layers}
                                 label="Chunk"
-                                value={`${source.chunk_index + 1}${source.total_chunks ? ` of ${source.total_chunks}` : ''}`}
+                                value={`${source.chunk_index + 1}${source.total_chunks ? ` / ${source.total_chunks}` : ''}`}
                             />
                         )}
                         {source.embedding_model && (
-                            <MetaItem icon={Database} label="Embed Model" value={source.embedding_model} />
+                            <MetaItem icon={Database} label="Embed Model" value={source.embedding_model.split('/').pop() || 'N/A'} />
                         )}
                         {source.chunk_size && (
-                            <MetaItem icon={Box} label="Chunk Size" value={`${source.chunk_size} / ${source.chunk_overlap || 0}`} />
-                        )}
-                        {source.content_hash && (
-                            <MetaItem icon={Hash} label="Content Hash" value={source.content_hash.slice(0, 12) + '...'} />
-                        )}
-                        {source.rag_config_hash && (
-                            <MetaItem icon={Hash} label="RAG Config" value={source.rag_config_hash.slice(0, 12) + '...'} />
+                            <MetaItem icon={Box} label="Block Size" value={`${source.chunk_size}`} />
                         )}
                     </div>
 
                     {/* Document Content */}
-                    <div className="bg-[#1a1a1c] rounded-xl p-4 border border-white/5">
-                        <div className="flex items-center gap-2 mb-3 pb-3 border-b border-white/5">
-                            <FileText size={14} className="text-gray-500" />
-                            <span className="text-tiny font-semibold text-gray-400 ">Source Content</span>
+                    <div className="bg-secondary/20 rounded-3xl p-6 border border-border">
+                        <div className="flex items-center gap-2 mb-4 pb-4 border-b border-border">
+                            <FileText size={14} className="text-muted-foreground opacity-50" />
+                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Source Context Payload</span>
                         </div>
-                        <div className="text-caption text-gray-300 leading-relaxed whitespace-pre-wrap">
+                        <div className="text-xs font-medium text-foreground/80 leading-relaxed whitespace-pre-wrap">
                             {source.content}
                         </div>
                     </div>
 
                     {/* Path Info */}
                     {source.minio_path && (
-                        <div className="mt-4 p-3 bg-white/5 rounded-lg">
-                            <span className="text-tiny text-gray-500">Storage Path: </span>
-                            <code className="text-tiny text-gray-400">{source.minio_path}</code>
+                        <div className="mt-6 p-4 bg-secondary/40 rounded-2xl border border-border flex items-center gap-3">
+                            <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest shrink-0">Storage Path</span>
+                            <code className="text-[9px] font-mono text-indigo-400 truncate">{source.minio_path}</code>
                         </div>
                     )}
                 </div>
 
-                {/* Footer */}
-                <div className="p-4 border-t border-white/10 flex justify-end">
+                <div className="p-6 border-t border-border bg-secondary/20 flex justify-end">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-caption font-medium text-gray-300 transition-all"
+                        className="px-8 py-3 rounded-xl bg-foreground text-background text-[10px] font-black tracking-widest transition-all active:scale-95 uppercase"
                     >
-                        Close
+                        Close View
                     </button>
                 </div>
             </div>
-        </div>
+        </Modal>
     );
 }
 
 function MetaItem({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
     return (
-        <div className="p-3 bg-white/5 rounded-lg">
+        <div className="p-4 bg-secondary/40 rounded-2xl border border-border group hover:bg-secondary/60 transition-all">
             <div className="flex items-center gap-2 mb-1">
-                <Icon size={12} className="text-gray-500" />
-                <span className="text-tiny text-gray-500 ">{label}</span>
+                <Icon size={12} className="text-indigo-500 opacity-60 group-hover:opacity-100 transition-opacity" />
+                <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{label}</span>
             </div>
-            <span className="text-caption text-white font-medium truncate block">{value}</span>
+            <span className="text-[11px] font-bold text-foreground truncate block">{value}</span>
         </div>
     );
 }
@@ -142,10 +127,10 @@ export function CitationBadge({ id, name, onClick }: CitationBadgeProps) {
     return (
         <button
             onClick={onClick}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 text-tiny font-semibold hover:bg-blue-500/30 transition-all ml-1"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-500 text-[10px] font-black tracking-wider hover:bg-indigo-500/20 transition-all ml-1 border border-indigo-500/20 active:scale-95 shadow-sm"
             title={name || `Citation ${id}`}
         >
-            <FileText size={10} />
+            <FileText size={10} strokeWidth={3} />
             <span>[{id}]</span>
         </button>
     );

@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Plus, MessageSquare, Loader2 } from "lucide-react";
+import { Plus, MessageSquare, Loader2, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api-client";
 
@@ -20,10 +20,12 @@ interface Thread {
 export function ThreadList({
     activeThreadId,
     onSelectThread,
+    onToggle,
     workspaceId: propWorkspaceId
 }: {
     activeThreadId?: string | null,
     onSelectThread: (threadId: string) => void,
+    onToggle?: () => void,
     workspaceId?: string
 }) {
     const params = useParams();
@@ -48,8 +50,11 @@ export function ThreadList({
     useEffect(() => {
         if (workspaceId) {
             fetchThreads();
+            // Poll for updates in case titles or new threads are generated
+            const interval = setInterval(fetchThreads, 5000);
+            return () => clearInterval(interval);
         }
-    }, [workspaceId, fetchThreads]);
+    }, [workspaceId, activeThreadId, fetchThreads]);
 
     const handleCreateThread = () => {
         if (workspaceId) {
@@ -61,13 +66,26 @@ export function ThreadList({
 
     return (
         <div className="w-full flex flex-col bg-card h-full shrink-0 border-r border-border">
-            <div className="h-16 px-6 border-b border-border flex items-center justify-between shrink-0">
-                <div className="flex flex-col">
-                    <span className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground leading-none">History</span>
+            <div className="h-16 px-6 border-b border-border flex items-center justify-between shrink-0 bg-background/50">
+                <div className="flex items-center gap-4">
+                    {onToggle && (
+                        <button
+                            onClick={onToggle}
+                            className="w-10 h-10 rounded-xl bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-all active:scale-95 group"
+                            title="Close Sidebar"
+                        >
+                            <X size={18} className="group-hover:rotate-90 transition-transform duration-300" />
+                        </button>
+                    )}
+                    <span className="text-[11px] font-black uppercase tracking-[0.3em] text-foreground/80 leading-none">History</span>
                 </div>
-                <Button variant="ghost" size="icon" onClick={handleCreateThread} title="New Chat" className="text-muted-foreground hover:text-foreground hover:bg-secondary rounded-xl transition-all active:scale-90">
-                    <Plus className="w-4 h-4" />
-                </Button>
+                <button
+                    onClick={handleCreateThread}
+                    title="New Chat"
+                    className="w-10 h-10 rounded-xl bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-indigo-400 hover:border-indigo-500/30 transition-all active:scale-95"
+                >
+                    <Plus className="w-5 h-5" />
+                </button>
             </div>
             <div className="flex-1 overflow-y-auto p-3 space-y-1.5 custom-scrollbar">
                 {loading ? (
@@ -104,7 +122,7 @@ export function ThreadList({
                                 "w-4 h-4 transition-transform group-hover:scale-110",
                                 activeThreadId === thread.id ? "text-indigo-500" : "text-muted-foreground group-hover:text-foreground"
                             )} />
-                            <span className="truncate flex-1 text-xs font-bold tracking-tight">{thread.title || "Untitled Fragment"}</span>
+                            <span className="truncate flex-1 text-xs font-bold tracking-tight">{thread.title || "New chat"}</span>
                         </button>
                     ))
                 )}

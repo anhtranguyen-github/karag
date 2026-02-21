@@ -80,16 +80,24 @@ describe('SearchPage', () => {
     });
 
     it('shows no results message when search yields nothing', async () => {
+        vi.useFakeTimers();
+        const { act } = await import('@testing-library/react');
         render(<SearchPage />);
 
         const input = screen.getByPlaceholderText(/Search documents/);
-        fireEvent.change(input, { target: { value: 'nonexistent' } });
 
-        // Wait for debounced search
-        await new Promise(r => setTimeout(r, 400));
+        await act(async () => {
+            fireEvent.change(input, { target: { value: 'nonexistent' } });
+        });
 
-        // Should show no results
-        expect(await screen.findByText(/No results found/)).toBeInTheDocument();
+        // Fast-forward debounce timer
+        await act(async () => {
+            vi.advanceTimersByTime(400);
+        });
+
+        // Should show no results - resolved fetch should have updated state
+        expect(screen.getByText(/No results found/)).toBeInTheDocument();
+        vi.useRealTimers();
     });
 });
 

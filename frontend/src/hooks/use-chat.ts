@@ -11,7 +11,7 @@ export interface Message {
     sources?: Array<{ id: number, name: string, content: string }>;
 }
 
-export function useChat(workspaceId: string = "default") {
+export function useChat(workspaceId: string = "vault") {
     const [messages, setMessages] = useState<Message[]>([]);
     const [threadId, setThreadId] = useState<string>('default');
 

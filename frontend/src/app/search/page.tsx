@@ -37,12 +37,10 @@ function SearchContent() {
     const searchParams = useSearchParams();
 
     const [query, setQuery] = useState(searchParams.get('q') || '');
-    const [scope, setScope] = useState<SearchScope>('all');
-    const [workspaceFilter, setWorkspaceFilter] = useState<string>('');
+    const [scope] = useState<SearchScope>('all');
     const [results, setResults] = useState<SearchResult[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [recentSearches, setRecentSearches] = useState<string[]>([]);
-    const [workspaces, setWorkspaces] = useState<SearchWorkspace[]>([]);
 
     // Load recent searches from localStorage
     useEffect(() => {
@@ -52,23 +50,6 @@ function SearchContent() {
         }
     }, []);
 
-    // Fetch workspaces for filter
-    useEffect(() => {
-        const loadWorkspaces = async () => {
-            try {
-                const res = await fetch(API_ROUTES.WORKSPACES);
-                if (res.ok) {
-                    const result = await res.json();
-                    if (result.success && result.data) {
-                        setWorkspaces(result.data);
-                    }
-                }
-            } catch (err) {
-                console.error('Failed to load workspaces', err);
-            }
-        };
-        loadWorkspaces();
-    }, []);
 
     // Search function
     const performSearch = useCallback(async (searchQuery: string) => {
@@ -81,8 +62,7 @@ function SearchContent() {
         const allResults: SearchResult[] = [];
 
         try {
-            const wsParam = workspaceFilter ? `&workspace_id=${encodeURIComponent(workspaceFilter)}` : '';
-            const res = await fetch(`${API_ROUTES.SEARCH}?q=${encodeURIComponent(searchQuery)}${wsParam}`);
+            const res = await fetch(`${API_ROUTES.SEARCH}?q=${encodeURIComponent(searchQuery)}`);
 
             if (res.ok) {
                 const result = await res.json();
@@ -145,7 +125,7 @@ function SearchContent() {
         } finally {
             setIsSearching(false);
         }
-    }, [scope, workspaceFilter, recentSearches]);
+    }, [recentSearches]);
 
     // Debounced search
     useEffect(() => {
@@ -224,40 +204,6 @@ function SearchContent() {
                 </div>
             </header>
 
-            {/* Filters */}
-            <div className="border-b border-white/10 px-6 py-3">
-                <div className="max-w-4xl mx-auto flex items-center gap-4">
-                    {/* Scope Filter */}
-                    <div className="flex gap-1 p-1 bg-white/5 rounded-lg">
-                        {(['all', 'documents', 'chats', 'workspaces'] as SearchScope[]).map((s) => (
-                            <button
-                                key={s}
-                                onClick={() => setScope(s)}
-                                className={cn(
-                                    "px-3 py-1.5 rounded-md text-caption capitalize transition-all",
-                                    scope === s
-                                        ? "bg-white/10 text-white"
-                                        : "text-gray-500 hover:text-white"
-                                )}
-                            >
-                                {s}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Workspace Filter */}
-                    <select
-                        value={workspaceFilter}
-                        onChange={(e) => setWorkspaceFilter(e.target.value)}
-                        className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-caption text-gray-300 focus:outline-none"
-                    >
-                        <option value="">All Workspaces</option>
-                        {workspaces.map(ws => (
-                            <option key={ws.id} value={ws.id}>{ws.name}</option>
-                        ))}
-                    </select>
-                </div>
-            </div>
 
             {/* Results */}
             <main className="max-w-4xl mx-auto p-6">

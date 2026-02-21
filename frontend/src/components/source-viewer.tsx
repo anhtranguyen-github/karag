@@ -1,6 +1,7 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { X, FileText, AlertTriangle } from 'lucide-react';
+import { X, FileText, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Modal } from '@/components/ui/modal';
+import { cn } from '@/lib/utils';
 
 interface Source {
     id: number;
@@ -11,81 +12,75 @@ interface Source {
 
 export function SourceViewer({ source, onClose }: { source: Source, onClose: () => void }) {
     return (
-        <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-            onClick={onClose}
-        >
-            <div
-                className="bg-[#121214] border border-white/10 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
-                onClick={e => e.stopPropagation()}
-            >
-                {/* Header */}
-                <div className="p-6 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-blue-500/10 to-purple-500/10">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                            <FileText className="text-blue-400 w-5 h-5" />
-                        </div>
-                        <div>
-                            <h2 className="text-h3 font-bold text-white leading-tight">Source [{source.id}]</h2>
-                            <p className="text-tiny text-gray-400 truncate max-w-[300px]">{source.name}</p>
-                        </div>
+        <Modal
+            isOpen={true} // Controlled by parent
+            onClose={onClose}
+            title={(
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500 border border-indigo-500/20">
+                        <FileText size={16} />
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-xl transition-colors text-gray-400 hover:text-white">
-                        <X className="w-6 h-6" />
-                    </button>
+                    <div className="flex flex-col">
+                        <span className="text-sm font-bold text-foreground leading-none">Source Artifact [{source.id}]</span>
+                        <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-1 opacity-60">
+                            {source.name.slice(0, 40)}{source.name.length > 40 ? '...' : ''}
+                        </span>
+                    </div>
                 </div>
-
-                {/* Content */}
+            )}
+            className="max-w-3xl"
+            containerClassName="p-0"
+        >
+            <div className="flex flex-col max-h-[75vh]">
                 <div className="p-8 overflow-y-auto flex-1 custom-scrollbar">
                     {source.content ? (
                         <div className="prose prose-invert max-w-none">
                             <div
                                 data-testid="source-content"
-                                className="text-gray-300 leading-relaxed whitespace-pre-wrap text-caption md:text-body"
+                                className="text-foreground/90 leading-relaxed font-medium text-sm whitespace-pre-wrap bg-secondary/20 p-6 rounded-[2rem] border border-border"
                             >
                                 {source.content}
                             </div>
                         </div>
                     ) : source.download_url ? (
-                        <div className="flex flex-col items-center justify-center h-full gap-6 py-12">
-                            <div className="w-20 h-20 rounded-[2.5rem] bg-indigo-500/10 flex items-center justify-center text-indigo-400">
-                                <FileText size={40} />
+                        <div className="flex flex-col items-center justify-center py-20 gap-8">
+                            <div className="w-24 h-24 rounded-[2.5rem] bg-indigo-500/5 flex items-center justify-center text-indigo-500/20">
+                                <FileText size={48} />
                             </div>
                             <div className="text-center space-y-2">
-                                <h4 className="text-caption font-black text-white">Full Document Access</h4>
-                                <p className="text-tiny text-gray-500 font-bold max-w-xs">This document type requires external viewing or direct access via signed URL.</p>
+                                <h4 className="text-xs font-black text-foreground uppercase tracking-widest">External Asset Detected</h4>
+                                <p className="text-[10px] text-muted-foreground font-medium max-w-xs mx-auto leading-relaxed">
+                                    This document type requires specialized processing or direct access via a secure endpoint.
+                                </p>
                             </div>
                             <a
                                 href={source.download_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="h-12 px-8 flex items-center gap-3 rounded-2xl bg-white text-black hover:bg-gray-200 transition-all font-black text-tiny tracking-widest active:scale-95 shadow-xl shadow-white/5"
+                                className="h-12 px-10 flex items-center gap-3 rounded-2xl bg-indigo-500 text-white hover:bg-indigo-600 transition-all font-black text-[10px] tracking-[0.2em] uppercase active:scale-95 shadow-lg shadow-indigo-500/20"
                             >
-                                OPEN DOCUMENT
+                                <ExternalLink size={14} />
+                                Open Knowledge Source
                             </a>
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center justify-center h-full gap-4 opacity-40">
-                            <AlertTriangle size={48} className="text-gray-600" />
-                            <span className="text-tiny font-black text-gray-600">Content Unavailable</span>
+                        <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-30 italic">
+                            <AlertTriangle size={48} className="text-muted-foreground" />
+                            <span className="text-xs font-medium">Content Payload Irretrievable</span>
                         </div>
                     )}
                 </div>
 
-                {/* Footer */}
-                <div className="p-4 px-8 border-t border-white/5 bg-white/2 flex justify-between items-center">
-                    <span className="text-tiny text-gray-500  ">Vault Document Reference</span>
+                <div className="p-6 border-t border-border bg-secondary/20 flex justify-between items-center px-10">
+                    <span className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em]">Security Protocol: Read-Only Artifact</span>
                     <button
                         onClick={onClose}
-                        className="text-tiny font-semibold text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1"
+                        className="px-6 py-2.5 rounded-xl bg-foreground text-background text-[10px] font-black tracking-widest uppercase hover:opacity-90 transition-all active:scale-95"
                     >
                         Close Preview
                     </button>
                 </div>
             </div>
-        </motion.div>
+        </Modal>
     );
 }

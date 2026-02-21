@@ -36,13 +36,6 @@ export default function VaultPage() {
                     {actions && (
                         <>
                             <button
-                                onClick={actions.triggerSync}
-                                className="h-10 px-4 rounded-xl bg-secondary border border-border text-muted-foreground hover:text-indigo-500 hover:border-indigo-500/30 transition-all font-bold text-xs flex items-center gap-2"
-                            >
-                                <Network size={16} />
-                                Sync
-                            </button>
-                            <button
                                 onClick={actions.openUpload}
                                 className="h-10 px-6 rounded-xl bg-foreground text-background hover:opacity-90 transition-all font-bold text-xs flex items-center gap-2 shadow-lg"
                             >

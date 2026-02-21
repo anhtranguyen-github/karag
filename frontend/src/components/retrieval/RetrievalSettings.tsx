@@ -46,7 +46,6 @@ export function RetrievalSettings({ form }: RetrievalSettingsProps) {
                     </div>
                     <div>
                         <h3 className="text-sm font-bold text-foreground">Base Retrieval</h3>
-                        <p className="text-[10px] text-muted-foreground font-medium">Configure Vector and Semantic search modules</p>
                     </div>
                 </div>
 
@@ -55,7 +54,6 @@ export function RetrievalSettings({ form }: RetrievalSettingsProps) {
                     <div className={switchRowClass}>
                         <div className="space-y-0.5">
                             <FormLabel className="text-xs font-bold">Dense Vector Search</FormLabel>
-                            <FormDescription className="text-[10px] text-muted-foreground/60">AI-powered semantic meaning matching</FormDescription>
                         </div>
                         <FormField
                             control={form.control}
@@ -102,7 +100,6 @@ export function RetrievalSettings({ form }: RetrievalSettingsProps) {
                     <div className={switchRowClass}>
                         <div className="space-y-0.5">
                             <FormLabel className="text-xs font-bold">Sparse BM25 Search</FormLabel>
-                            <FormDescription className="text-[10px] text-muted-foreground/60">Keyword and exact term matching</FormDescription>
                         </div>
                         <FormField
                             control={form.control}
@@ -143,7 +140,6 @@ export function RetrievalSettings({ form }: RetrievalSettingsProps) {
                         <div className="flex items-center justify-between mb-4">
                             <div className="space-y-0.5 text-indigo-500">
                                 <FormLabel className="text-xs font-black uppercase tracking-widest">Hybrid Fusion</FormLabel>
-                                <FormDescription className="text-[10px] text-indigo-500/60 font-medium">Merge vector and keyword results</FormDescription>
                             </div>
                             <FormField
                                 control={form.control}
@@ -206,7 +202,6 @@ export function RetrievalSettings({ form }: RetrievalSettingsProps) {
                         </div>
                         <div>
                             <h3 className="text-sm font-bold text-foreground">Re-ranking</h3>
-                            <p className="text-[10px] text-muted-foreground font-medium">Cross-Encoder refinement for higher precision</p>
                         </div>
                     </div>
                     <FormField
@@ -282,7 +277,6 @@ export function RetrievalSettings({ form }: RetrievalSettingsProps) {
                         </div>
                         <div>
                             <h3 className="text-sm font-bold text-foreground">Graph Retrieval</h3>
-                            <p className="text-[10px] text-muted-foreground font-medium">Map entity relationships and connections</p>
                         </div>
                     </div>
                     <FormField
@@ -374,7 +368,6 @@ export function RetrievalSettings({ form }: RetrievalSettingsProps) {
                     </div>
                     <div>
                         <h3 className="text-sm font-bold text-foreground">Advanced Query Parameters</h3>
-                        <p className="text-[10px] text-muted-foreground font-medium">Fine-tune query execution and batching</p>
                     </div>
                 </div>
 

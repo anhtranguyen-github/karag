@@ -35,11 +35,11 @@ interface WorkspaceWizardProps {
 }
 
 const STEPS = [
-    { title: 'Identity', icon: Layout, desc: 'Define your workspace basics' },
-    { title: 'Knowledge Engine', icon: Boxes, desc: 'Choose embedding models' },
-    { title: 'Ingestion Strategy', icon: Sparkles, desc: 'Control how data is chunked' },
-    { title: 'Retrieval Pipeline', icon: Search, desc: 'Optimize search accuracy' },
-    { title: 'Generation AI', icon: Wand2, desc: 'Final response settings' },
+    { title: 'General', icon: Layout, desc: 'Workspace details & description' },
+    { title: 'Index', icon: Boxes, desc: 'Configure embedding models' },
+    { title: 'Chunking', icon: Sparkles, desc: 'Setup document splitting' },
+    { title: 'Search', icon: Search, desc: 'Configure retrieval & ranking' },
+    { title: 'AI Model', icon: Wand2, desc: 'Configure generation settings' },
 ];
 
 export function WorkspaceWizard({ isOpen, onClose }: WorkspaceWizardProps) {
@@ -65,7 +65,11 @@ export function WorkspaceWizard({ isOpen, onClose }: WorkspaceWizardProps) {
             chunking: {
                 strategy: 'recursive',
                 max_chunk_size: 1000,
-                chunk_overlap: 200
+                min_chunk_size: 100,
+                chunk_overlap: 200,
+                separators: ["\n\n", "\n", " "],
+                keep_separator: true,
+                trim_whitespace: true
             },
             retrieval: {
                 vector: { enabled: true, top_k: 5, similarity_metric: 'cosine' },
@@ -98,9 +102,7 @@ export function WorkspaceWizard({ isOpen, onClose }: WorkspaceWizardProps) {
     };
 
     const jumpToStep = (idx: number) => {
-        if (idx <= currentStep || form.getValues('name')) {
-            setCurrentStep(idx);
-        }
+        setCurrentStep(idx);
     };
 
     const onSubmit = async (values: CreateWorkspaceInput) => {
@@ -129,7 +131,7 @@ export function WorkspaceWizard({ isOpen, onClose }: WorkspaceWizardProps) {
         switch (currentStep) {
             case 0:
                 return (
-                    <div className="space-y-6 max-w-2xl mx-auto">
+                    <div className="space-y-6 max-w-2xl">
                         <FormField
                             control={form.control}
                             name="name"
@@ -165,17 +167,6 @@ export function WorkspaceWizard({ isOpen, onClose }: WorkspaceWizardProps) {
             case 1:
                 return (
                     <div className="space-y-6">
-                        <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-xl p-4 flex gap-4 items-start">
-                            <div className="p-2 bg-indigo-500/20 rounded-lg text-indigo-400">
-                                <Info size={16} />
-                            </div>
-                            <div>
-                                <h4 className="text-sm font-bold text-indigo-200">System Knowledge Root</h4>
-                                <p className="text-xs text-indigo-200/60 leading-relaxed">
-                                    Choose the embedding model that will index your documents.
-                                </p>
-                            </div>
-                        </div>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             <div className="space-y-4">
                                 <label className="text-xs font-bold uppercase text-gray-400 tracking-wider">Select Provider</label>
@@ -229,21 +220,31 @@ export function WorkspaceWizard({ isOpen, onClose }: WorkspaceWizardProps) {
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title="AI Strategy Wizard"
+            title={(
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-secondary border border-border flex items-center justify-center">
+                        <Boxes size={16} className="text-foreground" />
+                    </div>
+                    <span>Create Workspace</span>
+                </div>
+            )}
             className="max-w-5xl bg-background border-border shadow-2xl overflow-hidden"
             containerClassName="p-0"
         >
             <div className="flex h-full min-h-[600px] pointer-events-auto">
-                {/* Sidebar Navigation */}
                 <div className="w-[280px] bg-card border-r border-border flex flex-col p-6 pointer-events-auto">
-                    <div className="flex items-center gap-3 mb-10 px-2">
-                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-indigo-600/20">
-                            <Sparkles size={18} className="text-white" />
+                    <div key={currentStep} className="mb-10 px-2 animate-in fade-in slide-in-from-left-4 duration-500">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shadow-lg shadow-indigo-500/5 transition-all">
+                                {React.createElement(STEPS[currentStep].icon, { size: 16, className: "text-indigo-500" })}
+                            </div>
+                            <h3 className="text-[11px] font-black uppercase tracking-[0.15em] text-foreground">
+                                {STEPS[currentStep].title}
+                            </h3>
                         </div>
-                        <div>
-                            <h3 className="text-sm font-bold tracking-tight text-foreground">Setup Wizard</h3>
-                            <p className="text-[10px] text-muted-foreground font-medium">New AI Workspace</p>
-                        </div>
+                        <p className="text-[10px] text-muted-foreground font-bold leading-relaxed max-w-[200px]">
+                            {STEPS[currentStep].desc}.
+                        </p>
                     </div>
 
                     <nav className="space-y-1">
@@ -287,15 +288,6 @@ export function WorkspaceWizard({ isOpen, onClose }: WorkspaceWizardProps) {
                         })}
                     </nav>
 
-                    <div className="mt-auto p-4 rounded-2xl bg-gradient-to-b from-indigo-500/5 to-transparent border border-indigo-500/10">
-                        <div className="flex items-center gap-2 mb-2">
-                            <Zap size={12} className="text-indigo-500" />
-                            <span className="text-[10px] font-bold text-indigo-500">Strategy Engine</span>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground leading-relaxed font-medium">
-                            Our wizard automatically optimizes common retrieval patterns.
-                        </p>
-                    </div>
                 </div>
 
                 {/* Main Content */}
@@ -303,18 +295,6 @@ export function WorkspaceWizard({ isOpen, onClose }: WorkspaceWizardProps) {
                     <Form {...form}>
                         <form id="wizard-form" onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full pointer-events-auto">
                             <div className="flex-1 p-10 overflow-y-auto max-h-[70vh] custom-scrollbar pointer-events-auto">
-                                <div className="mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                    <div className="flex items-center gap-2 text-[10px] font-bold text-indigo-500 uppercase tracking-[0.2em] mb-2">
-                                        Step {currentStep + 1} of {STEPS.length}
-                                    </div>
-                                    <h2 className="text-3xl font-bold tracking-tight mb-2 text-foreground">
-                                        {STEPS[currentStep].title}
-                                    </h2>
-                                    <p className="text-sm text-muted-foreground max-w-xl leading-relaxed">
-                                        {STEPS[currentStep].desc}. Configure the parameters below to tune the pipeline.
-                                    </p>
-                                </div>
-
                                 <div className="animate-in fade-in slide-in-from-right-4 duration-500 pointer-events-auto">
                                     {renderStepContent()}
                                 </div>

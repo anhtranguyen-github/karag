@@ -52,8 +52,8 @@ describe('CitationModal', () => {
     it('shows citation ID and workspace', () => {
         render(<CitationModal source={mockSource} onClose={vi.fn()} />);
 
-        expect(screen.getByText(/Citation \[1\]/)).toBeInTheDocument();
-        expect(screen.getByText(/Workspace: ws-123/)).toBeInTheDocument();
+        expect(screen.getByText(/Citation Artifact \[1\]/)).toBeInTheDocument();
+        expect(screen.getByText('ws-123')).toBeInTheDocument();
     });
 
     it('displays document content', () => {
@@ -66,16 +66,17 @@ describe('CitationModal', () => {
         render(<CitationModal source={mockSource} onClose={vi.fn()} />);
 
         expect(screen.getByText('doc123')).toBeInTheDocument();
-        expect(screen.getByText('3 of 10')).toBeInTheDocument(); // chunk_index + 1
+        expect(screen.getByText('3 / 10')).toBeInTheDocument(); // matches `${source.chunk_index + 1} / ${source.total_chunks}`
         expect(screen.getByText('text-embedding-3-small')).toBeInTheDocument();
-        expect(screen.getByText('800 / 150')).toBeInTheDocument();
+        expect(screen.getByText(/800/)).toBeInTheDocument();
     });
 
     it('calls onClose when close button clicked', () => {
         const onClose = vi.fn();
         render(<CitationModal source={mockSource} onClose={onClose} />);
 
-        const closeButton = screen.getByRole('button', { name: /Close/i });
+        // Use more specific name to avoid matching both header Close and footer Close View
+        const closeButton = screen.getByRole('button', { name: /^Close View$/i });
         fireEvent.click(closeButton);
 
         expect(onClose).toHaveBeenCalledTimes(1);

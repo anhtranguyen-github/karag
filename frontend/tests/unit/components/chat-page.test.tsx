@@ -32,7 +32,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/lib/api-client', () => ({
     api: {
         getChatHistoryChatHistoryThreadIdGet: vi.fn().mockResolvedValue({ data: [] }),
-        getThreadsChatThreadsGet: vi.fn().mockResolvedValue({ data: [] }),
+        listChatThreadsChatThreadsGet: vi.fn().mockResolvedValue({ data: [] }),
     }
 }));
 

@@ -54,11 +54,33 @@ export function ChatInterface({
     const [selectedCitation, setSelectedCitation] = useState<NonNullable<Message["sources"]>[number] | null>(null);
     const [isCitationModalOpen, setIsCitationModalOpen] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
-    const isRedirecting = useRef(false);
+    const initiatedThreadId = useRef<string | null>(null);
+
+    // Sync external changes (e.g. clicking sidebar) to internal state
+    useEffect(() => {
+        if (propThreadId && propThreadId !== threadId && propThreadId !== "new") {
+            // We just clicked an existing thread from the sidebar
+            setThreadId(propThreadId);
+            if (persistenceCache[propThreadId] && persistenceCache[propThreadId].length > 0) {
+                setMessages(persistenceCache[propThreadId]);
+                setIsLoading(persistenceMeta[propThreadId]?.isLoading || false);
+            } else {
+                // Fetch will be triggered below since threadId state updates
+                setMessages([]);
+                setIsLoading(true);
+            }
+        } else if (!propThreadId || propThreadId === "new") {
+            if (threadId !== propThreadId) {
+                setThreadId(propThreadId);
+                setMessages([]);
+                setIsLoading(false);
+            }
+        }
+    }, [propThreadId]);
 
     // Persist messages to cache whenever they change
     useEffect(() => {
-        if (threadId) {
+        if (threadId && threadId !== "new") {
             persistenceCache[threadId] = messages;
             persistenceMeta[threadId] = { isLoading };
         }
@@ -68,24 +90,20 @@ export function ChatInterface({
     useEffect(() => {
         const fetchThreadData = async () => {
             if (!threadId || threadId === "new") {
-                // Only clear messages if we are explicitly on a "new" route
-                // and NOT currently in the middle of a redirect from a sent message
-                if (!isRedirecting.current) {
+                if (initiatedThreadId.current !== threadId) {
                     setMessages([]);
                 }
                 return;
             }
 
-            // Prevent fetching empty history if we just started this thread.
-            // We use a counter or check messages to be sure we don't wipe local state.
-            if (isRedirecting.current) {
-                // We keep isRedirecting.current = true for a bit longer or check messages
-                if (messages.length > 0) {
-                    isRedirecting.current = false; // We can reset it now
-                    return;
-                }
+            if (initiatedThreadId.current === threadId) {
+                // Prevent fetching empty history if we locally started this thread and are actively writing/streaming
                 return;
             }
+
+            // Only fetch if we are NOT using the persistence cache with valid loaded data
+            if (messages.length > 0) return;
+
             try {
                 // Fetch History
                 const histRes = await api.getChatHistoryChatHistoryThreadIdGet({ threadId });
@@ -98,6 +116,7 @@ export function ChatInterface({
                     reasoning_steps: msg.reasoning_steps
                 }));
                 setMessages(history);
+                setIsLoading(false);
 
                 // Fetch Metadata to get workspaceId if not provided
                 if (!workspaceId) {
@@ -111,6 +130,7 @@ export function ChatInterface({
                 }
             } catch (e) {
                 console.error("Failed to fetch thread data", e);
+                setIsLoading(false);
             }
         };
 
@@ -135,7 +155,7 @@ export function ChatInterface({
         let currentThreadId = threadId;
         if (!currentThreadId || currentThreadId === "new") {
             currentThreadId = crypto.randomUUID();
-            isRedirecting.current = true;
+            initiatedThreadId.current = currentThreadId;
             setThreadId(currentThreadId);
             router.push(`/chats/${currentThreadId}`);
         }
@@ -155,7 +175,7 @@ export function ChatInterface({
                 body: JSON.stringify({
                     message: userMsg.content,
                     thread_id: currentThreadId,
-                    workspace_id: workspaceId || "default",
+                    workspace_id: workspaceId || "vault",
                     execution: {
                         mode: executionMode,
                         [executionMode]: {
@@ -208,6 +228,7 @@ export function ChatInterface({
                 onerror(err) {
                     console.error("SSE Error", err);
                     setIsLoading(false);
+                    throw err;
                 },
                 onclose() {
                     setIsLoading(false);
@@ -260,7 +281,7 @@ export function ChatInterface({
                     <div className="flex justify-start">
                         <div className="bg-secondary text-foreground rounded-2xl px-6 py-4 flex items-center shadow-xl border border-border animate-pulse">
                             <Loader2 className="w-4 h-4 animate-spin mr-3 text-indigo-500" />
-                            <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Searching and processing...</span>
+                            <span className="text-xs font-bold text-muted-foreground">Searching...</span>
                         </div>
                     </div>
                 )}
@@ -275,7 +296,7 @@ export function ChatInterface({
                             type="button"
                             onClick={() => setExecutionMode(mode as typeof executionMode)}
                             className={cn(
-                                "px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full transition-all duration-200 border",
+                                "px-3 py-1 text-[10px] font-bold rounded-full transition-all duration-200 border",
                                 executionMode === mode
                                     ? "bg-indigo-500/10 border-indigo-500/40 text-indigo-500 shadow-lg shadow-indigo-500/5"
                                     : "bg-secondary border-border text-muted-foreground hover:bg-muted hover:border-muted-foreground/20"
@@ -314,8 +335,8 @@ export function ChatInterface({
                             )}
                         </Button>
                     </div>
-                    <p className="text-[9px] text-muted-foreground/50 font-black uppercase tracking-widest mt-3 text-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        AI-generated responses may be inaccurate. Verify important information.
+                    <p className="text-[9px] text-muted-foreground/50 font-bold mt-3 text-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        AI responses can be inaccurate. Please verify important info.
                     </p>
                 </form>
             </div>

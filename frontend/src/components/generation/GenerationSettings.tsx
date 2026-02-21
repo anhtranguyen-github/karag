@@ -53,7 +53,6 @@ export function GenerationSettings({ form }: GenerationSettingsProps) {
                     </div>
                     <div>
                         <h3 className="text-sm font-bold text-foreground">Generation Engine</h3>
-                        <p className="text-[10px] text-muted-foreground font-medium">Select your primary LLM and base hyper-parameters</p>
                     </div>
                 </div>
 
@@ -102,7 +101,7 @@ export function GenerationSettings({ form }: GenerationSettingsProps) {
                     })}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-2">
+                <div className="px-2">
                     <FormField
                         control={form.control}
                         name="generation.model"
@@ -124,22 +123,6 @@ export function GenerationSettings({ form }: GenerationSettingsProps) {
                             </FormItem>
                         )}
                     />
-
-                    <FormField
-                        control={form.control}
-                        name="generation.streaming"
-                        render={({ field }) => (
-                            <FormItem className="flex items-center justify-between p-3 rounded-xl bg-background/50 border border-border mt-3">
-                                <div className="space-y-0.5">
-                                    <FormLabel className="text-xs font-bold">Streaming Output</FormLabel>
-                                    <p className="text-[9px] text-muted-foreground">Enable real-time tokens</p>
-                                </div>
-                                <FormControl>
-                                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                                </FormControl>
-                            </FormItem>
-                        )}
-                    />
                 </div>
             </div>
 
@@ -151,7 +134,6 @@ export function GenerationSettings({ form }: GenerationSettingsProps) {
                     </div>
                     <div>
                         <h3 className="text-sm font-bold text-foreground">Sampling Parameters</h3>
-                        <p className="text-[10px] text-muted-foreground font-medium">Fine-tune text generation randomness and length</p>
                     </div>
                 </div>
 
@@ -224,7 +206,6 @@ export function GenerationSettings({ form }: GenerationSettingsProps) {
                         </div>
                         <div>
                             <h3 className="text-sm font-bold text-foreground">Hardware & API Config</h3>
-                            <p className="text-[10px] text-muted-foreground font-medium">Platform specific optimizations</p>
                         </div>
                     </div>
 

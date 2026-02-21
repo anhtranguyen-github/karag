@@ -6,7 +6,7 @@ import { ThreadList } from "@/components/chat/thread-list";
 import { useWorkspaces } from "@/hooks/use-workspaces";
 import { ChatInterface } from "@/components/chat/chat-interface";
 import { API_ROUTES } from "@/lib/api-config";
-import { Loader2, Home, FileText, Settings } from "lucide-react";
+import { Loader2, Home, FileText, Settings, PanelLeftOpen } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -67,45 +67,49 @@ export default function GlobalChatPage() {
                     >
                         <div className="flex flex-col items-center gap-4">
                             <Loader2 className="animate-spin text-indigo-500 w-8 h-8" />
-                            <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Initializing Neural Link...</span>
+                            <span className="text-xs font-bold text-muted-foreground">Loading chat...</span>
                         </div>
                     </motion.div>
                 )}
             </AnimatePresence>
 
             {/* Sidebar remains stable */}
-            <div className={cn(
-                "fixed inset-y-0 left-0 z-40 w-80 bg-background border-r border-border transition-transform duration-300 lg:relative lg:translate-x-0",
-                isHistoryOpen ? "translate-x-0" : "-translate-x-full"
-            )}>
-                <ThreadList
-                    activeThreadId={threadId}
-                    workspaceId={workspaceId || ""}
-                    onSelectThread={handleSelectThread}
-                />
+            <div
+                className={cn(
+                    "fixed inset-y-0 left-0 z-40 bg-background border-r border-border transition-all duration-300 overflow-hidden lg:relative",
+                    isHistoryOpen ? "translate-x-0 w-80 shadow-2xl lg:shadow-none" : "-translate-x-full w-0"
+                )}
+            >
+                <div className="w-80 h-full">
+                    <ThreadList
+                        activeThreadId={threadId}
+                        workspaceId={workspaceId || ""}
+                        onSelectThread={handleSelectThread}
+                        onToggle={() => setIsHistoryOpen(false)}
+                    />
+                </div>
             </div>
 
             <div className="flex-1 flex flex-col min-w-0 h-full relative">
                 {/* Header */}
                 <header className="h-16 border-b border-border bg-background/50 backdrop-blur-xl flex items-center justify-between px-6 shrink-0 z-30">
                     <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => setIsHistoryOpen(!isHistoryOpen)}
-                            className="w-10 h-10 rounded-xl bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-all group"
-                        >
-                            <div className="space-y-1">
-                                <div className={cn("w-4 h-0.5 bg-current transition-all", isHistoryOpen ? "rotate-45 translate-y-1.5" : "")} />
-                                <div className={cn("w-4 h-0.5 bg-current transition-all", isHistoryOpen ? "opacity-0" : "")} />
-                                <div className={cn("w-4 h-0.5 bg-current transition-all", isHistoryOpen ? "-rotate-45 -translate-y-1.5" : "")} />
-                            </div>
-                        </button>
+                        {!isHistoryOpen && (
+                            <button
+                                onClick={() => setIsHistoryOpen(true)}
+                                className="w-10 h-10 rounded-xl bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-indigo-500 hover:border-indigo-500/30 transition-all group"
+                                title="Expand History"
+                            >
+                                <PanelLeftOpen size={18} />
+                            </button>
+                        )}
                         <Link href="/" className="w-10 h-10 rounded-xl bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all group">
                             <Home size={18} className="group-active:scale-90" />
                         </Link>
                         {workspaceId && (
                             <div className="flex items-center gap-3 pl-6 border-l border-border">
                                 <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
-                                <span className="text-sm font-black text-foreground uppercase tracking-widest">{workspace?.name || "Loading..."}</span>
+                                <span className="text-sm font-bold text-foreground">{workspace?.name || "Loading..."}</span>
                             </div>
                         )}
                     </div>
@@ -115,13 +119,13 @@ export default function GlobalChatPage() {
                         {workspaceId && (
                             <div className="flex items-center gap-2">
                                 <Link href={`/workspaces/${workspaceId}/documents`}>
-                                    <button className="h-10 px-5 rounded-xl bg-secondary border border-border hover:bg-muted transition-all font-black text-[10px] tracking-widest text-muted-foreground hover:text-foreground flex items-center gap-2 uppercase">
+                                    <button className="h-10 px-5 rounded-xl bg-secondary border border-border hover:bg-muted transition-all font-bold text-[10px] tracking-widest text-muted-foreground hover:text-foreground flex items-center gap-2">
                                         <FileText size={16} />
                                         Documents
                                     </button>
                                 </Link>
                                 <Link href={`/workspaces/${workspaceId}/settings`}>
-                                    <button className="h-10 px-5 rounded-xl bg-secondary border border-border hover:bg-muted transition-all font-black text-[10px] tracking-widest text-muted-foreground hover:text-foreground flex items-center gap-2 uppercase">
+                                    <button className="h-10 px-5 rounded-xl bg-secondary border border-border hover:bg-muted transition-all font-bold text-[10px] tracking-widest text-muted-foreground hover:text-foreground flex items-center gap-2">
                                         <Settings size={16} />
                                         Settings
                                     </button>

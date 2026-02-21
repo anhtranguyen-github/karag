@@ -12,7 +12,7 @@ import {
 } from "./api";
 
 const config = new Configuration({
-    basePath: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000",
+    basePath: process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000",
 });
 
 // Create instances of all APIs

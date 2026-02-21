@@ -30,12 +30,12 @@ function getTaskLabel(task: TaskItem): string {
     const op = task.metadata.operation || task.type;
     switch (op) {
         case 'ingestion':
-            return `Ingesting ${filename}`;
+            return `Processing ${filename}`;
         case 'index':
         case 'indexing':
-            return `Indexing ${filename}`;
+            return `Searching in ${filename}`;
         case 'link':
-            return `Linking ${filename}`;
+            return `Connecting ${filename}`;
         case 'move':
             return `Moving ${filename}`;
         case 'share':
@@ -123,7 +123,7 @@ function TaskRow({ task, onDismiss, onRetry, onCancel }: TaskRowProps) {
                         <button
                             onClick={(e) => { e.stopPropagation(); onCancel(); }}
                             className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-500/50 hover:text-red-500 transition-all"
-                            title="Stop Current Progress"
+                            title="Stop"
                         >
                             <Square size={10} fill="currentColor" />
                         </button>
@@ -132,7 +132,7 @@ function TaskRow({ task, onDismiss, onRetry, onCancel }: TaskRowProps) {
                         <button
                             onClick={(e) => { e.stopPropagation(); onRetry(); }}
                             className="p-1.5 rounded-lg hover:bg-amber-500/10 text-amber-500/50 hover:text-amber-500 transition-all"
-                            title="Retry Operation"
+                            title="Retry"
                         >
                             <RefreshCw size={12} />
                         </button>
@@ -146,7 +146,7 @@ function TaskRow({ task, onDismiss, onRetry, onCancel }: TaskRowProps) {
                                     ? "text-gray-500 hover:text-gray-300 hover:bg-white/10"
                                     : "opacity-0 group-hover:opacity-100 text-gray-600 hover:text-gray-400 hover:bg-white/10"
                             )}
-                            title="Remove from List"
+                            title="Dismiss"
                         >
                             <X size={12} />
                         </button>

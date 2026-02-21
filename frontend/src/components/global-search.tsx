@@ -1,15 +1,21 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { Search, MessageSquare, Database, Layout, Loader2, Command } from 'lucide-react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useCallback, ReactNode } from 'react';
+import { Search, MessageSquare, Database, Layout, Loader2, Command, Globe, Hash, Zap, Sparkles } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { API_ROUTES } from '@/lib/api-config';
 import { cn } from '@/lib/utils';
+import { Modal } from '@/components/ui/modal';
 
 interface SearchResultItem {
     id: string;
     name: string;
+    workspace_id?: string;
+    title?: string | null;
+    tags?: string[];
+    description?: string | null;
+    extension?: string | null;
     [key: string]: unknown;
 }
 
@@ -36,8 +42,6 @@ export function GlobalSearch({ isOpen, onClose }: { isOpen: boolean; onClose: ()
             const res = await fetch(`${API_ROUTES.SEARCH}?q=${encodeURIComponent(q)}`);
             if (res.ok) {
                 const rawData = await res.json();
-
-                // Runtime Validation
                 const { AppResponseSchema } = await import('@/lib/schemas/api');
                 const { SearchResultsSchema } = await import('@/lib/schemas/search');
 
@@ -68,14 +72,6 @@ export function GlobalSearch({ isOpen, onClose }: { isOpen: boolean; onClose: ()
         return () => clearTimeout(timer);
     }, [query, handleSearch]);
 
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onClose();
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [onClose]);
-
     const navigateTo = (type: string, id: string, extra?: { workspace_id?: string }) => {
         onClose();
         if (type === 'workspace') {
@@ -88,54 +84,57 @@ export function GlobalSearch({ isOpen, onClose }: { isOpen: boolean; onClose: ()
         }
     };
 
-    if (!isOpen) return null;
-
     const hasResults = results && (results.workspaces.length > 0 || results.threads.length > 0 || results.documents.length > 0);
 
     return (
-        <div className="fixed inset-0 z-[200] flex items-start justify-center pt-20 px-4">
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={onClose}
-                className="absolute inset-0 bg-[#0a0a0b]/80 backdrop-blur-md"
-            />
-
-            <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: -20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: -20 }}
-                className="relative w-full max-w-2xl bg-[#121214] border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden"
-            >
-                <div className="p-6 border-b border-white/5 flex items-center gap-4">
-                    <Search className={cn("w-6 h-6", isLoading ? "text-indigo-500 animate-pulse" : "text-gray-500")} />
-                    <input
-                        autoFocus
-                        placeholder="Search for chats, files, or environments..."
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        className="flex-1 bg-transparent border-none outline-none text-h3 font-medium text-white placeholder:text-gray-700"
-                    />
-                    {isLoading ? (
-                        <Loader2 className="w-5 h-5 animate-spin text-gray-600" />
-                    ) : (
-                        <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-white/5 border border-white/5 text-tiny font-bold text-gray-500  ">
-                            <Command size={10} /> Esc
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title={(
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500 border border-indigo-500/20">
+                        <Search size={16} />
+                    </div>
+                    <span>Search</span>
+                </div>
+            )}
+            className="max-w-3xl"
+            containerClassName="p-0"
+        >
+            <div className="flex flex-col h-[650px]">
+                {/* Search Input Area */}
+                <div className="px-8 pt-2 pb-6">
+                    <div className="relative group">
+                        <input
+                            autoFocus
+                            placeholder="Search chats, files, or workspaces..."
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                            className="w-full h-14 bg-secondary/40 border border-border rounded-2xl pl-6 pr-24 text-lg font-medium focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all placeholder:text-muted-foreground/30"
+                        />
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                            {isLoading ? (
+                                <Loader2 className="w-5 h-5 animate-spin text-indigo-500" />
+                            ) : (
+                                <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-secondary border border-border text-[9px] font-black text-muted-foreground tracking-widest">
+                                    <Command size={10} /> Esc
+                                </div>
+                            )}
                         </div>
-                    )}
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-2 px-6 py-3 bg-white/[0.02] border-b border-white/5">
+                {/* Filters */}
+                <div className="flex items-center gap-2 px-8 py-3 border-b border-border bg-black/5">
                     {(['all', 'workspaces', 'threads', 'documents'] as const).map((filter) => (
                         <button
                             key={filter}
                             onClick={() => setActiveFilter(filter)}
                             className={cn(
-                                "px-3 py-1.5 rounded-xl text-tiny font-bold   transition-all",
+                                "px-4 py-1.5 rounded-xl text-[10px] font-black tracking-widest transition-all",
                                 activeFilter === filter
-                                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
-                                    : "text-gray-500 hover:text-gray-300 hover:bg-white/5"
+                                    ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                             )}
                         >
                             {filter}
@@ -143,98 +142,144 @@ export function GlobalSearch({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                     ))}
                 </div>
 
-                <div className="max-h-[60vh] overflow-y-auto custom-scrollbar p-2">
+                {/* Results Section */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
                     {!query && (
-                        <div className="p-12 text-center text-gray-600">
-                            <Search className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                            <p className="text-caption">Type to begin a global search across your workspace</p>
+                        <div className="h-full flex flex-col items-center justify-center gap-6 opacity-30">
+                            <div className="w-20 h-20 rounded-[2.5rem] bg-indigo-500/5 flex items-center justify-center text-indigo-500">
+                                <Zap size={40} />
+                            </div>
+                            <div className="text-center">
+                                <p className="text-xs font-bold text-foreground mb-1 tracking-widest">Search is ready</p>
+                                <p className="text-[10px] text-muted-foreground font-medium">Type to start searching</p>
+                            </div>
                         </div>
                     )}
 
                     {query && !isLoading && !hasResults && (
-                        <div className="p-12 text-center text-gray-600 font-medium">
-                            No results found for "{query}"
+                        <div className="h-full flex flex-col items-center justify-center gap-4 opacity-40">
+                            <Sparkles size={32} className="text-muted-foreground" />
+                            <p className="text-xs font-medium">No matches found for "{query}" in your workspaces.</p>
                         </div>
                     )}
 
-                    <div className="space-y-4 p-2">
+                    <div className="space-y-6">
                         {/* Workspaces */}
                         {(activeFilter === 'all' || activeFilter === 'workspaces') && (results?.workspaces?.length ?? 0) > 0 && (
-                            <section>
-                                <h3 className="px-4 py-2 text-tiny font-bold text-gray-600  ">Environments</h3>
+                            <section className="space-y-2">
+                                <header className="px-3 flex items-center justify-between">
+                                    <span className="text-[9px] font-black text-muted-foreground tracking-[0.2em]">Workspaces</span>
+                                    <span className="text-[9px] font-bold text-indigo-500/50">{results?.workspaces.length} matches</span>
+                                </header>
                                 {results?.workspaces.map((ws) => (
-                                    <button
+                                    <SearchItem
                                         key={ws.id}
+                                        icon={Layout}
+                                        title={ws.name}
+                                        subtitle={ws.description || 'No node description available.'}
+                                        badge="workspace"
                                         onClick={() => navigateTo('workspace', ws.id)}
-                                        className="w-full flex items-center gap-4 p-4 hover:bg-white/5 rounded-2xl transition-all text-left group"
-                                    >
-                                        <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
-                                            <Layout size={20} />
-                                        </div>
-                                        <div className="flex-1 overflow-hidden">
-                                            <div className="font-bold text-white group-hover:text-indigo-400 transition-colors">{ws.name}</div>
-                                            <div className="text-tiny text-gray-500 truncate">{(ws.description as string) || 'No description'}</div>
-                                        </div>
-                                    </button>
+                                    />
                                 ))}
                             </section>
                         )}
 
                         {/* Threads */}
                         {(activeFilter === 'all' || activeFilter === 'threads') && (results?.threads?.length ?? 0) > 0 && (
-                            <section>
-                                <h3 className="px-4 py-2 text-tiny font-bold text-gray-600  ">Conversations</h3>
+                            <section className="space-y-2">
+                                <header className="px-3 flex items-center justify-between">
+                                    <span className="text-[9px] font-black text-muted-foreground tracking-[0.2em]">Chats</span>
+                                    <span className="text-[9px] font-bold text-blue-500/50">{results?.threads.length} matches</span>
+                                </header>
                                 {results?.threads.map((thread) => (
-                                    <button
+                                    <SearchItem
                                         key={thread.id}
+                                        icon={MessageSquare}
+                                        title={thread.title as string}
+                                        subtitle={`Context: ${thread.workspace_id}`}
+                                        badge="chat"
+                                        color="blue"
                                         onClick={() => navigateTo('thread', thread.id, { workspace_id: thread.workspace_id as string })}
-                                        className="w-full flex items-center gap-4 p-4 hover:bg-white/5 rounded-2xl transition-all text-left group"
-                                    >
-                                        <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
-                                            <MessageSquare size={20} />
-                                        </div>
-                                        <div className="flex-1 overflow-hidden">
-                                            <div className="font-bold text-white group-hover:text-blue-400 transition-colors truncate">{(thread.title as string)}</div>
-                                            <div className="flex flex-wrap gap-1 mt-1">
-                                                {(thread.tags as string[])?.map((tag: string) => (
-                                                    <span key={tag} className="text-tiny px-1.5 py-0.5 rounded-md bg-white/5 text-gray-500 font-bold   whitespace-nowrap border border-white/5">
-                                                        {tag}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </button>
+                                    />
                                 ))}
                             </section>
                         )}
 
                         {/* Documents */}
                         {(activeFilter === 'all' || activeFilter === 'documents') && (results?.documents?.length ?? 0) > 0 && (
-                            <section>
-                                <h3 className="px-4 py-2 text-tiny font-bold text-gray-600  ">Resources</h3>
+                            <section className="space-y-2">
+                                <header className="px-3 flex items-center justify-between">
+                                    <span className="text-[9px] font-black text-muted-foreground tracking-[0.2em]">Files</span>
+                                    <span className="text-[9px] font-bold text-amber-500/50">{results?.documents.length} matches</span>
+                                </header>
                                 {results?.documents.map((doc) => (
-                                    <button
+                                    <SearchItem
                                         key={doc.id}
+                                        icon={Database}
+                                        title={doc.name}
+                                        subtitle={`${doc.extension} • Artifact in ${doc.workspace_id}`}
+                                        badge="file"
+                                        color="amber"
                                         onClick={() => navigateTo('document', doc.id, { workspace_id: doc.workspace_id as string })}
-                                        className="w-full flex items-center gap-4 p-4 hover:bg-white/5 rounded-2xl transition-all text-left group"
-                                    >
-                                        <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400">
-                                            <Database size={20} />
-                                        </div>
-                                        <div className="flex-1 overflow-hidden">
-                                            <div className="font-bold text-white group-hover:text-purple-400 transition-colors truncate">{doc.name}</div>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <span className="text-tiny font-bold text-gray-600  ">{(doc.extension as string)}</span>
-                                                <span className="text-tiny font-bold text-indigo-500  ">{(doc.workspace_id as string)}</span>
-                                            </div>
-                                        </div>
-                                    </button>
+                                    />
                                 ))}
                             </section>
                         )}
                     </div>
                 </div>
-            </motion.div>
-        </div>
+
+                {/* Footer Insight */}
+                <div className="p-4 border-t border-border bg-secondary/20 flex items-center justify-center gap-2">
+                    <Globe size={12} className="text-muted-foreground opacity-40" />
+                    <span className="text-[9px] font-black text-muted-foreground/60 tracking-widest">Search engine</span>
+                </div>
+            </div>
+        </Modal>
+    );
+}
+
+function SearchItem({
+    icon: Icon,
+    title,
+    subtitle,
+    badge,
+    onClick,
+    color = "indigo"
+}: {
+    icon: any,
+    title: string,
+    subtitle: string,
+    badge: string,
+    onClick: () => void,
+    color?: "indigo" | "blue" | "amber"
+}) {
+    const colorClasses = {
+        indigo: "bg-indigo-500/10 text-indigo-500 border-indigo-500/20",
+        blue: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+        amber: "bg-amber-500/10 text-amber-500 border-amber-500/20"
+    };
+
+    return (
+        <button
+            onClick={onClick}
+            className="w-full group flex items-start gap-4 p-4 rounded-2xl bg-secondary/20 border border-border hover:border-indigo-500/30 hover:bg-secondary/40 transition-all text-left"
+        >
+            <div className={cn(
+                "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border transition-all group-hover:scale-110",
+                colorClasses[color]
+            )}>
+                <Icon size={22} />
+            </div>
+            <div className="flex-1 min-w-0 py-1">
+                <div className="flex items-center gap-3 mb-1">
+                    <span className="font-bold text-foreground text-sm truncate group-hover:text-indigo-400 transition-colors tracking-tight">{title}</span>
+                    <span className={cn(
+                        "text-[8px] font-black px-1.5 py-0.5 rounded border tracking-widest",
+                        colorClasses[color]
+                    )}>{badge}</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground font-medium truncate opacity-60 group-hover:opacity-100 transition-opacity">{subtitle}</p>
+            </div>
+        </button>
     );
 }

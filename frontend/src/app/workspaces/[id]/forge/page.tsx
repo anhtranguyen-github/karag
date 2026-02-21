@@ -22,17 +22,17 @@ export default function ForgePage() {
                                 <Cpu size={56} className="text-indigo-400" />
                             </div>
                             <div className="space-y-4 text-center md:text-left">
-                                <h3 className="text-h2 font-black   text-white">Neural Tooling Bus</h3>
+                                <h3 className="text-h2 font-bold text-white">Tools</h3>
                                 <p className="text-gray-500 text-h3 leading-relaxed max-w-xl font-medium">
-                                    Configure the AI Architect's active capabilities. Connect Model Context Protocol (MCP) servers and external API hooks to expand functional reasoning.
+                                    Configure tools for the AI. Connect external services and APIs to give the AI more abilities.
                                 </p>
                                 <div className="flex flex-wrap gap-4 pt-2">
-                                    <div className="flex items-center gap-2 text-tiny font-black  text-indigo-400 bg-indigo-500/10 px-4 py-2 rounded-xl border border-indigo-500/20">
+                                    <div className="flex items-center gap-2 text-tiny font-bold text-indigo-400 bg-indigo-500/10 px-4 py-2 rounded-xl border border-indigo-500/20">
                                         <Activity size={12} />
-                                        Streaming Logs: Active
+                                        System logs active
                                     </div>
-                                    <div className="flex items-center gap-2 text-tiny font-black  text-gray-600 bg-white/5 px-4 py-2 rounded-xl border border-white/5 leading-none">
-                                        LATENCY: 14ms
+                                    <div className="flex items-center gap-2 text-tiny font-bold text-gray-600 bg-white/5 px-4 py-2 rounded-xl border border-white/5">
+                                        System ready
                                     </div>
                                 </div>
                             </div>
@@ -43,15 +43,15 @@ export default function ForgePage() {
                     <div className="bg-[#121214] border border-white/10 rounded-[2.5rem] shadow-2xl p-10 overflow-hidden min-h-[500px]">
                         <div className="mb-10 flex items-center justify-between pb-6 border-b border-white/5">
                             <div>
-                                <h3 className="text-h3 font-black  ">Registry Control</h3>
-                                <p className="text-gray-600 text-tiny font-bold   mt-1">Manage core system functions and external plugins</p>
+                                <h3 className="text-h3 font-bold">Manage tools</h3>
+                                <p className="text-gray-600 text-tiny font-bold mt-1">Configure your plugins and system tools.</p>
                             </div>
                             <div className="flex items-center gap-3">
-                                <div className="text-tiny font-bold text-gray-700 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">PROXIED VIA BASTION</div>
+                                <div className="text-tiny font-bold text-gray-700 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">Secure connection</div>
                             </div>
                         </div>
                         <div className="flex items-center justify-center p-20 border border-dashed border-white/5 rounded-[2rem] bg-white/[0.02]">
-                            <p className="text-gray-600 font-bold uppercase tracking-widest text-tiny italic">Registry Interface Offline</p>
+                            <p className="text-gray-600 font-bold tracking-widest text-tiny">Coming soon</p>
                         </div>
                     </div>
                 </div>
