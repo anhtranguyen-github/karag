@@ -3,7 +3,7 @@ import io
 import structlog
 from minio import Minio
 from minio.error import S3Error
-from backend.app.core.config import ai_settings
+from backend.app.core.config import karag_settings
 from backend.app.core.telemetry import get_tracer
 
 logger = structlog.get_logger(__name__)
@@ -24,18 +24,18 @@ class MinioManager:
         if self._client is None:
             logger.info(
                 "minio_connect",
-                endpoint=ai_settings.MINIO_ENDPOINT,
+                endpoint=karag_settings.MINIO_ENDPOINT,
             )
             self._client = Minio(
-                ai_settings.MINIO_ENDPOINT,
-                access_key=ai_settings.MINIO_ACCESS_KEY,
-                secret_key=ai_settings.MINIO_SECRET_KEY,
-                secure=ai_settings.MINIO_SECURE,
+                karag_settings.MINIO_ENDPOINT,
+                access_key=karag_settings.MINIO_ACCESS_KEY,
+                secret_key=karag_settings.MINIO_SECRET_KEY,
+                secure=karag_settings.MINIO_SECURE,
             )
         return self._client
 
     def ensure_bucket(self, bucket_name: str = None):
-        bucket = bucket_name or ai_settings.MINIO_BUCKET
+        bucket = bucket_name or karag_settings.MINIO_BUCKET
         with tracer.start_as_current_span(
             "minio.ensure_bucket",
             attributes={"minio.bucket": bucket},
@@ -84,13 +84,13 @@ class MinioManager:
         ):
             try:
                 self.client.put_object(
-                    ai_settings.MINIO_BUCKET,
+                    karag_settings.MINIO_BUCKET,
                     object_name,
                     data,
                     length,
                     content_type=content_type,
                 )
-                path = f"{ai_settings.MINIO_BUCKET}/{object_name}"
+                path = f"{karag_settings.MINIO_BUCKET}/{object_name}"
                 logger.info(
                     "minio_upload_complete",
                     object=object_name,
@@ -104,7 +104,7 @@ class MinioManager:
     def get_file(self, object_name: str):
         """Get file content."""
         # Strip bucket prefix if present (stored minio_path format: bucket/filename)
-        bucket_prefix = f"{ai_settings.MINIO_BUCKET}/"
+        bucket_prefix = f"{karag_settings.MINIO_BUCKET}/"
         if object_name.startswith(bucket_prefix):
             object_name = object_name[len(bucket_prefix) :]
 
@@ -113,7 +113,7 @@ class MinioManager:
             attributes={"minio.object": object_name},
         ):
             try:
-                response = self.client.get_object(ai_settings.MINIO_BUCKET, object_name)
+                response = self.client.get_object(karag_settings.MINIO_BUCKET, object_name)
                 return response.read()
             except Exception as e:
                 logger.error("minio_download_error", object=object_name, error=str(e))

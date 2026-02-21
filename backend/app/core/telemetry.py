@@ -17,7 +17,7 @@ from logging.handlers import RotatingFileHandler
 from typing import Optional, Callable, Any
 from contextvars import ContextVar
 
-from backend.app.core.config import ai_settings
+from backend.app.core.config import karag_settings
 
 import structlog
 from opentelemetry import trace
@@ -188,12 +188,12 @@ def configure_logging(log_format: str = "json", log_level: str = "INFO") -> None
     # so existing `logging.getLogger()` calls get structured output
     handlers = [logging.StreamHandler()]
 
-    if ai_settings.LOG_FILE:
-        log_path = Path(ai_settings.LOG_FILE)
+    if karag_settings.LOG_FILE:
+        log_path = Path(karag_settings.LOG_FILE)
         log_path.parent.mkdir(parents=True, exist_ok=True)
         handlers.append(
             RotatingFileHandler(
-                ai_settings.LOG_FILE,
+                karag_settings.LOG_FILE,
                 maxBytes=10 * 1024 * 1024,  # 10MB
                 backupCount=5,
             )
@@ -257,24 +257,24 @@ def init_telemetry() -> None:
     Called once during FastAPI lifespan startup.
     """
     configure_logging(
-        log_format=ai_settings.LOG_FORMAT,
-        log_level=ai_settings.LOG_LEVEL,
+        log_format=karag_settings.LOG_FORMAT,
+        log_level=karag_settings.LOG_LEVEL,
     )
     configure_tracing(
-        service_name=ai_settings.OTEL_SERVICE_NAME,
-        endpoint=ai_settings.OTEL_EXPORTER_ENDPOINT,
-        sample_rate=ai_settings.OTEL_SAMPLE_RATE,
-        enabled=ai_settings.OTEL_ENABLED,
+        service_name=karag_settings.OTEL_SERVICE_NAME,
+        endpoint=karag_settings.OTEL_EXPORTER_ENDPOINT,
+        sample_rate=karag_settings.OTEL_SAMPLE_RATE,
+        enabled=karag_settings.OTEL_ENABLED,
     )
 
     logger = structlog.get_logger()
     logger.info(
         "telemetry_initialized",
-        otel_enabled=ai_settings.OTEL_ENABLED,
-        metrics_enabled=ai_settings.METRICS_ENABLED,
-        log_format=ai_settings.LOG_FORMAT,
-        log_level=ai_settings.LOG_LEVEL,
-        sample_rate=ai_settings.OTEL_SAMPLE_RATE,
+        otel_enabled=karag_settings.OTEL_ENABLED,
+        metrics_enabled=karag_settings.METRICS_ENABLED,
+        log_format=karag_settings.LOG_FORMAT,
+        log_level=karag_settings.LOG_LEVEL,
+        sample_rate=karag_settings.OTEL_SAMPLE_RATE,
     )
 
 

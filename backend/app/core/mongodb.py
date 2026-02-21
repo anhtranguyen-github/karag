@@ -1,7 +1,7 @@
 import structlog
 from pymongo import MongoClient
 from motor.motor_asyncio import AsyncIOMotorClient
-from backend.app.core.config import ai_settings
+from backend.app.core.config import karag_settings
 
 logger = structlog.get_logger(__name__)
 
@@ -21,9 +21,9 @@ class MongoDBManager:
         if self._client is None:
             logger.info(
                 "mongodb_connect_sync",
-                uri=ai_settings.MONGO_URI.split("@")[-1],  # Log host only, no creds
+                uri=karag_settings.MONGO_URI.split("@")[-1],  # Log host only, no creds
             )
-            self._client = MongoClient(ai_settings.MONGO_URI)
+            self._client = MongoClient(karag_settings.MONGO_URI)
         return self._client
 
     @property
@@ -31,16 +31,16 @@ class MongoDBManager:
         if self._async_client is None:
             logger.info(
                 "mongodb_connect_async",
-                uri=ai_settings.MONGO_URI.split("@")[-1],
+                uri=karag_settings.MONGO_URI.split("@")[-1],
             )
-            self._async_client = AsyncIOMotorClient(ai_settings.MONGO_URI)
+            self._async_client = AsyncIOMotorClient(karag_settings.MONGO_URI)
         return self._async_client
 
     def get_database(self):
-        return self.client[ai_settings.MONGO_DB]
+        return self.client[karag_settings.MONGO_DB]
 
     def get_async_database(self):
-        return self.async_client[ai_settings.MONGO_DB]
+        return self.async_client[karag_settings.MONGO_DB]
 
 
 mongodb_manager = MongoDBManager()

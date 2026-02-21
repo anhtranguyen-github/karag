@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional, Literal
 from pydantic_core import PydanticUndefined
 from backend.app.core.schemas import AppSettings
-from backend.app.core.config import ai_settings
+from backend.app.core.config import karag_settings
 from backend.app.core.mongodb import mongodb_manager
 
 from pydantic import ValidationError as PydanticValidationError
@@ -74,13 +74,13 @@ class SettingsManager:
 
         # Merge: settings_data has priority over config defaults, but env_overrides has highest priority
         merged_data = {
-            "llm_provider": ai_settings.LLM_PROVIDER,
-            "llm_model": ai_settings.LLM_MODEL,
-            "embedding_provider": ai_settings.EMBEDDING_PROVIDER,
-            "embedding_model": ai_settings.EMBEDDING_MODEL,
-            "neo4j_uri": ai_settings.NEO4J_URI,
-            "neo4j_user": ai_settings.NEO4J_USER,
-            "neo4j_password": ai_settings.NEO4J_PASSWORD,
+            "llm_provider": karag_settings.LLM_PROVIDER,
+            "llm_model": karag_settings.LLM_MODEL,
+            "embedding_provider": karag_settings.EMBEDDING_PROVIDER,
+            "embedding_model": karag_settings.EMBEDDING_MODEL,
+            "neo4j_uri": karag_settings.NEO4J_URI,
+            "neo4j_user": karag_settings.NEO4J_USER,
+            "neo4j_password": karag_settings.NEO4J_PASSWORD,
         }
         merged_data.update(settings_data)
         merged_data.update({k: v for k, v in env_overrides.items() if v is not None})
