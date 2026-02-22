@@ -21,13 +21,15 @@ import {
     Loader2,
     CheckCircle2,
     Info,
-    Zap
+    Zap,
+    Activity
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EmbeddingProviderSelector, EmbeddingModelSelector, EmbeddingConfigDetails } from '../embedding/EmbeddingSettings';
 import { ChunkingStrategySelector, ChunkingStrategyDetails } from '../chunking/StrategySettings';
 import { RetrievalSettings } from '../retrieval/RetrievalSettings';
 import { GenerationSettings } from '../generation/GenerationSettings';
+import { ExecutionSettings } from '../execution/ExecutionSettings';
 
 interface WorkspaceWizardProps {
     isOpen: boolean;
@@ -39,6 +41,7 @@ const STEPS = [
     { title: 'Index', icon: Boxes, desc: 'Configure embedding models' },
     { title: 'Chunking', icon: Sparkles, desc: 'Setup document splitting' },
     { title: 'Search', icon: Search, desc: 'Configure retrieval & ranking' },
+    { title: 'Execution', icon: Activity, desc: 'Select reasoning strategy' },
     { title: 'AI Model', icon: Wand2, desc: 'Configure generation settings' },
 ];
 
@@ -52,7 +55,7 @@ export function WorkspaceWizard({ isOpen, onClose }: WorkspaceWizardProps) {
             name: '',
             description: '',
             runtime: {
-                mode: 'fast',
+                mode: 'auto',
                 stream_thoughts: true,
                 tracing: { trace_level: 'detailed', tracing_enabled: true }
             },
@@ -109,11 +112,31 @@ export function WorkspaceWizard({ isOpen, onClose }: WorkspaceWizardProps) {
         setIsSubmitting(true);
         try {
             const res = await api.createWorkspaceWorkspacesPost({
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                workspaceCreate: values as any
+                workspaceCreate: {
+                    name: values.name,
+                    description: values.description,
+                    embeddingProvider: values.embedding.provider,
+                    embeddingModel: values.embedding.model,
+                    embeddingDim: 1536,
+                    ragEngine: values.retrieval.graph.enabled ? 'graph' : 'basic',
+                    searchLimit: values.retrieval.vector.top_k,
+                    recallK: 20,
+                    hybridAlpha: 0.5,
+                    graphEnabled: values.retrieval.graph.enabled,
+                    rerankerEnabled: values.retrieval.rerank.enabled,
+                    rerankerProvider: "none",
+                    rerankTopK: 3,
+                    agenticEnabled: true,
+                    llmProvider: values.generation.provider,
+                    llmModel: values.generation.model,
+                    temperature: values.generation.temperature,
+                    chunkSize: (values.chunking as any).max_chunk_size,
+                    chunkOverlap: (values.chunking as any).chunk_overlap,
+                    runtimeMode: values.runtime.mode,
+                    runtimeStreamThoughts: values.runtime.stream_thoughts,
+                    runtimeTraceLevel: values.runtime.tracing.trace_level,
+                }
             });
-
-
 
             onClose();
             router.refresh();
@@ -206,6 +229,12 @@ export function WorkspaceWizard({ isOpen, onClose }: WorkspaceWizardProps) {
                     </div>
                 );
             case 4:
+                return (
+                    <div className="space-y-4">
+                        <ExecutionSettings form={form} />
+                    </div>
+                );
+            case 5:
                 return (
                     <div className="space-y-4">
                         <GenerationSettings form={form} />

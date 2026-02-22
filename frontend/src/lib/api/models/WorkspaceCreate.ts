@@ -151,6 +151,24 @@ export interface WorkspaceCreate {
      * @memberof WorkspaceCreate
      */
     neo4jPassword?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof WorkspaceCreate
+     */
+    runtimeMode?: string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof WorkspaceCreate
+     */
+    runtimeStreamThoughts?: boolean;
+    /**
+     * 
+     * @type {string}
+     * @memberof WorkspaceCreate
+     */
+    runtimeTraceLevel?: string;
 }
 
 
@@ -181,7 +199,7 @@ export function WorkspaceCreateFromJSONTyped(json: any, ignoreDiscriminator: boo
         return json;
     }
     return {
-        
+
         'name': json['name'],
         'description': json['description'] == null ? undefined : json['description'],
         'embeddingProvider': json['embedding_provider'] == null ? undefined : json['embedding_provider'],
@@ -204,6 +222,9 @@ export function WorkspaceCreateFromJSONTyped(json: any, ignoreDiscriminator: boo
         'neo4jUri': json['neo4j_uri'] == null ? undefined : json['neo4j_uri'],
         'neo4jUser': json['neo4j_user'] == null ? undefined : json['neo4j_user'],
         'neo4jPassword': json['neo4j_password'] == null ? undefined : json['neo4j_password'],
+        'runtimeMode': json['runtime_mode'] == null ? undefined : json['runtime_mode'],
+        'runtimeStreamThoughts': json['runtime_stream_thoughts'] == null ? undefined : json['runtime_stream_thoughts'],
+        'runtimeTraceLevel': json['runtime_trace_level'] == null ? undefined : json['runtime_trace_level'],
     };
 }
 
@@ -217,7 +238,7 @@ export function WorkspaceCreateToJSONTyped(value?: WorkspaceCreate | null, ignor
     }
 
     return {
-        
+
         'name': value['name'],
         'description': value['description'],
         'embedding_provider': value['embeddingProvider'],
@@ -240,6 +261,9 @@ export function WorkspaceCreateToJSONTyped(value?: WorkspaceCreate | null, ignor
         'neo4j_uri': value['neo4jUri'],
         'neo4j_user': value['neo4jUser'],
         'neo4j_password': value['neo4jPassword'],
+        'runtime_mode': value['runtimeMode'],
+        'runtime_stream_thoughts': value['runtimeStreamThoughts'],
+        'runtime_trace_level': value['runtimeTraceLevel'],
     };
 }
 

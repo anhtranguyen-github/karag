@@ -44,12 +44,12 @@ export default function Home() {
     }
   };
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = async (vaultDelete: boolean) => {
     if (!workspaceToDelete) return;
 
     setIsDeleting(workspaceToDelete.id);
     try {
-      await api.deleteWorkspaceWorkspacesWorkspaceIdDelete({ workspaceId: workspaceToDelete.id });
+      await api.deleteWorkspaceWorkspacesWorkspaceIdDelete({ workspaceId: workspaceToDelete.id, vaultDelete });
       setWorkspaces(workspaces.filter(ws => ws.id !== workspaceToDelete.id));
       setWorkspaceToDelete(null);
     } catch (error) {

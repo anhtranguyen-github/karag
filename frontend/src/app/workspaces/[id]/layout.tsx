@@ -28,8 +28,24 @@ export default function WorkspaceLayout({
                             <ChevronLeft size={14} />
                         </Link>
                         <div className="flex items-center gap-3 pr-4 border-r border-border">
-                            <div className="w-2 h-2 rounded-full bg-indigo-500" />
+                            {pathname.includes('/settings') ? (
+                                <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/40 text-white relative">
+                                    <Settings size={16} />
+                                    <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-500 rounded-full border border-background animate-pulse" />
+                                </div>
+                            ) : (
+                                <div className="w-2 h-2 rounded-full bg-indigo-500" />
+                            )}
                             <span className="text-sm font-bold text-foreground leading-none uppercase tracking-widest">{workspace?.name || "Loading..."}</span>
+                            {pathname.includes('/settings') && (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-muted-foreground/40 font-bold mx-1">/</span>
+                                    <span className="text-sm font-bold text-muted-foreground leading-none tracking-widest uppercase">Settings</span>
+                                    <div className="ml-2 px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[8px] font-bold text-indigo-500 tracking-[0.2em] uppercase">
+                                        ID: {workspaceId?.slice(0, 8) || 'default'}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                         <nav className="flex items-center gap-1 ml-2">
                             <Link href={`/workspaces/${workspaceId}/documents`}>

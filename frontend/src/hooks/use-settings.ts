@@ -20,6 +20,9 @@ export interface AppSettings {
     job_concurrency: number;
     system_prompt: string;
     chunking_strategy: string;
+    runtime_mode: string;
+    runtime_stream_thoughts: boolean;
+    runtime_trace_level: string;
 }
 
 export interface SettingMetadata {

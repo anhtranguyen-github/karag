@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { AlertTriangle, Loader2, Trash2 } from "lucide-react";
 import { Workspace } from "@/lib/api";
@@ -8,7 +9,7 @@ import { cn } from "@/lib/utils";
 interface DeleteWorkspaceModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onConfirm: () => Promise<void>;
+    onConfirm: (vaultDelete: boolean) => Promise<void>;
     workspace: Workspace | null;
     isDeleting: boolean;
 }
@@ -20,6 +21,8 @@ export function DeleteWorkspaceModal({
     workspace,
     isDeleting
 }: DeleteWorkspaceModalProps) {
+    const [vaultDelete, setVaultDelete] = useState(false);
+
     if (!workspace) return null;
 
     return (
@@ -53,8 +56,42 @@ export function DeleteWorkspaceModal({
                     <div className="px-2">
                         <p className="text-xs text-muted-foreground leading-relaxed text-center">
                             You are about to permanently delete <span className="font-bold text-foreground">"{workspace.name}"</span>.
-                            This will wipe all vector indexes, stored documents, and thread history associated with this node.
+                            Depending on your choice below, documents will either be returned to the vault or completely purged.
                         </p>
+                    </div>
+
+                    <div className="flex flex-col gap-3 px-2">
+                        <label className={cn(
+                            "flex items-start gap-4 p-4 rounded-2xl border cursor-pointer transition-all",
+                            !vaultDelete ? "bg-indigo-500/10 border-indigo-500/30 ring-1 ring-indigo-500/50" : "bg-secondary/40 border-border hover:bg-secondary"
+                        )}>
+                            <input
+                                type="radio"
+                                className="mt-1"
+                                checked={!vaultDelete}
+                                onChange={() => setVaultDelete(false)}
+                            />
+                            <div className="flex flex-col gap-1">
+                                <span className="text-sm font-bold text-foreground">Workspace Only</span>
+                                <span className="text-xs text-muted-foreground">Removes the workspace, but leaves all documents securely in the global vault.</span>
+                            </div>
+                        </label>
+
+                        <label className={cn(
+                            "flex items-start gap-4 p-4 rounded-2xl border cursor-pointer transition-all",
+                            vaultDelete ? "bg-red-500/10 border-red-500/30 ring-1 ring-red-500/50" : "bg-secondary/40 border-border hover:bg-secondary"
+                        )}>
+                            <input
+                                type="radio"
+                                className="mt-1 accent-red-500"
+                                checked={vaultDelete}
+                                onChange={() => setVaultDelete(true)}
+                            />
+                            <div className="flex flex-col gap-1">
+                                <span className="text-sm font-bold text-red-500">Purge Documents</span>
+                                <span className="text-xs text-muted-foreground">Deletes the workspace and permanently purges its documents from the vault unless they are used elsewhere.</span>
+                            </div>
+                        </label>
                     </div>
                 </div>
 
@@ -67,7 +104,7 @@ export function DeleteWorkspaceModal({
                         Abort
                     </button>
                     <button
-                        onClick={onConfirm}
+                        onClick={() => onConfirm(vaultDelete)}
                         disabled={isDeleting}
                         className={cn(
                             "flex-[1.5] h-12 rounded-2xl bg-red-500 text-white text-[9px] font-black tracking-[0.2em] uppercase transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-500/20 active:scale-95",

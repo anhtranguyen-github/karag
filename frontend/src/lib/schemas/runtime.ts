@@ -1,30 +1,28 @@
 import { z } from 'zod';
 
+export const AutoModeSchema = z.object({
+    max_loops: z.number().int().default(3),
+    timeout_ms: z.number().int().min(1000).default(60000),
+});
+
 export const FastModeSchema = z.object({
     max_loops: z.number().int().default(1),
     enable_reflection: z.boolean().default(false),
     timeout_ms: z.number().int().min(1000).default(30000),
 });
 
-export const ThinkingModeSchema = z.object({
-    max_loops: z.number().int().min(1).max(10).default(3),
-    reflection_depth: z.number().int().min(1).max(5).default(2),
-    confidence_threshold: z.number().min(0.0).max(1.0).default(0.8),
-    timeout_ms: z.number().int().min(1000).default(60000),
-});
-
-export const DeepThinkingModeSchema = z.object({
-    max_loops: z.number().int().min(1).max(15).default(5),
-    multi_query_limit: z.number().int().min(1).max(10).default(3),
-    backtracking_enabled: z.boolean().default(true),
-    timeout_ms: z.number().int().min(1000).default(120000),
-});
-
-export const BlendingModeSchema = z.object({
-    query_variants: z.number().int().min(1).max(5).default(2),
-    answer_variants: z.number().int().min(1).max(5).default(2),
-    synthesis_strategy: z.enum(['most_complete', 'consensus', 'concatenation']).default('most_complete'),
+export const ThinkModeSchema = z.object({
+    max_loops: z.number().int().min(1).max(10).default(5),
+    reflection_depth: z.number().int().min(1).max(5).default(3),
+    confidence_threshold: z.number().min(0.0).max(1.0).default(0.7),
     timeout_ms: z.number().int().min(1000).default(90000),
+});
+
+export const DeepModeSchema = z.object({
+    max_loops: z.number().int().min(1).max(20).default(10),
+    multi_query_limit: z.number().int().min(1).max(10).default(5),
+    backtracking_enabled: z.boolean().default(true),
+    timeout_ms: z.number().int().min(1000).default(180000),
 });
 
 export const TracingSchema = z.object({
@@ -36,11 +34,11 @@ export const TracingSchema = z.object({
 });
 
 export const RuntimeSettingsSchema = z.object({
-    mode: z.enum(['fast', 'thinking', 'deep', 'blending']).default('fast'),
+    mode: z.enum(['auto', 'fast', 'think', 'deep']).default('auto'),
+    auto: AutoModeSchema.default({}),
     fast: FastModeSchema.default({}),
-    thinking: ThinkingModeSchema.default({}),
-    deep: DeepThinkingModeSchema.default({}),
-    blending: BlendingModeSchema.default({}),
+    think: ThinkModeSchema.default({}),
+    deep: DeepModeSchema.default({}),
     tracing: TracingSchema.default({}),
     stream_thoughts: z.boolean().default(true),
 });

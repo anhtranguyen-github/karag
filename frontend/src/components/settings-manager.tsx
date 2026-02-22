@@ -8,15 +8,34 @@ import {
     Check, Lock, SlidersHorizontal, Cpu, Sparkles, Database
 } from 'lucide-react';
 import { useSettings, AppSettings, useSettingsMetadata } from '@/hooks/use-settings';
+import { useWorkspaces } from '@/hooks/use-workspaces';
 import { cn } from '@/lib/utils';
 
 export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClose?: () => void, workspaceId?: string, workspaceName?: string }) {
     const { settings, updateSettings, isLoading: isSettingsLoading } = useSettings(workspaceId);
     const { metadata, isLoading: isMetadataLoading } = useSettingsMetadata();
 
+    const { workspaces, updateWorkspace } = useWorkspaces();
+    const workspaceMetadata = workspaces.find(w => w.id === workspaceId);
+
+    const [wsMetadata, setWsMetadata] = useState({
+        name: workspaceName || workspaceMetadata?.name || '',
+        description: workspaceMetadata?.description || ''
+    });
+
     const [localSettings, setLocalSettings] = useState<Partial<AppSettings>>({});
     const [isSaving, setIsSaving] = useState(false);
-    const [activeTab, setActiveTab] = useState<'generation' | 'retrieval' | 'infrastructure' | 'interface'>('generation');
+    const [activeTab, setActiveTab] = useState<'general' | 'chat' | 'ingestion' | 'retrieval' | 'storage'>('general');
+
+    // Sync wsMetadata when workspaceMetadata loads
+    React.useEffect(() => {
+        if (workspaceMetadata) {
+            setWsMetadata({
+                name: workspaceMetadata.name,
+                description: workspaceMetadata.description || ''
+            });
+        }
+    }, [workspaceMetadata]);
 
     const isLoading = isSettingsLoading || isMetadataLoading;
 
@@ -47,7 +66,16 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            await updateSettings(localSettings);
+            // 1. Update Workspace Metadata if changed
+            if (workspaceId && (wsMetadata.name !== workspaceMetadata?.name || wsMetadata.description !== workspaceMetadata?.description)) {
+                await updateWorkspace(workspaceId, wsMetadata.name, wsMetadata.description);
+            }
+
+            // 2. Update Operational Settings
+            if (Object.keys(localSettings).length > 0) {
+                await updateSettings(localSettings);
+            }
+
             setLocalSettings({});
             if (onClose) onClose();
         } catch (err) {
@@ -59,14 +87,21 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
 
     const handleSettingChange = (key: keyof AppSettings, value: string | number | boolean) => {
         if (!isMutable(key as string)) return;
-        setLocalSettings(prev => ({ ...prev, [key]: value }));
+        setLocalSettings(prev => {
+            const next = { ...prev, [key]: value };
+            if (settings && settings[key] === value) {
+                delete next[key];
+            }
+            return next;
+        });
     };
 
     const tabs = [
-        { id: 'generation', label: 'Chat', icon: Brain },
-        { id: 'retrieval', label: 'Search', icon: Search },
-        { id: 'infrastructure', label: 'Storage', icon: Database },
-        { id: 'interface', label: 'System', icon: SlidersHorizontal },
+        { id: 'general', label: 'General', icon: SlidersHorizontal },
+        { id: 'chat', label: 'Chat', icon: Brain },
+        { id: 'ingestion', label: 'Ingestion', icon: Sparkles },
+        { id: 'retrieval', label: 'Retrieval', icon: Search },
+        { id: 'storage', label: 'Storage', icon: Database },
     ] as const;
 
     const renderSettingRow = (key: keyof AppSettings, label: string, description: string) => {
@@ -77,6 +112,35 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
         if (!fieldMeta) return null;
 
         const renderInput = () => {
+            // Special Case: Execution Mode (Premium Cards)
+            if (key === 'runtime_mode' && fieldMeta.options) {
+                return (
+                    <div className="grid grid-cols-2 gap-2 w-full max-w-[360px]">
+                        {fieldMeta.options.map((opt: string) => (
+                            <button
+                                key={opt}
+                                disabled={!mutable}
+                                onClick={() => handleSettingChange(key, opt)}
+                                className={cn(
+                                    "px-4 py-2.5 rounded-xl border text-[10px] font-bold transition-all capitalize relative overflow-hidden",
+                                    value === opt
+                                        ? "bg-indigo-500/10 border-indigo-500 text-indigo-500 shadow-sm"
+                                        : "bg-secondary/40 border-border text-muted-foreground hover:bg-secondary hover:border-border/80",
+                                    !mutable && "cursor-not-allowed opacity-40"
+                                )}
+                            >
+                                {opt}
+                                {value === opt && (
+                                    <div className="absolute top-0 right-0 p-1">
+                                        <div className="w-1 h-1 rounded-full bg-indigo-500" />
+                                    </div>
+                                )}
+                            </button>
+                        ))}
+                    </div>
+                );
+            }
+
             if (fieldMeta.field_type === 'select' && fieldMeta.options) {
                 return (
                     <div className="relative w-full max-w-[320px]">
@@ -85,7 +149,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                             disabled={!mutable}
                             onChange={(e) => handleSettingChange(key, e.target.value)}
                             className={cn(
-                                "w-full bg-secondary/40 border border-border rounded-2xl px-5 py-3 text-[11px] font-bold text-foreground focus:outline-none focus:ring-2 ring-indigo-500/20 transition-all appearance-none cursor-pointer",
+                                "w-full bg-secondary/40 border border-border rounded-xl px-4 py-2.5 text-sm font-medium text-foreground focus:outline-none focus:ring-2 ring-indigo-500/20 transition-all appearance-none cursor-pointer pr-10",
                                 !mutable && "cursor-not-allowed opacity-60"
                             )}
                         >
@@ -121,12 +185,12 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
             if (fieldMeta.field_type === 'int' || fieldMeta.field_type === 'float' || typeof value === 'number') {
                 const min = fieldMeta.min ?? 0;
                 const max = fieldMeta.max ?? (fieldMeta.field_type === 'float' ? 1 : 100);
-                const step = fieldMeta.step ?? (fieldMeta.field_type === 'float' ? 0.1 : 1);
+                const step = fieldMeta.step ?? (fieldMeta.field_type === 'float' ? 0.05 : 1);
 
                 return (
                     <div className="flex flex-col items-end gap-3 w-full max-w-[280px]">
                         <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-black text-indigo-500 bg-indigo-500/10 px-2 py-0.5 rounded-lg border border-indigo-500/20">
+                            <span className="text-[10px] font-black font-mono text-indigo-500 bg-indigo-500/5 px-2 py-1 rounded-lg border border-indigo-500/10 shadow-sm">
                                 {value}
                             </span>
                         </div>
@@ -152,10 +216,10 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                         disabled={!mutable}
                         onChange={(e) => handleSettingChange(key, e.target.value)}
                         className={cn(
-                            "w-full bg-secondary/40 border border-border rounded-2xl px-5 py-3 text-[11px] font-bold text-foreground focus:outline-none focus:ring-2 ring-indigo-500/20 transition-all",
+                            "w-full bg-secondary/40 border border-border rounded-xl px-4 py-2.5 text-sm font-medium text-foreground focus:outline-none focus:ring-2 ring-indigo-500/20 transition-all",
                             !mutable && "cursor-not-allowed opacity-60"
                         )}
-                        placeholder="System Default"
+                        placeholder="Enter value..."
                     />
                     {!mutable && (
                         <div className="absolute inset-0 bg-transparent flex items-center justify-end pr-4 pointer-events-none opacity-20">
@@ -174,15 +238,15 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                 <div className="flex items-center justify-between gap-12">
                     <div className="space-y-1.5 flex-1 min-w-0">
                         <div className="flex items-center gap-3">
-                            <p className="text-[11px] font-bold text-foreground tracking-widest">{label}</p>
+                            <p className="text-sm font-bold text-foreground">{label}</p>
                             {!mutable && (
-                                <div className="px-1.5 py-0.5 rounded-md bg-indigo-500/5 border border-indigo-500/10 flex items-center gap-1">
-                                    <Lock size={8} className="text-indigo-500" />
-                                    <span className="text-[8px] font-bold text-indigo-500 tracking-widest">Protected</span>
+                                <div className="px-2 py-0.5 rounded-md bg-indigo-500/5 border border-indigo-500/10 flex items-center gap-1">
+                                    <Lock size={12} className="text-indigo-500" />
+                                    <span className="text-xs font-medium text-indigo-500 tracking-wide">Protected</span>
                                 </div>
                             )}
                         </div>
-                        <p className="text-[11px] text-muted-foreground leading-relaxed font-medium max-w-xl opacity-60 group-hover:opacity-100 transition-opacity">
+                        <p className="text-xs text-muted-foreground leading-relaxed max-w-xl opacity-80 group-hover:opacity-100 transition-opacity">
                             {fieldMeta.description || description}
                         </p>
                     </div>
@@ -202,200 +266,231 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="relative w-full h-full flex flex-col bg-background"
+            className={cn(
+                "relative w-full flex bg-background",
+                onClose ? "h-full rounded-3xl overflow-hidden border border-border" : "h-full"
+            )}
         >
-            {/* Minimal High-End Header */}
-            <header className="px-12 py-10 flex items-center justify-between border-b border-border bg-secondary/10">
-                <div className="flex items-center gap-8">
-                    <div className="w-16 h-16 rounded-[2rem] bg-indigo-600 flex items-center justify-center shadow-2xl shadow-indigo-500/40 text-white relative">
-                        <Settings size={28} />
-                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-4 border-background animate-pulse" />
-                    </div>
-                    <div className="space-y-1">
-                        <div className="flex items-center gap-3">
-                            <h2 className="text-3xl font-bold text-foreground tracking-tighter">
-                                {workspaceName || 'Global settings'}
-                            </h2>
-                            <div className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[8px] font-bold text-indigo-500 tracking-[0.2em]">
-                                ID: {workspaceId?.slice(0, 8) || 'system'}
-                            </div>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground/60 font-medium tracking-wide">Adjust system and chat parameters.</p>
-                    </div>
+            {/* Modern Sidebar */}
+            <aside className="w-[280px] border-r border-border p-8 flex flex-col gap-2 shrink-0 bg-secondary/10">
+                <div className="px-2 mb-6">
+                    <span className="text-[9px] font-bold text-muted-foreground/40 tracking-[0.3em]">Menu</span>
                 </div>
-                {onClose && (
+                {tabs.map((tab) => (
                     <button
-                        onClick={onClose}
-                        className="w-12 h-12 flex items-center justify-center rounded-2xl bg-secondary border border-border text-muted-foreground hover:text-foreground hover:border-indigo-500/30 transition-all active:scale-90"
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={cn(
+                            "flex items-center gap-4 p-4 rounded-2xl transition-all relative group overflow-hidden",
+                            activeTab === tab.id
+                                ? "bg-foreground text-background shadow-xl shadow-foreground/5"
+                                : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                        )}
                     >
-                        <X size={20} />
-                    </button>
-                )}
-            </header>
-
-            <div className="flex flex-1 min-h-0 overflow-hidden">
-                {/* Modern Sidebar */}
-                <aside className="w-[300px] border-r border-border p-10 flex flex-col gap-2 shrink-0 bg-secondary/5">
-                    <div className="px-2 mb-6">
-                        <span className="text-[9px] font-bold text-muted-foreground/40 tracking-[0.3em]">Menu</span>
-                    </div>
-                    {tabs.map((tab) => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={cn(
-                                "flex items-center gap-4 p-4 rounded-2xl transition-all relative group overflow-hidden",
-                                activeTab === tab.id
-                                    ? "bg-foreground text-background shadow-xl shadow-foreground/5"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
-                            )}
-                        >
-                            <div className={cn(
-                                "w-10 h-10 rounded-xl flex items-center justify-center border transition-all",
-                                activeTab === tab.id
-                                    ? "bg-background/10 border-background/20 text-background"
-                                    : "bg-background border-border group-hover:bg-secondary"
-                            )}>
-                                <tab.icon size={18} />
-                            </div>
-                            <div className="flex flex-col items-start gap-0.5">
-                                <span className="text-[11px] font-bold tracking-widest">{tab.label}</span>
-                                {activeTab === tab.id && (
-                                    <span className="text-[8px] font-bold opacity-40 tracking-tighter">Active</span>
-                                )}
-                            </div>
-                            {activeTab === tab.id && (
-                                <motion.div
-                                    layoutId="sidebar-accent"
-                                    className="absolute left-0 w-1 h-8 bg-indigo-500 rounded-full"
-                                />
-                            )}
-                        </button>
-                    ))}
-
-                    <div className="mt-auto p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 hidden xl:flex flex-col gap-3">
-                        <div className="flex items-center gap-2 text-indigo-500">
-                            <Sparkles size={14} />
-                            <span className="text-[10px] font-bold tracking-widest">Status</span>
+                        <div className={cn(
+                            "w-10 h-10 rounded-xl flex items-center justify-center border transition-all",
+                            activeTab === tab.id
+                                ? "bg-background/10 border-background/20 text-background"
+                                : "bg-background border-border group-hover:bg-secondary"
+                        )}>
+                            <tab.icon size={18} />
                         </div>
-                        <p className="text-[9px] text-indigo-500/60 font-medium leading-relaxed">
-                            Changes are applied instantly across your workspace.
-                        </p>
-                    </div>
-                </aside>
+                        <div className="flex flex-col items-start gap-1">
+                            <span className="text-sm font-medium">{tab.label}</span>
+                            {activeTab === tab.id && (
+                                <span className="text-[10px] font-bold opacity-60 uppercase tracking-wider">Active</span>
+                            )}
+                        </div>
+                        {activeTab === tab.id && (
+                            <motion.div
+                                layoutId="sidebar-accent"
+                                className="absolute left-0 w-1 h-8 bg-indigo-500 rounded-full"
+                            />
+                        )}
+                    </button>
+                ))}
 
-                {/* Main Settings Panel */}
-                <main className="flex-1 overflow-y-auto custom-scrollbar p-16 bg-background">
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={activeTab}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            transition={{ duration: 0.2 }}
-                            className="max-w-4xl mx-auto space-y-12"
-                        >
-                            {/* Section Header */}
-                            <div className="flex flex-col gap-3">
-                                <div className="flex items-center gap-2 text-[10px] font-bold text-indigo-500 tracking-[0.3em]">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                                    System settings
+
+            </aside>
+
+            {/* Right Side Stack: Header + Content (scrollable), Footer (fixed) */}
+            <div className="flex-1 flex flex-col min-w-0 bg-background relative h-full">
+                {/* Scrollable Area */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
+                    <main className="flex-1 p-8 lg:p-12 shrink-0">
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={activeTab}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.2 }}
+                                className="max-w-4xl mx-auto space-y-10"
+                            >
+                                {/* Section Header */}
+                                <div className="flex flex-col gap-3">
+                                    <h3 className="text-2xl font-bold text-foreground">
+                                        {tabs.find(t => t.id === activeTab)?.label} settings
+                                    </h3>
+                                    <div className="h-0.5 w-12 bg-indigo-500" />
                                 </div>
-                                <h3 className="text-4xl font-bold text-foreground tracking-tighter">
-                                    {tabs.find(t => t.id === activeTab)?.label} settings
-                                </h3>
-                                <div className="h-0.5 w-12 bg-indigo-500" />
-                            </div>
 
-                            <div className="grid gap-2">
-                                {activeTab === 'generation' && (
-                                    <>
-                                        {renderSettingRow('llm_provider', 'Chat provider', 'The AI service used for chat.')}
-                                        {renderSettingRow('llm_model', 'Model', 'The specific AI model used.')}
-                                        {renderSettingRow('temperature', 'Creativity', 'Controls how creative or literal the responses are.')}
-                                        {renderSettingRow('system_prompt', 'Instructions', 'Core guide defining the assistant behavior.')}
-                                        {renderSettingRow('agentic_enabled', 'Use tools', 'Enables the AI to use tools and search for complex tasks.')}
-                                    </>
-                                )}
-                                {activeTab === 'retrieval' && (
-                                    <>
-                                        {renderSettingRow('rag_engine', 'Search method', 'The methodology used for finding information.')}
-                                        {renderSettingRow('search_limit', 'Context limit', 'Number of file fragments used per response.')}
-                                        {renderSettingRow('hybrid_alpha', 'Search balance', 'Balance between semantic meaning and exact keyword matches.')}
-                                        {renderSettingRow('reranker_enabled', 'Refine results', 'An extra pass to improve result relevance.')}
-                                        {renderSettingRow('graph_enabled', 'Use graph', 'Uses document relationships to find better context.')}
-                                    </>
-                                )}
-                                {activeTab === 'infrastructure' && (
-                                    <>
-                                        <div className="p-8 rounded-3xl border border-indigo-500/20 bg-indigo-500/5 flex items-start gap-6 mb-4">
-                                            <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 shrink-0">
-                                                <Database size={20} />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <h4 className="text-xs font-bold text-indigo-500 tracking-widest">Fixed settings</h4>
-                                                <p className="text-[11px] text-indigo-500/60 font-medium leading-relaxed">
-                                                    Base storage settings are locked for this workspace. Updating these requires re-initialization.
-                                                </p>
+                                <div className="space-y-12">
+                                    {activeTab === 'general' && (
+                                        <div className="space-y-8">
+                                            {workspaceId && (
+                                                <div className="space-y-6">
+                                                    <h4 className="text-[11px] font-black uppercase text-muted-foreground tracking-[0.2em] mb-4">Workspace Identity</h4>
+
+                                                    <div className="space-y-2">
+                                                        <label className="text-sm font-bold text-foreground">Workspace Name</label>
+                                                        <input
+                                                            type="text"
+                                                            value={wsMetadata.name}
+                                                            onChange={(e) => setWsMetadata(prev => ({ ...prev, name: e.target.value }))}
+                                                            placeholder="Enter workspace name..."
+                                                            className="w-full bg-secondary/40 border border-border rounded-xl px-4 py-3 text-sm font-medium text-foreground focus:outline-none focus:ring-2 ring-indigo-500/20 transition-all"
+                                                        />
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <label className="text-sm font-bold text-foreground">Description</label>
+                                                        <textarea
+                                                            value={wsMetadata.description}
+                                                            onChange={(e) => setWsMetadata(prev => ({ ...prev, description: e.target.value }))}
+                                                            placeholder="What is this workspace for?"
+                                                            rows={3}
+                                                            className="w-full bg-secondary/40 border border-border rounded-xl px-4 py-3 text-sm font-medium text-foreground focus:outline-none focus:ring-2 ring-indigo-500/20 transition-all resize-none"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <div>
+                                                <h4 className="text-[11px] font-black uppercase text-muted-foreground tracking-[0.2em] mb-4">Additional Settings</h4>
+                                                <div className="grid gap-2">
+                                                    {renderSettingRow('show_reasoning', 'Show thinking', 'Display how the AI reached its answer.')}
+                                                    {renderSettingRow('theme', 'Theme', 'Change the appearance of the interface.')}
+                                                </div>
                                             </div>
                                         </div>
-                                        {renderSettingRow('embedding_provider', 'Embedding provider', 'Provider used to process documents.')}
-                                        {renderSettingRow('embedding_model', 'Embedding model', 'Model used for document search.')}
-                                        {renderSettingRow('chunking_strategy', 'Chunking method', 'How documents are split into smaller pieces.')}
-                                        {renderSettingRow('job_concurrency', 'Process speed', 'Number of simultaneous tasks for document processing.')}
-                                    </>
-                                )}
-                                {activeTab === 'interface' && (
-                                    <>
-                                        {renderSettingRow('show_reasoning', 'Show thinking', 'Display how the AI reached its answer.')}
-                                        {renderSettingRow('theme', 'Theme', 'Change the appearance of the interface.')}
-                                    </>
-                                )}
-                            </div>
-                        </motion.div>
-                    </AnimatePresence>
-                </main>
-            </div>
+                                    )}
 
-            {/* Premium Interaction Footer */}
-            <footer className="px-12 py-8 border-t border-border flex items-center justify-between shrink-0 bg-secondary/5 backdrop-blur-xl">
-                <div className="flex items-center gap-8">
-                    <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-[10px] font-bold text-emerald-500 tracking-widest">Connected</span>
-                    </div>
-                    {Object.keys(localSettings).length > 0 && (
-                        <div className="flex items-center gap-3 animate-in slide-in-from-left-4">
-                            <div className="px-3 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-500">
-                                {Object.keys(localSettings).length} changes detected
-                            </div>
-                        </div>
-                    )}
+                                    {activeTab === 'chat' && (
+                                        <div className="space-y-8">
+                                            <div>
+                                                <h4 className="text-[11px] font-black uppercase text-muted-foreground tracking-[0.2em] mb-4">Mutable Settings</h4>
+                                                <div className="grid gap-2">
+                                                    {renderSettingRow('llm_provider', 'Chat provider', 'The AI service used for chat.')}
+                                                    {renderSettingRow('llm_model', 'Model', 'The specific AI model used.')}
+                                                    {renderSettingRow('runtime_mode', 'Response mode', 'Execution strategy (auto, fast, think, deep).')}
+                                                    {renderSettingRow('runtime_stream_thoughts', 'Show thinking', 'Stream the agents internal reasoning LIVE to the chat.')}
+                                                    {renderSettingRow('runtime_trace_level', 'Detailed tracing', 'Depth of observability and logging for RAG operations.')}
+                                                    {renderSettingRow('temperature', 'Creativity', 'Controls how creative or literal the responses are.')}
+                                                    {renderSettingRow('system_prompt', 'Instructions', 'Core guide defining the assistant behavior.')}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <h4 className="text-[11px] font-black uppercase text-muted-foreground tracking-[0.2em] mb-4">Additional Settings</h4>
+                                                <div className="grid gap-2">
+                                                    {renderSettingRow('agentic_enabled', 'Use tools', 'Enables the AI to use tools and search for complex tasks.')}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {activeTab === 'ingestion' && (
+                                        <div className="space-y-8">
+                                            <div>
+                                                <h4 className="text-[11px] font-black uppercase text-indigo-500 tracking-[0.2em] mb-4">Immutable Settings</h4>
+                                                <div className="grid gap-2">
+                                                    {renderSettingRow('chunking_strategy', 'Chunking method', 'How documents are split into smaller pieces.')}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <h4 className="text-[11px] font-black uppercase text-muted-foreground tracking-[0.2em] mb-4">Mutable Settings</h4>
+                                                <div className="grid gap-2">
+                                                    {renderSettingRow('job_concurrency', 'Process speed', 'Number of simultaneous tasks for document processing.')}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {activeTab === 'retrieval' && (
+                                        <div className="space-y-8">
+                                            <div>
+                                                <h4 className="text-[11px] font-black uppercase text-muted-foreground tracking-[0.2em] mb-4">Mutable Settings</h4>
+                                                <div className="grid gap-2">
+                                                    {renderSettingRow('rag_engine', 'Search method', 'The methodology used for finding information.')}
+                                                    {renderSettingRow('search_limit', 'Context limit', 'Number of file fragments used per response.')}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <h4 className="text-[11px] font-black uppercase text-muted-foreground tracking-[0.2em] mb-4">Additional Settings</h4>
+                                                <div className="grid gap-2">
+                                                    {renderSettingRow('hybrid_alpha', 'Search balance', 'Balance between semantic meaning and exact keyword matches.')}
+                                                    {renderSettingRow('reranker_enabled', 'Refine results', 'An extra pass to improve result relevance.')}
+                                                    {renderSettingRow('graph_enabled', 'Use graph', 'Uses document relationships to find better context.')}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {activeTab === 'storage' && (
+                                        <div className="space-y-8">
+                                            <div>
+                                                <h4 className="text-[11px] font-black uppercase text-indigo-500 tracking-[0.2em] mb-4 flex items-center gap-2">
+                                                    <Lock size={12} />
+                                                    Immutable Settings
+                                                </h4>
+                                                <p className="text-[11px] text-muted-foreground mb-6">These parameters define how data is stored and indexed in this workspace. They cannot be changed after creation.</p>
+                                                <div className="grid gap-2">
+                                                    {renderSettingRow('embedding_provider', 'Embedding provider', 'Provider used to process documents.')}
+                                                    {renderSettingRow('embedding_model', 'Embedding model', 'Model used for document search.')}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </motion.div>
+                        </AnimatePresence>
+                    </main>
                 </div>
-
-                <div className="flex items-center gap-4">
-                    {onClose && (
-                        <button
-                            onClick={onClose}
-                            className="h-12 px-8 text-[11px] font-bold text-muted-foreground hover:text-foreground transition-all tracking-[0.2em] rounded-2xl hover:bg-secondary/80 border border-transparent hover:border-border"
-                        >
-                            Cancel
-                        </button>
-                    )}
-                    <button
-                        onClick={handleSave}
-                        disabled={isSaving || Object.keys(localSettings).length === 0}
-                        className="h-12 px-10 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 text-white text-[11px] font-bold tracking-[0.3em] rounded-2xl shadow-2xl shadow-indigo-600/20 transition-all hover:scale-[1.02] active:scale-95 flex items-center gap-4 group"
-                    >
-                        {isSaving ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                            <Save size={16} className="group-hover:rotate-12 transition-transform" />
+                {/* Premium Interaction Footer */}
+                <footer className="px-12 py-6 border-t border-border flex items-center justify-between shrink-0 bg-background z-10 w-full mt-auto">
+                    <div className="flex items-center gap-8">
+                        {(Object.keys(localSettings).length > 0 || (workspaceId && (wsMetadata.name !== workspaceMetadata?.name || wsMetadata.description !== workspaceMetadata?.description))) && (
+                            <div className="flex items-center gap-3 animate-in slide-in-from-left-4">
+                                <div className="px-3 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-500">
+                                    Changes detected
+                                </div>
+                            </div>
                         )}
-                        Save changes
-                    </button>
-                </div>
-            </footer>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        {onClose && (
+                            <button
+                                onClick={onClose}
+                                className="h-12 px-8 text-[11px] font-bold text-muted-foreground hover:text-foreground transition-all tracking-[0.2em] rounded-2xl hover:bg-secondary/80 border border-transparent hover:border-border"
+                            >
+                                Cancel
+                            </button>
+                        )}
+                        <button
+                            onClick={handleSave}
+                            disabled={isSaving || (Object.keys(localSettings).length === 0 && wsMetadata.name === workspaceMetadata?.name && wsMetadata.description === workspaceMetadata?.description)}
+                            className="h-12 px-10 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 text-white text-[11px] font-bold tracking-[0.3em] rounded-2xl shadow-2xl shadow-indigo-600/20 transition-all hover:scale-[1.02] active:scale-95 flex items-center gap-4 group"
+                        >
+                            {isSaving ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                                <Save size={16} className="group-hover:rotate-12 transition-transform" />
+                            )}
+                            Save changes
+                        </button>
+                    </div>
+                </footer>
+            </div>
         </motion.div>
     );
 }

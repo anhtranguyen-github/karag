@@ -10,6 +10,7 @@ import { API_ROUTES } from '@/lib/api-config';
 import { useError } from '@/context/error-context';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Modal } from '@/components/ui/modal';
 
 export interface Document {
     id: string;
@@ -37,6 +38,9 @@ export function DocumentManager({ workspaceId, isGlobal = false }: DocumentManag
     const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
     const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
     const [isUploading, setIsUploading] = useState(false);
+
+    const [docToDelete, setDocToDelete] = useState<Document | null>(null);
+    const [isDeletingFile, setIsDeletingFile] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -96,22 +100,32 @@ export function DocumentManager({ workspaceId, isGlobal = false }: DocumentManag
         }
     };
 
-    const handleDelete = async (doc: Document) => {
+    const confirmDelete = async () => {
+        if (!docToDelete) return;
+        setIsDeletingFile(true);
         try {
-            const url = workspaceId
-                ? `${API_ROUTES.DOCUMENTS}/${encodeURIComponent(doc.filename)}?workspace_id=${encodeURIComponent(workspaceId)}`
-                : `${API_ROUTES.DOCUMENTS}/${encodeURIComponent(doc.id)}`; // System delete uses ID
+            const isVault = !workspaceId;
+            const url = isVault
+                ? `${API_ROUTES.DOCUMENTS}/${encodeURIComponent(docToDelete.id)}?vault_delete=true`
+                : `${API_ROUTES.DOCUMENTS}/${encodeURIComponent(docToDelete.filename)}?workspace_id=${encodeURIComponent(workspaceId!)}`;
 
             const res = await fetch(url, { method: 'DELETE' });
             if (res.ok) {
-                setDocuments(prev => prev.filter(d => d.id !== doc.id));
-                if (selectedDoc?.id === doc.id) setSelectedDoc(null);
+                setDocuments(prev => prev.filter(d => d.id !== docToDelete.id));
+                if (selectedDoc?.id === docToDelete.id) setSelectedDoc(null);
+                setDocToDelete(null);
             } else {
                 showError("Delete Failed", "Unable to remove document.");
             }
         } catch {
             showError("Connection Error", "Failed to reach document service.");
+        } finally {
+            setIsDeletingFile(false);
         }
+    };
+
+    const handleDelete = (doc: Document) => {
+        setDocToDelete(doc);
     };
 
     const filteredDocs = documents.filter(doc =>
@@ -282,6 +296,15 @@ export function DocumentManager({ workspaceId, isGlobal = false }: DocumentManag
                     />
                 )}
             </AnimatePresence>
+
+            <DeleteDocumentModal
+                isOpen={!!docToDelete}
+                onClose={() => setDocToDelete(null)}
+                onConfirm={confirmDelete}
+                doc={docToDelete}
+                isVault={!workspaceId}
+                isDeleting={isDeletingFile}
+            />
         </div>
     );
 }
@@ -453,4 +476,83 @@ function formatBytes(bytes: number) {
 
 function formatDate(dateStr: string) {
     return new Date(dateStr).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function DeleteDocumentModal({
+    isOpen, onClose, onConfirm, doc, isVault, isDeleting
+}: {
+    isOpen: boolean; onClose: () => void; onConfirm: () => void; doc: Document | null; isVault: boolean; isDeleting: boolean;
+}) {
+    if (!doc) return null;
+
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title={(
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500 border border-red-500/20">
+                        <Trash2 size={16} />
+                    </div>
+                    <span>Destructive Action</span>
+                </div>
+            )}
+            className="max-w-md"
+        >
+            <div className="flex flex-col gap-6 pt-2">
+                <div className="space-y-4">
+                    <div className="p-6 rounded-3xl bg-red-500/5 border border-red-500/10 flex flex-col items-center text-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500">
+                            <Trash2 size={24} />
+                        </div>
+                        <div className="space-y-1">
+                            <h3 className="text-sm font-bold text-foreground">
+                                {isVault ? "Purge Document Globally" : "Remove from Workspace"}
+                            </h3>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-black opacity-60">
+                                {isVault ? "This action may be irreversible" : "Safely Detach Document"}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="px-5">
+                        <p className="text-xs text-muted-foreground leading-relaxed text-center">
+                            {isVault ? (
+                                <>
+                                    You are about to permanently delete <span className="font-bold text-foreground">"{doc.filename}"</span> from the Vault.
+                                    This will wipe its underlying file and all vector data unless it's currently actively used in another workspace.
+                                </>
+                            ) : (
+                                <>
+                                    You are removing <span className="font-bold text-foreground">"{doc.filename}"</span> from this workspace.
+                                    Its specific vector indexes here will be dropped, but the file remains safely accessible in the global Vault.
+                                </>
+                            )}
+                        </p>
+                    </div>
+                </div>
+
+                <div className="flex gap-3 mt-2">
+                    <button
+                        onClick={onClose}
+                        disabled={isDeleting}
+                        className="flex-1 h-12 rounded-2xl bg-secondary border border-border text-[9px] font-black tracking-[0.2em] uppercase hover:bg-secondary/80 transition-all active:scale-95"
+                    >
+                        Abort
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        disabled={isDeleting}
+                        className={cn(
+                            "flex-[1.5] h-12 rounded-2xl bg-red-500 text-white text-[9px] font-black tracking-[0.2em] uppercase transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-500/20 active:scale-95",
+                            isDeleting ? "opacity-50" : "hover:bg-red-600"
+                        )}
+                    >
+                        {isDeleting ? <Loader2 size={14} className="animate-spin" /> : null}
+                        {isDeleting ? "Purging..." : "Confirm"}
+                    </button>
+                </div>
+            </div>
+        </Modal>
+    );
 }

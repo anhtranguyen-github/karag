@@ -32,10 +32,10 @@ export function ExecutionSettings({ form }: ExecutionSettingsProps) {
     const currentMode = watch('runtime.mode');
 
     const modes = [
-        { id: 'fast', label: 'Fast', icon: Zap, desc: 'Direct completion, minimal latency' },
-        { id: 'thinking', label: 'Thinking', icon: Brain, desc: 'Internal reasoning loops' },
-        { id: 'deep', label: 'Deep', icon: Microscope, desc: 'Multi-path tree-of-thought' },
-        { id: 'blending', label: 'Blending', icon: Atom, desc: 'Multi-source synthesis' },
+        { id: 'auto', label: 'Auto', icon: Activity, desc: 'Balanced reasoning with automatic depth' },
+        { id: 'fast', label: 'Fast', icon: Zap, desc: 'Least loop possible for direct answers' },
+        { id: 'think', label: 'Think', icon: Brain, desc: 'Reasoning and planning for complex tasks' },
+        { id: 'deep', label: 'Deep', icon: Microscope, desc: 'Detailed research and long report-style responses' },
     ];
 
     const sectionClass = "p-5 rounded-2xl bg-card border border-border shadow-sm mb-6";
@@ -47,7 +47,7 @@ export function ExecutionSettings({ form }: ExecutionSettingsProps) {
             <div className={sectionClass}>
                 <div className="flex items-center gap-2 mb-6">
                     <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500">
-                        <Zap size={16} />
+                        <Activity size={16} />
                     </div>
                     <div>
                         <h3 className="text-sm font-bold text-foreground">Execution Engine</h3>
@@ -93,31 +93,31 @@ export function ExecutionSettings({ form }: ExecutionSettingsProps) {
 
                 <div className="space-y-6 px-2">
                     {/* Mode-Specific Parameters */}
-                    {currentMode === 'thinking' && (
+                    {currentMode === 'think' && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in duration-300">
                             <FormField
                                 control={form.control}
-                                name="runtime.thinking.max_loops"
+                                name="runtime.think.max_loops"
                                 render={({ field }) => (
                                     <FormItem>
                                         <div className="flex justify-between items-center mb-2 font-bold tracking-tight">
                                             <FormLabel className={labelClass}>Max Loops</FormLabel>
-                                            <span className="text-indigo-500 text-[10px] font-mono">{field.value || 3}</span>
+                                            <span className="text-indigo-500 text-[10px] font-mono">{field.value || 5}</span>
                                         </div>
-                                        <Slider min={1} max={10} step={1} value={[field.value || 3]} onValueChange={(v: number[]) => field.onChange(v[0])} />
+                                        <Slider min={1} max={10} step={1} value={[field.value || 5]} onValueChange={(v: number[]) => field.onChange(v[0])} />
                                     </FormItem>
                                 )}
                             />
                             <FormField
                                 control={form.control}
-                                name="runtime.thinking.reflection_depth"
+                                name="runtime.think.reflection_depth"
                                 render={({ field }) => (
                                     <FormItem>
                                         <div className="flex justify-between items-center mb-2 font-bold tracking-tight">
                                             <FormLabel className={labelClass}>Reflection Depth</FormLabel>
-                                            <span className="text-indigo-500 text-[10px] font-mono">{field.value || 2}</span>
+                                            <span className="text-indigo-500 text-[10px] font-mono">{field.value || 3}</span>
                                         </div>
-                                        <Slider min={1} max={5} step={1} value={[field.value || 2]} onValueChange={(v: number[]) => field.onChange(v[0])} />
+                                        <Slider min={1} max={5} step={1} value={[field.value || 3]} onValueChange={(v: number[]) => field.onChange(v[0])} />
                                     </FormItem>
                                 )}
                             />
@@ -133,9 +133,9 @@ export function ExecutionSettings({ form }: ExecutionSettingsProps) {
                                     <FormItem>
                                         <div className="flex justify-between items-center mb-2 font-bold tracking-tight">
                                             <FormLabel className={labelClass}>Multi-path Max Loops</FormLabel>
-                                            <span className="text-indigo-500 text-[10px] font-mono">{field.value || 5}</span>
+                                            <span className="text-indigo-500 text-[10px] font-mono">{field.value || 10}</span>
                                         </div>
-                                        <Slider min={1} max={15} step={1} value={[field.value || 5]} onValueChange={(v: number[]) => field.onChange(v[0])} />
+                                        <Slider min={1} max={20} step={1} value={[field.value || 10]} onValueChange={(v: number[]) => field.onChange(v[0])} />
                                     </FormItem>
                                 )}
                             />
@@ -146,9 +146,9 @@ export function ExecutionSettings({ form }: ExecutionSettingsProps) {
                                     <FormItem>
                                         <div className="flex justify-between items-center mb-2 font-bold tracking-tight">
                                             <FormLabel className={labelClass}>Query Expansion Limit</FormLabel>
-                                            <span className="text-indigo-500 text-[10px] font-mono">{field.value || 3}</span>
+                                            <span className="text-indigo-500 text-[10px] font-mono">{field.value || 5}</span>
                                         </div>
-                                        <Slider min={1} max={10} step={1} value={[field.value || 3]} onValueChange={(v: number[]) => field.onChange(v[0])} />
+                                        <Slider min={1} max={10} step={1} value={[field.value || 5]} onValueChange={(v: number[]) => field.onChange(v[0])} />
                                     </FormItem>
                                 )}
                             />
@@ -190,7 +190,7 @@ export function ExecutionSettings({ form }: ExecutionSettingsProps) {
                                     <FormControl>
                                         <Switch
                                             checked={field.value === 'debug'}
-                                            onCheckedChange={(v: boolean) => field.onChange(v ? 'debug' : 'info')}
+                                            onCheckedChange={(v: boolean) => field.onChange(v ? 'debug' : 'detailed')}
                                         />
                                     </FormControl>
                                 </FormItem>

@@ -26,12 +26,6 @@ Run unit tests:
 bun run test:unit
 ```
 
-Run E2E tests:
-
-```bash
-bun run test:e2e
-```
-
 ## Project Structure
 
 - `src/app/` - Next.js app router pages
@@ -41,16 +35,12 @@ bun run test:e2e
 - `src/lib/` - Utility functions and API config
 - `tests/unit/` - Unit tests (Vitest)
 - `tests/integration/` - Integration tests (Vitest)
-- `tests/e2e/` - End-to-end tests (Playwright)
 
 ## Learn More
-
-To learn more about the technologies used:
 
 - [Next.js Documentation](https://nextjs.org/docs)
 - [Bun Documentation](https://bun.sh/docs)
 - [Vitest Documentation](https://vitest.dev/)
-- [Playwright Documentation](https://playwright.dev/)
  
  
  
