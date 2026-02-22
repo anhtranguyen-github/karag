@@ -33,8 +33,8 @@ class VectorStore(ABC):
         pass
 
     @abstractmethod
-    async def delete_document(self, config: IngestionConfig, source_name: str) -> bool:
-        """Delete all points associated with a specific document source."""
+    async def delete_document(self, config: IngestionConfig, doc_id: str) -> bool:
+        """Delete all points associated with a specific document ID (MongoDB SoT)."""
         pass
 
     @abstractmethod
@@ -43,8 +43,8 @@ class VectorStore(ABC):
         pass
 
     @abstractmethod
-    async def get_document_content(self, config: IngestionConfig, source_name: str) -> str:
-        """Reconstruct the entire document content from its chunks."""
+    async def get_document_content(self, config: IngestionConfig, doc_id: str) -> str:
+        """Reconstruct the entire document content from its chunks using doc_id."""
         pass
 
     @abstractmethod

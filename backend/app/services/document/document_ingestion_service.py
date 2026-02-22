@@ -57,8 +57,14 @@ class DocumentIngestionService:
                 return 0
 
             config, store = await ingestion_pipeline.get_ingestion_config(workspace_id)
+            
+            # Phase 2a: Ensure collection and indices exist BEFORE operating on it
+            # This prevents 400 errors from Qdrant when filtering on unindexed fields
+            await ingestion_pipeline.initialize(workspace_id=workspace_id)
+
             # Use adapter to delete old indexes for this document (re-indexing case)
-            await store.delete_document(config, doc.get("filename", doc.get("id")))
+            # MongoDB doc_id is the source of truth for chunks
+            await store.delete_document(config, doc_id)
 
             content = minio_manager.get_file(doc["minio_path"])
             if not content:
@@ -94,7 +100,6 @@ class DocumentIngestionService:
                     # Safety first: validate the temporary path
                     safe_tmp_path = validate_safe_path(tmp_path)
 
-                    await ingestion_pipeline.initialize(workspace_id=workspace_id)
                     num_chunks = await ingestion_pipeline.process_file(
                         str(safe_tmp_path),
                         metadata={

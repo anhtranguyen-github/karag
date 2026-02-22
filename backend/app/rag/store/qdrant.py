@@ -326,14 +326,14 @@ class QdrantStore(VectorStore):
             for doc_id in sorted_ids[:limit]
         ]
 
-    async def delete_document(self, config: IngestionConfig, source_name: str) -> bool:
+    async def delete_document(self, config: IngestionConfig, doc_id: str) -> bool:
         collection_name = config.collection_name_override or f"knowledge_base_{config.vector_size}"
         workspace_id = config.workspace_id
         
         with tracer.start_as_current_span(
             "qdrant.delete_document",
             attributes={
-                "qdrant.source": source_name,
+                "doc_id": doc_id,
                 "workspace_id": workspace_id or "",
             },
         ) as span:
@@ -346,8 +346,8 @@ class QdrantStore(VectorStore):
                     points_selector=qmodels.Filter(
                         must=[
                             qmodels.FieldCondition(
-                                key="source",
-                                match=qmodels.MatchValue(value=source_name),
+                                key="doc_id",
+                                match=qmodels.MatchValue(value=doc_id),
                             ),
                             qmodels.FieldCondition(
                                 key="workspace_id",
@@ -365,8 +365,8 @@ class QdrantStore(VectorStore):
                             points_selector=qmodels.Filter(
                                 must=[
                                     qmodels.FieldCondition(
-                                        key="source",
-                                        match=qmodels.MatchValue(value=source_name),
+                                        key="doc_id",
+                                        match=qmodels.MatchValue(value=doc_id),
                                     )
                                 ]
                             ),
@@ -429,7 +429,7 @@ class QdrantStore(VectorStore):
 
             return list(docs.values())
 
-    async def get_document_content(self, config: IngestionConfig, source_name: str) -> str:
+    async def get_document_content(self, config: IngestionConfig, doc_id: str) -> str:
         collection_name = config.collection_name_override or f"knowledge_base_{config.vector_size}"
         workspace_id = config.workspace_id
         collection_name = await self._get_effective_collection(collection_name, workspace_id)
@@ -437,7 +437,7 @@ class QdrantStore(VectorStore):
         with tracer.start_as_current_span("qdrant.get_document_content"):
             filters = [
                 qmodels.FieldCondition(
-                    key="source", match=qmodels.MatchValue(value=source_name)
+                    key="doc_id", match=qmodels.MatchValue(value=doc_id)
                 )
             ]
             if workspace_id:
@@ -463,7 +463,7 @@ class QdrantStore(VectorStore):
                 offset = response[1]
                 for p in points:
                     chunks.append(
-                        (p.payload.get("chunk_index", 0), p.payload.get("text", ""))
+                        (p.payload.get("index", 0), p.payload.get("text", ""))
                     )
                 if not offset:
                     break
