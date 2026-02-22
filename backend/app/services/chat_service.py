@@ -87,39 +87,6 @@ class ChatService:
                 {"workspace_id": workspace_id}
             ).sort([("updated_at", -1), ("_id", -1)]).to_list(None)
 
-            if not workspace_threads:
-                return []
-
-            # Bulk optimization: Find which thread IDs have content in one go
-            all_tids = [doc["thread_id"] for doc in workspace_threads]
-            msg_col = db["chat_messages"]
-            checkpoint_col = db["checkpoints"]
-
-            # Use distinct to efficiently find which IDs have at least one entry
-            tids_with_msgs = await msg_col.distinct("thread_id", {"thread_id": {"$in": all_tids}})
-            tids_with_checkpoints = await checkpoint_col.distinct("thread_id", {"thread_id": {"$in": all_tids}})
-            
-            contentful_tids = set(tids_with_msgs) | set(tids_with_checkpoints)
-
-            now = datetime.utcnow()
-            valid_threads = []
-            for doc in workspace_threads:
-                tid = doc["thread_id"]
-                
-                # Check if it was recently updated (last 15m)
-                updated_at_str = doc.get("updated_at")
-                is_recent = False
-                if updated_at_str:
-                    try:
-                        updated_at = datetime.fromisoformat(updated_at_str.replace("Z", "+00:00")).replace(tzinfo=None)
-                        if (now - updated_at).total_seconds() < 900:
-                            is_recent = True
-                    except Exception:
-                        pass
-                
-                if is_recent or tid in contentful_tids:
-                    valid_threads.append(doc)
-
             return [
                 {
                     "id": doc["thread_id"],
@@ -128,7 +95,7 @@ class ChatService:
                     "tags": doc.get("tags", []),
                     "updated_at": doc.get("updated_at"),
                 }
-                for doc in valid_threads
+                for doc in workspace_threads
             ]
 
     @staticmethod

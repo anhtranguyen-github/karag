@@ -133,6 +133,7 @@ class QdrantStore(VectorStore):
 
     async def create_collection_if_not_exists(self, config: IngestionConfig) -> bool:
         collection_name = config.collection_name_override or f"knowledge_base_{config.vector_size}"
+        created = False
         with tracer.start_as_current_span(
             "qdrant.create_collection",
             attributes={
@@ -163,8 +164,16 @@ class QdrantStore(VectorStore):
                             indexing_threshold=10000,
                         ),
                     )
-                    
-                    # Create payload indices
+                    created = True
+                    logger.info(
+                        "qdrant_collection_created",
+                        collection=collection_name,
+                        vector_size=config.vector_size,
+                    )
+
+                # Always ensure indices exist (idempotent in most cases, but we handle errors)
+                # This ensures that even if collection was created by old code, new indices are added
+                try:
                     await self.client.create_payload_index(
                         collection_name=collection_name,
                         field_name="text",
@@ -176,20 +185,22 @@ class QdrantStore(VectorStore):
                             lowercase=True,
                         ),
                     )
-                    for keyword_field in ["doc_id", "workspace_id", "shared_with", "source"]:
+                except Exception as e:
+                    if "already indexed" not in str(e).lower():
+                        logger.debug("qdrant_index_failed_or_exists", field="text", error=str(e))
+
+                for keyword_field in ["doc_id", "workspace_id", "shared_with", "source"]:
+                    try:
                         await self.client.create_payload_index(
                             collection_name=collection_name,
                             field_name=keyword_field,
                             field_schema=qmodels.PayloadSchemaType.KEYWORD,
                         )
-                        
-                    logger.info(
-                        "qdrant_collection_created",
-                        collection=collection_name,
-                        vector_size=config.vector_size,
-                    )
-                    return True
-                return False
+                    except Exception as e:
+                        if "already indexed" not in str(e).lower():
+                            logger.debug("qdrant_index_failed_or_exists", field=keyword_field, error=str(e))
+                            
+                return created
             except Exception as e:
                 if "forbidden" in str(e).lower() or "403" in str(e):
                     logger.warn(
