@@ -6,4 +6,4 @@ curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
 apt-get install -y nodejs
 # Install pnpm
 corepack enable
-npm install -g pnpm
+corepack prepare pnpm@latest --activate

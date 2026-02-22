@@ -263,6 +263,17 @@ launch_frontend() {
     log_phase "LAUNCH (Frontend)"
 
     cd frontend
+    if [ ! -d "node_modules" ]; then
+        log_warn "node_modules missing in frontend. Running pnpm install..."
+        pnpm install --quiet
+    fi
+
+    # Ensure API client is generated if missing
+    if [ ! -d "src/lib/api" ] || [ -z "$(ls -A src/lib/api 2>/dev/null)" ]; then
+        log_info "Generating API client..."
+        pnpm run generate-client
+    fi
+
     if [ "$PROD_MODE" = "true" ]; then
         log_info "Starting Next.js Production Server..."
         # Ensure build exists for production mode
