@@ -80,38 +80,55 @@ class ChatService:
             attributes={"workspace_id": workspace_id},
         ):
             db = mongodb_manager.get_async_database()
-            checkpoints_col = db["checkpoints"]
             metadata_col = db["thread_metadata"]
 
+            # Sort by updated_at descending, fallback to _id
             workspace_threads = await metadata_col.find(
                 {"workspace_id": workspace_id}
-            ).to_list(None)
-            thread_ids = [doc["thread_id"] for doc in workspace_threads]
+            ).sort([("updated_at", -1), ("_id", -1)]).to_list(None)
 
-            pipeline = [
-                {"$match": {"thread_id": {"$in": thread_ids}}},
-                {"$sort": {"_id": -1}},
-                {
-                    "$group": {
-                        "_id": "$thread_id",
-                        "last_active": {"$first": "$_id"},
-                    }
-                },
-                {"$sort": {"last_active": -1}},
-            ]
+            if not workspace_threads:
+                return []
 
-            results = await checkpoints_col.aggregate(pipeline).to_list(None)
-            sorted_thread_ids = [res["_id"] for res in results]
-            meta_map = {doc["thread_id"]: doc for doc in workspace_threads}
+            # Bulk optimization: Find which thread IDs have content in one go
+            all_tids = [doc["thread_id"] for doc in workspace_threads]
+            msg_col = db["chat_messages"]
+            checkpoint_col = db["checkpoints"]
+
+            # Use distinct to efficiently find which IDs have at least one entry
+            tids_with_msgs = await msg_col.distinct("thread_id", {"thread_id": {"$in": all_tids}})
+            tids_with_checkpoints = await checkpoint_col.distinct("thread_id", {"thread_id": {"$in": all_tids}})
+            
+            contentful_tids = set(tids_with_msgs) | set(tids_with_checkpoints)
+
+            now = datetime.utcnow()
+            valid_threads = []
+            for doc in workspace_threads:
+                tid = doc["thread_id"]
+                
+                # Check if it was recently updated (last 15m)
+                updated_at_str = doc.get("updated_at")
+                is_recent = False
+                if updated_at_str:
+                    try:
+                        updated_at = datetime.fromisoformat(updated_at_str.replace("Z", "+00:00")).replace(tzinfo=None)
+                        if (now - updated_at).total_seconds() < 900:
+                            is_recent = True
+                    except Exception:
+                        pass
+                
+                if is_recent or tid in contentful_tids:
+                    valid_threads.append(doc)
 
             return [
                 {
-                    "id": tid,
-                    "title": meta_map.get(tid, {}).get("title", "New chat"),
-                    "has_thinking": meta_map.get(tid, {}).get("has_thinking", False),
-                    "tags": meta_map.get(tid, {}).get("tags", []),
+                    "id": doc["thread_id"],
+                    "title": doc.get("title", "New chat"),
+                    "has_thinking": doc.get("has_thinking", False),
+                    "tags": doc.get("tags", []),
+                    "updated_at": doc.get("updated_at"),
                 }
-                for tid in sorted_thread_ids
+                for doc in valid_threads
             ]
 
     @staticmethod
@@ -143,13 +160,16 @@ class ChatService:
 
     @staticmethod
     async def delete_thread(thread_id: str):
-        """Delete a thread and its history."""
+        """Delete a thread and its history across all collections."""
         with tracer.start_as_current_span(
             "chat.delete_thread",
             attributes={"thread_id": thread_id},
         ):
             db = mongodb_manager.get_async_database()
+            # Clean up all possible storage locations
             await db["checkpoints"].delete_many({"thread_id": thread_id})
+            await db["checkpoint_writes"].delete_many({"thread_id": thread_id})
+            await db["chat_messages"].delete_many({"thread_id": thread_id})
             await db["thread_metadata"].delete_one({"thread_id": thread_id})
             logger.info("chat_thread_deleted", thread_id=thread_id)
 
@@ -177,8 +197,20 @@ class ChatService:
                     if len(history) >= 1 and (not db_meta or "title" not in db_meta):
                         await col.update_one(
                             {"thread_id": thread_id},
-                            {"$set": {"title": "New chat", "workspace_id": workspace_id}},
+                            {
+                                "$set": {
+                                    "title": "New chat", 
+                                    "workspace_id": workspace_id,
+                                    "updated_at": datetime.utcnow().isoformat()
+                                }
+                            },
                             upsert=True
+                        )
+                    elif db_meta:
+                        # Even if we don't change title, update the timestamp
+                        await col.update_one(
+                            {"thread_id": thread_id},
+                            {"$set": {"updated_at": datetime.utcnow().isoformat()}}
                         )
                     logger.info("generate_title_skipped", reason="under_5_messages", count=len(history))
                     return
@@ -287,6 +319,20 @@ class ChatService:
         )
 
         try:
+            # Ensure thread metadata exists immediately so it shows up in the sidebar
+            db = mongodb_manager.get_async_database()
+            await db["thread_metadata"].update_one(
+                {"thread_id": thread_id},
+                {
+                    "$set": {
+                        "workspace_id": workspace_id,
+                        "updated_at": datetime.utcnow().isoformat()
+                    },
+                    "$setOnInsert": {"title": "New chat"}
+                },
+                upsert=True
+            )
+
             if execution:
                 # Use the new LangGraph-based adaptive RAG execution
                 from backend.app.rag.graph.orchestrator import rag_executor
@@ -330,14 +376,17 @@ class ChatService:
                                 yield f"data: {json.dumps({'type': 'content', 'delta': content})}\n\n"
 
                         if kind == "on_chat_model_end":
-                            # Fallback for models that don't support streaming or if streaming fails
-                            content = event["data"]["output"].content
-                            if content:
-                                collected_content.append(content)
-                                yield f"data: {json.dumps({'type': 'content', 'delta': content})}\n\n"
+                            # Only fallback to model end if no content was streamed yet
+                            # This prevents duplicated text when models support both but event order is mixed
+                            if not collected_content:
+                                content = event["data"]["output"].content
+                                if content:
+                                    collected_content.append(content)
+                                    yield f"data: {json.dumps({'type': 'content', 'delta': content})}\n\n"
 
                         if kind == "on_chain_end":
                             output = event["data"].get("output", {})
+                            # Node names from orchestrator: 'init', 'analyze', 'build_query', 'retrieve', 'blend', 'reflect', 'assemble', 'generate', 'synthesize'
                             if node_name == "retrieve":
                                 # Stream sources back to UI
                                 results = output.get("retrieved_results", [])
@@ -352,6 +401,13 @@ class ChatService:
                                     ]
                                     collected_sources = sources
                                     yield f"data: {json.dumps({'type': 'sources', 'sources': sources})}\n\n"
+                            
+                            # Fallback harvesting for the final generation node if streaming didn't happen
+                            if node_name in ["generate", "synthesize"] and not collected_content:
+                                final = output.get("final_answer") or (output.get("draft_answers", [""])[0])
+                                if final:
+                                    collected_content.append(final)
+                                    yield f"data: {json.dumps({'type': 'content', 'delta': final})}\n\n"
 
                             if isinstance(output, dict) and "execution_metadata" in output:
                                 yield f"data: {json.dumps({'type': 'tracing', 'data': output['execution_metadata']})}\n\n"

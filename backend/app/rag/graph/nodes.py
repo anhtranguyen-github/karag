@@ -139,6 +139,10 @@ async def reflect_and_decide(state: GraphState) -> Dict[str, Any]:
     mode = state["settings"].execution_mode
     if mode == ExecutionMode.FAST or state["loop_count"] >= state["settings"].max_loops:
         return {"is_sufficient": True}
+    
+    # Force sufficiency if we have some context and it's not the first loop
+    if state["loop_count"] > 0 and len(state["blended_context"]) > 1000:
+        return {"is_sufficient": True}
 
     llm = await LangChainFactory.get_llm(state["workspace_id"])
     system_prompt = (

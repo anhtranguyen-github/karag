@@ -33,6 +33,19 @@ export default function GlobalChatPage() {
                 return;
             }
 
+            // Sync workspaceId from searchParams if available
+            const urlWorkspaceId = searchParams.get("workspaceId");
+            if (urlWorkspaceId && urlWorkspaceId !== workspaceId) {
+                setWorkspaceId(urlWorkspaceId);
+                setIsLoading(false);
+                return;
+            }
+
+            if (workspaceId) {
+                setIsLoading(false);
+                return;
+            }
+
             try {
                 const res = await fetch(API_ROUTES.THREAD_GET(threadId));
                 if (res.ok) {
@@ -49,16 +62,21 @@ export default function GlobalChatPage() {
         };
 
         fetchThreadMeta();
-    }, [threadId]);
+    }, [threadId, searchParams]); // Dependency on searchParams for URL sync
 
     const handleSelectThread = (id: string) => {
-        router.push(`/chats/${id}`);
+        // Only append workspaceId if it's not already in the thread ID (which might be "new?workspaceId=...")
+        if (workspaceId && !id.includes("workspaceId=")) {
+            router.push(`/chats/${id}?workspaceId=${workspaceId}`);
+        } else {
+            router.push(`/chats/${id}`);
+        }
     };
 
     return (
         <div className="flex h-screen overflow-hidden bg-background">
             <AnimatePresence mode="wait">
-                {isLoading && (
+                {(isLoading && !workspaceId) && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -67,7 +85,7 @@ export default function GlobalChatPage() {
                     >
                         <div className="flex flex-col items-center gap-4">
                             <Loader2 className="animate-spin text-indigo-500 w-8 h-8" />
-                            <span className="text-xs font-bold text-muted-foreground">Loading chat...</span>
+                            <span className="text-xs font-bold text-muted-foreground">Initializing Workspace...</span>
                         </div>
                     </motion.div>
                 )}
@@ -106,12 +124,12 @@ export default function GlobalChatPage() {
                         <Link href="/" className="w-10 h-10 rounded-xl bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all group">
                             <Home size={18} className="group-active:scale-90" />
                         </Link>
-                        {workspaceId && (
-                            <div className="flex items-center gap-3 pl-6 border-l border-border">
-                                <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
-                                <span className="text-sm font-bold text-foreground">{workspace?.name || "Loading..."}</span>
-                            </div>
-                        )}
+                        <div className="flex items-center gap-3 pl-6 border-l border-border">
+                            <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
+                            <span className="text-sm font-bold text-foreground">
+                                {workspace?.name || (workspaceId ? "Loading..." : "Global Chat")}
+                            </span>
+                        </div>
                     </div>
 
                     <div className="flex items-center gap-4">

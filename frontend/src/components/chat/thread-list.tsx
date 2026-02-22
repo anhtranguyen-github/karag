@@ -30,31 +30,34 @@ export function ThreadList({
 }) {
     const params = useParams();
     const searchParams = useSearchParams();
-    const workspaceId = propWorkspaceId || (params.id !== "new" ? params.id as string : null) || searchParams.get("workspaceId");
+    const workspaceId = propWorkspaceId || searchParams.get("workspaceId");
     const [threads, setThreads] = useState<Thread[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const fetchThreads = React.useCallback(async () => {
-        setLoading(true);
+    const fetchThreads = React.useCallback(async (isInitial = false) => {
+        // Only show the heavy loader if it's the very first time we load any threads
+        if (isInitial && threads.length === 0) {
+            setLoading(true);
+        }
         try {
             const res = await api.listChatThreadsChatThreadsGet({ workspaceId: workspaceId as string });
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             setThreads((res.data as any) || []);
         } catch (e) {
             console.error("Failed to fetch threads", e);
         } finally {
             setLoading(false);
         }
-    }, [workspaceId]);
+    }, [workspaceId, threads.length]);
 
     useEffect(() => {
         if (workspaceId) {
-            fetchThreads();
-            // Poll for updates in case titles or new threads are generated
-            const interval = setInterval(fetchThreads, 5000);
+            // Clear current threads immediately on workspace switch so we don't show stale data
+            setThreads([]);
+            fetchThreads(true);
+            const interval = setInterval(() => fetchThreads(false), 8000);
             return () => clearInterval(interval);
         }
-    }, [workspaceId, activeThreadId, fetchThreads]);
+    }, [workspaceId]); // Removed fetchThreads from dependencies to avoid unnecessary triggers
 
     const handleCreateThread = () => {
         if (workspaceId) {
@@ -88,17 +91,18 @@ export function ThreadList({
                 </button>
             </div>
             <div className="flex-1 overflow-y-auto p-3 space-y-1.5 custom-scrollbar">
-                {loading ? (
-                    <div className="flex flex-col items-center justify-center py-10 gap-2 opacity-40">
-                        <Loader2 size={16} className="animate-spin text-indigo-500" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Scanning Threads...</span>
+                {loading && threads.length === 0 ? (
+                    <div className="space-y-2 py-2">
+                        {[1, 2, 3].map((i) => (
+                            <div key={i} className="h-10 w-full rounded-xl bg-secondary/50 animate-pulse" />
+                        ))}
                     </div>
                 ) : threads.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 gap-3 opacity-20">
                         <div className="w-10 h-10 rounded-full border-2 border-dashed border-border flex items-center justify-center">
                             <MessageSquare size={16} className="text-muted-foreground" />
                         </div>
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Empty Cache</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">No history yet</span>
                     </div>
                 ) : (
                     threads.map((thread) => (

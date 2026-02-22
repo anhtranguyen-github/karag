@@ -24,6 +24,7 @@ class HybridRetrievalConfig(BaseModel):
     dense_weight: float = Field(default=0.5, ge=0.0, le=1.0)
     sparse_weight: float = Field(default=0.5, ge=0.0, le=1.0)
     fusion_strategy: Literal["rrf", "weighted_sum"] = "weighted_sum"
+    top_k: int = Field(default=5, ge=1, le=100)
     normalize_scores: bool = True
 
 
