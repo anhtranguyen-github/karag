@@ -13,7 +13,7 @@ from backend.app.schemas.generation import (
     LlamaGenerationConfig,
 )
 from backend.app.schemas.retrieval import RetrievalConfig
-from backend.app.schemas.execution import RuntimeSettings
+from backend.app.schemas.execution import RuntimeSettings, ExecutionMode
 
 
 class AppSettings(BaseModel):
@@ -218,6 +218,26 @@ class AppSettings(BaseModel):
         # Sync RAG Engine
         self.retrieval.graph.enabled = self.rag_engine == "graph"
 
+        # Sync Retrieval fields
+        self.retrieval.vector.top_k = self.search_limit
+        self.retrieval.rerank.enabled = self.reranker_enabled
+        self.retrieval.rerank.top_n = self.rerank_top_k
+
+        # Sync Generation fields
+        self.generation.provider = self.llm_provider
+        self.generation.model = self.llm_model
+        self.generation.temperature = self.temperature
+
+        # Sync Runtime fields
+        self.runtime.mode = self.runtime_mode
+        self.runtime.stream_thoughts = self.runtime_stream_thoughts
+        self.runtime.tracing.trace_level = self.runtime_trace_level
+        self.show_reasoning = self.runtime_stream_thoughts
+
+        # Sync Embedding fields
+        self.embedding.provider = self.embedding_provider
+        self.embedding.model = self.embedding_model
+
         # Sync Chunking Strategy
         if (
             hasattr(self.chunking, "strategy")
@@ -248,31 +268,86 @@ class AppSettings(BaseModel):
     neo4j_user: Optional[str] = Field(default=None)
     neo4j_password: Optional[str] = Field(default=None)
 
-    # --- Compatibility Proxies (for legacy / flat access) ---
-    @computed_field
-    @property
-    def embedding_provider(self) -> str:
-        return self.embedding.provider
+    # --- 7. Compatibility Fields (Promoted to real fields for metadata discovery) ---
+    llm_provider: str = Field(
+        default="openai",
+        description="The AI service provider for chat.",
+        json_schema_extra={"mutable": True, "category": "Generation Component"},
+    )
+    llm_model: str = Field(
+        default="gpt-4o",
+        description="The specific AI model to use.",
+        json_schema_extra={"mutable": True, "category": "Generation Component"},
+    )
+    temperature: float = Field(
+        default=0.7,
+        ge=0.0,
+        le=2.0,
+        description="Controls how creative or literal the responses are.",
+        json_schema_extra={"mutable": True, "category": "Generation Component"},
+    )
+    search_limit: int = Field(
+        default=20,
+        ge=1,
+        le=100,
+        description="Number of relevant documents to retrieve.",
+        json_schema_extra={"mutable": True, "category": "Retrieval Component"},
+    )
+    reranker_enabled: bool = Field(
+        default=False,
+        description="Use a reranker to improve retrieval quality.",
+        json_schema_extra={"mutable": True, "category": "Retrieval Component"},
+    )
+    rerank_top_k: int = Field(
+        default=3,
+        ge=1,
+        le=20,
+        description="Number of documents to keep after reranking.",
+        json_schema_extra={"mutable": True, "category": "Retrieval Component"},
+    )
 
-    @computed_field
-    @property
-    def embedding_model(self) -> str:
-        return self.embedding.model
+    embedding_provider: str = Field(
+        default="openai",
+        description="The AI service provider for embeddings.",
+        json_schema_extra={"mutable": False, "category": "Embedding Component"},
+    )
+    embedding_model: str = Field(
+        default="text-embedding-3-small",
+        description="The specific embedding model to use.",
+        json_schema_extra={"mutable": False, "category": "Embedding Component"},
+    )
+    embedding_dim: int = Field(
+        default=1536,
+        description="The dimension of the embedding vectors.",
+        json_schema_extra={"mutable": False, "category": "Embedding Component"},
+    )
 
-    @computed_field
-    @property
-    def embedding_dim(self) -> int:
-        return self.embedding.dimensions
+    runtime_mode: Literal["auto", "fast", "think", "deep"] = Field(
+        default="auto",
+        description="Response strategy: 'auto' (balanced), 'fast' (direct answer), 'think' (longer reasoning/planning), 'deep' (detailed research report).",
+        json_schema_extra={
+            "mutable": True,
+            "category": "Execution Mode",
+        },
+    )
 
-    @computed_field
-    @property
-    def llm_provider(self) -> str:
-        return self.generation.provider
+    runtime_stream_thoughts: bool = Field(
+        default=True,
+        description="Stream the agent's internal reasoning LIVE to the chat.",
+        json_schema_extra={
+            "mutable": True,
+            "category": "Execution Mode",
+        },
+    )
 
-    @computed_field
-    @property
-    def llm_model(self) -> str:
-        return self.generation.model
+    runtime_trace_level: Literal["basic", "detailed", "debug"] = Field(
+        default="detailed",
+        description="Depth of observability and logging for RAG operations.",
+        json_schema_extra={
+            "mutable": True,
+            "category": "Execution Mode",
+        },
+    )
 
     @computed_field
     @property
@@ -291,21 +366,6 @@ class AppSettings(BaseModel):
             if hasattr(self.chunking, "chunk_overlap")
             else 150
         )
-
-    @computed_field
-    @property
-    def search_limit(self) -> int:
-        return self.retrieval.vector.top_k
-
-    @computed_field
-    @property
-    def reranker_enabled(self) -> bool:
-        return self.retrieval.rerank.enabled
-
-    @computed_field
-    @property
-    def rerank_top_k(self) -> int:
-        return self.retrieval.rerank.top_n
 
 
 class DocumentMetadata(BaseModel):

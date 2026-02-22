@@ -93,7 +93,7 @@ class GitHubIngestionStrategy(BaseIngestionStrategy):
                 task_id,
                 status="completed",
                 progress=100,
-                message=f"GitHub repository processed. Created {num_chunks} fragments.",
+                message=f"GitHub repository processed. Created {num_chunks} chunks.",
                 result={"chunks": num_chunks, "repo": repo_url},
             )
             return {"chunks": num_chunks}

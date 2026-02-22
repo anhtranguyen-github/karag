@@ -130,6 +130,9 @@ class WorkspaceService:
             "llm_provider",
             "llm_model",
             "temperature",
+            "runtime_mode",
+            "runtime_stream_thoughts",
+            "runtime_trace_level",
         ]
         settings_to_apply = {k: data[k] for k in rag_fields if k in data}
 

@@ -134,11 +134,12 @@ class DocumentUploadService:
                 target_filename = f"{name} ({max_count + 1}){ext}"
             elif strategy == "overwrite" and existing_local_name:
                 await self.delete(
-                    existing_local_name["filename"], workspace_id, vault_delete=True
+                    existing_local_name["id"], workspace_id, vault_delete=True
                 )
 
+            task_type = "upload" if workspace_id == "vault" else "ingestion"
             task_id = await task_service.create_task(
-                "ingestion",
+                task_type,
                 {"filename": target_filename, "workspace_id": workspace_id},
                 workspace_id=workspace_id,
             )
@@ -321,7 +322,7 @@ class DocumentUploadService:
                 "minio_path": minio_path,
                 "content_hash": file_hash,
                 "status": "verifying",
-                "workspace_statuses": {workspace_id: "verifying", "vault": "verifying"},
+                "workspace_statuses": {workspace_id: "verifying"} if workspace_id != "vault" else {},
                 "current_version": 1,
                 "shared_with": [],
                 "created_at": datetime.utcnow().isoformat(),
@@ -333,15 +334,13 @@ class DocumentUploadService:
                 await db.documents.delete_one({"id": doc_id})
                 return
 
+            update_uploading = {"status": "uploading"}
+            if workspace_id != "vault":
+                update_uploading[f"workspace_statuses.{workspace_id}"] = "uploading"
+
             await db.documents.update_one(
                 {"id": doc_id},
-                {
-                    "$set": {
-                        "status": "uploading",
-                        f"workspace_statuses.{workspace_id}": "uploading",
-                        "workspace_statuses.vault": "uploading",
-                    }
-                },
+                {"$set": update_uploading},
             )
 
             import io
@@ -359,26 +358,36 @@ class DocumentUploadService:
                 task_id, progress=50, message="Recording metadata..."
             )
 
+            update_reading = {"status": "reading"}
+            if workspace_id != "vault":
+                update_reading[f"workspace_statuses.{workspace_id}"] = "reading"
+
             await db.documents.update_one(
                 {"id": doc_id},
-                {
-                    "$set": {
-                        "status": "reading",
-                        f"workspace_statuses.{workspace_id}": "reading",
-                        "workspace_statuses.vault": "reading",
-                    }
-                },
+                {"$set": update_reading},
             )
 
-            # AUTO-INDEX: Proceed to Phase 2 immediately
-            await task_service.update_task(
-                task_id, progress=60, message="Neural infrastructure: Indexing..."
-            )
-            from .document_ingestion_service import document_ingestion_service
+            if workspace_id == "vault":
+                # Just store in vault, skip auto-indexing to save time/compute
+                await db.documents.update_one(
+                    {"id": doc_id},
+                    {
+                        "$set": {
+                            "status": "uploaded",
+                        }
+                    },
+                )
+                num_chunks = 0
+            else:
+                # AUTO-INDEX: Proceed to Phase 2 immediately for real workspaces
+                await task_service.update_task(
+                    task_id, progress=60, message="Indexing..."
+                )
+                from .document_ingestion_service import document_ingestion_service
 
-            num_chunks = await document_ingestion_service.index_document(
-                doc_id, workspace_id, task_id=task_id
-            )
+                num_chunks = await document_ingestion_service.index_document(
+                    doc_id, workspace_id, task_id=task_id
+                )
 
             await task_service.update_task(
                 task_id,
@@ -386,7 +395,7 @@ class DocumentUploadService:
                 progress=100,
                 message=f"Storage complete: '{safe_filename}' saved to vault."
                 if workspace_id == "vault"
-                else f"Ingestion complete: '{safe_filename}' indexed ({num_chunks} fragments).",
+                else f"Ingestion complete: '{safe_filename}' indexed ({num_chunks} chunks).",
                 result={
                     "doc_id": doc_id,
                     "filename": safe_filename,

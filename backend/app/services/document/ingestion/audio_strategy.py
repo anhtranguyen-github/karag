@@ -62,7 +62,7 @@ class AudioIngestionStrategy(BaseIngestionStrategy):
                 task_id,
                 status="completed",
                 progress=100,
-                message=f"Audio processed and indexed. Created {num_chunks} fragments.",
+                message=f"Audio processed and indexed. Created {num_chunks} chunks.",
                 result={"chunks": num_chunks, "filename": filename},
             )
             return {"chunks": num_chunks}

@@ -142,17 +142,15 @@ class IngestionPipeline:
                 await task_service.update_task(
                     task_id,
                     progress=40,
-                    message=f"Splitting into fragments ({len(documents)} pages loaded)...",
+                    message=f"Chunking text ({len(documents)} pages loaded)...",
                 )
 
             # --- Component 2: Chunk ---
             chunk_start = time.perf_counter()
-            all_chunks = []
-            for doc in documents:
-                chunks = await rag_service.chunk_text(
-                    doc.page_content, workspace_id=workspace_id
-                )
-                all_chunks.extend(chunks)
+            full_text = "\n\n".join([doc.page_content for doc in documents])
+            all_chunks = await rag_service.chunk_text(
+                full_text, workspace_id=workspace_id
+            )
 
             if not all_chunks:
                 DOCUMENT_INGESTION_COUNT.labels(extension=ext, status="empty").inc()
@@ -164,12 +162,18 @@ class IngestionPipeline:
             )
 
             span.set_attribute("ingestion.num_chunks", len(all_chunks))
+            if task_id:
+                await task_service.update_task(
+                    task_id,
+                    progress=50,
+                    message=f"Created {len(all_chunks)} chunks. Generating embeddings...",
+                )
 
             if task_id:
                 await task_service.update_task(
                     task_id,
                     progress=60,
-                    message=f"Generating embeddings for {len(all_chunks)} fragments (this may take a while)...",
+                    message=f"Generating embeddings for {len(all_chunks)} chunks (this may take a while)...",
                 )
 
             # --- Component 3: Embed ---
@@ -188,7 +192,7 @@ class IngestionPipeline:
 
             if task_id:
                 await task_service.update_task(
-                    task_id, progress=90, message="Storing vectors and finishing up..."
+                    task_id, progress=90, message="Storing embeddings and finishing up..."
                 )
 
             # --- Component 4: Store ---

@@ -64,6 +64,11 @@ class WorkspaceCreate(BaseModel):
     llm_model: str = "gpt-4o"
     temperature: float = Field(0.7, ge=0.0, le=2.0)
 
+    # Component 8: Runtime
+    runtime_mode: Literal["auto", "fast", "think", "deep"] = "auto"
+    runtime_stream_thoughts: bool = True
+    runtime_trace_level: Literal["basic", "detailed", "debug"] = "detailed"
+
     # Component 7: Ingestion
     chunking_strategy: Literal[
         "recursive", "sentence", "token", "semantic", "fixed", "document"

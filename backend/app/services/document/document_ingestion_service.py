@@ -11,7 +11,7 @@ class DocumentIngestionService:
     async def index_document(
         self, doc_id: str, workspace_id: str, force: bool = False, task_id: str = None
     ):
-        """Phase 2: On-Demand Neural Indexing."""
+        """Phase 2: On-Demand Indexing."""
         if task_id and await task_service.is_cancelled(task_id):
             logger.info("indexing_cancelled_start", task_id=task_id)
             return 0
@@ -29,7 +29,7 @@ class DocumentIngestionService:
                 f"Document {doc_id} not found in workspace {workspace_id}"
             )
 
-        if doc.get("status") == "ingested" and not force:
+        if doc.get("workspace_statuses", {}).get(workspace_id) == "ingested" and not force:
             return doc.get("chunks", 0)
 
         await db.documents.update_one(
@@ -170,7 +170,7 @@ class DocumentIngestionService:
                 task_id,
                 status="processing",
                 progress=10,
-                message="Starting neural indexing...",
+                message="Starting indexing...",
             )
             num_chunks = await self.index_document(
                 doc_id, workspace_id, force=force, task_id=task_id
@@ -183,7 +183,7 @@ class DocumentIngestionService:
                 task_id,
                 status="completed",
                 progress=100,
-                message=f"Indexed {num_chunks} fragments.",
+                message=f"Indexed {num_chunks} chunks.",
                 result={
                     "chunks": num_chunks,
                     "doc_id": doc_id,

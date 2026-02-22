@@ -102,7 +102,6 @@ class CrossWorkspaceDocumentService:
             new_doc["status"] = "indexing"
             new_doc["workspace_statuses"] = {
                 target_workspace_id: "indexing",
-                "vault": "indexing",
             }
             new_doc["chunks"] = 0
             new_doc["created_at"] = datetime.utcnow().isoformat()
@@ -135,7 +134,7 @@ class CrossWorkspaceDocumentService:
                     )
                 from backend.app.rag.ingestion import ingestion_pipeline
                 config, store = await ingestion_pipeline.get_ingestion_config(source_ws_id)
-                await store.delete_document(config, res.get("filename", res.get("id")))
+                await store.delete_document(config, res["id"])
                 
         elif action == "share":
             await db.documents.update_one(

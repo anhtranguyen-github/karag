@@ -128,7 +128,7 @@ class MinioManager:
         try:
             # Using integer seconds for 'expires' is most compatible
             url = self.client.presigned_get_object(
-                ai_settings.MINIO_BUCKET,
+                karag_settings.MINIO_BUCKET,
                 object_name,
                 expires=expires_hours * 3600,
             )
@@ -153,7 +153,7 @@ class MinioManager:
             attributes={"minio.object": object_name},
         ):
             try:
-                self.client.remove_object(ai_settings.MINIO_BUCKET, object_name)
+                self.client.remove_object(karag_settings.MINIO_BUCKET, object_name)
                 logger.info("minio_delete_complete", object=object_name)
             except S3Error as e:
                 logger.error("minio_delete_error", object=object_name, error=str(e))

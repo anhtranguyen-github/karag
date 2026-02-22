@@ -31,7 +31,7 @@ class SitemapIngestionStrategy(BaseIngestionStrategy):
                 task_id,
                 status="completed",
                 progress=100,
-                message=f"Sitemap processed. Created {num_chunks} fragments.",
+                message=f"Sitemap processed. Created {num_chunks} chunks.",
                 result={"chunks": num_chunks},
             )
             return {"chunks": num_chunks}

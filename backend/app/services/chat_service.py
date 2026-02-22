@@ -332,20 +332,44 @@ class ChatService:
                         node_name = event.get("name", "")
 
                         if kind == "on_chain_start":
-                            step_msg = f"Entering {node_name} node"
-                            collected_reasoning.append(step_msg)
-                            yield f"data: {json.dumps({'type': 'reasoning', 'steps': [step_msg]})}\n\n"
+                            # Map internal node names to user-friendly "Thinking" steps
+                            display_names = {
+                                "analyze": "Analyzing inquiry intent...",
+                                "build_query": "Generating optimized search paths...",
+                                "retrieve": "Searching knowledge base...",
+                                "blend": "Combining retrieved context...",
+                                "reflect": "Verifying information sufficiency...",
+                                "assemble": "Preparing final response context...",
+                                "generate": "Reasoning and drafting answer...",
+                                "synthesize": "Finalizing comprehensive response...",
+                            }
+                            if node_name in display_names:
+                                step_msg = display_names[node_name]
+                                collected_reasoning.append(step_msg)
+                                yield f"data: {json.dumps({'type': 'reasoning', 'steps': [step_msg]})}\n\n"
 
                         if kind == "on_chat_model_stream":
-                            content = event["data"]["chunk"].content
-                            if content:
-                                collected_content.append(content)
-                                yield f"data: {json.dumps({'type': 'content', 'delta': content})}\n\n"
+                            tags = event.get("tags", [])
+                            # Only stream as main content if it's tagged as the final answer
+                            if "final_answer" in tags:
+                                content = event["data"]["chunk"].content
+                                if content:
+                                    collected_content.append(content)
+                                    yield f"data: {json.dumps({'type': 'content', 'delta': content})}\n\n"
 
                         if kind == "on_chat_model_end":
-                            # Only fallback to model end if no content was streamed yet
-                            # This prevents duplicated text when models support both but event order is mixed
-                            if not collected_content:
+                            tags = event.get("tags", [])
+                            # Capture internal model logic as reasoning steps
+                            if "reasoning" in tags:
+                                content = event["data"]["output"].content
+                                if content:
+                                    # Truncate very long internal logic for better UI readability
+                                    reason_msg = content[:400] + "..." if len(content) > 400 else content
+                                    collected_reasoning.append(reason_msg)
+                                    yield f"data: {json.dumps({'type': 'reasoning', 'steps': [reason_msg]})}\n\n"
+                            
+                            # Fallback for final answer if streaming didn't occur
+                            if "final_answer" in tags and not collected_content:
                                 content = event["data"]["output"].content
                                 if content:
                                     collected_content.append(content)
@@ -353,7 +377,21 @@ class ChatService:
 
                         if kind == "on_chain_end":
                             output = event["data"].get("output", {})
-                            # Node names from orchestrator: 'init', 'analyze', 'build_query', 'retrieve', 'blend', 'reflect', 'assemble', 'generate', 'synthesize'
+                            
+                            if node_name == "analyze":
+                                intent = output.get("intent_analysis", "").strip()
+                                if intent:
+                                    msg = f"Inquiry Analysis: {intent}"
+                                    collected_reasoning.append(msg)
+                                    yield f"data: {json.dumps({'type': 'reasoning', 'steps': [msg]})}\n\n"
+                                    
+                            if node_name == "build_query":
+                                queries = output.get("generated_queries", [])
+                                if queries:
+                                    msg = f"Research Plan: Searching for {', '.join(queries)}"
+                                    collected_reasoning.append(msg)
+                                    yield f"data: {json.dumps({'type': 'reasoning', 'steps': [msg]})}\n\n"
+
                             if node_name == "retrieve":
                                 # Stream sources back to UI
                                 results = output.get("retrieved_results", [])
@@ -368,6 +406,17 @@ class ChatService:
                                     ]
                                     collected_sources = sources
                                     yield f"data: {json.dumps({'type': 'sources', 'sources': sources})}\n\n"
+                                    
+                                    msg = f"Knowledge Retrieval: Found {len(results)} relevant context fragments."
+                                    collected_reasoning.append(msg)
+                                    yield f"data: {json.dumps({'type': 'reasoning', 'steps': [msg]})}\n\n"
+
+                            if node_name == "reflect":
+                                sufficient = output.get("is_sufficient")
+                                loop = output.get("loop_count", 1)
+                                msg = f"Research Validation (Loop {loop}): {'Context is complete' if sufficient else 'Identifying missing gaps for further search'}."
+                                collected_reasoning.append(msg)
+                                yield f"data: {json.dumps({'type': 'reasoning', 'steps': [msg]})}\n\n"
                             
                             # Fallback harvesting for the final generation node if streaming didn't happen
                             if node_name in ["generate", "synthesize"] and not collected_content:
