@@ -37,6 +37,7 @@ class SettingsManager:
             self.config_path = DATA_DIR / config_file
 
         self._global_settings: AppSettings = self._load_initial_settings()
+        self._settings_cache: Dict[str, AppSettings] = {}
         # Ensure fallback file exists
         if not self.config_path.exists():
             self._save_global_settings()
@@ -95,6 +96,10 @@ class SettingsManager:
         if not workspace_id or workspace_id == "default":
             return self._global_settings
 
+        # Check cache first
+        if workspace_id in self._settings_cache:
+            return self._settings_cache[workspace_id]
+
         try:
             db = mongodb_manager.get_async_database()
             # We store workspace settings in a separate collection or inside the workspace doc
@@ -104,6 +109,7 @@ class SettingsManager:
             )
 
             if not ws_settings_doc:
+                self._settings_cache[workspace_id] = self._global_settings
                 return self._global_settings
 
             # Merge workspace settings over global ones
@@ -117,7 +123,9 @@ class SettingsManager:
             merged_data.update(override_data)
 
             try:
-                return AppSettings(**merged_data)
+                settings = AppSettings(**merged_data)
+                self._settings_cache[workspace_id] = settings
+                return settings
             except PydanticValidationError as e:
                 logger.error(
                     "settings_schema_mismatch", workspace_id=workspace_id, error=str(e)
@@ -293,6 +301,10 @@ class SettingsManager:
             await db["workspace_settings"].update_one(
                 {"workspace_id": workspace_id}, {"$set": updates}, upsert=True
             )
+            # Invalidate cache
+            if workspace_id in self._settings_cache:
+                del self._settings_cache[workspace_id]
+
             return await self.get_settings(workspace_id)
         except PydanticValidationError as e:
             raise ValidationError(

@@ -17,7 +17,11 @@ tracer = get_tracer(__name__)
 
 class QdrantStore(VectorStore):
     def __init__(self):
-        client_kwargs = {"url": karag_settings.QDRANT_URL}
+        client_kwargs = {
+            "url": karag_settings.QDRANT_URL,
+            "timeout": 60.0
+        }
+        self._collection_cache = {}
         if karag_settings.QDRANT_API_KEY:
             client_kwargs["api_key"] = karag_settings.QDRANT_API_KEY
             if karag_settings.QDRANT_URL.startswith("http://"):
@@ -118,16 +122,23 @@ class QdrantStore(VectorStore):
             pass
         return "knowledge_base_1536" # Default placeholder, we will refine this below
 
+    async def _collection_exists_cached(self, name: str) -> bool:
+        if name in self._collection_cache:
+            return self._collection_cache[name]
+        exists = await self.client.collection_exists(name)
+        self._collection_cache[name] = exists
+        return exists
+
     async def _get_effective_collection(self, desired_collection: str, workspace_id: Optional[str] = None) -> str:
-        if await self.client.collection_exists(desired_collection):
+        if await self._collection_exists_cached(desired_collection):
             return desired_collection
             
-        if workspace_id and await self.client.collection_exists(workspace_id):
+        if workspace_id and await self._collection_exists_cached(workspace_id):
             return workspace_id
             
         for dim in [384, 512, 768, 896, 1024, 1536, 1792, 3072]:
             c = f"knowledge_base_{dim}"
-            if await self.client.collection_exists(c):
+            if await self._collection_exists_cached(c):
                 return c
         return desired_collection
 
@@ -224,11 +235,14 @@ class QdrantStore(VectorStore):
             )
             qdrant_points.append(q_point)
             
-        await self.client.upsert(
-            collection_name=collection_name,
-            points=qdrant_points,
-            wait=True,
-        )
+        batch_size = 100
+        for i in range(0, len(qdrant_points), batch_size):
+            batch = qdrant_points[i:i + batch_size]
+            await self.client.upsert(
+                collection_name=collection_name,
+                points=batch,
+                wait=True,
+            )
         return True
 
     async def search(self, config: RetrievalConfig, query_vector: List[float], query_text: str, workspace_id: Optional[str] = None) -> List[SearchResult]:

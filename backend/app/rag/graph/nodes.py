@@ -5,6 +5,7 @@ from backend.app.schemas.execution import ExecutionMode
 from backend.app.rag.rag_service import rag_service
 from backend.app.core.factory import LangChainFactory
 from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.runnables import RunnableConfig
 
 
 async def init_execution(state: GraphState) -> Dict[str, Any]:
@@ -13,6 +14,7 @@ async def init_execution(state: GraphState) -> Dict[str, Any]:
     return {
         "loop_count": 0,
         "is_sufficient": True if mode == ExecutionMode.FAST else False,
+        "generated_queries": [state["query"]] if mode == ExecutionMode.FAST else [],
         "execution_metadata": {
             "start_time": time.time(),
             "mode": mode,
@@ -24,7 +26,7 @@ async def init_execution(state: GraphState) -> Dict[str, Any]:
     }
 
 
-async def analyze_intent(state: GraphState) -> Dict[str, Any]:
+async def analyze_intent(state: GraphState, config: RunnableConfig) -> Dict[str, Any]:
     """Analyze query intent to calibrate reasoning depth."""
     mode = state["settings"].execution_mode
     if mode == ExecutionMode.FAST:
@@ -36,11 +38,14 @@ async def analyze_intent(state: GraphState) -> Dict[str, Any]:
         "Simple queries need direct answers. Complex queries need multi-step retrieval. "
         "Ambiguous queries need clarification or broad search."
     )
+    if mode == ExecutionMode.DEEP:
+        system_prompt += " This is a DEEP research request. Prepare for a detailed, report-style analysis."
+
     messages = [
         SystemMessage(content=system_prompt),
         HumanMessage(content=state["query"]),
     ]
-    response = await llm.ainvoke(messages)
+    response = await llm.ainvoke(messages, config={**config, "tags": ["reasoning"]})
 
     metadata = state.get("execution_metadata", {})
     metadata["nodes_visited"].append("analyze")
@@ -49,7 +54,7 @@ async def analyze_intent(state: GraphState) -> Dict[str, Any]:
     return {"intent_analysis": response.content, "execution_metadata": metadata}
 
 
-async def build_query_context(state: GraphState) -> Dict[str, Any]:
+async def build_query_context(state: GraphState, config: RunnableConfig) -> Dict[str, Any]:
     """Generate search queries optimized for the current execution loop."""
     mode = state["settings"].execution_mode
     query = state["query"]
@@ -58,19 +63,21 @@ async def build_query_context(state: GraphState) -> Dict[str, Any]:
         return {"generated_queries": [query]}
 
     # Decisions on query volume are made here based on mode
-    count = 1
+    count = 2
     if mode == ExecutionMode.DEEP:
+        count = 5
+    elif mode == ExecutionMode.THINK:
         count = 3
-    elif mode == ExecutionMode.BLENDING:
+    elif mode == ExecutionMode.AUTO:
         count = 2
 
     llm = await LangChainFactory.get_llm(state["workspace_id"])
     system_prompt = f"Generate {count} unique, optimized search queries to find facts for the user's question."
     if state["loop_count"] > 0:
-        system_prompt += " Previous attempts found insufficient info. Refine queries to be more specific."
+        system_prompt += " Previous attempts found insufficient info. Refine queries to be more specific and cover missing angles."
 
     messages = [SystemMessage(content=system_prompt), HumanMessage(content=query)]
-    response = await llm.ainvoke(messages)
+    response = await llm.ainvoke(messages, config={**config, "tags": ["reasoning"]})
     queries = [q.strip("- ") for q in response.content.split("\n") if q.strip()][:count]
 
     # Ensure fall-back to original query
@@ -121,8 +128,8 @@ async def blend_results(state: GraphState) -> Dict[str, Any]:
 
     # Format and truncate based on mode if necessary
     sorted_texts = list(unique_texts.keys())
-    # Blending mode preserves more context for synthesis
-    limit = 15 if state["settings"].execution_mode == ExecutionMode.BLENDING else 8
+    # Deep mode preserves more context for comprehensive answers
+    limit = 20 if state["settings"].execution_mode == ExecutionMode.DEEP else 10
 
     blended = "\n\n".join(sorted_texts[:limit])
     return {
@@ -134,7 +141,7 @@ async def blend_results(state: GraphState) -> Dict[str, Any]:
     }
 
 
-async def reflect_and_decide(state: GraphState) -> Dict[str, Any]:
+async def reflect_and_decide(state: GraphState, config: RunnableConfig) -> Dict[str, Any]:
     """Graph-level reflection to decide if looping is required."""
     mode = state["settings"].execution_mode
     if mode == ExecutionMode.FAST or state["loop_count"] >= state["settings"].max_loops:
@@ -156,7 +163,7 @@ async def reflect_and_decide(state: GraphState) -> Dict[str, Any]:
             content=f"Question: {state['query']}\n\nContext:\n{context_preview}"
         ),
     ]
-    response = await llm.ainvoke(messages)
+    response = await llm.ainvoke(messages, config={**config, "tags": ["reasoning"]})
     sufficient = "yes" in response.content.lower()
 
     metadata = state.get("execution_metadata", {})
@@ -182,15 +189,30 @@ async def assemble_context(state: GraphState) -> Dict[str, Any]:
     }
 
 
-async def generate_answer(state: GraphState) -> Dict[str, Any]:
+async def generate_answer(state: GraphState, config: RunnableConfig) -> Dict[str, Any]:
     """Produce draft answers using the configured LLM."""
     llm = await LangChainFactory.get_llm(state["workspace_id"])
+    mode = state["settings"].execution_mode
 
-    # System prompt logic remains in code as 'Thinking' behavior
-    system_prompt = (
-        "Use the provided context to answer the user's question accurately. "
-        "Cite relevant documents if possible. If unsure, state it clearly."
-    )
+    # System prompt logic based on mode
+    if mode == ExecutionMode.DEEP:
+        system_prompt = (
+            "You are a world-class research analyst. Use the provided context to write a comprehensive, detailed, "
+            "and structured report-style answer. Cover all aspects of the user's inquiry. Use headings, bullet points, "
+            "and clear language. Cite relevant documents strictly using [Source Name/ID] format. "
+            "If the context is insufficient for a full report, acknowledge what is missing but provide the best possible detail."
+        )
+    elif mode == ExecutionMode.THINK:
+        system_prompt = (
+            "You are a precise assistant focused on sound reasoning. Use the provided context to answer the question. "
+            "Explain your reasoning steps briefly before providing the final, well-structured answer. Cite your sources."
+        )
+    else:
+        system_prompt = (
+            "Use the provided context to answer the user's question accurately. "
+            "Cite relevant documents if possible. If unsure, state it clearly."
+        )
+
     messages = [
         SystemMessage(content=system_prompt),
         HumanMessage(
@@ -198,23 +220,17 @@ async def generate_answer(state: GraphState) -> Dict[str, Any]:
         ),
     ]
 
-    # Blending mode generates multiple independent candidates for synthesis
-    num_to_generate = (
-        2 if state["settings"].execution_mode == ExecutionMode.BLENDING else 1
-    )
-    drafts = []
-    for _ in range(num_to_generate):
-        response = await llm.ainvoke(messages)
-        drafts.append(response.content)
+    response = await llm.ainvoke(messages, config={**config, "tags": ["final_answer"]})
+    drafts = [response.content]
 
     metadata = state.get("execution_metadata", {})
-    metadata["generation_calls"] += num_to_generate
+    metadata["generation_calls"] += 1
     metadata["nodes_visited"].append("generation")
 
     return {"draft_answers": drafts, "execution_metadata": metadata}
 
 
-async def synthesize_answer(state: GraphState) -> Dict[str, Any]:
+async def synthesize_answer(state: GraphState, config: RunnableConfig) -> Dict[str, Any]:
     """Synthesize final response from multiple drafts in Blending mode."""
     drafts = state["draft_answers"]
     if not drafts:
@@ -227,7 +243,8 @@ async def synthesize_answer(state: GraphState) -> Dict[str, Any]:
     draft_str = "\n\n".join([f"Draft {i + 1}:\n{d}" for i, d in enumerate(drafts)])
 
     response = await llm.ainvoke(
-        [SystemMessage(content=system_prompt), HumanMessage(content=draft_str)]
+        [SystemMessage(content=system_prompt), HumanMessage(content=draft_str)],
+        config={**config, "tags": ["final_answer"]}
     )
 
     return {

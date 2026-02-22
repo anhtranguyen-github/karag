@@ -32,8 +32,13 @@ def build_rag_graph():
     # 2. Define Edges & Routing Logic
     workflow.set_entry_point("init")
 
-    # Flow: Init -> Analyze (Context dependent)
-    workflow.add_edge("init", "analyze")
+    # Flow: Init -> Analyze (Context dependent) or Retrieve (FAST mode)
+    def init_router(state: GraphState):
+        if state["settings"].execution_mode == ExecutionMode.FAST:
+            return "retrieve"
+        return "analyze"
+
+    workflow.add_conditional_edges("init", init_router, {"retrieve": "retrieve", "analyze": "analyze"})
 
     # Flow: Analyze -> Build Query
     workflow.add_edge("analyze", "build_query")
@@ -47,7 +52,8 @@ def build_rag_graph():
     # Conditional Branch: Reflection
     def should_reflect(state: GraphState):
         if state["settings"].execution_mode in [
-            ExecutionMode.THINKING,
+            ExecutionMode.AUTO,
+            ExecutionMode.THINK,
             ExecutionMode.DEEP,
         ]:
             return "reflect"
@@ -70,14 +76,12 @@ def build_rag_graph():
     # Flow: Assemble -> Generate
     workflow.add_edge("assemble", "generate")
 
-    # Conditional Branch: Synthesis
+    # Conditional Branch: Synthesis (Kept as fallback to END for now)
     def should_synthesize(state: GraphState):
-        if state["settings"].execution_mode == ExecutionMode.BLENDING:
-            return "synthesize"
         return END
 
     workflow.add_conditional_edges(
-        "generate", should_synthesize, {"synthesize": "synthesize", END: END}
+        "generate", should_synthesize, {END: END}
     )
 
     workflow.add_edge("synthesize", END)
