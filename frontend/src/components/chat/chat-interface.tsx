@@ -27,7 +27,14 @@ export function ChatInterface({
     const [workspaceId, setWorkspaceId] = useState<string | undefined>(propWorkspaceId);
 
     useEffect(() => {
-        return () => { };
+        const handleForceNew = () => {
+            setThreadId(undefined);
+            setMessages([]);
+            setIsLoading(false);
+            lastFetchedThreadId.current = null;
+        };
+        window.addEventListener("force-new-chat", handleForceNew);
+        return () => window.removeEventListener("force-new-chat", handleForceNew);
     }, []);
 
     // If no prop threadID, we might be in a "new chat" state or need to redirect
@@ -36,7 +43,7 @@ export function ChatInterface({
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [executionMode, setExecutionMode] = useState<"fast" | "thinking" | "deep" | "blending">("fast");
+    const [executionMode, setExecutionMode] = useState<"auto" | "fast" | "think" | "deep">("auto");
     const [selectedCitation, setSelectedCitation] = useState<NonNullable<Message["sources"]>[number] | null>(null);
     const [isCitationModalOpen, setIsCitationModalOpen] = useState(false);
 
@@ -145,7 +152,9 @@ export function ChatInterface({
                     workspace_id: wid,
                     execution: {
                         mode: mode,
-                        [mode]: { max_loops: mode === "deep" ? 5 : 3 },
+                        [mode]: {
+                            max_loops: mode === "deep" ? 10 : (mode === "think" ? 5 : (mode === "auto" ? 3 : 1))
+                        },
                         tracing: { tracing_enabled: true }
                     }
                 }),
@@ -210,20 +219,13 @@ export function ChatInterface({
         if (!tid || tid === "new") {
             tid = crypto.randomUUID();
             lastFetchedThreadId.current = tid;
-
-            // Persist state for redirect recovery
-            sessionStorage.setItem(`chat_persist_${tid}`, JSON.stringify({
-                messages: [...newMessages, { id: `asst-${Date.now()}`, role: "assistant", content: "", reasoning_steps: [] }],
-                isLoading: true,
-                workspaceId: currentWorkspaceId,
-                mode: executionMode
-            }));
-
-            // Redirect to the new URL - the useEffect will NOT trigger a reload because lastFetchedThreadId matches
-            router.push(`/chats/${tid}?workspaceId=${currentWorkspaceId}`);
             setThreadId(tid);
-            // We don't call startStreaming here because the redirect will cause a re-mount 
-            // and the 'loadThread' effect will pick it up and call resumeStreaming.
+
+            // Use history.pushState to update URL without triggering Next.js route reload
+            window.history.pushState(null, '', `/chats/${tid}?workspaceId=${currentWorkspaceId}`);
+
+            // Start streaming immediately!
+            await startStreaming(messageText, tid, currentWorkspaceId, executionMode);
             return;
         }
 
@@ -276,13 +278,13 @@ export function ChatInterface({
             {/* Input Area */}
             <div className="p-6 shrink-0 space-y-4 bg-background/80 backdrop-blur-xl border-t border-border">
                 <div className="max-w-4xl mx-auto flex items-center justify-center space-x-2">
-                    {["fast", "thinking", "deep", "blending"].map((mode) => (
+                    {["auto", "fast", "think", "deep"].map((mode) => (
                         <button
                             key={mode}
                             type="button"
-                            onClick={() => setExecutionMode(mode as typeof executionMode)}
+                            onClick={() => setExecutionMode(mode as any)}
                             className={cn(
-                                "px-3 py-1 text-[10px] font-bold rounded-full transition-all duration-200 border",
+                                "px-3 py-1 text-[10px] font-bold rounded-full transition-all duration-200 border capitalize",
                                 executionMode === mode
                                     ? "bg-indigo-500/10 border-indigo-500/40 text-indigo-500 shadow-lg shadow-indigo-500/5"
                                     : "bg-secondary border-border text-muted-foreground hover:bg-muted hover:border-muted-foreground/20"

@@ -65,6 +65,13 @@ export default function GlobalChatPage() {
     }, [threadId, searchParams]); // Dependency on searchParams for URL sync
 
     const handleSelectThread = (id: string) => {
+        // Since we use history.pushState for new chats to prevent blinking,
+        // Next.js might think we are still on /chats/new.
+        // We dispatch an event to force clear the ChatInterface state.
+        if (id.startsWith("new")) {
+            window.dispatchEvent(new Event("force-new-chat"));
+        }
+
         // Only append workspaceId if it's not already in the thread ID (which might be "new?workspaceId=...")
         if (workspaceId && !id.includes("workspaceId=")) {
             router.push(`/chats/${id}?workspaceId=${workspaceId}`);

@@ -116,6 +116,14 @@ export function ChatMessage({ message, isLoading, onCitationClick }: ChatMessage
                                                         <span className="text-tiny font-medium text-muted-foreground leading-relaxed group-hover/step:text-foreground transition-colors">{step}</span>
                                                     </div>
                                                 ))}
+                                                {isLoading && !message.content && (
+                                                    <div className="flex gap-4 items-start group/step animate-pulse">
+                                                        <div className="mt-1.5 shrink-0 flex flex-col items-center">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 transition-colors" />
+                                                        </div>
+                                                        <span className="text-tiny font-medium text-indigo-500 leading-relaxed">Processing...</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </motion.div>
                                     )}
@@ -125,20 +133,23 @@ export function ChatMessage({ message, isLoading, onCitationClick }: ChatMessage
                     </div>
                 )}
 
-                <div className={cn(
-                    "p-4 rounded-xl leading-relaxed text-sm shadow-2xl transition-all relative overflow-hidden group/text",
-                    message.role === 'user'
-                        ? "bg-indigo-500 border border-indigo-400/20 text-indigo-50 rounded-tr-none shadow-indigo-500/5 hover:bg-indigo-600"
-                        : "bg-card border border-border text-foreground rounded-tl-none shadow-black/60"
-                )}>
-                    <div className="relative z-10 whitespace-pre-wrap">
-                        {renderContent(message.content) || (isLoading ? "..." : "")}
-                    </div>
+                {/* Main Content Bubble - Only show if there's actual content or if there are NO reasoning steps yet but it's loading */}
+                {(message.content || (isLoading && (!message.reasoning_steps || message.reasoning_steps.length === 0))) && (
+                    <div className={cn(
+                        "p-4 rounded-xl leading-relaxed text-sm shadow-2xl transition-all relative overflow-hidden group/text",
+                        message.role === 'user'
+                            ? "bg-indigo-500 border border-indigo-400/20 text-indigo-50 rounded-tr-none shadow-indigo-500/5 hover:bg-indigo-600"
+                            : "bg-card border border-border text-foreground rounded-tl-none shadow-black/60"
+                    )}>
+                        <div className="relative z-10 whitespace-pre-wrap">
+                            {renderContent(message.content) || (isLoading ? "..." : "")}
+                        </div>
 
-                    {message.role === 'assistant' && (
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-600/5 blur-[80px] -mr-16 -mt-16 pointer-events-none" />
-                    )}
-                </div>
+                        {message.role === 'assistant' && (
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-600/5 blur-[80px] -mr-16 -mt-16 pointer-events-none" />
+                        )}
+                    </div>
+                )}
 
                 {message.role === 'assistant' && message.sources && message.sources.length > 0 && (
                     <div className="flex flex-wrap gap-2 px-1">
