@@ -110,8 +110,13 @@ export function ChunkingStrategySelector({ form }: StrategySettingsProps) {
 }
 
 export function ChunkingStrategyDetails({ form }: StrategySettingsProps) {
-    const { register, watch, setValue } = form;
-    const strategy = watch('chunking.strategy');
+    const { register, setValue, control } = form;
+    const strategy = useWatch({ control, name: 'chunking.strategy' });
+
+    // Define all watched fields at the top level to avoid hook violation
+    const tokenizerType = useWatch({ control, name: 'chunking.tokenizer_type' });
+    const splitBy = useWatch({ control, name: 'chunking.split_by' });
+    const fallbackStrategy = useWatch({ control, name: 'chunking.fallback_strategy' });
 
     const inputClass = "w-full h-11 bg-secondary/50 border border-border/60 rounded-xl px-4 text-xs font-bold focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/40 outline-none transition-all text-foreground placeholder:text-muted-foreground/30";
     const labelClass = "text-[10px] font-black text-muted-foreground/80 uppercase tracking-widest mb-2 block px-1";
@@ -123,7 +128,7 @@ export function ChunkingStrategyDetails({ form }: StrategySettingsProps) {
                     <div className="grid grid-cols-2 gap-x-6 gap-y-5">
                         <div className="space-y-2">
                             <label className={labelClass}>Max Chunk Size (Tokens/Chars)</label>
-                            <input type="number" {...register('chunking.max_chunk_size', { valueAsNumber: true })} className={inputClass} placeholder="800" />
+                            <input type="number" {...register('chunking.max_chunk_size', { valueAsNumber: true })} className={inputClass} placeholder="1000" />
                         </div>
                         <div className="space-y-2">
                             <label className={labelClass}>Min Chunk Size</label>
@@ -173,7 +178,19 @@ export function ChunkingStrategyDetails({ form }: StrategySettingsProps) {
                         </div>
                         <div className="space-y-2">
                             <label className={labelClass}>Natural Language</label>
-                            <input {...register('chunking.language')} className={inputClass} placeholder="en" />
+                            <Select
+                                onValueChange={(v) => setValue('chunking.language', v as any)}
+                                value={useWatch({ control, name: 'chunking.language' })}
+                            >
+                                <SelectTrigger className={inputClass}><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="en">English</SelectItem>
+                                    <SelectItem value="vi">Vietnamese</SelectItem>
+                                    <SelectItem value="fr">French</SelectItem>
+                                    <SelectItem value="de">German</SelectItem>
+                                    <SelectItem value="es">Spanish</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3 pt-2">
@@ -204,7 +221,7 @@ export function ChunkingStrategyDetails({ form }: StrategySettingsProps) {
                             <label className={labelClass}>Tokenizer Engine</label>
                             <Select
                                 onValueChange={(v) => setValue('chunking.tokenizer_type', v as any)}
-                                value={watch('chunking.tokenizer_type')}
+                                value={tokenizerType}
                             >
                                 <SelectTrigger className={inputClass}>
                                     <SelectValue />
@@ -299,7 +316,7 @@ export function ChunkingStrategyDetails({ form }: StrategySettingsProps) {
                             <label className={labelClass}>Split Hierarchy By</label>
                             <Select
                                 onValueChange={(v) => setValue('chunking.split_by', v as any)}
-                                value={watch('chunking.split_by')}
+                                value={splitBy}
                             >
                                 <SelectTrigger className={inputClass}>
                                     <SelectValue />
@@ -319,7 +336,7 @@ export function ChunkingStrategyDetails({ form }: StrategySettingsProps) {
                             <label className={labelClass}>Safety Fallback</label>
                             <Select
                                 onValueChange={(v) => setValue('chunking.fallback_strategy', v as any)}
-                                value={watch('chunking.fallback_strategy')}
+                                value={fallbackStrategy}
                             >
                                 <SelectTrigger className={inputClass}>
                                     <SelectValue />
