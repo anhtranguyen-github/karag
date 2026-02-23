@@ -29,6 +29,7 @@ export const LlamaGenerationSchema = BaseGenerationSchema.extend({
     model: z.enum(['llama-3-8b-instruct', 'llama-3-70b-instruct']).default('llama-3-8b-instruct'),
     top_k: z.number().int().min(1).max(100).default(40),
     repeat_penalty: z.number().min(0.0).max(2.0).default(1.1),
+    model_path: z.string().nullable().optional(),
     device: z.enum(['cpu', 'cuda', 'mps']).default('cpu'),
     quantization: z.enum(['fp16', 'int8', 'int4']).default('fp16'),
 });

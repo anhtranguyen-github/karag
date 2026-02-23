@@ -36,8 +36,9 @@ interface GenerationSettingsProps {
 }
 
 export function GenerationSettings({ form }: GenerationSettingsProps) {
+    const { control, setValue } = form;
     const provider = useWatch({
-        control: form.control,
+        control,
         name: 'generation.provider'
     });
 
@@ -70,21 +71,21 @@ export function GenerationSettings({ form }: GenerationSettingsProps) {
                                 key={p.id}
                                 type="button"
                                 onClick={() => {
-                                    form.setValue('generation.provider', p.id as any);
-                                    form.setValue('generation.model', p.models[0] as any);
-                                    form.setValue('generation.temperature', 0.7);
-                                    form.setValue('generation.max_output_tokens', 2048);
-                                    form.setValue('generation.streaming', true);
+                                    setValue('generation.provider', p.id as any);
+                                    setValue('generation.model', p.models[0] as any);
+                                    setValue('generation.temperature', 0.7);
+                                    setValue('generation.max_output_tokens', 2048);
+                                    setValue('generation.streaming', true);
 
                                     if (p.id === 'azure') {
-                                        form.setValue('generation.deployment_name' as any, 'default');
-                                        form.setValue('generation.api_version' as any, '2024-02-15-preview');
+                                        setValue('generation.deployment_name' as any, 'default');
+                                        setValue('generation.api_version' as any, '2024-02-15-preview');
                                     } else if (p.id === 'llama' || p.id === 'cdp2') {
-                                        form.setValue('generation.repeat_penalty' as any, 1.1);
-                                        form.setValue('generation.top_k' as any, 40);
+                                        setValue('generation.repeat_penalty' as any, 1.1);
+                                        setValue('generation.top_k' as any, 40);
                                     } else if (p.id === 'vlm') {
-                                        form.setValue('generation.input_modalities' as any, 'both');
-                                        form.setValue('generation.image_max_resolution' as any, 1024);
+                                        setValue('generation.input_modalities' as any, 'both');
+                                        setValue('generation.image_max_resolution' as any, 1024);
                                     }
                                 }}
                                 className={cn(

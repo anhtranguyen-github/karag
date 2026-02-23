@@ -7,7 +7,7 @@ import { MODEL_DIMENSIONS, EmbeddingConfig } from '@/lib/schemas/embedding';
 import { cn } from '@/lib/utils';
 import {
     Cloud, Server, Cpu, Brain, Database,
-    Info, ShieldCheck, ChevronDown
+    Info, ShieldCheck, ChevronDown, Settings2
 } from 'lucide-react';
 import {
     Select,
@@ -109,9 +109,9 @@ const PROVIDER_MODELS: Record<string, string[]> = {
 };
 
 export function EmbeddingModelSelector({ form }: EmbeddingSettingsProps) {
-    const { watch, setValue } = form;
-    const provider = watch('embedding.provider');
-    const currentModel = watch('embedding.model');
+    const { setValue, control } = form;
+    const provider = useWatch({ control, name: 'embedding.provider' });
+    const currentModel = useWatch({ control, name: 'embedding.model' });
     const models = React.useMemo(() => PROVIDER_MODELS[provider] || [], [provider]);
 
     const inputClass = "w-full bg-secondary border border-border rounded-xl px-3 py-2 text-caption focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-foreground";
@@ -152,227 +152,285 @@ export function EmbeddingModelSelector({ form }: EmbeddingSettingsProps) {
 }
 
 export function EmbeddingConfigDetails({ form }: EmbeddingSettingsProps) {
-    const { register, watch, setValue } = form;
-    const provider = watch('embedding.provider');
+    const { register, setValue, control } = form;
+    const provider = useWatch({ control, name: 'embedding.provider' });
+
+    // Core functional fields
+    const inputType = useWatch({ control, name: 'embedding.input_type' });
+    const truncate = useWatch({ control, name: 'embedding.truncate' });
+    const inputModalities = useWatch({ control, name: 'embedding.input_modalities' });
+
+    // System / Hardware fields
+    const device = useWatch({ control, name: 'embedding.device' });
+    const quantization = useWatch({ control, name: 'embedding.quantization' });
 
     const inputClass = "w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-caption focus:ring-1 focus:ring-blue-500 outline-none transition-all";
     const labelClass = "text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 block";
+    const sectionClass = "p-4 rounded-xl border border-white/5 bg-white/5 space-y-4";
 
-    switch (provider) {
-        case 'openai':
-            return (
-                <div className="space-y-4">
+    const renderFunctionalConfig = () => {
+        switch (provider) {
+            case 'openai':
+            case 'azure':
+                return (
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label className={labelClass}>Batch Size</label>
+                            <input type="number" {...register('embedding.batch_size', { valueAsNumber: true })} className={inputClass} />
+                        </div>
+                    </div>
+                );
+            case 'cohere':
+                return (
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1 text-xs">
+                            <label className={labelClass}>Input Type</label>
+                            <Select
+                                onValueChange={(v) => setValue('embedding.input_type', v as any)}
+                                value={inputType}
+                            >
+                                <SelectTrigger className={inputClass}>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="search_query">Search Query</SelectItem>
+                                    <SelectItem value="search_document">Search Document</SelectItem>
+                                    <SelectItem value="classification">Classification</SelectItem>
+                                    <SelectItem value="clustering">Clustering</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-1">
+                            <label className={labelClass}>Truncate</label>
+                            <Select
+                                onValueChange={(v) => setValue('embedding.truncate', v as any)}
+                                value={truncate}
+                            >
+                                <SelectTrigger className={inputClass}>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="NONE">None</SelectItem>
+                                    <SelectItem value="START">Start</SelectItem>
+                                    <SelectItem value="END">End</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-1">
+                            <label className={labelClass}>Batch Size</label>
+                            <input type="number" {...register('embedding.batch_size', { valueAsNumber: true })} className={inputClass} />
+                        </div>
+                    </div>
+                );
+            case 'huggingface':
+                return (
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
                             <label className={labelClass}>Batch Size</label>
                             <input type="number" {...register('embedding.batch_size', { valueAsNumber: true })} className={inputClass} />
                         </div>
                         <div className="space-y-1">
-                            <label className={labelClass}>Timeout (ms)</label>
-                            <input type="number" {...register('embedding.timeout_ms', { valueAsNumber: true })} className={inputClass} />
+                            <label className={labelClass}>Max Seq Length</label>
+                            <input type="number" {...register('embedding.max_sequence_length', { valueAsNumber: true })} className={inputClass} />
+                        </div>
+                        <div className="flex items-center gap-2 pt-4">
+                            <input type="checkbox" {...register('embedding.normalize_embeddings')} id="norm_emb" className="w-4 h-4 rounded border-border bg-secondary" />
+                            <label htmlFor="norm_emb" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest cursor-pointer">Normalize</label>
+                        </div>
+                    </div>
+                );
+            case 'llama':
+                return (
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label className={labelClass}>Batch Size</label>
+                            <input type="number" {...register('embedding.batch_size', { valueAsNumber: true })} className={inputClass} />
+                        </div>
+                    </div>
+                );
+            case 'cdp2':
+                return (
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1 lg:col-span-2">
+                            <label className={labelClass}>Batch Size</label>
+                            <input type="number" {...register('embedding.batch_size', { valueAsNumber: true })} className={inputClass} />
+                        </div>
+                        <div className="flex items-center gap-2 pt-4">
+                            <input type="checkbox" {...register('embedding.enable_finetune')} id="tune" className="w-4 h-4 rounded border-border bg-secondary" />
+                            <label htmlFor="tune" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest cursor-pointer">Enable Finetune</label>
+                        </div>
+                        <div className="flex items-center gap-2 pt-4">
+                            <input type="checkbox" {...register('embedding.embedding_cache')} id="cache" className="w-4 h-4 rounded border-border bg-secondary" />
+                            <label htmlFor="cache" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest cursor-pointer">Embedding Cache</label>
+                        </div>
+                    </div>
+                );
+            case 'vlm':
+                return (
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label className={labelClass}>Input Modalities</label>
+                            <Select
+                                onValueChange={(v) => setValue('embedding.input_modalities', v as any)}
+                                value={inputModalities}
+                            >
+                                <SelectTrigger className={inputClass}>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="text">Text Only</SelectItem>
+                                    <SelectItem value="image">Image Only</SelectItem>
+                                    <SelectItem value="both">Both</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div className="space-y-1">
-                            <label className={labelClass}>Retry Limit</label>
-                            <input type="number" {...register('embedding.retry_limit', { valueAsNumber: true })} className={inputClass} />
+                            <label className={labelClass}>Batch Size</label>
+                            <input type="number" {...register('embedding.batch_size', { valueAsNumber: true })} className={inputClass} />
                         </div>
+                        <div className="flex items-center gap-2 pt-4">
+                            <input type="checkbox" {...register('embedding.normalize_embeddings')} id="norm_vlm" className="w-4 h-4 rounded border-border bg-secondary" />
+                            <label htmlFor="norm_vlm" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest cursor-pointer">Normalize</label>
+                        </div>
+                    </div>
+                );
+            default:
+                return (
+                    <div className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/10 flex items-start gap-4">
+                        <Info size={14} className="text-indigo-500 shrink-0 mt-0.5" />
+                        <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                            Standard parameters will be applied for {provider}.
+                        </p>
+                    </div>
+                );
+        }
+    };
+
+    return (
+        <div className="space-y-8">
+            {/* Functional Section */}
+            <div>{renderFunctionalConfig()}</div>
+
+            {/* Hardware & API Config Section */}
+            <div className={cn(sectionClass, "bg-indigo-500/5")}>
+                <div className="flex items-center gap-2 mb-2">
+                    <Settings2 size={16} className="text-indigo-500" />
+                    <h3 className="text-sm font-bold text-foreground">Hardware & API Config</h3>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    {/* Common fields moved to system config */}
+                    {(provider === 'openai' || provider === 'azure') && (
+                        <>
+                            <div className="space-y-1">
+                                <label className={labelClass}>Timeout (ms)</label>
+                                <input type="number" {...register('embedding.timeout_ms', { valueAsNumber: true })} className={inputClass} />
+                            </div>
+                            <div className="space-y-1">
+                                <label className={labelClass}>Retry Limit</label>
+                                <input type="number" {...register('embedding.retry_limit', { valueAsNumber: true })} className={inputClass} />
+                            </div>
+                            {provider === 'openai' && (
+                                <div className="space-y-1 lg:col-span-2">
+                                    <label className={labelClass}>API Key Ref</label>
+                                    <input {...register('embedding.api_key_ref')} className={inputClass} placeholder="e.g. OPENAI_API_KEY" />
+                                </div>
+                            )}
+                            {provider === 'azure' && (
+                                <>
+                                    <div className="space-y-1 lg:col-span-2">
+                                        <label className={labelClass}>Deployment Name</label>
+                                        <input {...register('embedding.deployment_name')} className={inputClass} placeholder="e.g., text-emb-small-001" />
+                                    </div>
+                                    <div className="space-y-1 lg:col-span-2">
+                                        <label className={labelClass}>API Version</label>
+                                        <input {...register('embedding.api_version')} className={inputClass} />
+                                    </div>
+                                </>
+                            )}
+                        </>
+                    )}
+
+                    {provider === 'huggingface' && (
                         <div className="space-y-1">
-                            <label className={labelClass}>API Key Ref</label>
-                            <input {...register('embedding.api_key_ref')} className={inputClass} placeholder="e.g. OPENAI_API_KEY" />
+                            <label className={labelClass}>Compute Device</label>
+                            <Select
+                                onValueChange={(v) => setValue('embedding.device', v as any)}
+                                value={device}
+                            >
+                                <SelectTrigger className={inputClass}>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="cpu">CPU</SelectItem>
+                                    <SelectItem value="cuda">CUDA</SelectItem>
+                                    <SelectItem value="mps">MPS</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
-                    </div>
+                    )}
+
+                    {provider === 'llama' && (
+                        <>
+                            <div className="space-y-1 lg:col-span-2">
+                                <label className={labelClass}>Model Config (Path & Q)</label>
+                                <div className="flex gap-2">
+                                    <input {...register('embedding.model_path')} className={cn(inputClass, "flex-1")} placeholder="/path/to/model.gguf" />
+                                    <div className="w-1/3">
+                                        <Select
+                                            onValueChange={(v) => setValue('embedding.quantization', v as any)}
+                                            value={quantization}
+                                        >
+                                            <SelectTrigger className={inputClass}>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="fp16">Q_fp16</SelectItem>
+                                                <SelectItem value="int8">Q_int8</SelectItem>
+                                                <SelectItem value="int4">Q_int4</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="space-y-1">
+                                <label className={labelClass}>Compute Device</label>
+                                <Select
+                                    onValueChange={(v) => setValue('embedding.device', v as any)}
+                                    value={device}
+                                >
+                                    <SelectTrigger className={inputClass}>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="cpu">CPU</SelectItem>
+                                        <SelectItem value="cuda">CUDA</SelectItem>
+                                        <SelectItem value="mps">MPS</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-1">
+                                <label className={labelClass}>Device Map</label>
+                                <input {...register('embedding.device_map')} className={inputClass} placeholder="auto" />
+                            </div>
+                        </>
+                    )}
+
+                    {provider === 'cdp2' && (
+                        <div className="space-y-1 lg:col-span-2">
+                            <label className={labelClass}>Checkpoint Path</label>
+                            <input {...register('embedding.checkpoint_path')} className={inputClass} />
+                        </div>
+                    )}
+
+                    {provider === 'vlm' && (
+                        <div className="space-y-1">
+                            <label className={labelClass}>Image Res</label>
+                            <input type="number" {...register('embedding.image_resolution', { valueAsNumber: true })} className={inputClass} />
+                        </div>
+                    )}
                 </div>
-            );
-        case 'azure':
-            return (
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1 lg:col-span-2">
-                        <label className={labelClass}>Deployment Name</label>
-                        <input {...register('embedding.deployment_name')} className={inputClass} placeholder="e.g., text-emb-small-001" />
-                    </div>
-                    <div className="space-y-1">
-                        <label className={labelClass}>API Version</label>
-                        <input {...register('embedding.api_version')} className={inputClass} />
-                    </div>
-                    <div className="space-y-1">
-                        <label className={labelClass}>Batch Size</label>
-                        <input type="number" {...register('embedding.batch_size', { valueAsNumber: true })} className={inputClass} />
-                    </div>
-                    <div className="space-y-1 lg:col-span-2">
-                        <label className={labelClass}>Timeout (ms)</label>
-                        <input type="number" {...register('embedding.timeout_ms', { valueAsNumber: true })} className={inputClass} />
-                    </div>
-                </div>
-            );
-        case 'cohere':
-            return (
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1 text-xs">
-                        <label className={labelClass}>Input Type</label>
-                        <Select
-                            onValueChange={(v) => setValue('embedding.input_type', v as any)}
-                            value={watch('embedding.input_type')}
-                        >
-                            <SelectTrigger className={inputClass}>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="search_query">Search Query</SelectItem>
-                                <SelectItem value="search_document">Search Document</SelectItem>
-                                <SelectItem value="classification">Classification</SelectItem>
-                                <SelectItem value="clustering">Clustering</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-1">
-                        <label className={labelClass}>Truncate</label>
-                        <Select
-                            onValueChange={(v) => setValue('embedding.truncate', v as any)}
-                            value={watch('embedding.truncate')}
-                        >
-                            <SelectTrigger className={inputClass}>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="NONE">None</SelectItem>
-                                <SelectItem value="START">Start</SelectItem>
-                                <SelectItem value="END">End</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-1">
-                        <label className={labelClass}>Batch Size</label>
-                        <input type="number" {...register('embedding.batch_size', { valueAsNumber: true })} className={inputClass} />
-                    </div>
-                </div>
-            );
-        case 'huggingface':
-            return (
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                        <label className={labelClass}>Device</label>
-                        <Select
-                            onValueChange={(v) => setValue('embedding.device', v as any)}
-                            value={watch('embedding.device')}
-                        >
-                            <SelectTrigger className={inputClass}>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="cpu">CPU</SelectItem>
-                                <SelectItem value="cuda">CUDA</SelectItem>
-                                <SelectItem value="mps">MPS</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-1">
-                        <label className={labelClass}>Batch Size</label>
-                        <input type="number" {...register('embedding.batch_size', { valueAsNumber: true })} className={inputClass} />
-                    </div>
-                    <div className="space-y-1">
-                        <label className={labelClass}>Max Seq Length</label>
-                        <input type="number" {...register('embedding.max_sequence_length', { valueAsNumber: true })} className={inputClass} />
-                    </div>
-                    <div className="flex items-center gap-2 pt-4">
-                        <input type="checkbox" {...register('embedding.normalize_embeddings')} id="norm_emb" className="w-4 h-4 rounded border-border bg-secondary" />
-                        <label htmlFor="norm_emb" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest cursor-pointer">Normalize</label>
-                    </div>
-                </div>
-            );
-        case 'llama':
-            return (
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1 lg:col-span-2">
-                        <label className={labelClass}>Model Path</label>
-                        <input {...register('embedding.model_path')} className={inputClass} placeholder="/path/to/model.gguf" />
-                    </div>
-                    <div className="space-y-1">
-                        <label className={labelClass}>Quantization</label>
-                        <Select
-                            onValueChange={(v) => setValue('embedding.quantization', v as any)}
-                            value={watch('embedding.quantization')}
-                        >
-                            <SelectTrigger className={inputClass}>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="fp16">Full (fp16)</SelectItem>
-                                <SelectItem value="int8">Int8</SelectItem>
-                                <SelectItem value="int4">Int4</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-1">
-                        <label className={labelClass}>Device Map</label>
-                        <input {...register('embedding.device_map')} className={inputClass} placeholder="auto" />
-                    </div>
-                    <div className="space-y-1">
-                        <label className={labelClass}>Batch Size</label>
-                        <input type="number" {...register('embedding.batch_size', { valueAsNumber: true })} className={inputClass} />
-                    </div>
-                </div>
-            );
-        case 'cdp2':
-            return (
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1 lg:col-span-2">
-                        <label className={labelClass}>Checkpoint Path</label>
-                        <input {...register('embedding.checkpoint_path')} className={inputClass} />
-                    </div>
-                    <div className="space-y-1 lg:col-span-2">
-                        <label className={labelClass}>Batch Size</label>
-                        <input type="number" {...register('embedding.batch_size', { valueAsNumber: true })} className={inputClass} />
-                    </div>
-                    <div className="flex items-center gap-2 pt-4">
-                        <input type="checkbox" {...register('embedding.enable_finetune')} id="tune" className="w-4 h-4 rounded border-border bg-secondary" />
-                        <label htmlFor="tune" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest cursor-pointer">Enable Finetune</label>
-                    </div>
-                    <div className="flex items-center gap-2 pt-4">
-                        <input type="checkbox" {...register('embedding.embedding_cache')} id="cache" className="w-4 h-4 rounded border-border bg-secondary" />
-                        <label htmlFor="cache" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest cursor-pointer">Embedding Cache</label>
-                    </div>
-                </div>
-            );
-        case 'vlm':
-            return (
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                        <label className={labelClass}>Input Modalities</label>
-                        <Select
-                            onValueChange={(v) => setValue('embedding.input_modalities', v as any)}
-                            value={watch('embedding.input_modalities')}
-                        >
-                            <SelectTrigger className={inputClass}>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="text">Text Only</SelectItem>
-                                <SelectItem value="image">Image Only</SelectItem>
-                                <SelectItem value="both">Both</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-1">
-                        <label className={labelClass}>Image Res</label>
-                        <input type="number" {...register('embedding.image_resolution', { valueAsNumber: true })} className={inputClass} />
-                    </div>
-                    <div className="space-y-1">
-                        <label className={labelClass}>Batch Size</label>
-                        <input type="number" {...register('embedding.batch_size', { valueAsNumber: true })} className={inputClass} />
-                    </div>
-                    <div className="flex items-center gap-2 pt-4">
-                        <input type="checkbox" {...register('embedding.normalize_embeddings')} id="norm_vlm" className="w-4 h-4 rounded border-border bg-secondary" />
-                        <label htmlFor="norm_vlm" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest cursor-pointer">Normalize</label>
-                    </div>
-                </div>
-            );
-        default:
-            return (
-                <div className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/10 flex items-start gap-4">
-                    <Info size={14} className="text-indigo-500 shrink-0 mt-0.5" />
-                    <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
-                        Default settings applied for {provider}. Standard batch processing and timeouts enabled.
-                    </p>
-                </div>
-            );
-    }
+            </div>
+        </div>
+    );
 }
