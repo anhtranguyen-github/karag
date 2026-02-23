@@ -29,6 +29,7 @@ vi.mock('@/lib/api-client', () => ({
 }));
 
 import HomePage from '@/app/page';
+import { ErrorProvider } from '@/context/error-context';
 
 describe('Workspace Navigation Integration', () => {
     const mockWorkspaces = [
@@ -45,7 +46,11 @@ describe('Workspace Navigation Integration', () => {
     });
 
     it('navigates to workspace when card clicked', async () => {
-        render(<HomePage />);
+        render(
+            <ErrorProvider>
+                <HomePage />
+            </ErrorProvider>
+        );
 
         const card = await screen.findByText(/Default Workspace/i);
         fireEvent.click(card);
@@ -59,7 +64,11 @@ describe('Workspace Navigation Integration', () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (api.createWorkspaceWorkspacesPost as any).mockResolvedValue({ data: { id: 'new-ws', name: 'New Workspace' } });
 
-        render(<HomePage />);
+        render(
+            <ErrorProvider>
+                <HomePage />
+            </ErrorProvider>
+        );
 
         // Open modal
         const createButton = screen.getByRole('button', { name: /New Workspace/i });
@@ -71,7 +80,7 @@ describe('Workspace Navigation Integration', () => {
 
         // Jump to last step via sidebar
         const nav = await screen.findByRole('navigation');
-        const genStepText = await within(nav).findByText(/Generation AI/i);
+        const genStepText = await within(nav).findByText(/AI Model/i);
         fireEvent.click(genStepText.closest('button')!);
 
         // Submit - use findByText to wait for it to appear
@@ -93,7 +102,11 @@ describe('Workspace Navigation Integration', () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (api.createWorkspaceWorkspacesPost as any).mockResolvedValue({ data: { id: 'new-ws' } });
 
-        render(<HomePage />);
+        render(
+            <ErrorProvider>
+                <HomePage />
+            </ErrorProvider>
+        );
 
         fireEvent.click(screen.getByRole('button', { name: /New Workspace/i }));
 
@@ -103,7 +116,7 @@ describe('Workspace Navigation Integration', () => {
 
         // Jump to last step via sidebar
         const nav = await screen.findByRole('navigation');
-        const genStepText = await within(nav).findByText(/Generation AI/i);
+        const genStepText = await within(nav).findByText(/AI Model/i);
         fireEvent.click(genStepText.closest('button')!);
 
         const submitButton = await screen.findByText(/Launch Workspace/i);

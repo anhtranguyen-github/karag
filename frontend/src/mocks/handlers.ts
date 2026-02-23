@@ -6,6 +6,8 @@ export const handlers = [
     http.get(`${API_BASE_URL}/workspaces`, () => {
         return HttpResponse.json({
             success: true,
+            code: "SUCCESS",
+            message: "Workspaces loaded",
             data: [
                 {
                     id: 'vault',
@@ -33,6 +35,8 @@ export const handlers = [
     http.get(`${API_BASE_URL}/tasks`, () => {
         return HttpResponse.json({
             success: true,
+            code: "SUCCESS",
+            message: "Tasks loaded",
             data: []
         });
     }),
@@ -41,6 +45,8 @@ export const handlers = [
     http.get(`${API_BASE_URL}/chat/threads/:id`, ({ params }) => {
         return HttpResponse.json({
             success: true,
+            code: "SUCCESS",
+            message: "Thread loaded",
             data: {
                 id: params.id,
                 workspace_id: 'vault',
@@ -73,11 +79,15 @@ export const handlers = [
         if (query === 'nonexistent') {
             return HttpResponse.json({
                 success: true,
+                code: "SUCCESS",
+                message: "No results",
                 data: []
             });
         }
         return HttpResponse.json({
             success: true,
+            code: "SUCCESS",
+            message: "Search success",
             data: [
                 {
                     id: 'res-1',
@@ -93,10 +103,25 @@ export const handlers = [
     http.get(`${API_BASE_URL}/chat/history/:threadId`, ({ params }) => {
         return HttpResponse.json({
             success: true,
+            code: "SUCCESS",
+            message: "History loaded",
             data: [
                 { id: '1', role: 'user', content: 'Hello from Mock' },
                 { id: '2', role: 'assistant', content: `Mock response for thread ${params.threadId}` }
             ]
+        });
+    }),
+
+    // Settings Handler
+    http.get(`${API_BASE_URL}/settings`, () => {
+        return HttpResponse.json({
+            success: true,
+            code: "SUCCESS",
+            message: "Settings loaded",
+            data: {
+                llm_providers: ["openai", "ollama"],
+                embedding_providers: ["openai", "ollama"]
+            }
         });
     })
 ];

@@ -45,6 +45,18 @@ describe('Chat Flow Integration', () => {
     });
 
     it('submits message through chat interface', async () => {
+        // Mock fetch for useWorkspaces
+        const mockFetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: () => Promise.resolve({
+                success: true,
+                code: "SUCCESS",
+                message: "Success",
+                data: []
+            })
+        });
+        global.fetch = mockFetch;
+
         render(
             <ErrorProvider>
                 <TaskProvider>
@@ -58,8 +70,8 @@ describe('Chat Flow Integration', () => {
         fireEvent.change(input, { target: { value: 'Hello Assistant' } });
         fireEvent.submit(input.closest('form')!);
 
-        // Assistant message should appear (thinking)
-        expect(await screen.findByText('Searching and processing...')).toBeInTheDocument();
+        // Assistant message should appear (thinking) - Updated to match component "Searching..."
+        expect(await screen.findByText('Searching...')).toBeInTheDocument();
 
         // fetchEventSource should be called
         expect(mockFetchEventSource).toHaveBeenCalled();

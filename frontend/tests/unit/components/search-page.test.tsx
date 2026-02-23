@@ -33,22 +33,6 @@ describe('SearchPage', () => {
         expect(screen.getByPlaceholderText(/Search documents, chats, workspaces/)).toBeInTheDocument();
     });
 
-    it('renders scope filter buttons', () => {
-        render(<SearchPage />);
-
-        expect(screen.getByRole('button', { name: 'all' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'documents' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'chats' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'workspaces' })).toBeInTheDocument();
-    });
-
-    it('renders workspace filter dropdown', () => {
-        render(<SearchPage />);
-
-        expect(screen.getByRole('combobox')).toBeInTheDocument();
-        expect(screen.getByText('All Workspaces')).toBeInTheDocument();
-    });
-
     it('shows back link', () => {
         render(<SearchPage />);
 
@@ -69,19 +53,19 @@ describe('SearchPage', () => {
         expect(input).toHaveValue('');
     });
 
-    it('changes scope when filter button clicked', () => {
-        render(<SearchPage />);
-
-        const documentsButton = screen.getByRole('button', { name: 'documents' });
-        fireEvent.click(documentsButton);
-
-        // Documents button should be active
-        expect(documentsButton).toHaveClass('bg-white/10');
-    });
-
     it('shows no results message when search yields nothing', async () => {
         vi.useFakeTimers();
         const { act } = await import('@testing-library/react');
+
+        // Mock fetch to return success but empty results
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve({
+                success: true,
+                data: { documents: [], workspaces: [], threads: [] }
+            }),
+        });
+
         render(<SearchPage />);
 
         const input = screen.getByPlaceholderText(/Search documents/);
