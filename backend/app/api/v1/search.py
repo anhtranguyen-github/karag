@@ -17,3 +17,17 @@ async def global_search(
     """
     results = await search_service.global_search(q, workspace_id)
     return AppResponse.success_response(data=results)
+
+
+@router.get("/vector", response_model=AppResponse)
+async def vector_search(
+    q: str = Query(..., min_length=2, description="Search query"),
+    workspace_id: str = Query(..., description="Target workspace ID"),
+):
+    """
+    Perform a semantic search in the specific workspace using the RAG pipeline.
+    """
+    from backend.app.rag.rag_service import rag_service
+
+    results = await rag_service.search(q, workspace_id)
+    return AppResponse.success_response(data=results)

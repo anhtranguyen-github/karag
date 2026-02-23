@@ -281,11 +281,10 @@ class QdrantStore(VectorStore):
         query_text: str,
         workspace_id: Optional[str] = None,
     ) -> List[SearchResult]:
-        # Determine collection name (we need to know what it is, we will assume generic search for now via effective collection)
-        # Ideally, RetrievalConfig has the embedding dimension. For now, we search effective collection.
-        # Alternatively, find the first relevant existing collection.
+        # Determine collection name based on vector dimension
+        dim = len(query_vector)
         collection_name = await self._get_effective_collection(
-            "knowledge_base_1536", workspace_id
+            f"knowledge_base_{dim}", workspace_id
         )
 
         limit = config.hybrid.top_k if config.hybrid.enabled else config.vector.top_k

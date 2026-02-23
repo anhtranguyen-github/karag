@@ -40,29 +40,73 @@ class AppSettings(BaseModel):
         # First expand any dot-notation fields
         data = cls._expand_flat_dict(data)
 
-        # 1. Embedding legacy mapping
+        # 1. Embedding mapping
         if (
             "embedding_provider" in data
             or "embedding_model" in data
             or "embedding_dim" in data
         ):
-            emb_payload = {}
+            # If embedding exists as a dict, we update it; if it's an object, we start fresh from flat fields
             provider = data.get("embedding_provider", "openai")
+            model = data.get("embedding_model")
+            
+            emb_payload = {}
+            if isinstance(data.get("embedding"), dict):
+                emb_payload.update(data["embedding"])
+            
             emb_payload["provider"] = provider
-            if "embedding_model" in data:
-                emb_payload["model"] = data["embedding_model"]
+            if model:
+                emb_payload["model"] = model
 
-            # Map specific configs if needed
-            if "embedding" not in data:
-                if provider == "openai":
-                    data["embedding"] = OpenAIEmbeddingConfig(**emb_payload)
-                elif provider == "local" or provider == "huggingface":
-                    emb_payload["provider"] = "huggingface"
-                    data["embedding"] = HuggingFaceEmbeddingConfig(**emb_payload)
-                elif provider == "ollama":
-                    data["embedding"] = OllamaEmbeddingConfig(**emb_payload)
+            if provider == "openai":
+                data["embedding"] = OpenAIEmbeddingConfig(**emb_payload)
+            elif provider == "local" or provider == "huggingface":
+                emb_payload["provider"] = "huggingface"
+                data["embedding"] = HuggingFaceEmbeddingConfig(**emb_payload)
+            elif provider == "ollama":
+                data["embedding"] = OllamaEmbeddingConfig(**emb_payload)
 
-        # 2. Retrieval
+        # 3. Generation
+        if "llm_provider" in data or "llm_model" in data or "temperature" in data:
+            provider = data.get("llm_provider", "openai")
+            model = data.get("llm_model")
+            temp = data.get("temperature")
+            
+            gen_payload = {}
+            if isinstance(data.get("generation"), dict):
+                gen_payload.update(data["generation"])
+                
+            gen_payload["provider"] = provider
+            if model:
+                gen_payload["model"] = model
+            if temp is not None:
+                gen_payload["temperature"] = temp
+
+            if provider == "openai":
+                data["generation"] = OpenAIGenerationConfig(**gen_payload)
+            elif provider == "local" or provider == "llama":
+                gen_payload["provider"] = "llama"
+                data["generation"] = LlamaGenerationConfig(**gen_payload)
+
+        # 4. Chunking
+        if "chunk_size" in data or "chunk_overlap" in data or "chunking_strategy" in data:
+            strategy = data.get("chunking_strategy", "recursive")
+            size = data.get("chunk_size")
+            overlap = data.get("chunk_overlap")
+            
+            chunk_payload = {"strategy": strategy}
+            if isinstance(data.get("chunking"), dict):
+                chunk_payload.update(data["chunking"])
+            
+            if size is not None:
+                chunk_payload["max_chunk_size"] = size
+                chunk_payload["chunk_size"] = size
+            if overlap is not None:
+                chunk_payload["chunk_overlap"] = overlap
+                
+            data["chunking"] = chunk_payload
+
+        # 2. Retrieval (moved down to ensure config objects are ready if needed)
         if "retrieval" not in data:
             data["retrieval"] = RetrievalConfig()
 
@@ -101,38 +145,40 @@ class AppSettings(BaseModel):
                 ]
                 retrieval.setdefault("hybrid", {})["enabled"] = True
 
-        # 3. Generation
-        if "llm_provider" in data or "llm_model" in data or "temperature" in data:
-            gen_payload = {}
-            provider = data.get("llm_provider", "openai")
-            gen_payload["provider"] = provider
-            if "llm_model" in data:
-                gen_payload["model"] = data["llm_model"]
-            if "temperature" in data:
-                gen_payload["temperature"] = data["temperature"]
+        retrieval = data["retrieval"]
+        if isinstance(retrieval, dict):
+            if "rag_engine" in data:
+                rag_engine = data["rag_engine"]
+                retrieval.setdefault("graph", {})["enabled"] = rag_engine == "graph"
+            if "graph_enabled" in data:
+                retrieval.setdefault("graph", {})["enabled"] = data["graph_enabled"]
+            if "reranker_enabled" in data:
+                retrieval.setdefault("rerank", {})["enabled"] = data["reranker_enabled"]
 
-            if "generation" not in data:
-                if provider == "openai":
-                    data["generation"] = OpenAIGenerationConfig(**gen_payload)
-                elif provider == "local" or provider == "llama":
-                    gen_payload["provider"] = "llama"
-                    data["generation"] = LlamaGenerationConfig(**gen_payload)
+            if "reranker_provider" in data:
+                prov = data["reranker_provider"]
+                if (
+                    prov
+                    and prov.lower() != "none"
+                    and prov in ["cohere", "openai", "local"]
+                ):
+                    retrieval.setdefault("rerank", {})["provider"] = prov
+                else:
+                    # If provider is 'none' but enabled is true, default to local
+                    if retrieval.get("rerank", {}).get("enabled"):
+                        retrieval.setdefault("rerank", {})["provider"] = "local"
 
-        # 4. Chunking
-        if "chunk_size" in data or "chunk_overlap" in data:
-            chunk_payload = {}
-            if "chunk_size" in data:
-                # max_chunk_size is used in Recursive, chunk_size in Fixed
-                chunk_payload["max_chunk_size"] = data["chunk_size"]
-                chunk_payload["chunk_size"] = data["chunk_size"]
-            if "chunk_overlap" in data:
-                chunk_payload["chunk_overlap"] = data["chunk_overlap"]
-
-            if "chunking" not in data:
-                # Use strategy as discriminator for Annotated Union
-                strategy = data.get("chunking_strategy", "recursive")
-                chunk_payload["strategy"] = strategy
-                data["chunking"] = chunk_payload
+            if "rerank_top_k" in data:
+                retrieval.setdefault("rerank", {})["top_n"] = data["rerank_top_k"]
+            if "search_limit" in data:
+                retrieval.setdefault("vector", {})["top_k"] = data["search_limit"]
+            if "recall_k" in data:
+                retrieval.setdefault("vector", {})["top_k"] = data["recall_k"]
+            if "hybrid_alpha" in data:
+                retrieval.setdefault("hybrid", {})["dense_weight"] = data[
+                    "hybrid_alpha"
+                ]
+                retrieval.setdefault("hybrid", {})["enabled"] = True
 
         return data
 
