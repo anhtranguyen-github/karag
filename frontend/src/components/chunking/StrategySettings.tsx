@@ -14,13 +14,18 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 
+import { useWatch } from 'react-hook-form';
+
 interface StrategySettingsProps {
     form: UseFormReturn<CreateWorkspaceInput>;
 }
 
 export function ChunkingStrategySelector({ form }: StrategySettingsProps) {
-    const { watch, setValue } = form;
-    const currentStrategy = watch('chunking.strategy');
+    const { setValue, control } = form;
+    const currentStrategy = useWatch({
+        control,
+        name: 'chunking.strategy'
+    });
 
     const strategies = [
         { id: 'recursive', label: 'Recursive', icon: Layers },
@@ -42,15 +47,7 @@ export function ChunkingStrategySelector({ form }: StrategySettingsProps) {
                         key={s.id}
                         type="button"
                         onClick={() => {
-                            const defaultConfigs: Record<ChunkingConfig['strategy'], ChunkingConfig> = {
-                                recursive: { strategy: 'recursive', max_chunk_size: 800, min_chunk_size: 100, chunk_overlap: 150, separators: ["\n\n", "\n", ". ", " "], keep_separator: true, trim_whitespace: true, fallback_to_sentence: false },
-                                sentence: { strategy: 'sentence', max_sentences_per_chunk: 5, min_sentences_per_chunk: 1, sentence_overlap: 1, language: 'en', respect_paragraphs: true, merge_short_sentences: true },
-                                token: { strategy: 'token', max_tokens: 512, token_overlap: 50, tokenizer_type: 'tiktoken', count_special_tokens: false, truncate_overflow: false, strict_token_limit: true },
-                                semantic: { strategy: 'semantic', embedding_model_ref: 'text-embedding-3-small', similarity_threshold: 0.3, max_chunk_tokens: 1024, min_chunk_tokens: 100, merge_small_chunks: true, semantic_window_size: 3 },
-                                fixed: { strategy: 'fixed', chunk_size: 1000, chunk_overlap: 200, hard_cut: false, pad_last_chunk: false },
-                                document: { strategy: 'document', split_by: 'heading', max_section_length: 2000, fallback_strategy: 'recursive', preserve_hierarchy: true, include_metadata: true }
-                            };
-                            setValue('chunking', defaultConfigs[s.id as ChunkingConfig['strategy']]);
+                            setValue('chunking.strategy', s.id as any);
                         }}
                         className={cn(
                             "group relative flex items-center gap-4 p-3.5 rounded-2xl border text-left transition-all duration-200",

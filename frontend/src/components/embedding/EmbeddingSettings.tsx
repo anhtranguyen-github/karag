@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { UseFormReturn } from 'react-hook-form';
+import { UseFormReturn, useWatch } from 'react-hook-form';
 import { CreateWorkspaceInput } from '@/lib/schemas/workspaces';
 import { MODEL_DIMENSIONS, EmbeddingConfig } from '@/lib/schemas/embedding';
 import { cn } from '@/lib/utils';
@@ -22,8 +22,11 @@ interface EmbeddingSettingsProps {
 }
 
 export function EmbeddingProviderSelector({ form }: EmbeddingSettingsProps) {
-    const { watch, setValue } = form;
-    const currentProvider = watch('embedding.provider');
+    const { setValue, control } = form;
+    const currentProvider = useWatch({
+        control,
+        name: 'embedding.provider'
+    });
 
     const providers = [
         { id: 'openai', label: 'OpenAI', icon: Cloud },
@@ -47,7 +50,7 @@ export function EmbeddingProviderSelector({ form }: EmbeddingSettingsProps) {
                     <button
                         key={p.id}
                         type="button"
-                        onClick={() => setValue('embedding', { provider: p.id } as EmbeddingConfig)}
+                        onClick={() => setValue('embedding.provider', p.id as any)}
                         className={cn(
                             "p-3 rounded-xl border text-left transition-all group",
                             isActive
@@ -82,7 +85,7 @@ const PROVIDER_MODELS: Record<string, string[]> = {
 };
 
 export function EmbeddingModelSelector({ form }: EmbeddingSettingsProps) {
-    const { register, watch, setValue } = form;
+    const { watch, setValue } = form;
     const provider = watch('embedding.provider');
     const currentModel = watch('embedding.model');
     const models = React.useMemo(() => PROVIDER_MODELS[provider] || [], [provider]);
@@ -90,7 +93,6 @@ export function EmbeddingModelSelector({ form }: EmbeddingSettingsProps) {
     const inputClass = "w-full bg-secondary border border-border rounded-xl px-3 py-2 text-caption focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-foreground";
     const labelClass = "text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1.5 block";
 
-    // Update model if provider changes and current model is not in list
     useEffect(() => {
         if (models.length > 0 && !models.includes(currentModel)) {
             setValue('embedding.model', models[0] as EmbeddingConfig['model']);

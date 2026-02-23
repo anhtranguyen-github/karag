@@ -29,12 +29,17 @@ const GENERATION_PROVIDERS = [
     { id: 'vlm', name: 'Local VLM', icon: ScanEye, models: ['llava-1.6', 'llava-next', 'gpt-4o'] },
 ] as const;
 
+import { useWatch } from 'react-hook-form';
+
 interface GenerationSettingsProps {
     form: UseFormReturn<CreateWorkspaceInput>;
 }
 
 export function GenerationSettings({ form }: GenerationSettingsProps) {
-    const provider = form.watch('generation.provider');
+    const provider = useWatch({
+        control: form.control,
+        name: 'generation.provider'
+    });
 
     const selectedProvider = useMemo(() =>
         GENERATION_PROVIDERS.find(p => p.id === provider)
@@ -65,21 +70,7 @@ export function GenerationSettings({ form }: GenerationSettingsProps) {
                                 key={p.id}
                                 type="button"
                                 onClick={() => {
-                                    form.setValue('generation', {
-                                        provider: p.id,
-                                        model: p.models[0],
-                                        temperature: 0.7,
-                                        top_p: 1.0,
-                                        stop_sequences: [],
-                                        max_output_tokens: 2048,
-                                        streaming: true,
-                                        presence_penalty: 0.0,
-                                        frequency_penalty: 0.0,
-                                        ...(p.id === 'azure' ? { deployment_name: 'default', api_version: '2024-02-15-preview' } : {}),
-                                        ...(p.id === 'llama' || p.id === 'cdp2' ? { repeat_penalty: 1.1, top_k: 40 } : {}),
-                                        ...(p.id === 'llama' ? { device: 'cpu', quantization: 'fp16' } : {}),
-                                        ...(p.id === 'vlm' ? { input_modalities: 'both', image_max_resolution: 1024 } : {}),
-                                    } as GenerationConfig);
+                                    form.setValue('generation.provider', p.id as any);
                                 }}
                                 className={cn(
                                     "p-3 rounded-xl border text-left transition-all group",
