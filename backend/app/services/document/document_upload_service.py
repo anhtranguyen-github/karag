@@ -322,7 +322,9 @@ class DocumentUploadService:
                 "minio_path": minio_path,
                 "content_hash": file_hash,
                 "status": "verifying",
-                "workspace_statuses": {workspace_id: "verifying"} if workspace_id != "vault" else {},
+                "workspace_statuses": {workspace_id: "verifying"}
+                if workspace_id != "vault"
+                else {},
                 "current_version": 1,
                 "shared_with": [],
                 "created_at": datetime.utcnow().isoformat(),

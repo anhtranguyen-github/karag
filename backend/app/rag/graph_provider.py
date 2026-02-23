@@ -48,6 +48,7 @@ class GraphProvider:
 
         try:
             from backend.app.core.factory import LangChainFactory
+
             graph_store = await LangChainFactory.get_graph_store()
 
             graph_context = await graph_store.get_related_entities(
@@ -79,16 +80,20 @@ class GraphProvider:
 
             # STEP 4: Final retrieval from Vector DB (ranked chunks)
             from backend.app.core.factory import LangChainFactory
+
             store = await LangChainFactory.get_vector_store()
-            
+
             search_results = await store.search(
                 config=settings.retrieval,
                 query_vector=query_vector,
                 query_text=refined_query,
                 workspace_id=workspace_id,
             )
-            
-            results = [{"id": res.id, "score": res.score, "payload": res.payload} for res in search_results]
+
+            results = [
+                {"id": res.id, "score": res.score, "payload": res.payload}
+                for res in search_results
+            ]
 
             # Annotate results with graph metadata
             for res in results:
@@ -104,21 +109,26 @@ class GraphProvider:
             )
             # Fallback to basic search if Neo4j is down or fails
             from backend.app.core.factory import LangChainFactory
+
             store = await LangChainFactory.get_vector_store()
-            
+
             search_results = await store.search(
                 config=settings.retrieval,
                 query_vector=query_vector,
                 query_text=query,
                 workspace_id=workspace_id,
             )
-            return [{"id": res.id, "score": res.score, "payload": res.payload} for res in search_results]
+            return [
+                {"id": res.id, "score": res.score, "payload": res.payload}
+                for res in search_results
+            ]
 
     async def upsert_entities(self, entities: List[Dict[str, Any]], workspace_id: str):
         """Insert or update entities and relationships using the injected GraphStore."""
         from backend.app.core.factory import LangChainFactory
+
         graph_store = await LangChainFactory.get_graph_store()
-        
+
         await graph_store.upsert_entities(entities=entities, workspace_id=workspace_id)
 
 

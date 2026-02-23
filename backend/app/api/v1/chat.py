@@ -1,6 +1,5 @@
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
-import asyncio
 import structlog
 from backend.app.services.chat_service import chat_service
 from backend.app.schemas.chat import ChatStreamRequest, ThreadTitleUpdate

@@ -115,7 +115,7 @@ class RAGService:
                 config=settings.retrieval,
                 query_vector=query_vector,
                 query_text=query,
-                workspace_id=workspace_id
+                workspace_id=workspace_id,
             )
 
             results = []

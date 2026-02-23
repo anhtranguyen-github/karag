@@ -15,12 +15,10 @@ from backend.app.rag.store.base import VectorStore, DocumentPoint, SearchResult
 logger = structlog.get_logger(__name__)
 tracer = get_tracer(__name__)
 
+
 class QdrantStore(VectorStore):
     def __init__(self):
-        client_kwargs = {
-            "url": karag_settings.QDRANT_URL,
-            "timeout": 60.0
-        }
+        client_kwargs = {"url": karag_settings.QDRANT_URL, "timeout": 60.0}
         self._collection_cache = {}
         if karag_settings.QDRANT_API_KEY:
             client_kwargs["api_key"] = karag_settings.QDRANT_API_KEY
@@ -31,10 +29,16 @@ class QdrantStore(VectorStore):
                 )
         self.client = AsyncQdrantClient(**client_kwargs)
 
-    async def get_document_chunks(self, config: IngestionConfig, doc_id: str, limit: int = 100) -> List[Dict[str, Any]]:
-        collection_name = config.collection_name_override or f"knowledge_base_{config.vector_size}"
+    async def get_document_chunks(
+        self, config: IngestionConfig, doc_id: str, limit: int = 100
+    ) -> List[Dict[str, Any]]:
+        collection_name = (
+            config.collection_name_override or f"knowledge_base_{config.vector_size}"
+        )
         workspace_id = config.workspace_id
-        collection_name = await self._get_effective_collection(collection_name, workspace_id)
+        collection_name = await self._get_effective_collection(
+            collection_name, workspace_id
+        )
 
         results = await self.client.scroll(
             collection_name=collection_name,
@@ -79,7 +83,7 @@ class QdrantStore(VectorStore):
                         ]
                     ),
                 )
-        
+
         # Then clean up a specific workspace collection if it exists
         if await self.client.collection_exists(workspace_id):
             await self.client.delete_collection(workspace_id)
@@ -110,7 +114,11 @@ class QdrantStore(VectorStore):
         except Exception as e:
             return {"status": "offline", "error": str(e)}
 
-    def _get_collection_name(self, config: IngestionConfig | RetrievalConfig, workspace_id: Optional[str] = None) -> str:
+    def _get_collection_name(
+        self,
+        config: IngestionConfig | RetrievalConfig,
+        workspace_id: Optional[str] = None,
+    ) -> str:
         if isinstance(config, IngestionConfig):
             if config.collection_name_override:
                 return config.collection_name_override
@@ -120,7 +128,7 @@ class QdrantStore(VectorStore):
             # Actually, the base class has a separation of concerns, retrieval doesn't know the vector size inherently unless it gets it from DB or settings.
             # We'll just hardcode 1536 for now if not supplied, or we can fetch it. Let's make the wrapper handle retrieving the right dim.
             pass
-        return "knowledge_base_1536" # Default placeholder, we will refine this below
+        return "knowledge_base_1536"  # Default placeholder, we will refine this below
 
     async def _collection_exists_cached(self, name: str) -> bool:
         if name in self._collection_cache:
@@ -129,13 +137,15 @@ class QdrantStore(VectorStore):
         self._collection_cache[name] = exists
         return exists
 
-    async def _get_effective_collection(self, desired_collection: str, workspace_id: Optional[str] = None) -> str:
+    async def _get_effective_collection(
+        self, desired_collection: str, workspace_id: Optional[str] = None
+    ) -> str:
         if await self._collection_exists_cached(desired_collection):
             return desired_collection
-            
+
         if workspace_id and await self._collection_exists_cached(workspace_id):
             return workspace_id
-            
+
         for dim in [384, 512, 768, 896, 1024, 1536, 1792, 3072]:
             c = f"knowledge_base_{dim}"
             if await self._collection_exists_cached(c):
@@ -143,7 +153,9 @@ class QdrantStore(VectorStore):
         return desired_collection
 
     async def create_collection_if_not_exists(self, config: IngestionConfig) -> bool:
-        collection_name = config.collection_name_override or f"knowledge_base_{config.vector_size}"
+        collection_name = (
+            config.collection_name_override or f"knowledge_base_{config.vector_size}"
+        )
         created = False
         with tracer.start_as_current_span(
             "qdrant.create_collection",
@@ -159,12 +171,14 @@ class QdrantStore(VectorStore):
                         distance=qmodels.Distance.COSINE,
                         on_disk=True,
                     )
-                    
+
                     # Sparse Vector Config (for future expansion)
                     sparse_vectors_config = None
                     if config.sparse_enabled:
                         sparse_vectors_config = {
-                            "sparse": qmodels.SparseVectorParams(modifier=qmodels.Modifier.NONE)
+                            "sparse": qmodels.SparseVectorParams(
+                                modifier=qmodels.Modifier.NONE
+                            )
                         }
 
                     await self.client.create_collection(
@@ -198,9 +212,16 @@ class QdrantStore(VectorStore):
                     )
                 except Exception as e:
                     if "already indexed" not in str(e).lower():
-                        logger.debug("qdrant_index_failed_or_exists", field="text", error=str(e))
+                        logger.debug(
+                            "qdrant_index_failed_or_exists", field="text", error=str(e)
+                        )
 
-                for keyword_field in ["doc_id", "workspace_id", "shared_with", "source"]:
+                for keyword_field in [
+                    "doc_id",
+                    "workspace_id",
+                    "shared_with",
+                    "source",
+                ]:
                     try:
                         await self.client.create_payload_index(
                             collection_name=collection_name,
@@ -209,8 +230,12 @@ class QdrantStore(VectorStore):
                         )
                     except Exception as e:
                         if "already indexed" not in str(e).lower():
-                            logger.debug("qdrant_index_failed_or_exists", field=keyword_field, error=str(e))
-                            
+                            logger.debug(
+                                "qdrant_index_failed_or_exists",
+                                field=keyword_field,
+                                error=str(e),
+                            )
+
                 return created
             except Exception as e:
                 if "forbidden" in str(e).lower() or "403" in str(e):
@@ -223,21 +248,25 @@ class QdrantStore(VectorStore):
                     return False
                 raise e
 
-    async def upsert_documents(self, config: IngestionConfig, points: List[DocumentPoint]) -> bool:
-        collection_name = config.collection_name_override or f"knowledge_base_{config.vector_size}"
-        
+    async def upsert_documents(
+        self, config: IngestionConfig, points: List[DocumentPoint]
+    ) -> bool:
+        collection_name = (
+            config.collection_name_override or f"knowledge_base_{config.vector_size}"
+        )
+
         qdrant_points = []
         for p in points:
             q_point = qmodels.PointStruct(
                 id=p.id,
-                vector=p.vector, # We only deal with dense vector directly here for now
-                payload=p.payload
+                vector=p.vector,  # We only deal with dense vector directly here for now
+                payload=p.payload,
             )
             qdrant_points.append(q_point)
-            
+
         batch_size = 100
         for i in range(0, len(qdrant_points), batch_size):
-            batch = qdrant_points[i:i + batch_size]
+            batch = qdrant_points[i : i + batch_size]
             await self.client.upsert(
                 collection_name=collection_name,
                 points=batch,
@@ -245,14 +274,22 @@ class QdrantStore(VectorStore):
             )
         return True
 
-    async def search(self, config: RetrievalConfig, query_vector: List[float], query_text: str, workspace_id: Optional[str] = None) -> List[SearchResult]:
+    async def search(
+        self,
+        config: RetrievalConfig,
+        query_vector: List[float],
+        query_text: str,
+        workspace_id: Optional[str] = None,
+    ) -> List[SearchResult]:
         # Determine collection name (we need to know what it is, we will assume generic search for now via effective collection)
         # Ideally, RetrievalConfig has the embedding dimension. For now, we search effective collection.
         # Alternatively, find the first relevant existing collection.
-        collection_name = await self._get_effective_collection("knowledge_base_1536", workspace_id)
-        
+        collection_name = await self._get_effective_collection(
+            "knowledge_base_1536", workspace_id
+        )
+
         limit = config.hybrid.top_k if config.hybrid.enabled else config.vector.top_k
-        
+
         with tracer.start_as_current_span(
             "qdrant.search",
             attributes={
@@ -336,14 +373,18 @@ class QdrantStore(VectorStore):
         sorted_ids = sorted(scores.keys(), key=lambda x: scores[x], reverse=True)
 
         return [
-            SearchResult(id=str(doc_id), payload=payload_map[doc_id], score=scores[doc_id])
+            SearchResult(
+                id=str(doc_id), payload=payload_map[doc_id], score=scores[doc_id]
+            )
             for doc_id in sorted_ids[:limit]
         ]
 
     async def delete_document(self, config: IngestionConfig, doc_id: str) -> bool:
-        collection_name = config.collection_name_override or f"knowledge_base_{config.vector_size}"
+        collection_name = (
+            config.collection_name_override or f"knowledge_base_{config.vector_size}"
+        )
         workspace_id = config.workspace_id
-        
+
         with tracer.start_as_current_span(
             "qdrant.delete_document",
             attributes={
@@ -354,7 +395,9 @@ class QdrantStore(VectorStore):
             start = time.perf_counter()
 
             if workspace_id:
-                collection_name = await self._get_effective_collection(collection_name, workspace_id)
+                collection_name = await self._get_effective_collection(
+                    collection_name, workspace_id
+                )
                 await self.client.delete(
                     collection_name=collection_name,
                     points_selector=qmodels.Filter(
@@ -391,10 +434,14 @@ class QdrantStore(VectorStore):
             return True
 
     async def list_documents(self, config: IngestionConfig) -> List[Dict[str, Any]]:
-        collection_name = config.collection_name_override or f"knowledge_base_{config.vector_size}"
+        collection_name = (
+            config.collection_name_override or f"knowledge_base_{config.vector_size}"
+        )
         workspace_id = config.workspace_id
-        
-        collection_name = await self._get_effective_collection(collection_name, workspace_id)
+
+        collection_name = await self._get_effective_collection(
+            collection_name, workspace_id
+        )
 
         filter_query = None
         if workspace_id:
@@ -444,9 +491,13 @@ class QdrantStore(VectorStore):
             return list(docs.values())
 
     async def get_document_content(self, config: IngestionConfig, doc_id: str) -> str:
-        collection_name = config.collection_name_override or f"knowledge_base_{config.vector_size}"
+        collection_name = (
+            config.collection_name_override or f"knowledge_base_{config.vector_size}"
+        )
         workspace_id = config.workspace_id
-        collection_name = await self._get_effective_collection(collection_name, workspace_id)
+        collection_name = await self._get_effective_collection(
+            collection_name, workspace_id
+        )
 
         with tracer.start_as_current_span("qdrant.get_document_content"):
             filters = [
@@ -485,10 +536,16 @@ class QdrantStore(VectorStore):
             chunks.sort(key=lambda x: x[0])
             return "\n\n".join([c[1] for c in chunks])
 
-    async def get_document_centroids(self, config: IngestionConfig) -> List[Dict[str, Any]]:
-        collection_name = config.collection_name_override or f"knowledge_base_{config.vector_size}"
+    async def get_document_centroids(
+        self, config: IngestionConfig
+    ) -> List[Dict[str, Any]]:
+        collection_name = (
+            config.collection_name_override or f"knowledge_base_{config.vector_size}"
+        )
         workspace_id = config.workspace_id
-        collection_name = await self._get_effective_collection(collection_name, workspace_id)
+        collection_name = await self._get_effective_collection(
+            collection_name, workspace_id
+        )
 
         with tracer.start_as_current_span("qdrant.get_document_centroids"):
             # Scroll to get vectors
@@ -549,10 +606,16 @@ class QdrantStore(VectorStore):
 
             return results
 
-    async def sync_shared_with(self, config: IngestionConfig, doc_id: str, shared_with: List[str]) -> bool:
-        collection_name = config.collection_name_override or f"knowledge_base_{config.vector_size}"
+    async def sync_shared_with(
+        self, config: IngestionConfig, doc_id: str, shared_with: List[str]
+    ) -> bool:
+        collection_name = (
+            config.collection_name_override or f"knowledge_base_{config.vector_size}"
+        )
         workspace_id = config.workspace_id
-        collection_name = await self._get_effective_collection(collection_name, workspace_id)
+        collection_name = await self._get_effective_collection(
+            collection_name, workspace_id
+        )
 
         with tracer.start_as_current_span("qdrant.sync_shared_with"):
             await self.client.set_payload(

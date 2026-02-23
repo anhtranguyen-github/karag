@@ -133,9 +133,12 @@ class CrossWorkspaceDocumentService:
                         task_id, progress=90, message="Cleaning up source workspace..."
                     )
                 from backend.app.rag.ingestion import ingestion_pipeline
-                config, store = await ingestion_pipeline.get_ingestion_config(source_ws_id)
+
+                config, store = await ingestion_pipeline.get_ingestion_config(
+                    source_ws_id
+                )
                 await store.delete_document(config, res["id"])
-                
+
         elif action == "share":
             await db.documents.update_one(
                 {"id": res["id"]},
@@ -149,9 +152,14 @@ class CrossWorkspaceDocumentService:
                 },
             )
             updated_doc = await db.documents.find_one({"id": res["id"]})
-            
+
             from backend.app.rag.ingestion import ingestion_pipeline
-            config, store = await ingestion_pipeline.get_ingestion_config(res["workspace_id"])
-            await store.sync_shared_with(config, res["id"], updated_doc.get("shared_with", []))
+
+            config, store = await ingestion_pipeline.get_ingestion_config(
+                res["workspace_id"]
+            )
+            await store.sync_shared_with(
+                config, res["id"], updated_doc.get("shared_with", [])
+            )
         else:
             raise ValidationError(f"Invalid action: {action}")

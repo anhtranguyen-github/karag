@@ -13,7 +13,7 @@ from backend.app.schemas.generation import (
     LlamaGenerationConfig,
 )
 from backend.app.schemas.retrieval import RetrievalConfig
-from backend.app.schemas.execution import RuntimeSettings, ExecutionMode
+from backend.app.schemas.execution import RuntimeSettings
 
 
 class AppSettings(BaseModel):

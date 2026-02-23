@@ -74,22 +74,21 @@ async def test_get_chunks_correct_collection(mocker):
     # Mock VectorStore
     mock_store = AsyncMock()
     mock_store.get_document_chunks = AsyncMock(return_value=[])
-    
+
     mocker.patch(
         "backend.app.core.factory.LangChainFactory.get_vector_store",
-        return_value=mock_store
+        return_value=mock_store,
     )
-    
+
     from backend.app.rag.ingestion import ingestion_pipeline
+
     mocker.patch.object(
         ingestion_pipeline,
         "get_ingestion_config",
-        return_value=(MagicMock(), mock_store)
+        return_value=(MagicMock(), mock_store),
     )
 
     await document_service.get_chunks("doc_123")
 
     # Verify it called get_ingestion_config with workspace_id
-    ingestion_pipeline.get_ingestion_config.assert_called_once_with(
-        "workspace_test"
-    )
+    ingestion_pipeline.get_ingestion_config.assert_called_once_with("workspace_test")

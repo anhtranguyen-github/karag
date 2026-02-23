@@ -40,10 +40,7 @@ def should_continue(state: AgentState):
     return "generate"
 
 
-workflow.add_conditional_edges(
-    "reason", should_continue, {"generate": "generate"}
-)
-
+workflow.add_conditional_edges("reason", should_continue, {"generate": "generate"})
 
 
 def should_summarize(state: AgentState):

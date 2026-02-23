@@ -87,7 +87,7 @@ class DocumentInspectionService:
 
         ws_id = doc.get("workspace_id")
         from backend.app.rag.ingestion import ingestion_pipeline
-        
+
         config, store = await ingestion_pipeline.get_ingestion_config(ws_id)
         return await store.get_document_chunks(config, doc_id, limit)
 
@@ -128,8 +128,9 @@ class DocumentInspectionService:
                 zombies_found = True
 
             from backend.app.core.settings_manager import settings_manager
+
             settings = await settings_manager.get_settings(ws_id)
-            
+
             relationships.append(
                 {
                     "workspace_id": ws_id,

@@ -50,11 +50,12 @@ class ChatService:
             # Fallback: read from chat_messages collection (for execution/RAG path)
             db = mongodb_manager.get_async_database()
             msg_col = db["chat_messages"]
-            docs = await msg_col.find(
-                {"thread_id": thread_id},
-                {"_id": 0, "thread_id": 0}
-            ).sort("created_at", 1).to_list(None)
-            
+            docs = (
+                await msg_col.find({"thread_id": thread_id}, {"_id": 0, "thread_id": 0})
+                .sort("created_at", 1)
+                .to_list(None)
+            )
+
             if docs:
                 history = []
                 for i, doc in enumerate(docs):
@@ -83,9 +84,11 @@ class ChatService:
             metadata_col = db["thread_metadata"]
 
             # Sort by updated_at descending, fallback to _id
-            workspace_threads = await metadata_col.find(
-                {"workspace_id": workspace_id}
-            ).sort([("updated_at", -1), ("_id", -1)]).to_list(None)
+            workspace_threads = (
+                await metadata_col.find({"workspace_id": workspace_id})
+                .sort([("updated_at", -1), ("_id", -1)])
+                .to_list(None)
+            )
 
             return [
                 {
@@ -141,9 +144,7 @@ class ChatService:
             logger.info("chat_thread_deleted", thread_id=thread_id)
 
     @staticmethod
-    async def generate_title(
-        message: str, thread_id: str, workspace_id: str = "vault"
-    ):
+    async def generate_title(message: str, thread_id: str, workspace_id: str = "vault"):
         """Automatically generate a title and metadata tags for a new thread."""
         with tracer.start_as_current_span(
             "chat.generate_title",
@@ -157,7 +158,13 @@ class ChatService:
                 col = db["thread_metadata"]
                 history = await ChatService.get_history(thread_id)
                 db_meta = await col.find_one({"thread_id": thread_id})
-                logger.info("generate_title_check", thread_id=thread_id, history_len=len(history), has_meta=db_meta is not None, current_title=db_meta.get("title") if db_meta else None)
+                logger.info(
+                    "generate_title_check",
+                    thread_id=thread_id,
+                    history_len=len(history),
+                    has_meta=db_meta is not None,
+                    current_title=db_meta.get("title") if db_meta else None,
+                )
 
                 # If we have less than 5 messages, just ensure it's "New chat"
                 if len(history) < 5:
@@ -166,27 +173,35 @@ class ChatService:
                             {"thread_id": thread_id},
                             {
                                 "$set": {
-                                    "title": "New chat", 
+                                    "title": "New chat",
                                     "workspace_id": workspace_id,
-                                    "updated_at": datetime.utcnow().isoformat()
+                                    "updated_at": datetime.utcnow().isoformat(),
                                 }
                             },
-                            upsert=True
+                            upsert=True,
                         )
                     elif db_meta:
                         # Even if we don't change title, update the timestamp
                         await col.update_one(
                             {"thread_id": thread_id},
-                            {"$set": {"updated_at": datetime.utcnow().isoformat()}}
+                            {"$set": {"updated_at": datetime.utcnow().isoformat()}},
                         )
-                    logger.info("generate_title_skipped", reason="under_5_messages", count=len(history))
+                    logger.info(
+                        "generate_title_skipped",
+                        reason="under_5_messages",
+                        count=len(history),
+                    )
                     return
 
                 # If we have >= 5 messages, we generate if title is missing or still "New chat"
                 if db_meta and "title" in db_meta and db_meta["title"] != "New chat":
-                    logger.info("generate_title_skipped", reason="already_has_title", title=db_meta["title"])
+                    logger.info(
+                        "generate_title_skipped",
+                        reason="already_has_title",
+                        title=db_meta["title"],
+                    )
                     return
-                
+
                 logger.info("generate_title_proceeding", thread_id=thread_id)
 
                 from backend.app.core.prompt_manager import prompt_manager
@@ -293,11 +308,11 @@ class ChatService:
                 {
                     "$set": {
                         "workspace_id": workspace_id,
-                        "updated_at": datetime.utcnow().isoformat()
+                        "updated_at": datetime.utcnow().isoformat(),
                     },
-                    "$setOnInsert": {"title": "New chat"}
+                    "$setOnInsert": {"title": "New chat"},
                 },
-                upsert=True
+                upsert=True,
             )
 
             if execution:
@@ -364,10 +379,14 @@ class ChatService:
                                 content = event["data"]["output"].content
                                 if content:
                                     # Truncate very long internal logic for better UI readability
-                                    reason_msg = content[:400] + "..." if len(content) > 400 else content
+                                    reason_msg = (
+                                        content[:400] + "..."
+                                        if len(content) > 400
+                                        else content
+                                    )
                                     collected_reasoning.append(reason_msg)
                                     yield f"data: {json.dumps({'type': 'reasoning', 'steps': [reason_msg]})}\n\n"
-                            
+
                             # Fallback for final answer if streaming didn't occur
                             if "final_answer" in tags and not collected_content:
                                 content = event["data"]["output"].content
@@ -377,14 +396,14 @@ class ChatService:
 
                         if kind == "on_chain_end":
                             output = event["data"].get("output", {})
-                            
+
                             if node_name == "analyze":
                                 intent = output.get("intent_analysis", "").strip()
                                 if intent:
                                     msg = f"Inquiry Analysis: {intent}"
                                     collected_reasoning.append(msg)
                                     yield f"data: {json.dumps({'type': 'reasoning', 'steps': [msg]})}\n\n"
-                                    
+
                             if node_name == "build_query":
                                 queries = output.get("generated_queries", [])
                                 if queries:
@@ -399,14 +418,22 @@ class ChatService:
                                     sources = [
                                         {
                                             "id": i + 1,
-                                            "name": r.get("source", r.get("payload", {}).get("source", "Unknown")),
-                                            "content": r.get("text", r.get("payload", {}).get("text", ""))
+                                            "name": r.get(
+                                                "source",
+                                                r.get("payload", {}).get(
+                                                    "source", "Unknown"
+                                                ),
+                                            ),
+                                            "content": r.get(
+                                                "text",
+                                                r.get("payload", {}).get("text", ""),
+                                            ),
                                         }
                                         for i, r in enumerate(results)
                                     ]
                                     collected_sources = sources
                                     yield f"data: {json.dumps({'type': 'sources', 'sources': sources})}\n\n"
-                                    
+
                                     msg = f"Knowledge Retrieval: Found {len(results)} relevant context fragments."
                                     collected_reasoning.append(msg)
                                     yield f"data: {json.dumps({'type': 'reasoning', 'steps': [msg]})}\n\n"
@@ -417,23 +444,38 @@ class ChatService:
                                 msg = f"Research Validation (Loop {loop}): {'Context is complete' if sufficient else 'Identifying missing gaps for further search'}."
                                 collected_reasoning.append(msg)
                                 yield f"data: {json.dumps({'type': 'reasoning', 'steps': [msg]})}\n\n"
-                            
+
                             # Fallback harvesting for the final generation node if streaming didn't happen
-                            if node_name in ["generate", "synthesize"] and not collected_content:
-                                final = output.get("final_answer") or (output.get("draft_answers", [""])[0])
+                            if (
+                                node_name in ["generate", "synthesize"]
+                                and not collected_content
+                            ):
+                                final = (
+                                    output.get("final_answer")
+                                    or (output.get("draft_answers", [""])[0])
+                                )
                                 if final:
                                     collected_content.append(final)
                                     yield f"data: {json.dumps({'type': 'content', 'delta': final})}\n\n"
 
-                            if isinstance(output, dict) and "execution_metadata" in output:
+                            if (
+                                isinstance(output, dict)
+                                and "execution_metadata" in output
+                            ):
                                 yield f"data: {json.dumps({'type': 'tracing', 'data': output['execution_metadata']})}\n\n"
                 except Exception as stream_exc:
                     stream_error = stream_exc
-                    logger.error("rag_stream_error", thread_id=thread_id, error=str(stream_exc))
+                    logger.error(
+                        "rag_stream_error", thread_id=thread_id, error=str(stream_exc)
+                    )
                     yield f"data: {json.dumps({'type': 'error', 'message': str(stream_exc)})}\n\n"
                 finally:
                     # Always persist history (even partial) to MongoDB
-                    ai_content = "".join(collected_content) or ("Error during processing." if stream_error else "No answer generated.")
+                    ai_content = "".join(collected_content) or (
+                        "Error during processing."
+                        if stream_error
+                        else "No answer generated."
+                    )
                     try:
                         db = mongodb_manager.get_async_database()
                         msg_col = db["chat_messages"]
@@ -454,9 +496,13 @@ class ChatService:
                         if collected_sources:
                             ai_doc["sources"] = collected_sources
                         await msg_col.insert_many([user_doc, ai_doc])
-                        logger.info("history_persisted", thread_id=thread_id, msg_count=2)
+                        logger.info(
+                            "history_persisted", thread_id=thread_id, msg_count=2
+                        )
                         # Generate title after history is persisted
-                        await ChatService.generate_title(message, thread_id, workspace_id)
+                        await ChatService.generate_title(
+                            message, thread_id, workspace_id
+                        )
                     except Exception as e:
                         logger.error("history_sync_failed", error=str(e))
 

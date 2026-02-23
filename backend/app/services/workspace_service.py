@@ -267,15 +267,13 @@ class WorkspaceService:
 
         # 1. Document Nodes (Always show document-level relationships)
         from backend.app.rag.ingestion import ingestion_pipeline
+
         config, store = await ingestion_pipeline.get_ingestion_config(workspace_id)
         centroids_list = await store.get_document_centroids(config)
-        
+
         centroids = {}
         for c in centroids_list:
-            centroids[c["source"]] = {
-                "name": c["title"],
-                "vector": c["centroid"]
-            }
+            centroids[c["source"]] = {"name": c["title"], "vector": c["centroid"]}
 
         for doc_id, data in centroids.items():
             nodes.append(

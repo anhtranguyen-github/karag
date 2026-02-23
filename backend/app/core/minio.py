@@ -113,7 +113,9 @@ class MinioManager:
             attributes={"minio.object": object_name},
         ):
             try:
-                response = self.client.get_object(karag_settings.MINIO_BUCKET, object_name)
+                response = self.client.get_object(
+                    karag_settings.MINIO_BUCKET, object_name
+                )
                 return response.read()
             except Exception as e:
                 logger.error("minio_download_error", object=object_name, error=str(e))

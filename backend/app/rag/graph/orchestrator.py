@@ -38,7 +38,9 @@ def build_rag_graph():
             return "retrieve"
         return "analyze"
 
-    workflow.add_conditional_edges("init", init_router, {"retrieve": "retrieve", "analyze": "analyze"})
+    workflow.add_conditional_edges(
+        "init", init_router, {"retrieve": "retrieve", "analyze": "analyze"}
+    )
 
     # Flow: Analyze -> Build Query
     workflow.add_edge("analyze", "build_query")
@@ -80,9 +82,7 @@ def build_rag_graph():
     def should_synthesize(state: GraphState):
         return END
 
-    workflow.add_conditional_edges(
-        "generate", should_synthesize, {END: END}
-    )
+    workflow.add_conditional_edges("generate", should_synthesize, {END: END})
 
     workflow.add_edge("synthesize", END)
 

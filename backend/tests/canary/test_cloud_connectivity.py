@@ -7,6 +7,7 @@ from backend.app.core.mongodb import mongodb_manager
 async def test_qdrant_cloud_connectivity():
     """Verify that we can reach Qdrant Cloud."""
     from backend.app.core.factory import LangChainFactory
+
     store = await LangChainFactory.get_vector_store()
     info = await store.get_system_info()
     assert "error" not in info

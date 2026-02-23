@@ -29,7 +29,10 @@ class DocumentIngestionService:
                 f"Document {doc_id} not found in workspace {workspace_id}"
             )
 
-        if doc.get("workspace_statuses", {}).get(workspace_id) == "ingested" and not force:
+        if (
+            doc.get("workspace_statuses", {}).get(workspace_id) == "ingested"
+            and not force
+        ):
             return doc.get("chunks", 0)
 
         await db.documents.update_one(
@@ -57,7 +60,7 @@ class DocumentIngestionService:
                 return 0
 
             config, store = await ingestion_pipeline.get_ingestion_config(workspace_id)
-            
+
             # Phase 2a: Ensure collection and indices exist BEFORE operating on it
             # This prevents 400 errors from Qdrant when filtering on unindexed fields
             await ingestion_pipeline.initialize(workspace_id=workspace_id)

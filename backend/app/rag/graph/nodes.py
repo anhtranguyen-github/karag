@@ -54,7 +54,9 @@ async def analyze_intent(state: GraphState, config: RunnableConfig) -> Dict[str,
     return {"intent_analysis": response.content, "execution_metadata": metadata}
 
 
-async def build_query_context(state: GraphState, config: RunnableConfig) -> Dict[str, Any]:
+async def build_query_context(
+    state: GraphState, config: RunnableConfig
+) -> Dict[str, Any]:
     """Generate search queries optimized for the current execution loop."""
     mode = state["settings"].execution_mode
     query = state["query"]
@@ -141,12 +143,14 @@ async def blend_results(state: GraphState) -> Dict[str, Any]:
     }
 
 
-async def reflect_and_decide(state: GraphState, config: RunnableConfig) -> Dict[str, Any]:
+async def reflect_and_decide(
+    state: GraphState, config: RunnableConfig
+) -> Dict[str, Any]:
     """Graph-level reflection to decide if looping is required."""
     mode = state["settings"].execution_mode
     if mode == ExecutionMode.FAST or state["loop_count"] >= state["settings"].max_loops:
         return {"is_sufficient": True}
-    
+
     # Force sufficiency if we have some context and it's not the first loop
     if state["loop_count"] > 0 and len(state["blended_context"]) > 1000:
         return {"is_sufficient": True}
@@ -230,7 +234,9 @@ async def generate_answer(state: GraphState, config: RunnableConfig) -> Dict[str
     return {"draft_answers": drafts, "execution_metadata": metadata}
 
 
-async def synthesize_answer(state: GraphState, config: RunnableConfig) -> Dict[str, Any]:
+async def synthesize_answer(
+    state: GraphState, config: RunnableConfig
+) -> Dict[str, Any]:
     """Synthesize final response from multiple drafts in Blending mode."""
     drafts = state["draft_answers"]
     if not drafts:
@@ -244,7 +250,7 @@ async def synthesize_answer(state: GraphState, config: RunnableConfig) -> Dict[s
 
     response = await llm.ainvoke(
         [SystemMessage(content=system_prompt), HumanMessage(content=draft_str)],
-        config={**config, "tags": ["final_answer"]}
+        config={**config, "tags": ["final_answer"]},
     )
 
     return {

@@ -9,11 +9,8 @@ from langchain_openai import (
 from langchain_ollama import ChatOllama, OllamaEmbeddings
 from langchain_voyageai import VoyageAIEmbeddings
 from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_qdrant import QdrantVectorStore
-from qdrant_client import AsyncQdrantClient
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.embeddings import Embeddings
-from langchain_core.retrievers import BaseRetriever
 
 from backend.app.core.config import karag_settings
 from backend.app.core.settings_manager import settings_manager
@@ -33,7 +30,6 @@ from backend.app.schemas.generation import (
     CDP2GenerationConfig,
     VLMGenerationConfig,
 )
-from backend.app.schemas.retrieval import RetrievalConfig
 
 logger = structlog.get_logger(__name__)
 
@@ -75,7 +71,9 @@ class LangChainFactory:
         ):
             # Local models are routed through Ollama to reduce custom protocol code
             model = ChatOllama(
-                model=config.model, base_url=karag_settings.OLLAMA_BASE_URL, **base_kwargs
+                model=config.model,
+                base_url=karag_settings.OLLAMA_BASE_URL,
+                **base_kwargs,
             )
         else:
             raise ValueError(f"Unsupported LLM provider in schema: {config.provider}")
@@ -126,6 +124,7 @@ class LangChainFactory:
         Currently defaults to QdrantStore.
         """
         from backend.app.rag.store.qdrant import QdrantStore
+
         # Here we could switch based on configuration if we had multiple providers
         return QdrantStore()
 
@@ -136,5 +135,6 @@ class LangChainFactory:
         Currently defaults to Neo4jStore.
         """
         from backend.app.rag.store.neo4j_store import Neo4jStore
+
         # Like VectorStore, this can switch implementations based on settings
         return Neo4jStore()

@@ -6,10 +6,12 @@ from backend.app.rag.store.graph_base import GraphStore
 
 logger = structlog.get_logger(__name__)
 
+
 class Neo4jStore(GraphStore):
     """
     Concrete implementation of GraphStore using Neo4j as the backing database.
     """
+
     def __init__(self):
         self.driver = None
 
@@ -37,7 +39,9 @@ class Neo4jStore(GraphStore):
 
             return await session.execute_write(_work)
 
-    async def get_related_entities(self, keywords: List[str], workspace_id: str, limit: int = 30) -> List[Dict[str, Any]]:
+    async def get_related_entities(
+        self, keywords: List[str], workspace_id: str, limit: int = 30
+    ) -> List[Dict[str, Any]]:
         cypher = """
         UNWIND $keywords as word
         MATCH (n:Entity)
@@ -54,7 +58,9 @@ class Neo4jStore(GraphStore):
             workspace_id=workspace_id,
         )
 
-    async def upsert_entities(self, entities: List[Dict[str, Any]], workspace_id: str) -> None:
+    async def upsert_entities(
+        self, entities: List[Dict[str, Any]], workspace_id: str
+    ) -> None:
         cypher = """
         UNWIND $entities as ent
         MERGE (n:Entity {name: ent.name, workspace_id: $workspace_id})
@@ -69,7 +75,9 @@ class Neo4jStore(GraphStore):
             cypher, {"entities": entities}, workspace_id=workspace_id
         )
 
-    async def get_workspace_graph(self, workspace_id: str, limit: int = 100) -> List[Dict[str, Any]]:
+    async def get_workspace_graph(
+        self, workspace_id: str, limit: int = 100
+    ) -> List[Dict[str, Any]]:
         cypher = """
         MATCH (n:Entity {workspace_id: $workspace_id})
         OPTIONAL MATCH (n)-[r]->(m:Entity {workspace_id: $workspace_id})

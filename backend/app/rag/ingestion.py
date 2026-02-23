@@ -24,19 +24,22 @@ from backend.app.rag.store.base import DocumentPoint
 logger = structlog.get_logger(__name__)
 tracer = get_tracer(__name__)
 
+
 class IngestionPipeline:
     def __init__(self):
         pass
 
-    async def get_ingestion_config(self, workspace_id: str) -> tuple[IngestionConfig, Any]:
+    async def get_ingestion_config(
+        self, workspace_id: str
+    ) -> tuple[IngestionConfig, Any]:
         """Get the ingestion config and the store instance for the workspace."""
         from backend.app.core.settings_manager import settings_manager
-        
+
         settings = await settings_manager.get_settings(workspace_id)
         config = IngestionConfig(
             workspace_id=workspace_id,
             vector_size=settings.embedding.dimensions,
-            chunking=settings.chunking
+            chunking=settings.chunking,
         )
         store = await LangChainFactory.get_vector_store(workspace_id)
         return config, store
@@ -76,7 +79,7 @@ class IngestionPipeline:
             pipeline_start = time.perf_counter()
 
             config, store = await self.get_ingestion_config(workspace_id)
-            
+
             doc_id = (metadata or {}).get("doc_id")
             task_id = (metadata or {}).get("task_id")
             from backend.app.services.task.task_service import task_service
@@ -192,12 +195,14 @@ class IngestionPipeline:
 
             if task_id:
                 await task_service.update_task(
-                    task_id, progress=90, message="Storing embeddings and finishing up..."
+                    task_id,
+                    progress=90,
+                    message="Storing embeddings and finishing up...",
                 )
 
             # --- Component 4: Store ---
             store_start = time.perf_counter()
-            
+
             points = []
             for i, chunk in enumerate(all_chunks):
                 payload = {
@@ -215,14 +220,12 @@ class IngestionPipeline:
                 }
                 points.append(
                     DocumentPoint(
-                        id=str(uuid.uuid4()),
-                        vector=embeddings[i],
-                        payload=payload
+                        id=str(uuid.uuid4()), vector=embeddings[i], payload=payload
                     )
                 )
 
             await store.upsert_documents(config=config, points=points)
-            
+
             store_duration = time.perf_counter() - store_start
             DOCUMENT_INGESTION_LATENCY.labels(extension=ext, stage="store").observe(
                 store_duration
@@ -294,9 +297,7 @@ class IngestionPipeline:
                 }
                 points.append(
                     DocumentPoint(
-                        id=str(uuid.uuid4()),
-                        vector=embeddings[i],
-                        payload=payload
+                        id=str(uuid.uuid4()), vector=embeddings[i], payload=payload
                     )
                 )
 
@@ -366,9 +367,7 @@ class IngestionPipeline:
                 }
                 points.append(
                     DocumentPoint(
-                        id=str(uuid.uuid4()),
-                        vector=embeddings[i],
-                        payload=payload
+                        id=str(uuid.uuid4()), vector=embeddings[i], payload=payload
                     )
                 )
 

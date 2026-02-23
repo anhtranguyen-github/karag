@@ -36,6 +36,7 @@ class StorageService:
             raise NotFoundError(f"Document '{doc_id}' not found.")
 
         from backend.app.core.factory import LangChainFactory
+
         store = await LangChainFactory.get_vector_store()
 
         if vault_delete:
@@ -47,7 +48,10 @@ class StorageService:
             related_ids = [doc_id]
 
             if content_hash:
-                cursor = db.documents.find({"content_hash": content_hash}, {"id": 1, "workspace_id": 1, "shared_with": 1})
+                cursor = db.documents.find(
+                    {"content_hash": content_hash},
+                    {"id": 1, "workspace_id": 1, "shared_with": 1},
+                )
                 related_docs = await cursor.to_list(1000)
                 related_ids = list(set([r["id"] for r in related_docs] + [doc_id]))
 
@@ -61,7 +65,10 @@ class StorageService:
             if is_used_elsewhere:
                 # We can only delete THIS specific instantiation of the document, not globally
                 from backend.app.rag.ingestion import ingestion_pipeline
-                config, store = await ingestion_pipeline.get_ingestion_config(workspace_id)
+
+                config, store = await ingestion_pipeline.get_ingestion_config(
+                    workspace_id
+                )
                 await store.delete_document(config, doc_id)
                 await db.documents.delete_one({"id": doc_id})
             else:
@@ -93,6 +100,7 @@ class StorageService:
                 )
 
             from backend.app.rag.ingestion import ingestion_pipeline
+
             config, store = await ingestion_pipeline.get_ingestion_config(workspace_id)
             await store.delete_document(config, doc_id)
 
@@ -118,5 +126,6 @@ class StorageService:
             )
 
             from backend.app.core.factory import LangChainFactory
+
             store = await LangChainFactory.get_vector_store()
             await store.purge_workspace(workspace_id)

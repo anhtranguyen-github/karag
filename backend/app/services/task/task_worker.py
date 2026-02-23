@@ -43,7 +43,10 @@ class TaskWorker:
                 # Periodic Workspace Sync (Every 1 hour)
                 now = time.time()
                 if now - self._last_sync > 3600:
-                    logger.info("background_sync_start", msg="Executing periodic workspace synchronization...")
+                    logger.info(
+                        "background_sync_start",
+                        msg="Executing periodic workspace synchronization...",
+                    )
                     await document_service.sync_workspaces()
                     self._last_sync = now
                     logger.info("background_sync_complete")
