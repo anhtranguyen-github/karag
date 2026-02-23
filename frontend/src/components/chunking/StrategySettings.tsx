@@ -36,6 +36,34 @@ export function ChunkingStrategySelector({ form }: StrategySettingsProps) {
         { id: 'document', label: 'Document', icon: Layout },
     ];
 
+    const handleStrategySelect = (s: typeof strategies[0]) => {
+        setValue('chunking.strategy', s.id as any);
+
+        // Reset/Set strategy defaults
+        if (s.id === 'recursive') {
+            setValue('chunking.max_chunk_size', 1000);
+            setValue('chunking.chunk_overlap', 200);
+            setValue('chunking.separators', ["\n\n", "\n", " "]);
+        } else if (s.id === 'sentence') {
+            setValue('chunking.max_sentences_per_chunk', 5);
+            setValue('chunking.sentence_overlap', 1);
+            setValue('chunking.language', 'en');
+        } else if (s.id === 'token') {
+            setValue('chunking.max_tokens', 512);
+            setValue('chunking.token_overlap', 50);
+            setValue('chunking.tokenizer_type', 'tiktoken');
+        } else if (s.id === 'semantic') {
+            setValue('chunking.similarity_threshold', 0.3);
+            setValue('chunking.max_chunk_tokens', 1024);
+        } else if (s.id === 'fixed') {
+            setValue('chunking.chunk_size', 1000);
+            setValue('chunking.chunk_overlap', 200);
+        } else if (s.id === 'document') {
+            setValue('chunking.split_by', 'heading');
+            setValue('chunking.max_section_length', 2000);
+        }
+    };
+
     return (
         <div className="grid grid-cols-1 gap-2.5">
             {strategies.map((s) => {
@@ -46,9 +74,7 @@ export function ChunkingStrategySelector({ form }: StrategySettingsProps) {
                     <button
                         key={s.id}
                         type="button"
-                        onClick={() => {
-                            setValue('chunking.strategy', s.id as any);
-                        }}
+                        onClick={() => handleStrategySelect(s)}
                         className={cn(
                             "group relative flex items-center gap-4 p-3.5 rounded-2xl border text-left transition-all duration-200",
                             isActive

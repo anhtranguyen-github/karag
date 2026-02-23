@@ -41,7 +41,6 @@ const STEPS = [
     { title: 'Index', icon: Boxes, desc: 'Configure embedding models' },
     { title: 'Chunking', icon: Sparkles, desc: 'Setup document splitting' },
     { title: 'Search', icon: Search, desc: 'Configure retrieval & ranking' },
-    { title: 'Execution', icon: Activity, desc: 'Select reasoning strategy' },
     { title: 'AI Model', icon: Wand2, desc: 'Configure generation settings' },
 ];
 
@@ -229,12 +228,6 @@ export function WorkspaceWizard({ isOpen, onClose }: WorkspaceWizardProps) {
                     </div>
                 );
             case 4:
-                return (
-                    <div className="space-y-4">
-                        <ExecutionSettings form={form} />
-                    </div>
-                );
-            case 5:
                 return (
                     <div className="space-y-4">
                         <GenerationSettings form={form} />

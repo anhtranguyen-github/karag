@@ -29,16 +29,40 @@ export function EmbeddingProviderSelector({ form }: EmbeddingSettingsProps) {
     });
 
     const providers = [
-        { id: 'openai', label: 'OpenAI', icon: Cloud },
-        { id: 'azure', label: 'Azure OpenAI', icon: ShieldCheck },
-        { id: 'voyage', label: 'Voyage AI', icon: Cloud },
-        { id: 'cohere', label: 'Cohere', icon: Cloud },
-        { id: 'huggingface', label: 'HuggingFace', icon: Server },
-        { id: 'ollama', label: 'Ollama', icon: Cpu },
-        { id: 'llama', label: 'LLaMA Local', icon: Cpu },
-        { id: 'cdp2', label: 'LLaMA CDP2', icon: Database },
-        { id: 'vlm', label: 'Multimodal VLM', icon: Brain },
+        { id: 'openai', label: 'OpenAI', icon: Cloud, defaultModel: 'text-embedding-3-small' },
+        { id: 'azure', label: 'Azure OpenAI', icon: ShieldCheck, defaultModel: 'text-embedding-ada-002' },
+        { id: 'voyage', label: 'Voyage AI', icon: Cloud, defaultModel: 'voyage-large-2' },
+        { id: 'cohere', label: 'Cohere', icon: Cloud, defaultModel: 'embed-english-v3.0' },
+        { id: 'huggingface', label: 'HuggingFace', icon: Server, defaultModel: 'bge-base-en-v1.5' },
+        { id: 'ollama', label: 'Ollama', icon: Cpu, defaultModel: 'nomic-embed-text' },
+        { id: 'llama', label: 'LLaMA Local', icon: Cpu, defaultModel: 'llama-embedding-7b' },
+        { id: 'cdp2', label: 'LLaMA CDP2', icon: Database, defaultModel: 'cdp2-embedding-base' },
+        { id: 'vlm', label: 'Multimodal VLM', icon: Brain, defaultModel: 'vlm-clip-vit-b32' },
     ];
+
+    const handleProviderSelect = (p: typeof providers[0]) => {
+        // Set provider first to update UI highlight immediately
+        setValue('embedding.provider', p.id as any);
+        // Set default model for this provider
+        setValue('embedding.model', p.defaultModel as any);
+
+        // Reset/Set provider specific defaults
+        if (p.id === 'openai') {
+            setValue('embedding.batch_size', 32);
+            setValue('embedding.timeout_ms', 30000);
+        } else if (p.id === 'azure') {
+            setValue('embedding.batch_size', 32);
+            setValue('embedding.timeout_ms', 30000);
+            setValue('embedding.deployment_name', 'text-embedding-ada-002');
+            setValue('embedding.api_version', '2023-05-15');
+        } else if (p.id === 'cohere') {
+            setValue('embedding.input_type', 'search_query');
+            setValue('embedding.truncate', 'END');
+        } else if (p.id === 'huggingface') {
+            setValue('embedding.device', 'cpu');
+            setValue('embedding.normalize_embeddings', true);
+        }
+    };
 
     return (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -50,7 +74,7 @@ export function EmbeddingProviderSelector({ form }: EmbeddingSettingsProps) {
                     <button
                         key={p.id}
                         type="button"
-                        onClick={() => setValue('embedding.provider', p.id as any)}
+                        onClick={() => handleProviderSelect(p)}
                         className={cn(
                             "p-3 rounded-xl border text-left transition-all group",
                             isActive
