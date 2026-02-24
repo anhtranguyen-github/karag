@@ -21,6 +21,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { API_ROUTES } from '@/lib/api-config';
 import { SourceViewer } from '@/components/source-viewer';
+import { useToast } from '@/context/toast-context';
 
 interface Document {
     id: string;
@@ -37,6 +38,7 @@ export default function KnowledgePage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeSource, setActiveSource] = useState<{ id: number; name: string; content: string } | null>(null);
     const [isViewing, setIsViewing] = useState(false);
+    const toast = useToast();
 
     const fetchDocuments = async () => {
         try {
@@ -88,14 +90,21 @@ export default function KnowledgePage() {
     };
 
     const handleDelete = async (name: string) => {
+        const toastId = toast.loading(`Deleting ${name}...`);
         try {
             const res = await fetch(API_ROUTES.DOCUMENT_DELETE(name), {
                 method: 'DELETE',
             });
+            toast.dismiss(toastId);
             if (res.ok) {
+                toast.success(`Successfully deleted ${name}`);
                 setDocuments((prev) => prev.filter((d) => d.name !== name));
+            } else {
+                toast.error(`Failed to delete ${name}`);
             }
         } catch (err) {
+            toast.dismiss(toastId);
+            toast.error(`Network error deleting ${name}`);
             console.error('Failed to delete document', err);
         }
     };

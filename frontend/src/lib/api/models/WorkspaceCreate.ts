@@ -169,6 +169,30 @@ export interface WorkspaceCreate {
      * @memberof WorkspaceCreate
      */
     runtimeTraceLevel?: string;
+    /**
+     * 
+     * @type {object}
+     * @memberof WorkspaceCreate
+     */
+    embedding?: any;
+    /**
+     * 
+     * @type {object}
+     * @memberof WorkspaceCreate
+     */
+    retrieval?: any;
+    /**
+     * 
+     * @type {object}
+     * @memberof WorkspaceCreate
+     */
+    generation?: any;
+    /**
+     * 
+     * @type {object}
+     * @memberof WorkspaceCreate
+     */
+    chunking?: any;
 }
 
 
@@ -225,6 +249,10 @@ export function WorkspaceCreateFromJSONTyped(json: any, ignoreDiscriminator: boo
         'runtimeMode': json['runtime_mode'] == null ? undefined : json['runtime_mode'],
         'runtimeStreamThoughts': json['runtime_stream_thoughts'] == null ? undefined : json['runtime_stream_thoughts'],
         'runtimeTraceLevel': json['runtime_trace_level'] == null ? undefined : json['runtime_trace_level'],
+        'embedding': json['embedding'] == null ? undefined : json['embedding'],
+        'retrieval': json['retrieval'] == null ? undefined : json['retrieval'],
+        'generation': json['generation'] == null ? undefined : json['generation'],
+        'chunking': json['chunking'] == null ? undefined : json['chunking'],
     };
 }
 
@@ -264,6 +292,10 @@ export function WorkspaceCreateToJSONTyped(value?: WorkspaceCreate | null, ignor
         'runtime_mode': value['runtimeMode'],
         'runtime_stream_thoughts': value['runtimeStreamThoughts'],
         'runtime_trace_level': value['runtimeTraceLevel'],
+        'embedding': value['embedding'],
+        'retrieval': value['retrieval'],
+        'generation': value['generation'],
+        'chunking': value['chunking'],
     };
 }
 

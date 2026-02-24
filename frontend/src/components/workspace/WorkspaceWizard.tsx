@@ -114,6 +114,12 @@ export function WorkspaceWizard({ isOpen, onClose }: WorkspaceWizardProps) {
                 workspaceCreate: {
                     name: values.name,
                     description: values.description,
+                    // Direct nested objects (Backend now supports these)
+                    embedding: values.embedding,
+                    retrieval: values.retrieval,
+                    generation: values.generation,
+                    chunking: values.chunking,
+                    // Legacy flat fields (kept for compatibility)
                     embeddingProvider: values.embedding.provider,
                     embeddingModel: values.embedding.model,
                     embeddingDim: 1536,
@@ -123,8 +129,8 @@ export function WorkspaceWizard({ isOpen, onClose }: WorkspaceWizardProps) {
                     hybridAlpha: 0.5,
                     graphEnabled: values.retrieval.graph.enabled,
                     rerankerEnabled: values.retrieval.rerank.enabled,
-                    rerankerProvider: "none",
-                    rerankTopK: 3,
+                    rerankerProvider: values.retrieval.rerank.provider || "none",
+                    rerankTopK: values.retrieval.rerank.top_n || 3,
                     agenticEnabled: true,
                     llmProvider: values.generation.provider,
                     llmModel: values.generation.model,
@@ -192,15 +198,15 @@ export function WorkspaceWizard({ isOpen, onClose }: WorkspaceWizardProps) {
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             <div className="space-y-4">
                                 <label className="text-xs font-bold uppercase text-gray-400 tracking-wider">Select Provider</label>
-                                <EmbeddingProviderSelector form={form} />
+                                <EmbeddingProviderSelector />
                             </div>
                             <div className="space-y-6">
                                 <div className="space-y-4">
                                     <label className="text-xs font-bold uppercase text-gray-400 tracking-wider">Model Configuration</label>
-                                    <EmbeddingModelSelector form={form} />
+                                    <EmbeddingModelSelector />
                                 </div>
                                 <div className="pt-4 border-t border-white/5">
-                                    <EmbeddingConfigDetails form={form} />
+                                    <EmbeddingConfigDetails />
                                 </div>
                             </div>
                         </div>
@@ -211,12 +217,11 @@ export function WorkspaceWizard({ isOpen, onClose }: WorkspaceWizardProps) {
                     <div className="space-y-6">
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                             <div className="lg:col-span-1 space-y-4">
-                                <label className="text-xs font-bold uppercase text-gray-400 tracking-wider">Strategy</label>
-                                <ChunkingStrategySelector form={form} />
+                                <ChunkingStrategySelector />
                             </div>
                             <div className="lg:col-span-2 space-y-4">
                                 <label className="text-xs font-bold uppercase text-gray-400 tracking-wider">Detailed Parameters</label>
-                                <ChunkingStrategyDetails form={form} />
+                                <ChunkingStrategyDetails />
                             </div>
                         </div>
                     </div>

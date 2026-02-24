@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { API_ROUTES } from '@/lib/api-config';
 import { useError } from '@/context/error-context';
+import { useToast } from '@/context/toast-context';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Modal } from '@/components/ui/modal';
@@ -31,6 +32,7 @@ interface DocumentManagerProps {
 
 export function DocumentManager({ workspaceId, isGlobal = false }: DocumentManagerProps) {
     const { showError } = useError();
+    const toast = useToast();
 
     const [documents, setDocuments] = useState<Document[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -102,7 +104,11 @@ export function DocumentManager({ workspaceId, isGlobal = false }: DocumentManag
 
     const confirmDelete = async () => {
         if (!docToDelete) return;
-        setIsDeletingFile(true);
+        const docName = docToDelete.filename;
+        const toastId = toast.loading(`Deleting ${docName}...`);
+
+        setDocToDelete(null); // Close modal immediately
+
         try {
             const isVault = !workspaceId;
             const url = isVault
@@ -110,17 +116,17 @@ export function DocumentManager({ workspaceId, isGlobal = false }: DocumentManag
                 : `${API_ROUTES.DOCUMENTS}/${encodeURIComponent(docToDelete.filename)}?workspace_id=${encodeURIComponent(workspaceId!)}`;
 
             const res = await fetch(url, { method: 'DELETE' });
+            toast.dismiss(toastId);
             if (res.ok) {
+                toast.success(`Successfully deleted ${docName}`);
                 setDocuments(prev => prev.filter(d => d.id !== docToDelete.id));
                 if (selectedDoc?.id === docToDelete.id) setSelectedDoc(null);
-                setDocToDelete(null);
             } else {
-                showError("Delete Failed", "Unable to remove document.");
+                toast.error(`Failed to delete ${docName}`);
             }
         } catch {
-            showError("Connection Error", "Failed to reach document service.");
-        } finally {
-            setIsDeletingFile(false);
+            toast.dismiss(toastId);
+            toast.error(`Network error deleting ${docName}`);
         }
     };
 

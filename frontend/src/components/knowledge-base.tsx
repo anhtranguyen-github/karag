@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useError } from '@/context/error-context';
 import { getIllegalCharsFound } from '@/lib/constants';
 import { useTasks } from '@/context/task-context';
+import { useToast } from '@/context/toast-context';
 import {
     Select,
     SelectContent,
@@ -97,6 +98,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
     const [documents, setDocuments] = useState<Document[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const { showError } = useError();
+    const toast = useToast();
     const { recentCompletedTasks } = useTasks();
     const [activeSource, setActiveSource] = useState<{ id: number; name: string; content: string | null; download_url?: string } | null>(null);
     const [shareTarget, setShareTarget] = useState('');
@@ -126,6 +128,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
 
     // Detailed Management State
     const [detailsDoc, setDetailsDoc] = useState<DocDetails | null>(null);
+    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [isDetailsLoading, setIsDetailsLoading] = useState(false);
     const [isWorkspaceModalOpen, setIsWorkspaceModalOpen] = useState(false);
     const [confirmingAction, setConfirmingAction] = useState<{
@@ -405,7 +408,9 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
 
     const handleConfirmLink = async () => {
         if (!duplicateData) return;
-        setIsLinking(true);
+        const toastId = toast.loading(`Linking ${duplicateData.name}...`);
+        setDuplicateData(null); // Close modal immediately
+
         try {
             const res = await fetch(API_ROUTES.DOCUMENTS_UPDATE_WS, {
                 method: 'POST',
@@ -418,22 +423,25 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                 })
             });
 
+            toast.dismiss(toastId);
             if (res.ok) {
-                setDuplicateData(null);
+                toast.success(`Successfully linked ${duplicateData.name}`);
                 fetchDocuments();
             } else {
                 const payload = await res.json();
-                showError("Link Failed", payload.message || 'Could not link existing document.');
+                toast.error(`Link Failed: ${payload.message || 'Could not link document'}`);
             }
         } catch (err) {
-            console.error('Link error:', err);
-            showError("Network Error", "Transmission interrupted.");
-        } finally {
-            setIsLinking(false);
+            toast.dismiss(toastId);
+            toast.error("Network Error: Transmission interrupted.");
         }
     };
 
     const handleDelete = async (id: string, vaultDelete: boolean = false) => {
+        const docName = deletingDoc?.name || "document";
+        const toastId = toast.loading(`${vaultDelete ? 'Purging' : 'Removing'} ${docName}...`);
+        setDeletingDoc(null); // Close modal immediately
+
         try {
             const url = new URL(API_ROUTES.DOCUMENT_DELETE(id));
             const targetWs = deleteTargetWs || deletingDoc?.workspace_id || workspaceId;
@@ -446,17 +454,17 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
             const res = await fetch(url.toString(), {
                 method: 'DELETE',
             });
+            toast.dismiss(toastId);
             if (res.ok) {
+                toast.success(`${docName} ${vaultDelete ? 'purged globally' : 'removed from workspace'}`);
                 setDocuments((prev) => prev.filter((d) => d.id !== id));
-                setDeletingDoc(null);
             } else {
                 const payload = await res.json();
-                showError("Operation Failed", payload.message || 'Document deletion failed.', `ID: ${id}`);
+                toast.error(`${docName} delete failed: ${payload.message || 'Operation failed'}`);
             }
         } catch (err) {
-            console.error('Failed to delete document', err);
-            const errorMessage = err instanceof Error ? err.message : 'Failed to complete deletion request.';
-            showError("Network Error", errorMessage);
+            toast.dismiss(toastId);
+            toast.error(`Network error while deleting ${docName}`);
         }
     };
     /* // handleManage and handleIndex are currently unused but kept for future features
@@ -518,8 +526,9 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         }
     };
 
-    const handleDetailView = async (doc: Document) => {
+    const handleDetailView = async (doc: Document, showModal = true) => {
         setIsDetailsLoading(true);
+        if (showModal) setIsDetailsModalOpen(true);
         const docId = doc.id || doc.name;
         try {
             const res = await fetch(`${API_ROUTES.DOCUMENTS}/${encodeURIComponent(docId)}/inspect`);
@@ -539,8 +548,8 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
     const handleOpenWorkspaceManagement = async (doc: Document) => {
         setManagingDoc(doc);
         setIsWorkspaceModalOpen(true);
-        // We also load details for this modal to show existing indexings
-        handleDetailView(doc);
+        // We also load details for this modal to show existing indexings, but we don't want the details modal itself to open
+        handleDetailView(doc, false);
     };
 
     const formatSize = (size?: number | string) => {
@@ -1113,8 +1122,11 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
             {/* Details Modal */}
             {/* Remade Details Modal */}
             <Modal
-                isOpen={!!detailsDoc}
-                onClose={() => setDetailsDoc(null)}
+                isOpen={isDetailsModalOpen}
+                onClose={() => {
+                    setIsDetailsModalOpen(false);
+                    setDetailsDoc(null);
+                }}
                 title={(
                     <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-3">
@@ -1229,7 +1241,10 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
             {/* Workspace Indexing Management Modal */}
             <Modal
                 isOpen={isWorkspaceModalOpen}
-                onClose={() => setIsWorkspaceModalOpen(false)}
+                onClose={() => {
+                    setIsWorkspaceModalOpen(false);
+                    setDetailsDoc(null);
+                }}
                 title={(
                     <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500 border border-indigo-500/20">
@@ -1387,9 +1402,14 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                         <button
                             onClick={async () => {
                                 if (!managingDoc || !confirmingAction) return;
-                                setIsManaging(true);
+                                const isIndexing = confirmingAction.type === 'index';
+                                const toastId = toast.loading(`${isIndexing ? 'Indexing' : 'Removing interface'} for ${managingDoc.name}...`);
+
+                                setConfirmingAction(null);
+                                setIsWorkspaceModalOpen(false); // Close modals immediately
+
                                 try {
-                                    if (confirmingAction.type === 'index') {
+                                    if (isIndexing) {
                                         const res = await fetch(API_ROUTES.DOCUMENTS_UPDATE_WS, {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json' },
@@ -1399,29 +1419,29 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                                 action: 'link'
                                             })
                                         });
+                                        toast.dismiss(toastId);
                                         if (res.ok) {
-                                            setConfirmingAction(null);
-                                            setIsWorkspaceModalOpen(false);
+                                            toast.success(`Indexing started for ${managingDoc.name} in ${confirmingAction.workspace_name}`);
                                             fetchDocuments();
                                         } else {
-                                            showError("Action Failed", "Inference initiation failure.");
+                                            toast.error(`Failed to start indexing for ${managingDoc.name}`);
                                         }
                                     } else {
                                         const res = await fetch(`${API_ROUTES.DOCUMENTS}/${encodeURIComponent(managingDoc.id!)}?workspace_id=${encodeURIComponent(confirmingAction.workspace_id)}&vault_delete=false`, {
                                             method: 'DELETE'
                                         });
+                                        toast.dismiss(toastId);
                                         if (res.ok) {
-                                            setConfirmingAction(null);
-                                            handleDetailView(managingDoc);
+                                            toast.success(`Removed ${managingDoc.name} from ${confirmingAction.workspace_name}`);
+                                            handleDetailView(managingDoc, false);
                                             fetchDocuments();
                                         } else {
-                                            showError("Action Failed", "Index removal failure.");
+                                            toast.error(`Failed to remove ${managingDoc.name} from workspace`);
                                         }
                                     }
                                 } catch (_err) {
-                                    showError("Network Error", "Protocol synchronization error.");
-                                } finally {
-                                    setIsManaging(false);
+                                    toast.dismiss(toastId);
+                                    toast.error("Network Error: Protocol synchronization failure.");
                                 }
                             }}
                             disabled={isManaging}

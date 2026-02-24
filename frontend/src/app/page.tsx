@@ -11,14 +11,15 @@ import { QuickViewWorkspaceModal } from "@/components/workspace/quick-view-modal
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Search, Trash2, Eye, Database, Plus, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useToast } from "@/context/toast-context";
 
 export default function Home() {
   const router = useRouter();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [workspaceToDelete, setWorkspaceToDelete] = useState<Workspace | null>(null);
   const [workspaceToView, setWorkspaceToView] = useState<Workspace | null>(null);
 
@@ -47,15 +48,20 @@ export default function Home() {
   const handleConfirmDelete = async (vaultDelete: boolean) => {
     if (!workspaceToDelete) return;
 
-    setIsDeleting(workspaceToDelete.id);
+    const wsName = workspaceToDelete.name;
+    const toastId = toast.loading(`${vaultDelete ? 'Purging' : 'Removing'} workspace ${wsName}...`);
+
+    setWorkspaceToDelete(null); // Close modal immediately
+
     try {
       await api.deleteWorkspaceWorkspacesWorkspaceIdDelete({ workspaceId: workspaceToDelete.id, vaultDelete });
+      toast.dismiss(toastId);
+      toast.success(`Workspace ${wsName} successfully ${vaultDelete ? 'purged' : 'removed'}`);
       setWorkspaces(workspaces.filter(ws => ws.id !== workspaceToDelete.id));
-      setWorkspaceToDelete(null);
     } catch (error) {
+      toast.dismiss(toastId);
+      toast.error(`Failed to delete workspace ${wsName}`);
       console.error("Failed to delete workspace:", error);
-    } finally {
-      setIsDeleting(null);
     }
   };
 
@@ -218,7 +224,6 @@ export default function Home() {
         onClose={() => setWorkspaceToDelete(null)}
         onConfirm={handleConfirmDelete}
         workspace={workspaceToDelete}
-        isDeleting={!!isDeleting}
       />
 
       <QuickViewWorkspaceModal

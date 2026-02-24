@@ -42,8 +42,18 @@ def build_rag_graph():
         "init", init_router, {"retrieve": "retrieve", "analyze": "analyze"}
     )
 
-    # Flow: Analyze -> Build Query
-    workflow.add_edge("analyze", "build_query")
+    # Flow: Analyze -> Build Query or Generate (for greetings)
+    def analyze_router(state: GraphState):
+        intent = state.get("intent_analysis", "").lower()
+        if "greeting" in intent:
+            return "assemble"
+        return "build_query"
+
+    workflow.add_conditional_edges(
+        "analyze", 
+        analyze_router, 
+        {"build_query": "build_query", "assemble": "assemble"}
+    )
 
     # Flow: Build Query -> Retrieve
     workflow.add_edge("build_query", "retrieve")

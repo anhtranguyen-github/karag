@@ -37,42 +37,32 @@ class WorkspaceCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=50, pattern=r"^[\w\s.-]+$")
     description: Optional[str] = Field(None, max_length=200)
 
-    # Component 1: Embedding
+    # Grouped Component configurations
+    embedding: Optional[dict] = Field(default_factory=dict)
+    retrieval: Optional[dict] = Field(default_factory=dict)
+    generation: Optional[dict] = Field(default_factory=dict)
+    chunking: Optional[dict] = Field(default_factory=dict)
+
+    # Legacy flat fields for backward compatibility
     embedding_provider: str = "openai"
     embedding_model: str = "text-embedding-3-small"
     embedding_dim: int = 1536
-
-    # Component 2: Retrieval
     rag_engine: Literal["basic", "graph"] = "basic"
     search_limit: int = Field(5, ge=1, le=50)
     recall_k: int = Field(20, ge=1, le=100)
     hybrid_alpha: float = Field(0.5, ge=0.0, le=1.0)
-
-    # Component 3: Graph
     graph_enabled: bool = True
-
-    # Component 4: Reranking
     reranker_enabled: bool = False
     reranker_provider: str = "none"
     rerank_top_k: int = Field(3, ge=1, le=15)
-
-    # Component 5: Agentic
     agentic_enabled: bool = True
-
-    # Component 6: Generation
     llm_provider: str = "openai"
     llm_model: str = "gpt-4o"
     temperature: float = Field(0.7, ge=0.0, le=2.0)
-
-    # Component 8: Runtime
     runtime_mode: Literal["auto", "fast", "think", "deep"] = "auto"
     runtime_stream_thoughts: bool = True
     runtime_trace_level: Literal["basic", "detailed", "debug"] = "detailed"
-
-    # Component 7: Ingestion
-    chunking_strategy: Literal[
-        "recursive", "sentence", "token", "semantic", "fixed", "document"
-    ] = "recursive"
+    chunking_strategy: Literal["recursive", "sentence", "token", "semantic", "fixed", "document"] = "recursive"
     chunk_size: int = Field(800, ge=100, le=4000)
     chunk_overlap: int = Field(150, ge=0, le=1000)
 

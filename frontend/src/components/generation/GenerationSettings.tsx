@@ -20,6 +20,8 @@ import { Slider } from '@/components/ui/slider';
 import { Bot, Zap, Cpu, ScanEye, Code2, Settings2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { GenerationConfig } from '@/lib/schemas/generation';
+import { SchemaForm } from '@/components/ui/schema-form';
+import { GENERATION_SCHEMAS } from '@/lib/schemas/ui-schemas';
 
 const GENERATION_PROVIDERS = [
     { id: 'openai', name: 'OpenAI', icon: Zap, models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4.1'] },
@@ -36,15 +38,22 @@ interface GenerationSettingsProps {
 }
 
 export function GenerationSettings({ form }: GenerationSettingsProps) {
+    'use no memo';
     const { control, setValue } = form;
     const provider = useWatch({
         control,
         name: 'generation.provider'
     });
+    const [localProvider, setLocalProvider] = React.useState(provider);
+
+    // Keep local state in sync if provider changes from outside
+    React.useEffect(() => {
+        setLocalProvider(provider);
+    }, [provider]);
 
     const selectedProvider = useMemo(() =>
-        GENERATION_PROVIDERS.find(p => p.id === provider)
-        , [provider]);
+        GENERATION_PROVIDERS.find(p => p.id === localProvider)
+        , [localProvider]);
 
     const sectionClass = "p-5 rounded-2xl bg-card border border-border shadow-sm mb-6";
     const labelClass = "text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1.5 block";
@@ -65,12 +74,13 @@ export function GenerationSettings({ form }: GenerationSettingsProps) {
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-8">
                     {GENERATION_PROVIDERS.map((p) => {
                         const Icon = p.icon;
-                        const isSelected = provider === p.id;
+                        const isSelected = localProvider === p.id;
                         return (
                             <button
                                 key={p.id}
                                 type="button"
                                 onClick={() => {
+                                    setLocalProvider(p.id as any);
                                     setValue('generation.provider', p.id as any);
                                     setValue('generation.model', p.models[0] as any);
                                     setValue('generation.temperature', 0.7);
@@ -133,188 +143,21 @@ export function GenerationSettings({ form }: GenerationSettingsProps) {
                 </div>
             </div>
 
-            {/* 2. Core Hyperparameters */}
+            {/* 2. Core Hyperparameters & Provider Specific */}
             <div className={sectionClass}>
                 <div className="flex items-center gap-2 mb-6">
                     <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500">
                         <Zap size={16} />
                     </div>
                     <div>
-                        <h3 className="text-sm font-bold text-foreground">Sampling Parameters</h3>
+                        <h3 className="text-sm font-bold text-foreground">Configuration</h3>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-2">
-                    <FormField
-                        control={form.control}
-                        name="generation.temperature"
-                        render={({ field }) => (
-                            <FormItem>
-                                <div className="flex justify-between items-center mb-2 font-bold tracking-tight">
-                                    <FormLabel className={labelClass}>Temperature</FormLabel>
-                                    <span className="text-indigo-500 text-[10px] font-mono">{field.value}</span>
-                                </div>
-                                <FormControl>
-                                    <Slider min={0} max={2} step={0.1} value={[field.value]} onValueChange={(v: number[]) => field.onChange(v[0])} />
-                                </FormControl>
-                            </FormItem>
-                        )}
-                    />
-
-                    <FormField
-                        control={form.control}
-                        name="generation.max_output_tokens"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className={labelClass}>Max Output Tokens</FormLabel>
-                                <FormControl>
-                                    <Input type="number" {...field} className="h-9 rounded-xl bg-background border-border text-xs" onChange={e => field.onChange(parseInt(e.target.value))} />
-                                </FormControl>
-                            </FormItem>
-                        )}
-                    />
-
-                    <FormField
-                        control={form.control}
-                        name="generation.presence_penalty"
-                        render={({ field }) => (
-                            <FormItem>
-                                <div className="flex justify-between items-center mb-2 font-bold tracking-tight">
-                                    <FormLabel className={labelClass}>Presence Penalty</FormLabel>
-                                    <span className="text-indigo-500 text-[10px] font-mono">{field.value}</span>
-                                </div>
-                                <Slider min={-2} max={2} step={0.1} value={[field.value || 0]} onValueChange={(v: number[]) => field.onChange(v[0])} />
-                            </FormItem>
-                        )}
-                    />
-
-                    <FormField
-                        control={form.control}
-                        name="generation.frequency_penalty"
-                        render={({ field }) => (
-                            <FormItem>
-                                <div className="flex justify-between items-center mb-2 font-bold tracking-tight">
-                                    <FormLabel className={labelClass}>Frequency Penalty</FormLabel>
-                                    <span className="text-indigo-500 text-[10px] font-mono">{field.value}</span>
-                                </div>
-                                <Slider min={-2} max={2} step={0.1} value={[field.value || 0]} onValueChange={(v: number[]) => field.onChange(v[0])} />
-                            </FormItem>
-                        )}
-                    />
+                <div className="px-2">
+                    <SchemaForm schema={GENERATION_SCHEMAS[localProvider] || GENERATION_SCHEMAS['openai']} gridCols={2} />
                 </div>
             </div>
-
-            {/* 3. Provider Specific / Advanced */}
-            {(provider === 'azure' || provider === 'llama' || provider === 'vlm' || provider === 'cdp2') && (
-                <div className={cn(sectionClass, "bg-indigo-500/5")}>
-                    <div className="flex items-center gap-2 mb-6">
-                        <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-500">
-                            <Settings2 size={16} />
-                        </div>
-                        <div>
-                            <h3 className="text-sm font-bold text-foreground">Hardware & API Config</h3>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-2">
-                        {provider === 'azure' && (
-                            <>
-                                <FormField
-                                    control={form.control}
-                                    name="generation.deployment_name"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className={labelClass}>Deployment Name</FormLabel>
-                                            <Input {...field} className="h-9 rounded-xl bg-background border-border text-xs" />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="generation.api_version"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className={labelClass}>API Version</FormLabel>
-                                            <Input {...field} className="h-9 rounded-xl bg-background border-border text-xs" />
-                                        </FormItem>
-                                    )}
-                                />
-                            </>
-                        )}
-
-                        {provider === 'llama' && (
-                            <>
-                                <FormField
-                                    control={form.control}
-                                    name="generation.device"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className={labelClass}>Compute Device</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
-                                                <SelectTrigger className="h-9 rounded-xl bg-background border-border text-xs"><SelectValue /></SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="cpu">CPU</SelectItem>
-                                                    <SelectItem value="cuda">CUDA</SelectItem>
-                                                    <SelectItem value="mps">MPS</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="generation.quantization"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className={labelClass}>Quantization</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
-                                                <SelectTrigger className="h-9 rounded-xl bg-background border-border text-xs"><SelectValue /></SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="fp16">FP16</SelectItem>
-                                                    <SelectItem value="int8">INT8</SelectItem>
-                                                    <SelectItem value="int4">INT4</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </FormItem>
-                                    )}
-                                />
-                            </>
-                        )}
-
-                        {provider === 'vlm' && (
-                            <>
-                                <FormField
-                                    control={form.control}
-                                    name="generation.input_modalities"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className={labelClass}>Modalities</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
-                                                <SelectTrigger className="h-9 rounded-xl bg-background border-border text-xs"><SelectValue /></SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="text">Text</SelectItem>
-                                                    <SelectItem value="image">Image</SelectItem>
-                                                    <SelectItem value="both">Both</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="generation.image_max_resolution"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className={labelClass}>Max Image Res</FormLabel>
-                                            <Input type="number" {...field} className="h-9 rounded-xl bg-background border-border text-xs" />
-                                        </FormItem>
-                                    )}
-                                />
-                            </>
-                        )}
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

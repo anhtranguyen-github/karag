@@ -32,6 +32,15 @@ async def analyze_intent(state: GraphState, config: RunnableConfig) -> Dict[str,
     if mode == ExecutionMode.FAST:
         return {"intent_analysis": "direct", "confidence_level": 1.0}
 
+    import re
+    greetings = r"^(hello|hi|hey|greetings|howdy|what's up|hi there|hello there)(\s[a-z]+)*[!?.]*$"
+    if re.match(greetings, state["query"].lower().strip()):
+        return {
+            "intent_analysis": "greeting", 
+            "confidence_level": 1.0,
+            "execution_metadata": {**state.get("execution_metadata", {}), "intent": "greeting"}
+        }
+
     llm = await LangChainFactory.get_llm(state["workspace_id"])
     system_prompt = (
         "Analyze the user query. Classify it as 'simple', 'complex', or 'ambiguous'. "
@@ -184,10 +193,10 @@ async def reflect_and_decide(
 async def assemble_context(state: GraphState) -> Dict[str, Any]:
     """Final stage of context preparation before generation."""
     return {
-        "final_context": state["blended_context"],
+        "final_context": state.get("blended_context", ""),
         "execution_metadata": {
-            **state["execution_metadata"],
-            "nodes_visited": state["execution_metadata"]["nodes_visited"]
+            **state.get("execution_metadata", {}),
+            "nodes_visited": state.get("execution_metadata", {}).get("nodes_visited", [])
             + ["assemble"],
         },
     }

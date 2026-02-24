@@ -192,6 +192,20 @@ export function ChatInterface({
                     console.error("Stream error:", err);
                     setIsLoading(false);
                     isStreaming.current = false;
+
+                    // Add a visible error message to the UI
+                    setMessages(prev => {
+                        const newMsgs = [...prev];
+                        const idx = newMsgs.findIndex(m => m.id === assistantMsgId);
+                        if (idx !== -1) {
+                            newMsgs[idx] = {
+                                ...newMsgs[idx],
+                                content: "Connection to the reasoning engine was lost. Please try again or check your cloud connectivity."
+                            };
+                        }
+                        return newMsgs;
+                    });
+
                     throw err; // Stop retrying
                 }
             });

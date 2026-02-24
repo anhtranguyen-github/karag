@@ -110,6 +110,12 @@ class WorkspaceService:
         # Persist RAG settings via SettingsManager
         # We include all possible fields from WorkspaceCreate to initialize the workspace config
         rag_fields = [
+            # Grouped object fields from the schema
+            "embedding",
+            "retrieval",
+            "generation",
+            "chunking",
+            # Legacy fields
             "rag_engine",
             "embedding_provider",
             "embedding_model",
@@ -133,8 +139,9 @@ class WorkspaceService:
             "runtime_mode",
             "runtime_stream_thoughts",
             "runtime_trace_level",
+            "chunking_strategy"
         ]
-        settings_to_apply = {k: data[k] for k in rag_fields if k in data}
+        settings_to_apply = {k: data[k] for k in rag_fields if k in data and data[k] is not None}
 
         # We bypass update_settings to avoid immutability check during initial creation
         await db["workspace_settings"].insert_one(

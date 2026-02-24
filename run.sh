@@ -166,21 +166,61 @@ boot_infra() {
     log_phase "BOOT (Infrastructure)"
 
     # Determine if Cloud Qdrant should be used (default preference)
-    local USE_CLOUD=false
+    local USE_CLOUD_QDRANT=false
     if [[ -n "${QDRANT_URL:-}" ]] && [[ "${QDRANT_URL:-}" != *"localhost"* ]] && [[ "${QDRANT_URL:-}" != *"127.0.0.1"* ]] && [[ -n "${QDRANT_API_KEY:-}" ]]; then
-        USE_CLOUD=true
+        log_info "Verifying Qdrant Cloud connectivity..."
+        if curl -s --connect-timeout 5 "${QDRANT_URL%/}/healthz" > /dev/null; then
+            USE_CLOUD_QDRANT=true
+        else
+            log_warn "Qdrant Cloud unreachable. Falling back to Local Container."
+        fi
     fi
 
     # Determine if Cloud MongoDB should be used
     local USE_CLOUD_MONGO=false
     if [[ "${MONGO_URI:-}" != *"localhost"* ]] && [[ "${MONGO_URI:-}" != *"127.0.0.1"* ]] && [[ -n "${MONGO_URI:-}" ]]; then
-        USE_CLOUD_MONGO=true
+        log_info "Verifying MongoDB Cloud connectivity..."
+        log_info "Testing URI: ${MONGO_URI:0:30}..."
+        
+        # Use uv to run a proper ping check via python if possible, as it handles SRV correctly
+        if [[ -d "backend" ]] && command -v uv >/dev/null 2>&1; then
+            # Using env var via os.getenv to avoid shell escaping issues with special characters in URI
+            if (cd backend && MONGO_URI="$MONGO_URI" uv run python3 -c "import pymongo; import os; pymongo.MongoClient(os.getenv('MONGO_URI'), serverSelectionTimeoutMS=5000).admin.command('ping')" > /dev/null 2>&1); then
+                USE_CLOUD_MONGO=true
+                log_info "Cloud Check: Success"
+            else
+                log_warn "Cloud Check: Failed"
+            fi
+        fi
+
+        # Fallback to TCP check if python check didn't confirm (for non-SRV or if uv is missing)
+        if [ "$USE_CLOUD_MONGO" = false ]; then
+            local mongo_host
+            mongo_host=$(echo "$MONGO_URI" | sed -e 's/mongodb+srv:\/\///' -e 's/mongodb:\/\///' -e 's/.*@//' -e 's/\/.*//' -e 's/:.*//' | cut -d',' -f1)
+            if command -v nc >/dev/null 2>&1 && nc -zw 5 "$mongo_host" 27017 >/dev/null 2>&1; then
+                 USE_CLOUD_MONGO=true
+            fi
+        fi
+        
+        if [ "$USE_CLOUD_MONGO" = true ]; then
+            log_info "Cloud Protocol Verified: Using MongoDB Atlas"
+        else
+            log_warn "MongoDB Cloud unreachable or IP not whitelisted. Falling back to Local Container."
+        fi
     fi
 
     # Determine if Cloud Neo4j should be used
     local USE_CLOUD_NEO4J=false
     if [[ "${NEO4J_URI:-}" != *"localhost"* ]] && [[ "${NEO4J_URI:-}" != *"127.0.0.1"* ]] && [[ -n "${NEO4J_URI:-}" ]]; then
-        USE_CLOUD_NEO4J=true
+        log_info "Verifying Neo4j Cloud connectivity..."
+        local neo_host
+        neo_host=$(echo "$NEO4J_URI" | sed -e 's/neo4j+s:\/\///' -e 's/neo4j:\/\///' -e 's/bolt:\/\///' -e 's/.*@//' -e 's/\/.*//' -e 's/:.*//')
+        if command -v nc >/dev/null 2>&1 && nc -zw 5 "$neo_host" 7687 >/dev/null 2>&1; then
+            USE_CLOUD_NEO4J=true
+            log_info "Cloud Protocol Verified: Using Neo4j Aura"
+        else
+            log_warn "Neo4j Cloud unreachable (DNS failure or Down). Falling back to Local Container."
+        fi
     fi
 
     log_info "Calculating infrastructure footprint..."
@@ -188,37 +228,32 @@ boot_infra() {
 
     if [ "$USE_CLOUD_MONGO" = false ]; then
         services="mongodb $services"
-    else
-        log_info "Cloud Protocol Detected: Using MongoDB Atlas/Cloud Cluster"
     fi
 
     if [ "$USE_CLOUD_NEO4J" = false ]; then
         services="neo4j $services"
-    else
-        log_info "Cloud Protocol Detected: Using Neo4j Aura/Cloud Instance"
     fi
 
     if [ "${TURBO_MODE:-}" != "true" ]; then
         services="$services jenkins sonarqube sonarqube_db"
-    else
-        log_warn "TURBO MODE: Skipping DevSecOps stack (Jenkins/SonarQube) for speed."
     fi
 
-    if [ "$USE_CLOUD" = true ]; then
-        log_info "Cloud Protocol Detected: Using Qdrant Cloud Cluster"
-    else
-        log_info "Cloud Protocol Missing or Local: Falling back to Docker Container"
+    if [ "$USE_CLOUD_QDRANT" = false ]; then
         services="qdrant $services"
-        # Ensure fallback URL is set if missing
-        [ -z "${QDRANT_URL:-}" ] && QDRANT_URL="http://localhost:6333"
+        # Ensure fallback URL is set if missing or pointing to cloud while we need local
+        if [[ "${QDRANT_URL:-}" != *"localhost"* ]] && [[ "${QDRANT_URL:-}" != *"127.0.0.1"* ]]; then
+            export QDRANT_URL="http://localhost:6333"
+            export QDRANT_API_KEY="local-dev-key"
+        fi
     fi
+
     # SC2086 fix: $services intentionally word-splits here; disable warning
     # shellcheck disable=SC2086
     $DOCKER_CMD up -d $services
 
     echo -n "Waiting for core services..."
     local count=0
-    if [ "$USE_CLOUD" = false ]; then
+    if [ "$USE_CLOUD_QDRANT" = false ]; then
         # Check health using the URL from config
         local HEALTH_URL="${QDRANT_URL%/}/healthz"
         while ! curl -s "$HEALTH_URL" > /dev/null; do
@@ -321,6 +356,10 @@ cmd_up() {
     fi
 
     boot_infra
+    
+    if [ "$CLEAR_CLOUD" == "true" ]; then cmd_nuke "--cloud"; fi
+    if [ "$CLEAR_LOCAL" == "true" ]; then cmd_nuke "--local"; fi
+
     launch_backend
     launch_frontend
 
@@ -358,6 +397,30 @@ cmd_build() {
     log_success "Build successful. Local code matches CI 'Production' behavior."
 }
 
+cmd_nuke() {
+    load_env
+    local target=$1
+    log_phase "NUKE (Purge Data)"
+    
+    if [[ "$target" == "--cloud" ]]; then
+        log_warn "Purging CLOUD data sources..."
+        uv run python3 scripts/purge_data.py \
+            --qdrant-url "${QDRANT_URL}" --qdrant-key "${QDRANT_API_KEY}" \
+            --mongo-uri "${MONGO_URI}" --mongo-db "${MONGO_DB}" \
+            --neo4j-uri "${NEO4J_URI}" --neo4j-user "${NEO4J_USER}" --neo4j-pwd "${NEO4J_PASSWORD}"
+    elif [[ "$target" == "--local" ]]; then
+        log_warn "Purging LOCAL data sources..."
+        uv run python3 scripts/purge_data.py \
+            --qdrant-url "http://localhost:6333" \
+            --mongo-uri "mongodb://localhost:27017" --mongo-db "karag_dev" \
+            --neo4j-uri "bolt://localhost:7687" --neo4j-user "neo4j" --neo4j-pwd "neo4j_password"
+    else
+        log_error "Please specify --cloud or --local for the nuke command."
+        exit 1
+    fi
+    log_success "Nuke operation complete."
+}
+
 cmd_test() {
     load_env
     preflight
@@ -382,6 +445,7 @@ show_help() {
     echo "  build        Run full production build pipeline (backend sync + next build)"
     echo "  test         Run backend and frontend unit/integration tests"
     echo "  infra        Only start infrastructure containers"
+    echo "  nuke         Purge all data from databases (requires --cloud or --local)"
     echo "  stop         Stop all processes and containers"
     echo "  clean        Nuke everything: stop, remove volumes, logs, and caches"
     echo "  status       Display heartbeat of all components"
@@ -392,6 +456,8 @@ show_help() {
     echo "  --force-clean    Clear all caches before starting"
     echo "  --turbo          Low footprint mode: skip verify + skip heavy containers"
     echo "  --prod           Run frontend in production mode (requires build)"
+    echo "  --clear-cloud    Purge cloud databases as part of the startup"
+    echo "  --clear-local    Purge local databases as part of the startup"
     echo ""
 }
 
@@ -405,6 +471,8 @@ SKIP_VERIFY=false
 LAX_MODE=false
 FORCE_CLEAN=false
 PROD_MODE=false
+CLEAR_CLOUD=false
+CLEAR_LOCAL=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -413,6 +481,8 @@ while [[ $# -gt 0 ]]; do
         --force-clean) FORCE_CLEAN=true; shift ;;
         --turbo)       TURBO_MODE=true; SKIP_VERIFY=true; shift ;;
         --prod)        PROD_MODE=true; shift ;;
+        --clear-cloud|--cloud) CLEAR_CLOUD=true; shift ;;
+        --clear-local|--local) CLEAR_LOCAL=true; shift ;;
         *) log_error "Unknown option: $1"; exit 1 ;;
     esac
 done
@@ -426,6 +496,14 @@ case "$COMMAND" in
         ;;
     verify) cmd_verify ;;
     build)  cmd_build ;;
+    nuke)
+        if [ "$CLEAR_CLOUD" == "true" ]; then cmd_nuke "--cloud"
+        elif [ "$CLEAR_LOCAL" == "true" ]; then cmd_nuke "--local"
+        else
+            log_error "Nuke requires --cloud or --local"
+            exit 1
+        fi
+        ;;
     test)   cmd_test ;;
     infra)
         load_env

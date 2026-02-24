@@ -23,6 +23,9 @@ import {
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 
+import { RUNTIME_SCHEMAS } from '@/lib/schemas/ui-schemas';
+import { SchemaForm } from '@/components/ui/schema-form';
+
 interface ExecutionSettingsProps {
     form: UseFormReturn<CreateWorkspaceInput>;
 }
@@ -39,7 +42,6 @@ export function ExecutionSettings({ form }: ExecutionSettingsProps) {
     ];
 
     const sectionClass = "p-5 rounded-2xl bg-card border border-border shadow-sm mb-6";
-    const labelClass = "text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1.5 block";
 
     return (
         <div className="space-y-0 pb-10">
@@ -94,108 +96,20 @@ export function ExecutionSettings({ form }: ExecutionSettingsProps) {
                 <div className="space-y-6 px-2">
                     {/* Mode-Specific Parameters */}
                     {currentMode === 'think' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in duration-300">
-                            <FormField
-                                control={form.control}
-                                name="runtime.think.max_loops"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <div className="flex justify-between items-center mb-2 font-bold tracking-tight">
-                                            <FormLabel className={labelClass}>Max Loops</FormLabel>
-                                            <span className="text-indigo-500 text-[10px] font-mono">{field.value || 5}</span>
-                                        </div>
-                                        <Slider min={1} max={10} step={1} value={[field.value || 5]} onValueChange={(v: number[]) => field.onChange(v[0])} />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="runtime.think.reflection_depth"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <div className="flex justify-between items-center mb-2 font-bold tracking-tight">
-                                            <FormLabel className={labelClass}>Reflection Depth</FormLabel>
-                                            <span className="text-indigo-500 text-[10px] font-mono">{field.value || 3}</span>
-                                        </div>
-                                        <Slider min={1} max={5} step={1} value={[field.value || 3]} onValueChange={(v: number[]) => field.onChange(v[0])} />
-                                    </FormItem>
-                                )}
-                            />
+                        <div className="animate-in fade-in duration-300">
+                            <SchemaForm schema={RUNTIME_SCHEMAS.think} gridCols={2} />
                         </div>
                     )}
 
                     {currentMode === 'deep' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in duration-300">
-                            <FormField
-                                control={form.control}
-                                name="runtime.deep.max_loops"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <div className="flex justify-between items-center mb-2 font-bold tracking-tight">
-                                            <FormLabel className={labelClass}>Multi-path Max Loops</FormLabel>
-                                            <span className="text-indigo-500 text-[10px] font-mono">{field.value || 10}</span>
-                                        </div>
-                                        <Slider min={1} max={20} step={1} value={[field.value || 10]} onValueChange={(v: number[]) => field.onChange(v[0])} />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="runtime.deep.multi_query_limit"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <div className="flex justify-between items-center mb-2 font-bold tracking-tight">
-                                            <FormLabel className={labelClass}>Query Expansion Limit</FormLabel>
-                                            <span className="text-indigo-500 text-[10px] font-mono">{field.value || 5}</span>
-                                        </div>
-                                        <Slider min={1} max={10} step={1} value={[field.value || 5]} onValueChange={(v: number[]) => field.onChange(v[0])} />
-                                    </FormItem>
-                                )}
-                            />
+                        <div className="animate-in fade-in duration-300">
+                            <SchemaForm schema={RUNTIME_SCHEMAS.deep} gridCols={2} />
                         </div>
                     )}
 
                     {/* Common Runtime Toggles */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-border/20 pt-8">
-                        <FormField
-                            control={form.control}
-                            name="runtime.stream_thoughts"
-                            render={({ field }) => (
-                                <FormItem className="flex items-center justify-between p-3 rounded-xl bg-background/50 border border-border">
-                                    <div className="space-y-0.5">
-                                        <div className="flex items-center gap-2 mb-0.5">
-                                            <Eye className="w-3.5 h-3.5 text-indigo-500" />
-                                            <FormLabel className="text-xs font-bold">Stream Thoughts</FormLabel>
-                                        </div>
-                                        <FormDescription className="text-[9px] text-muted-foreground">See internal reasoning LIVE</FormDescription>
-                                    </div>
-                                    <FormControl>
-                                        <Switch checked={field.value} onCheckedChange={field.onChange} />
-                                    </FormControl>
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="runtime.tracing.trace_level"
-                            render={({ field }) => (
-                                <FormItem className="flex items-center justify-between p-3 rounded-xl bg-background/50 border border-border">
-                                    <div className="space-y-0.5">
-                                        <div className="flex items-center gap-2 mb-0.5">
-                                            <Activity className="w-3.5 h-3.5 text-indigo-500" />
-                                            <FormLabel className="text-xs font-bold">Detailed Tracing</FormLabel>
-                                        </div>
-                                        <FormDescription className="text-[9px] text-muted-foreground">Deep observability for RAG</FormDescription>
-                                    </div>
-                                    <FormControl>
-                                        <Switch
-                                            checked={field.value === 'debug'}
-                                            onCheckedChange={(v: boolean) => field.onChange(v ? 'debug' : 'detailed')}
-                                        />
-                                    </FormControl>
-                                </FormItem>
-                            )}
-                        />
+                    <div className="border-t border-border/20 pt-8">
+                        <SchemaForm schema={RUNTIME_SCHEMAS.common} gridCols={2} />
                     </div>
                 </div>
             </div>
