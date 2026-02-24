@@ -6,6 +6,7 @@ from backend.app.rag.graph.nodes import (
     analyze_intent,
     build_query_context,
     retrieve_context,
+    web_search,
     blend_results,
     reflect_and_decide,
     assemble_context,
@@ -23,6 +24,7 @@ def build_rag_graph():
     workflow.add_node("analyze", analyze_intent)
     workflow.add_node("build_query", build_query_context)
     workflow.add_node("retrieve", retrieve_context)
+    workflow.add_node("web_search", web_search)
     workflow.add_node("blend", blend_results)
     workflow.add_node("reflect", reflect_and_decide)
     workflow.add_node("assemble", assemble_context)
@@ -32,20 +34,14 @@ def build_rag_graph():
     # 2. Define Edges & Routing Logic
     workflow.set_entry_point("init")
 
-    # Flow: Init -> Analyze (Context dependent) or Retrieve (FAST mode)
-    def init_router(state: GraphState):
-        if state["settings"].execution_mode == ExecutionMode.FAST:
-            return "retrieve"
-        return "analyze"
+    # Flow: Init -> Analyze
+    workflow.add_edge("init", "analyze")
 
-    workflow.add_conditional_edges(
-        "init", init_router, {"retrieve": "retrieve", "analyze": "analyze"}
-    )
-
-    # Flow: Analyze -> Build Query or Generate (for greetings)
+    # Flow: Analyze -> Build Query or Assemble (for direct/greetings)
     def analyze_router(state: GraphState):
         intent = state.get("intent_analysis", "").lower()
-        if "greeting" in intent:
+        # Direct means no retrieval, no search
+        if "[strategy: direct]" in intent or "greeting" in intent:
             return "assemble"
         return "build_query"
 
@@ -58,12 +54,17 @@ def build_rag_graph():
     # Flow: Build Query -> Retrieve
     workflow.add_edge("build_query", "retrieve")
 
-    # Flow: Retrieve -> Blend
-    workflow.add_edge("retrieve", "blend")
+    # Flow: Retrieve -> Web Search
+    workflow.add_edge("retrieve", "web_search")
+
+    # Flow: Web Search -> Blend
+    workflow.add_edge("web_search", "blend")
 
     # Conditional Branch: Reflection
     def should_reflect(state: GraphState):
-        if state["settings"].execution_mode in [
+        mode = state["settings"].execution_mode
+        # In AUTO, we can skip reflection if it was a simple Direct/Web hit, but for now reflect for consistency
+        if mode in [
             ExecutionMode.AUTO,
             ExecutionMode.THINK,
             ExecutionMode.DEEP,
@@ -88,12 +89,8 @@ def build_rag_graph():
     # Flow: Assemble -> Generate
     workflow.add_edge("assemble", "generate")
 
-    # Conditional Branch: Synthesis (Kept as fallback to END for now)
-    def should_synthesize(state: GraphState):
-        return END
-
-    workflow.add_conditional_edges("generate", should_synthesize, {END: END})
-
+    # Flow: Generate -> Synthesize -> END
+    workflow.add_edge("generate", "synthesize")
     workflow.add_edge("synthesize", END)
 
     return workflow.compile()

@@ -173,5 +173,5 @@ if __name__ == "__main__":
         "backend.app.main:app",
         host=karag_settings.BACKEND_HOST,
         port=karag_settings.BACKEND_PORT,
-        reload=False,
+        reload=True,
     )

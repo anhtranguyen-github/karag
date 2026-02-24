@@ -69,7 +69,7 @@ export function DocumentList({
                                     <>
                                         <span className="w-1 h-1 rounded-full bg-white/10" />
                                         <span className={cn(
-                                            "uppercase tracking-widest text-[10px]",
+                                            "tracking-widest text-[10px]",
                                             doc.status === "processing" || doc.status === "indexing" ? "text-blue-500 animate-pulse" :
                                                 doc.status === "failed" ? "text-red-500" :
                                                     "text-emerald-500"
@@ -84,13 +84,13 @@ export function DocumentList({
 
                     <div className="flex items-center gap-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                         {showAttach && onAttach && (
-                            <Button variant="ghost" size="sm" className="h-9 px-4 rounded-xl hover:bg-indigo-500/10 hover:text-indigo-400 text-gray-500 transition-all font-bold text-tiny uppercase tracking-widest" onClick={() => onAttach(doc.id)}>
+                            <Button variant="ghost" size="sm" className="h-9 px-4 rounded-xl hover:bg-indigo-500/10 hover:text-indigo-400 text-gray-500 transition-all font-bold text-tiny tracking-widest" onClick={() => onAttach(doc.id)}>
                                 <LinkIcon className="w-4 h-4 mr-2" />
                                 Attach
                             </Button>
                         )}
                         {showDetach && onDetach && (
-                            <Button variant="ghost" size="sm" className="h-9 px-4 rounded-xl hover:bg-amber-500/10 hover:text-amber-400 text-gray-500 transition-all font-bold text-tiny uppercase tracking-widest" onClick={() => onDetach(doc.id)}>
+                            <Button variant="ghost" size="sm" className="h-9 px-4 rounded-xl hover:bg-amber-500/10 hover:text-amber-400 text-gray-500 transition-all font-bold text-tiny tracking-widest" onClick={() => onDetach(doc.id)}>
                                 <ExternalLink className="w-4 h-4 mr-2" />
                                 Detach
                             </Button>

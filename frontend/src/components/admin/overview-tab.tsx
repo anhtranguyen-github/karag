@@ -23,7 +23,7 @@ export function OverviewTab({ parseMetric, settings }: OverviewTabProps) {
                 {cards.map((card) => (
                     <div key={card.label} className="bg-[#121214] border border-white/5 p-5 rounded-2xl group hover:border-white/10 transition-all flex items-center justify-between">
                         <div>
-                            <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">{card.label}</div>
+                            <div className="text-[10px] font-black text-gray-500 tracking-widest mb-1">{card.label}</div>
                             <div className="text-2xl font-black">{card.value}</div>
                             <div className="text-[10px] text-gray-600 font-bold mt-1">{card.sub}</div>
                         </div>
@@ -39,7 +39,7 @@ export function OverviewTab({ parseMetric, settings }: OverviewTabProps) {
                     <div className="absolute top-0 right-0 p-8 opacity-[0.02] transform translate-x-4 -translate-y-4">
                         <ShieldCheck size={180} />
                     </div>
-                    <h3 className="text-sm font-black uppercase tracking-wider mb-6 flex items-center gap-2">
+                    <h3 className="text-sm font-black tracking-wider mb-6 flex items-center gap-2">
                         <Package size={16} className="text-indigo-400" />
                         Infrastructure Manifest
                     </h3>
@@ -62,7 +62,7 @@ export function OverviewTab({ parseMetric, settings }: OverviewTabProps) {
                 </div>
 
                 <div className="bg-[#121214] border border-white/5 rounded-2xl p-6">
-                    <h3 className="text-sm font-black uppercase tracking-wider mb-6 flex items-center gap-2">
+                    <h3 className="text-sm font-black tracking-wider mb-6 flex items-center gap-2">
                         <BarChart4 size={16} className="text-purple-400" />
                         Runtime Environment
                     </h3>
@@ -76,7 +76,7 @@ export function OverviewTab({ parseMetric, settings }: OverviewTabProps) {
                             { label: 'Metrics', value: 'Prometheus (Scraped)' },
                         ].map((item) => (
                             <div key={item.label} className="p-3 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col gap-1">
-                                <span className="text-[9px] text-gray-600 font-black uppercase tracking-wider">{item.label}</span>
+                                <span className="text-[9px] text-gray-600 font-black tracking-wider">{item.label}</span>
                                 <span className="text-tiny font-bold text-white truncate">{item.value}</span>
                             </div>
                         ))}

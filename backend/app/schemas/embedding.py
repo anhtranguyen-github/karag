@@ -140,7 +140,13 @@ class VLMEmbeddingConfig(BaseModel):
         return 512 if self.model == "clip-vit-b32" else 768
 
 
-EmbeddingConfig = Annotated[
+class SparseEmbeddingConfig(BaseModel):
+    method: Literal["bm25", "splade", "elser"] = "bm25"
+    language: Literal["en", "vi", "multilingual"] = "en"
+    on_the_fly: bool = True
+
+
+DenseEmbeddingConfig = Annotated[
     Union[
         OpenAIEmbeddingConfig,
         AzureOpenAIEmbeddingConfig,
@@ -154,3 +160,20 @@ EmbeddingConfig = Annotated[
     ],
     Field(discriminator="provider"),
 ]
+
+
+class EmbeddingConfig(BaseModel):
+    dense: DenseEmbeddingConfig = Field(default_factory=lambda: OpenAIEmbeddingConfig())
+    sparse: SparseEmbeddingConfig = Field(default_factory=lambda: SparseEmbeddingConfig())
+
+    @property
+    def provider(self) -> str:
+        return self.dense.provider
+
+    @property
+    def model(self) -> str:
+        return self.dense.model
+
+    @property
+    def dimensions(self) -> int:
+        return self.dense.dimensions

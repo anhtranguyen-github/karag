@@ -50,8 +50,8 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                     <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
                 </div>
                 <div className="flex flex-col items-center gap-2">
-                    <span className="text-[10px] font-bold text-foreground tracking-[0.4em] animate-pulse">Loading settings</span>
-                    <span className="text-[9px] text-muted-foreground/40 font-bold tracking-widest">Identifying workspace...</span>
+                    <span className="text-[10px] font-bold text-foreground tracking-[0.4em] animate-pulse">loading settings</span>
+                    <span className="text-[9px] text-muted-foreground/40 font-bold tracking-widest">identifying workspace...</span>
                 </div>
             </div>
         );
@@ -97,11 +97,11 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
     };
 
     const tabs = [
-        { id: 'general', label: 'General', icon: SlidersHorizontal },
-        { id: 'chat', label: 'Chat', icon: Brain },
-        { id: 'ingestion', label: 'Ingestion', icon: Sparkles },
-        { id: 'retrieval', label: 'Retrieval', icon: Search },
-        { id: 'storage', label: 'Storage', icon: Database },
+        { id: 'general', label: 'general', icon: SlidersHorizontal },
+        { id: 'chat', label: 'chat', icon: Brain },
+        { id: 'ingestion', label: 'ingestion', icon: Sparkles },
+        { id: 'retrieval', label: 'retrieval', icon: Search },
+        { id: 'storage', label: 'storage', icon: Database },
     ] as const;
 
     const renderSettingRow = (key: keyof AppSettings, label: string, description: string) => {
@@ -242,7 +242,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                             {!mutable && (
                                 <div className="px-2 py-0.5 rounded-md bg-indigo-500/5 border border-indigo-500/10 flex items-center gap-1">
                                     <Lock size={12} className="text-indigo-500" />
-                                    <span className="text-xs font-medium text-indigo-500 tracking-wide">Protected</span>
+                                    <span className="text-xs font-medium text-indigo-500 tracking-wide">protected</span>
                                 </div>
                             )}
                         </div>
@@ -274,7 +274,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
             {/* Modern Sidebar */}
             <aside className="w-[280px] border-r border-border p-8 flex flex-col gap-2 shrink-0 bg-secondary/10">
                 <div className="px-2 mb-6">
-                    <span className="text-[9px] font-bold text-muted-foreground/40 tracking-[0.3em]">Menu</span>
+                    <span className="text-[9px] font-bold text-muted-foreground/40 tracking-[0.3em]">menu</span>
                 </div>
                 {tabs.map((tab) => (
                     <button
@@ -298,7 +298,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                         <div className="flex flex-col items-start gap-1">
                             <span className="text-sm font-medium">{tab.label}</span>
                             {activeTab === tab.id && (
-                                <span className="text-[10px] font-bold opacity-60 uppercase tracking-wider">Active</span>
+                                <span className="text-[10px] font-bold opacity-60 uppercase tracking-wider">active</span>
                             )}
                         </div>
                         {activeTab === tab.id && (
@@ -330,7 +330,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                 {/* Section Header */}
                                 <div className="flex flex-col gap-3">
                                     <h3 className="text-2xl font-bold text-foreground">
-                                        {tabs.find(t => t.id === activeTab)?.label} settings
+                                        {tabs.find(t => t.id === activeTab)?.label} Settings
                                     </h3>
                                     <div className="h-0.5 w-12 bg-indigo-500" />
                                 </div>
@@ -340,7 +340,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                         <div className="space-y-8">
                                             {workspaceId && (
                                                 <div className="space-y-6">
-                                                    <h4 className="text-[11px] font-black uppercase text-muted-foreground tracking-[0.2em] mb-4">Workspace Identity</h4>
+                                                    <h4 className="text-[11px] font-black text-muted-foreground tracking-[0.2em] mb-4">Workspace Identity</h4>
 
                                                     <div className="space-y-2">
                                                         <label className="text-sm font-bold text-foreground">Workspace Name</label>
@@ -367,7 +367,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                             )}
 
                                             <div>
-                                                <h4 className="text-[11px] font-black uppercase text-muted-foreground tracking-[0.2em] mb-4">Additional Settings</h4>
+                                                <h4 className="text-[11px] font-black text-muted-foreground tracking-[0.2em] mb-4">additional settings</h4>
                                                 <div className="grid gap-2">
                                                     {renderSettingRow('show_reasoning', 'Show thinking', 'Display how the AI reached its answer.')}
                                                     {renderSettingRow('theme', 'Theme', 'Change the appearance of the interface.')}
@@ -379,7 +379,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                     {activeTab === 'chat' && (
                                         <div className="space-y-8">
                                             <div>
-                                                <h4 className="text-[11px] font-black uppercase text-muted-foreground tracking-[0.2em] mb-4">Mutable Settings</h4>
+                                                <h4 className="text-[11px] font-black text-muted-foreground tracking-[0.2em] mb-4">mutable settings</h4>
                                                 <div className="grid gap-2">
                                                     {renderSettingRow('llm_provider', 'Chat provider', 'The AI service used for chat.')}
                                                     {renderSettingRow('llm_model', 'Model', 'The specific AI model used.')}
@@ -391,7 +391,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                                 </div>
                                             </div>
                                             <div>
-                                                <h4 className="text-[11px] font-black uppercase text-muted-foreground tracking-[0.2em] mb-4">Additional Settings</h4>
+                                                <h4 className="text-[11px] font-black text-muted-foreground tracking-[0.2em] mb-4">additional settings</h4>
                                                 <div className="grid gap-2">
                                                     {renderSettingRow('agentic_enabled', 'Use tools', 'Enables the AI to use tools and search for complex tasks.')}
                                                 </div>
@@ -402,13 +402,13 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                     {activeTab === 'ingestion' && (
                                         <div className="space-y-8">
                                             <div>
-                                                <h4 className="text-[11px] font-black uppercase text-indigo-500 tracking-[0.2em] mb-4">Immutable Settings</h4>
+                                                <h4 className="text-[11px] font-black text-indigo-500 tracking-[0.2em] mb-4">immutable settings</h4>
                                                 <div className="grid gap-2">
                                                     {renderSettingRow('chunking_strategy', 'Chunking method', 'How documents are split into smaller pieces.')}
                                                 </div>
                                             </div>
                                             <div>
-                                                <h4 className="text-[11px] font-black uppercase text-muted-foreground tracking-[0.2em] mb-4">Mutable Settings</h4>
+                                                <h4 className="text-[11px] font-black text-muted-foreground tracking-[0.2em] mb-4">mutable settings</h4>
                                                 <div className="grid gap-2">
                                                     {renderSettingRow('job_concurrency', 'Process speed', 'Number of simultaneous tasks for document processing.')}
                                                 </div>
@@ -419,14 +419,14 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                     {activeTab === 'retrieval' && (
                                         <div className="space-y-8">
                                             <div>
-                                                <h4 className="text-[11px] font-black uppercase text-muted-foreground tracking-[0.2em] mb-4">Mutable Settings</h4>
+                                                <h4 className="text-[11px] font-black text-muted-foreground tracking-[0.2em] mb-4">mutable settings</h4>
                                                 <div className="grid gap-2">
                                                     {renderSettingRow('rag_engine', 'Search method', 'The methodology used for finding information.')}
                                                     {renderSettingRow('search_limit', 'Context limit', 'Number of file fragments used per response.')}
                                                 </div>
                                             </div>
                                             <div>
-                                                <h4 className="text-[11px] font-black uppercase text-muted-foreground tracking-[0.2em] mb-4">Additional Settings</h4>
+                                                <h4 className="text-[11px] font-black text-muted-foreground tracking-[0.2em] mb-4">additional settings</h4>
                                                 <div className="grid gap-2">
                                                     {renderSettingRow('hybrid_alpha', 'Search balance', 'Balance between semantic meaning and exact keyword matches.')}
                                                     {renderSettingRow('reranker_enabled', 'Refine results', 'An extra pass to improve result relevance.')}
@@ -439,9 +439,9 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                     {activeTab === 'storage' && (
                                         <div className="space-y-8">
                                             <div>
-                                                <h4 className="text-[11px] font-black uppercase text-indigo-500 tracking-[0.2em] mb-4 flex items-center gap-2">
+                                                <h4 className="text-[11px] font-black text-indigo-500 tracking-[0.2em] mb-4 flex items-center gap-2">
                                                     <Lock size={12} />
-                                                    Immutable Settings
+                                                    immutable settings
                                                 </h4>
                                                 <p className="text-[11px] text-muted-foreground mb-6">These parameters define how data is stored and indexed in this workspace. They cannot be changed after creation.</p>
                                                 <div className="grid gap-2">
@@ -462,7 +462,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                         {(Object.keys(localSettings).length > 0 || (workspaceId && (wsMetadata.name !== workspaceMetadata?.name || wsMetadata.description !== workspaceMetadata?.description))) && (
                             <div className="flex items-center gap-3 animate-in slide-in-from-left-4">
                                 <div className="px-3 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-500">
-                                    Changes detected
+                                    changes detected
                                 </div>
                             </div>
                         )}
@@ -473,7 +473,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                 onClick={onClose}
                                 className="h-12 px-8 text-[11px] font-bold text-muted-foreground hover:text-foreground transition-all tracking-[0.2em] rounded-2xl hover:bg-secondary/80 border border-transparent hover:border-border"
                             >
-                                Cancel
+                                cancel
                             </button>
                         )}
                         <button
@@ -486,7 +486,7 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                             ) : (
                                 <Save size={16} className="group-hover:rotate-12 transition-transform" />
                             )}
-                            Save changes
+                            save changes
                         </button>
                     </div>
                 </footer>

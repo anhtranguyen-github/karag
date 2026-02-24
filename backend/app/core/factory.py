@@ -51,32 +51,33 @@ class LangChainFactory:
             "streaming": config.streaming,
         }
 
-        if isinstance(config, OpenAIGenerationConfig):
+        # Use string comparison for more robust dispatching
+        provider = config.provider
+
+        if provider == "openai":
             model = ChatOpenAI(
                 model=config.model,
                 api_key=karag_settings.OPENAI_API_KEY,
-                presence_penalty=config.presence_penalty,
-                frequency_penalty=config.frequency_penalty,
+                presence_penalty=getattr(config, "presence_penalty", 0.0),
+                frequency_penalty=getattr(config, "frequency_penalty", 0.0),
                 **base_kwargs,
             )
-        elif isinstance(config, AzureOpenAIGenerationConfig):
+        elif provider == "azure":
             model = AzureChatOpenAI(
-                azure_deployment=config.deployment_name,
-                openai_api_version=config.api_version,
+                azure_deployment=getattr(config, "deployment_name", ""),
+                openai_api_version=getattr(config, "api_version", ""),
                 api_key=karag_settings.AZURE_OPENAI_API_KEY,
                 **base_kwargs,
             )
-        elif isinstance(
-            config, (LlamaGenerationConfig, CDP2GenerationConfig, VLMGenerationConfig)
-        ):
-            # Local models are routed through Ollama to reduce custom protocol code
+        elif provider in ["llama", "ollama", "local"]:
             model = ChatOllama(
                 model=config.model,
                 base_url=karag_settings.OLLAMA_BASE_URL,
                 **base_kwargs,
             )
         else:
-            raise ValueError(f"Unsupported LLM provider in schema: {config.provider}")
+            logger.error("unsupported_llm_provider", provider=provider, config_type=type(config).__name__)
+            raise ValueError(f"Unsupported LLM provider in schema: {provider}")
 
         return model
 
@@ -84,37 +85,48 @@ class LangChainFactory:
     async def get_embeddings(workspace_id: Optional[str] = None) -> Embeddings:
         settings = await settings_manager.get_settings(workspace_id)
         config: EmbeddingConfig = settings.embedding
+        
+        # Access the underlying implementation from the wrapper
+        impl = config.dense
+        provider = impl.provider
 
-        if isinstance(config, OpenAIEmbeddingConfig):
+        if provider == "openai":
             return OpenAIEmbeddings(
-                model=config.model,
+                model=impl.model,
                 api_key=karag_settings.OPENAI_API_KEY,
             )
-        elif isinstance(config, AzureOpenAIEmbeddingConfig):
+        elif provider == "azure":
             return AzureOpenAIEmbeddings(
-                azure_deployment=config.deployment_name,
-                openai_api_version=config.api_version,
+                azure_deployment=getattr(impl, "deployment_name", ""),
+                openai_api_version=getattr(impl, "api_version", ""),
                 api_key=karag_settings.AZURE_OPENAI_API_KEY,
             )
-        elif isinstance(config, VoyageEmbeddingConfig):
+        elif provider == "voyage":
             return VoyageAIEmbeddings(
-                model=config.model,
+                model=impl.model,
                 voyage_api_key=karag_settings.VOYAGE_API_KEY,
             )
-        elif isinstance(config, HuggingFaceEmbeddingConfig):
+        elif provider == "huggingface":
             return HuggingFaceEmbeddings(
-                model_name=config.model,
-                model_kwargs={"device": config.device},
-                encode_kwargs={"normalize_embeddings": config.normalize_embeddings},
+                model_name=impl.model,
+                model_kwargs={"device": getattr(impl, "device", "cpu")},
+                encode_kwargs={"normalize_embeddings": getattr(impl, "normalize_embeddings", True)},
             )
-        elif isinstance(config, OllamaEmbeddingConfig):
+        elif provider == "ollama":
             return OllamaEmbeddings(
-                model=config.model,
+                model=impl.model,
                 base_url=karag_settings.OLLAMA_BASE_URL,
             )
+        elif provider == "cohere":
+            from langchain_cohere import CohereEmbeddings
+            return CohereEmbeddings(
+                model=impl.model,
+                cohere_api_key=getattr(karag_settings, "COHERE_API_KEY", None)
+            )
         else:
+            logger.error("unsupported_embedding_provider", provider=provider, impl_type=type(impl).__name__)
             raise ValueError(
-                f"Unsupported Embedding provider in schema: {config.provider}"
+                f"Unsupported Embedding provider in schema: {provider}"
             )
 
     @staticmethod

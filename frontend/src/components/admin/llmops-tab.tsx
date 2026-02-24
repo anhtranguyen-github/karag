@@ -17,7 +17,7 @@ export function LLMOpsTab({ parseMetric, settings }: LLMOpsTabProps) {
             {/* Performance Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="bg-[#121214] border border-white/5 rounded-2xl p-6">
-                    <h3 className="text-sm font-black tracking-wider uppercase mb-5 flex items-center gap-2">
+                    <h3 className="text-sm font-black tracking-wider mb-5 flex items-center gap-2">
                         <Clock size={16} className="text-blue-400" />
                         P50 Latency (Sec)
                     </h3>
@@ -32,7 +32,7 @@ export function LLMOpsTab({ parseMetric, settings }: LLMOpsTabProps) {
                             const avg = sum / count;
                             return (
                                 <div key={m.label} className="space-y-2">
-                                    <div className="flex justify-between text-[11px] font-black uppercase">
+                                    <div className="flex justify-between text-[11px] font-black">
                                         <span className="text-gray-500">{m.label}</span>
                                         <span className="text-white">{avg.toFixed(3)}s</span>
                                     </div>
@@ -51,7 +51,7 @@ export function LLMOpsTab({ parseMetric, settings }: LLMOpsTabProps) {
 
                 <div className="bg-[#121214] border border-white/5 rounded-2xl p-6 lg:col-span-2">
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-sm font-black tracking-wider uppercase flex items-center gap-2">
+                        <h3 className="text-sm font-black tracking-wider flex items-center gap-2">
                             <Zap size={16} className="text-yellow-400" />
                             Token Allocation & Cost
                         </h3>
@@ -68,7 +68,7 @@ export function LLMOpsTab({ parseMetric, settings }: LLMOpsTabProps) {
                             { label: 'Est. Cost', value: `$${((parseMetric('llm_tokens_total') || 0) * 0.00001).toFixed(4)}`, color: 'text-amber-400' },
                         ].map((stat) => (
                             <div key={stat.label} className="p-4 rounded-2xl bg-white/[0.02] border border-white/5">
-                                <div className="text-[10px] font-bold text-gray-600 uppercase mb-1">{stat.label}</div>
+                                <div className="text-[10px] font-bold text-gray-600 mb-1">{stat.label}</div>
                                 <div className={cn("text-xl font-black", stat.color)}>{typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}</div>
                             </div>
                         ))}
@@ -78,7 +78,7 @@ export function LLMOpsTab({ parseMetric, settings }: LLMOpsTabProps) {
                         <div className="flex items-center gap-3">
                             <Cpu size={20} className="text-indigo-400" />
                             <div>
-                                <div className="text-tiny font-black text-white uppercase">Primary Delivery Model</div>
+                                <div className="text-tiny font-black text-white">Primary Delivery Model</div>
                                 <div className="text-[11px] font-bold text-indigo-300/60">{settings?.llm_model || 'Loading...'}</div>
                             </div>
                         </div>
@@ -94,11 +94,11 @@ export function LLMOpsTab({ parseMetric, settings }: LLMOpsTabProps) {
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="bg-white/5 border-b border-white/5">
-                            <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-500 tracking-widest">AI Provider</th>
-                            <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-500 tracking-widest text-center">Requests</th>
-                            <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-500 tracking-widest text-center">Avg Latency</th>
-                            <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-500 tracking-widest text-center">Errors</th>
-                            <th className="px-6 py-4 text-[10px] font-black uppercase text-gray-500 tracking-widest text-right">Status</th>
+                            <th className="px-6 py-4 text-[10px] font-black text-gray-500 tracking-widest">AI Provider</th>
+                            <th className="px-6 py-4 text-[10px] font-black text-gray-500 tracking-widest text-center">Requests</th>
+                            <th className="px-6 py-4 text-[10px] font-black text-gray-500 tracking-widest text-center">Avg Latency</th>
+                            <th className="px-6 py-4 text-[10px] font-black text-gray-500 tracking-widest text-center">Errors</th>
+                            <th className="px-6 py-4 text-[10px] font-black text-gray-500 tracking-widest text-right">Status</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">

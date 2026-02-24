@@ -36,10 +36,17 @@ export const BaseCreateWorkspaceSchema = z.object({
 
     // Embedding Component
     embedding: EmbeddingConfigSchema.default({
-        provider: 'openai',
-        model: 'text-embedding-3-small',
-        batch_size: 100,
-        timeout_ms: 30000
+        dense: {
+            provider: 'openai',
+            model: 'text-embedding-3-small',
+            batch_size: 100,
+            timeout_ms: 30000
+        },
+        sparse: {
+            method: 'bm25',
+            language: 'en',
+            on_the_fly: true
+        }
     }),
 
     // Retrieval Component

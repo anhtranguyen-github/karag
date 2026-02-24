@@ -78,23 +78,32 @@ export const VLMEmbeddingSchema = z.object({
     normalize_embeddings: z.boolean().default(true),
 });
 
-export const EmbeddingConfigSchema = z.discriminatedUnion('provider', [
-    OpenAIEmbeddingSchema,
-    AzureOpenAIEmbeddingSchema,
-    VoyageEmbeddingSchema,
-    CohereEmbeddingSchema,
-    HuggingFaceEmbeddingSchema,
-    OllamaEmbeddingSchema,
-    LlamaEmbeddingSchema,
-    CDP2EmbeddingSchema,
-    VLMEmbeddingSchema,
-]);
+export const SparseEmbeddingSchema = z.object({
+    method: z.enum(['bm25', 'splade', 'elser']).default('bm25'),
+    language: z.enum(['en', 'vi', 'multilingual']).default('en'),
+    on_the_fly: z.boolean().default(true), // BM25 is usually on-the-fly, Splade needs indexing
+});
+
+export const EmbeddingConfigSchema = z.object({
+    dense: z.discriminatedUnion('provider', [
+        OpenAIEmbeddingSchema,
+        AzureOpenAIEmbeddingSchema,
+        VoyageEmbeddingSchema,
+        CohereEmbeddingSchema,
+        HuggingFaceEmbeddingSchema,
+        OllamaEmbeddingSchema,
+        LlamaEmbeddingSchema,
+        CDP2EmbeddingSchema,
+        VLMEmbeddingSchema,
+    ]),
+    sparse: SparseEmbeddingSchema.default({ method: 'bm25' }),
+});
 
 export type EmbeddingConfig = z.infer<typeof EmbeddingConfigSchema>;
 
-export const MODEL_DIMENSIONS: Record<string, number> = {
-    'text-embedding-3-small': 1536,
-    'text-embedding-3-large': 3072,
+export const MODEL_DIMENSIONS: Record<string, number | number[]> = {
+    'text-embedding-3-small': [512, 1024, 1536], // Matryoshka support
+    'text-embedding-3-large': [256, 512, 1024, 3072],
     'text-embedding-ada-002': 1536,
     'voyage-large-2': 1536,
     'voyage-code-2': 1536,

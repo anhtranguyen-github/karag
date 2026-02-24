@@ -9,7 +9,7 @@ export const VectorSearchSchema = z.object({
     enable_score_normalization: z.boolean().default(true),
 });
 
-export const BM25RetrievalSchema = z.object({
+export const SparseRetrievalSchema = z.object({
     enabled: z.boolean().default(false),
     bm25_k1: z.number().min(0.0).max(5.0).default(1.5),
     bm25_b: z.number().min(0.0).max(1.0).default(0.75),
@@ -54,7 +54,7 @@ export const AdvancedQuerySchema = z.object({
 
 export const RetrievalConfigSchema = z.object({
     vector: VectorSearchSchema.default({}),
-    bm25: BM25RetrievalSchema.default({}),
+    sparse: SparseRetrievalSchema.default({}),
     hybrid: HybridRetrievalSchema.default({}),
     rerank: RerankSchema.default({}),
     graph: GraphRetrievalSchema.default({}),

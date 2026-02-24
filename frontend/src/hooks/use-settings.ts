@@ -12,7 +12,10 @@ export interface AppSettings {
     search_limit: number;
     hybrid_alpha: number;
     reranker_enabled: boolean;
+    rerank_top_k: number;
+    reranker_provider: string;
     agentic_enabled: boolean;
+    agent_max_iterations: number;
     rag_engine: 'basic' | 'graph';
     graph_enabled: boolean;
     theme: string;

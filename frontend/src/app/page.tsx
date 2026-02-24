@@ -190,7 +190,7 @@ export default function Home() {
                       </p>
 
                       <div className="mt-6 pt-4 border-t border-border flex justify-end items-center">
-                        <div className="flex items-center gap-1 text-indigo-400 font-bold text-[9px] uppercase tracking-wider group-hover/card:translate-x-1 transition-transform">
+                        <div className="flex items-center gap-1 text-indigo-400 font-bold text-[9px] tracking-wider group-hover/card:translate-x-1 transition-transform">
                           Open
                           <ArrowRight size={10} />
                         </div>
@@ -206,7 +206,7 @@ export default function Home() {
         {/* System Footer */}
         <div className="mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 text-gray-800 font-bold text-[10px] tracking-widest">
           <div className="flex gap-8">
-            <span>SECURE</span>
+            <span>secure</span>
           </div>
         </div>
       </div>

@@ -175,6 +175,19 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
                                 sources: data.sources
                             } as Message];
                         });
+                    } else if (data.type === 'error') {
+                        setIsLoading(false);
+                        showError("Architect Execution Error", data.message || "An unexpected error occurred.");
+                        setMessages((prev) => {
+                            const lastMsg = prev.find((m) => m.id === assistantMessageId);
+                            const otherMessages = prev.filter((m) => m.id !== assistantMessageId);
+                            return [...otherMessages, {
+                                ...lastMsg,
+                                id: assistantMessageId,
+                                role: 'assistant',
+                                content: data.message || "Error during processing.",
+                            } as Message];
+                        });
                     }
                 },
                 onclose() {

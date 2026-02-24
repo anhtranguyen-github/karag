@@ -18,26 +18,26 @@ export function RetrievalSettings({ form }: RetrievalSettingsProps) {
 
     return (
         <div className="space-y-0 pb-10">
-            {/* 1. Base Retrieval */}
+            {/* 1. Vector Engine */}
             <div className={sectionClass}>
                 <div className="flex items-center gap-2 mb-6">
                     <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500">
                         <Search size={16} />
                     </div>
                     <div>
-                        <h3 className="text-sm font-bold text-foreground">Base Retrieval</h3>
+                        <h3 className="text-sm font-bold text-foreground">Vector Search Engine</h3>
                     </div>
                 </div>
 
-                <div className="space-y-6 px-2">
-                    <div className={subSectionClass}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-2">
+                    <div className={cn(subSectionClass, "md:col-span-2")}>
                         <SchemaForm schema={RETRIEVAL_SCHEMAS.vector} gridCols={2} />
                     </div>
                     <div className={subSectionClass}>
-                        <SchemaForm schema={RETRIEVAL_SCHEMAS.bm25} gridCols={2} />
+                        <SchemaForm schema={RETRIEVAL_SCHEMAS.sparse} gridCols={1} />
                     </div>
                     <div className={subSectionClass}>
-                        <SchemaForm schema={RETRIEVAL_SCHEMAS.hybrid} gridCols={2} />
+                        <SchemaForm schema={RETRIEVAL_SCHEMAS.hybrid} gridCols={1} />
                     </div>
                 </div>
             </div>

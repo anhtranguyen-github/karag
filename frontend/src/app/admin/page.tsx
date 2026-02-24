@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Cpu, Database, Activity, ShieldCheck, RefreshCw, Sliders,
-    Target, Terminal, Shield, FileText
+    Target, Terminal, Shield, FileText, Search, BrainCircuit
 } from 'lucide-react';
 import { useSettings, useSettingsMetadata } from '@/hooks/use-settings';
 import { API_ROUTES } from '@/lib/api-config';
@@ -12,23 +12,27 @@ import { cn } from '@/lib/utils';
 import { OverviewTab } from '@/components/admin/overview-tab';
 import { LLMOpsTab } from '@/components/admin/llmops-tab';
 import { DataOpsTab, VectorStatus } from '@/components/admin/dataops-tab';
+import { RetrievalBoard } from '@/components/admin/retrieval-board';
+import { AgentBoard } from '@/components/admin/agent-board';
 import { PromptOpsTab, PromptRegistry } from '@/components/admin/promptops-tab';
 import { DevSecOpsTab } from '@/components/admin/devsecops-tab';
 import { SettingsTab } from '@/components/admin/settings-tab';
 import { ObservabilityTab } from '@/components/admin/observability-tab';
 import { EvaluationDashboard } from '@/components/admin/evaluation-dashboard';
 
-type AdminTab = 'overview' | 'llmops' | 'dataops' | 'promptops' | 'devsecops' | 'settings' | 'observability' | 'evaluation';
+type AdminTab = 'overview' | 'llmops' | 'retrieval' | 'agentic' | 'dataops' | 'promptops' | 'devsecops' | 'settings' | 'observability' | 'evaluation';
 
 const TABS: { id: AdminTab; label: string; icon: React.ElementType; description: string }[] = [
     { id: 'overview', label: 'Overview', icon: ShieldCheck, description: 'System health and quick stats' },
-    { id: 'llmops', label: 'LLM Ops', icon: Cpu, description: 'Model performance and token usage' },
-    { id: 'dataops', label: 'Data Ops', icon: Database, description: 'Vector store and ingestion' },
+    { id: 'llmops', label: 'LLM Ops', icon: Cpu, description: 'Generation metrics and token usage' },
+    { id: 'retrieval', label: 'Retrieval Board', icon: Search, description: 'Search efficiency and strategy' },
+    { id: 'agentic', label: 'Agent Board', icon: BrainCircuit, description: 'Reasoning loops and tool execution' },
+    { id: 'dataops', label: 'Data Ops', icon: Database, description: 'Vector store and ingestion pipeline' },
     { id: 'promptops', label: 'Prompt Ops', icon: FileText, description: 'Prompt registry and versions' },
-    { id: 'devsecops', label: 'DevSecOps', icon: Shield, description: 'CI/CD and Security audits' },
-    { id: 'settings', label: 'Global Config', icon: Sliders, description: 'Mutable system parameters' },
-    { id: 'observability', label: 'Monitoring', icon: Activity, description: 'Metrics, Traces and Logs' },
-    { id: 'evaluation', label: 'Evaluation', icon: Target, description: 'RAG quality and regressions' },
+    { id: 'devsecops', label: 'DevSecOps', icon: Shield, description: 'CI/CD and infrastructure security' },
+    { id: 'observability', label: 'Observability', icon: Activity, description: 'Logs, metrics and traces' },
+    { id: 'evaluation', label: 'Evaluation', icon: Target, description: 'RAG quality and regression' },
+    { id: 'settings', label: 'Global Config', icon: Sliders, description: 'Low-level system parameters' },
 ];
 
 export default function AdminConsolePage() {
@@ -119,8 +123,8 @@ export default function AdminConsolePage() {
                         {lastSync && (
                             <div className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/5 flex items-center gap-2">
                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                                    Last Sync: {lastSync.toLocaleTimeString()}
+                                <span className="text-[10px] font-black text-gray-400 tracking-widest">
+                                    last sync: {lastSync.toLocaleTimeString()}
                                 </span>
                             </div>
                         )}
@@ -147,7 +151,7 @@ export default function AdminConsolePage() {
                             )}
                         >
                             <tab.icon size={18} className={activeTab === tab.id ? "text-indigo-400" : ""} />
-                            <span className="text-[11px] font-black uppercase tracking-wider">{tab.label}</span>
+                            <span className="text-[11px] font-black tracking-wider">{tab.label}</span>
                             {activeTab === tab.id && (
                                 <motion.div
                                     layoutId="active-nav-indicator"
@@ -177,6 +181,8 @@ export default function AdminConsolePage() {
 
                             {activeTab === 'overview' && <OverviewTab parseMetric={parseMetric} settings={settings} />}
                             {activeTab === 'llmops' && <LLMOpsTab parseMetric={parseMetric} settings={settings} />}
+                            {activeTab === 'retrieval' && <RetrievalBoard parseMetric={parseMetric} settings={settings} />}
+                            {activeTab === 'agentic' && <AgentBoard parseMetric={parseMetric} settings={settings} />}
                             {activeTab === 'dataops' && <DataOpsTab vectorStatus={vectorStatus} parseMetric={parseMetric} />}
                             {activeTab === 'promptops' && <PromptOpsTab registry={promptsRegistry} />}
                             {activeTab === 'devsecops' && <DevSecOpsTab />}

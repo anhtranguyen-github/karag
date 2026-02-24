@@ -20,14 +20,14 @@ import { useFormContext } from 'react-hook-form';
 export function EmbeddingProviderSelector() {
     'use no memo';
     const { setValue, watch } = useFormContext<CreateWorkspaceInput>();
-    const [localProvider, setLocalProvider] = React.useState(watch('embedding.provider'));
+    const [localProvider, setLocalProvider] = React.useState(watch('embedding.dense.provider'));
 
     const providers = [
         { id: 'openai', label: 'OpenAI', icon: Cloud, defaultModel: 'text-embedding-3-small' },
         { id: 'azure', label: 'Azure OpenAI', icon: ShieldCheck, defaultModel: 'text-embedding-ada-002' },
         { id: 'voyage', label: 'Voyage AI', icon: Cloud, defaultModel: 'voyage-large-2' },
         { id: 'cohere', label: 'Cohere', icon: Cloud, defaultModel: 'embed-english-v3.0' },
-        { id: 'huggingface', label: 'HuggingFace', icon: Server, defaultModel: 'bge-base-en-v1.5' },
+        { id: 'huggingface', label: 'HuggingFace', icon: Server, defaultModel: 'sentence-transformers/all-MiniLM-L6-v2' },
         { id: 'ollama', label: 'Ollama', icon: Cpu, defaultModel: 'nomic-embed-text' },
         { id: 'llama', label: 'LLaMA Local', icon: Cpu, defaultModel: 'llama-embedding-7b' },
         { id: 'cdp2', label: 'LLaMA CDP2', icon: Database, defaultModel: 'cdp2-embedding-base' },
@@ -36,27 +36,10 @@ export function EmbeddingProviderSelector() {
 
     const handleProviderChange = (providerId: string, defaultModel: string) => {
         setLocalProvider(providerId as any);
-        setValue('embedding.provider', providerId as any);
+        setValue('embedding.dense.provider', providerId as any);
 
         // Set default model for this provider
-        setValue('embedding.model', defaultModel as any);
-
-        // Reset/Set provider specific defaults
-        if (providerId === 'openai') {
-            setValue('embedding.batch_size', 32);
-            setValue('embedding.timeout_ms', 30000);
-        } else if (providerId === 'azure') {
-            setValue('embedding.batch_size', 32);
-            setValue('embedding.timeout_ms', 30000);
-            setValue('embedding.deployment_name', 'text-embedding-ada-002');
-            setValue('embedding.api_version', '2023-05-15');
-        } else if (providerId === 'cohere') {
-            setValue('embedding.input_type', 'search_query');
-            setValue('embedding.truncate', 'END');
-        } else if (providerId === 'huggingface') {
-            setValue('embedding.device', 'cpu');
-            setValue('embedding.normalize_embeddings', true);
-        }
+        setValue('embedding.dense.model', defaultModel as any);
     };
 
     return (
@@ -105,17 +88,21 @@ const PROVIDER_MODELS: Record<string, string[]> = {
 
 export function EmbeddingModelSelector() {
     'use no memo';
-    const { setValue, control, watch } = useFormContext<CreateWorkspaceInput>();
-    const provider = watch('embedding.provider');
-    const currentModel = watch('embedding.model');
+    const { setValue, watch } = useFormContext<CreateWorkspaceInput>();
+    const provider = watch('embedding.dense.provider');
+    const currentModel = watch('embedding.dense.model');
+    const currentDim = watch('embedding.dense.dimensions' as any);
     const models = React.useMemo(() => PROVIDER_MODELS[provider] || [], [provider]);
 
     const inputClass = "w-full bg-secondary border border-border rounded-xl px-3 py-2 text-caption focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-foreground";
     const labelClass = "text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1.5 block";
 
+    const dimsData = MODEL_DIMENSIONS[currentModel];
+    const hasMultipleDims = Array.isArray(dimsData);
+
     useEffect(() => {
         if (models.length > 0 && !models.includes(currentModel)) {
-            setValue('embedding.model', models[0] as EmbeddingConfig['model']);
+            setValue('embedding.dense.model', models[0] as any);
         }
     }, [provider, models, currentModel, setValue]);
 
@@ -124,7 +111,7 @@ export function EmbeddingModelSelector() {
             <div className="space-y-1">
                 <label className={labelClass}>Model</label>
                 <Select
-                    onValueChange={(v) => setValue('embedding.model', v as EmbeddingConfig['model'])}
+                    onValueChange={(v) => setValue('embedding.dense.model', v as any)}
                     value={currentModel}
                 >
                     <SelectTrigger className={inputClass}>
@@ -138,10 +125,26 @@ export function EmbeddingModelSelector() {
                 </Select>
             </div>
             <div className="space-y-1">
-                <label className={labelClass}>Dimension (Derived)</label>
-                <div className={cn(inputClass, "bg-muted text-muted-foreground/60 cursor-not-allowed flex items-center")}>
-                    {MODEL_DIMENSIONS[currentModel] || '---'}
-                </div>
+                <label className={labelClass}>Dimensions</label>
+                {hasMultipleDims ? (
+                    <Select
+                        onValueChange={(v) => setValue('embedding.dense.dimensions' as any, parseInt(v))}
+                        value={currentDim?.toString()}
+                    >
+                        <SelectTrigger className={inputClass}>
+                            <SelectValue placeholder="Select Dim" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {(dimsData as number[]).map(d => (
+                                <SelectItem key={d} value={d.toString()}>{d}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                ) : (
+                    <div className={cn(inputClass, "bg-muted text-muted-foreground/60 cursor-not-allowed flex items-center")}>
+                        {dimsData || '---'}
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -150,34 +153,44 @@ export function EmbeddingModelSelector() {
 import { SchemaForm } from '@/components/ui/schema-form';
 import { EMBEDDING_SCHEMAS } from '@/lib/schemas/ui-schemas';
 
+export function SparseEmbeddingSettings() {
+    'use no memo';
+    const schema = EMBEDDING_SCHEMAS.sparse;
+
+    return (
+        <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="flex items-center gap-2 mb-2">
+                <Database size={16} className="text-emerald-500" />
+                <h3 className="text-sm font-bold text-foreground">Sparse Vector Settings</h3>
+            </div>
+            <div className="p-4 rounded-xl border border-emerald-500/10 bg-emerald-500/5">
+                <SchemaForm schema={schema} gridCols={2} />
+            </div>
+        </div>
+    );
+}
+
 export function EmbeddingConfigDetails() {
     'use no memo';
     const { watch } = useFormContext<CreateWorkspaceInput>();
-    const provider = watch('embedding.provider');
+    const provider = watch('embedding.dense.provider');
 
-    const schema = EMBEDDING_SCHEMAS[provider] || [];
-
-    if (!schema.length) {
-        return (
-            <div className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/10 flex items-start gap-4 mt-6">
-                <Info size={14} className="text-indigo-500 shrink-0 mt-0.5" />
-                <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
-                    Standard parameters will be applied for {provider}.
-                </p>
-            </div>
-        );
-    }
+    const schema = EMBEDDING_SCHEMAS[provider] || EMBEDDING_SCHEMAS.dense_common;
 
     return (
-        <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300 mt-6 pt-6 border-t border-border">
-            <div className="flex items-center gap-2 mb-4">
-                <Settings2 size={16} className="text-indigo-500" />
-                <h3 className="text-sm font-bold text-foreground">Hardware & API Config</h3>
+        <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300 mt-6 pt-6 border-t border-border">
+            <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                    <Settings2 size={16} className="text-indigo-500" />
+                    <h3 className="text-sm font-bold text-foreground">Advanced Dense Config</h3>
+                </div>
+
+                <div className="p-4 rounded-xl border border-indigo-500/10 bg-indigo-500/5">
+                    <SchemaForm schema={schema} gridCols={2} />
+                </div>
             </div>
 
-            <div className="p-4 rounded-xl border border-white/5 bg-white/5">
-                <SchemaForm schema={schema} gridCols={2} />
-            </div>
+            <SparseEmbeddingSettings />
         </div>
     );
 }

@@ -341,7 +341,7 @@ class ChatService:
 
                 try:
                     async for event in rag_executor.astream_events(
-                        initial_state, version="v2"
+                        initial_state, version="v2", config={"recursion_limit": 100}
                     ):
                         kind = event["event"]
                         node_name = event.get("name", "")
@@ -352,6 +352,7 @@ class ChatService:
                                 "analyze": "Analyzing inquiry intent...",
                                 "build_query": "Generating optimized search paths...",
                                 "retrieve": "Searching knowledge base...",
+                                "web_search": "Consulting web sources (Tavily)...",
                                 "blend": "Combining retrieved context...",
                                 "reflect": "Verifying information sufficiency...",
                                 "assemble": "Preparing final response context...",
@@ -437,6 +438,25 @@ class ChatService:
                                     msg = f"Knowledge Retrieval: Found {len(results)} relevant context fragments."
                                     collected_reasoning.append(msg)
                                     yield f"data: {json.dumps({'type': 'reasoning', 'steps': [msg]})}\n\n"
+
+                            if node_name == "web_search":
+                                results = output.get("web_results", [])
+                                if results:
+                                    # Merge into collected sources
+                                    web_sources = [
+                                        {
+                                            "id": len(collected_sources) + i + 1,
+                                            "name": r.get("url", r.get("source", "Web")),
+                                            "content": r.get("content", r.get("snippet", ""))
+                                        }
+                                        for i, r in enumerate(results)
+                                    ]
+                                    collected_sources.extend(web_sources)
+                                    yield f"data: {json.dumps({'type': 'sources', 'sources': collected_sources})}\n\n"
+                                    
+                                msg = f"Web Search: Found {len(results)} results from external sources."
+                                collected_reasoning.append(msg)
+                                yield f"data: {json.dumps({'type': 'reasoning', 'steps': [msg]})}\n\n"
 
                             if node_name == "reflect":
                                 sufficient = output.get("is_sufficient")

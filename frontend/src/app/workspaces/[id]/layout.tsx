@@ -36,13 +36,13 @@ export default function WorkspaceLayout({
                             ) : (
                                 <div className="w-2 h-2 rounded-full bg-indigo-500" />
                             )}
-                            <span className="text-sm font-bold text-foreground leading-none uppercase tracking-widest">{workspace?.name || "Loading..."}</span>
+                            <span className="text-sm font-bold text-foreground leading-none tracking-widest">{workspace?.name || "Loading..."}</span>
                             {pathname.includes('/settings') && (
                                 <div className="flex items-center gap-2">
                                     <span className="text-muted-foreground/40 font-bold mx-1">/</span>
-                                    <span className="text-sm font-bold text-muted-foreground leading-none tracking-widest uppercase">Settings</span>
+                                    <span className="text-sm font-bold text-muted-foreground leading-none tracking-widest">Settings</span>
                                     <div className="ml-2 px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[8px] font-bold text-indigo-500 tracking-[0.2em] uppercase">
-                                        ID: {workspaceId?.slice(0, 8) || 'default'}
+                                        id: {workspaceId?.slice(0, 8) || 'default'}
                                     </div>
                                 </div>
                             )}
@@ -54,7 +54,7 @@ export default function WorkspaceLayout({
                                     pathname.includes('/documents') ? "text-indigo-400 bg-indigo-500/10" : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                                 )}>
                                     <FileText size={14} />
-                                    DOCS
+                                    docs
                                 </button>
                             </Link>
                         </nav>
@@ -63,18 +63,18 @@ export default function WorkspaceLayout({
                     <div className="flex items-center gap-3">
                         <ThemeToggle />
                         <Link href={`/chats/new?workspaceId=${workspaceId}`}>
-                            <button className="h-9 px-4 rounded-xl bg-secondary border border-border hover:bg-muted transition-all font-bold text-[10px] tracking-widest text-muted-foreground hover:text-foreground flex items-center gap-2 uppercase">
+                            <button className="h-9 px-4 rounded-xl bg-secondary border border-border hover:bg-muted transition-all font-bold text-[10px] tracking-widest text-muted-foreground hover:text-foreground flex items-center gap-2">
                                 <MessageSquare size={14} />
-                                Chat
+                                chat
                             </button>
                         </Link>
                         <Link href={`/workspaces/${workspaceId}/settings`}>
                             <button className={cn(
-                                "h-9 px-4 rounded-xl transition-all font-bold text-[10px] tracking-widest uppercase flex items-center gap-2",
+                                "h-9 px-4 rounded-xl transition-all font-bold text-[10px] tracking-widest flex items-center gap-2",
                                 pathname.includes('/settings') ? "text-indigo-400 bg-indigo-500/10 border border-indigo-500/20" : "text-muted-foreground bg-secondary hover:bg-muted border border-border"
                             )}>
                                 <Settings size={14} />
-                                SETTINGS
+                                settings
                             </button>
                         </Link>
                     </div>

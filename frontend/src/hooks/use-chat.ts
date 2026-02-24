@@ -163,6 +163,9 @@ export function useChat(workspaceId: string = "vault") {
                                 },
                             ];
                         });
+                    } else if (data.type === 'error') {
+                        setIsLoading(false);
+                        showError("Architect Execution Error", data.message || "An unexpected error occurred in the reasoning engine.");
                     }
                 },
                 onclose() {

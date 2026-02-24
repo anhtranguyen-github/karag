@@ -11,7 +11,7 @@ class VectorSearchConfig(BaseModel):
     enable_score_normalization: bool = True
 
 
-class BM25RetrievalConfig(BaseModel):
+class SparseRetrievalConfig(BaseModel):
     enabled: bool = False
     bm25_k1: float = Field(default=1.5, ge=0.0, le=5.0)
     bm25_b: float = Field(default=0.75, ge=0.0, le=1.0)
@@ -57,7 +57,7 @@ class AdvancedQueryConfig(BaseModel):
 
 class RetrievalPipelineConfig(BaseModel):
     vector: VectorSearchConfig = Field(default_factory=VectorSearchConfig)
-    bm25: BM25RetrievalConfig = Field(default_factory=BM25RetrievalConfig)
+    sparse: SparseRetrievalConfig = Field(default_factory=SparseRetrievalConfig)
     hybrid: HybridRetrievalConfig = Field(default_factory=HybridRetrievalConfig)
     rerank: RerankConfig = Field(default_factory=RerankConfig)
     graph: GraphRetrievalConfig = Field(default_factory=GraphRetrievalConfig)

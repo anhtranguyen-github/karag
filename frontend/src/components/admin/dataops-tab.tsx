@@ -29,11 +29,11 @@ export function DataOpsTab({ vectorStatus, parseMetric }: DataOpsTabProps) {
                 <div className="lg:col-span-2 space-y-4">
                     <div className="bg-[#121214] border border-white/5 rounded-2xl p-6">
                         <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-sm font-black tracking-wider uppercase flex items-center gap-2">
+                            <h3 className="text-sm font-black tracking-wider flex items-center gap-2">
                                 <HardDrive size={16} className="text-amber-400" />
                                 Vector Collections
                             </h3>
-                            <div className="text-[10px] font-black text-gray-500 uppercase flex items-center gap-2">
+                            <div className="text-[10px] font-black text-gray-500 flex items-center gap-2">
                                 Host: <span className="text-white">{vectorStatus?.host}:{vectorStatus?.port}</span>
                             </div>
                         </div>
@@ -54,7 +54,7 @@ export function DataOpsTab({ vectorStatus, parseMetric }: DataOpsTabProps) {
                                     </div>
                                     <div className="text-right">
                                         <div className="text-tiny font-black text-white">{(c.points_count / 1000).toFixed(1)}K Points</div>
-                                        <span className="text-[9px] font-black px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500 uppercase">{c.status}</span>
+                                        <span className="text-[9px] font-black px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500">{c.status}</span>
                                     </div>
                                 </div>
                             ))}
@@ -68,15 +68,15 @@ export function DataOpsTab({ vectorStatus, parseMetric }: DataOpsTabProps) {
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="p-5 rounded-2xl bg-[#121214] border border-white/5">
-                            <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Vault Replication</div>
+                            <div className="text-[10px] font-black text-gray-500 tracking-widest mb-1">Vault Replication</div>
                             <div className="text-xl font-black">S3 Versioning Enabled</div>
                             <div className="flex items-center gap-2 mt-2">
                                 <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                                <span className="text-[10px] text-emerald-500/70 font-bold uppercase">Consistency: Strong</span>
+                                <span className="text-[10px] text-emerald-500/70 font-bold">Consistency: Strong</span>
                             </div>
                         </div>
                         <div className="p-5 rounded-2xl bg-[#121214] border border-white/5">
-                            <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Index Fragmentation</div>
+                            <div className="text-[10px] font-black text-gray-500 tracking-widest mb-1">Index Fragmentation</div>
                             <div className="text-xl font-black">0.82%</div>
                             <div className="w-full h-1 bg-white/5 rounded-full mt-3 overflow-hidden">
                                 <div className="h-full w-[82%] bg-amber-500" />
@@ -88,7 +88,7 @@ export function DataOpsTab({ vectorStatus, parseMetric }: DataOpsTabProps) {
                 {/* Ingestion Pipeline */}
                 <div className="space-y-4">
                     <div className="bg-[#121214] border border-white/5 rounded-2xl p-6">
-                        <h3 className="text-sm font-black tracking-wider uppercase mb-5 flex items-center gap-2">
+                        <h3 className="text-sm font-black tracking-wider mb-5 flex items-center gap-2">
                             <Activity size={16} className="text-emerald-400" />
                             Ingestion Pipeline
                         </h3>
@@ -112,7 +112,7 @@ export function DataOpsTab({ vectorStatus, parseMetric }: DataOpsTabProps) {
                     <div className="p-5 rounded-2xl bg-amber-600/5 border border-amber-500/10">
                         <div className="flex items-center gap-3 mb-2">
                             <AlertTriangle size={18} className="text-amber-400" />
-                            <span className="text-tiny font-black text-amber-100 uppercase">Ops Guardrail</span>
+                            <span className="text-tiny font-black text-amber-100">Ops Guardrail</span>
                         </div>
                         <p className="text-[10px] text-amber-200/50 leading-relaxed font-medium">
                             Bulk re-indexing across multi-collections consumes intensive I/O. Schedule after hours or use canary collections.

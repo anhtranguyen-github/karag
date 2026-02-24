@@ -37,8 +37,8 @@ export function CitationModal({ source, onClose }: CitationModalProps) {
                     </div>
                     <div>
                         <h3 className="text-lg font-bold text-foreground leading-tight">{source.name}</h3>
-                        <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-0.5">
-                            Citation Artifact [{source.id}]
+                        <p className="text-[10px] text-muted-foreground font-black tracking-widest mt-0.5">
+                            citation artifact [{source.id}]
                         </p>
                     </div>
                 </div>
@@ -75,7 +75,7 @@ export function CitationModal({ source, onClose }: CitationModalProps) {
                     <div className="bg-secondary/20 rounded-3xl p-6 border border-border">
                         <div className="flex items-center gap-2 mb-4 pb-4 border-b border-border">
                             <FileText size={14} className="text-muted-foreground opacity-50" />
-                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Source Context Payload</span>
+                            <span className="text-[10px] font-black text-muted-foreground tracking-widest">source context payload</span>
                         </div>
                         <div className="text-xs font-medium text-foreground/80 leading-relaxed whitespace-pre-wrap">
                             {source.content}
@@ -85,7 +85,7 @@ export function CitationModal({ source, onClose }: CitationModalProps) {
                     {/* Path Info */}
                     {source.minio_path && (
                         <div className="mt-6 p-4 bg-secondary/40 rounded-2xl border border-border flex items-center gap-3">
-                            <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest shrink-0">Storage Path</span>
+                            <span className="text-[9px] font-black text-muted-foreground tracking-widest shrink-0">storage path</span>
                             <code className="text-[9px] font-mono text-indigo-400 truncate">{source.minio_path}</code>
                         </div>
                     )}
@@ -94,9 +94,9 @@ export function CitationModal({ source, onClose }: CitationModalProps) {
                 <div className="p-6 border-t border-border bg-secondary/20 flex justify-end">
                     <button
                         onClick={onClose}
-                        className="px-8 py-3 rounded-xl bg-foreground text-background text-[10px] font-black tracking-widest transition-all active:scale-95 uppercase"
+                        className="px-8 py-3 rounded-xl bg-foreground text-background text-[10px] font-black tracking-widest transition-all active:scale-95"
                     >
-                        Close View
+                        close view
                     </button>
                 </div>
             </div>
@@ -109,7 +109,7 @@ function MetaItem({ icon: Icon, label, value }: { icon: LucideIcon; label: strin
         <div className="p-4 bg-secondary/40 rounded-2xl border border-border group hover:bg-secondary/60 transition-all">
             <div className="flex items-center gap-2 mb-1">
                 <Icon size={12} className="text-indigo-500 opacity-60 group-hover:opacity-100 transition-opacity" />
-                <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{label}</span>
+                <span className="text-[9px] font-black text-muted-foreground tracking-widest">{label.toLowerCase()}</span>
             </div>
             <span className="text-[11px] font-bold text-foreground truncate block">{value}</span>
         </div>

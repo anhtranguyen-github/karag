@@ -6,6 +6,7 @@ from backend.app.schemas.embedding import (
     OpenAIEmbeddingConfig,
     HuggingFaceEmbeddingConfig,
     OllamaEmbeddingConfig,
+    SparseEmbeddingConfig,
 )
 from backend.app.schemas.generation import (
     GenerationConfig,
@@ -50,21 +51,31 @@ class AppSettings(BaseModel):
             provider = data.get("embedding_provider", "openai")
             model = data.get("embedding_model")
             
-            emb_payload = {}
-            if isinstance(data.get("embedding"), dict):
-                emb_payload.update(data["embedding"])
+            dense_payload = {}
+            sparse_payload = {}
             
-            emb_payload["provider"] = provider
+            if isinstance(data.get("embedding"), dict):
+                dense_payload.update(data["embedding"].get("dense", {}))
+                sparse_payload.update(data["embedding"].get("sparse", {}))
+            
+            dense_payload["provider"] = provider
             if model:
-                emb_payload["model"] = model
+                dense_payload["model"] = model
 
+            embedding_obj = {}
             if provider == "openai":
-                data["embedding"] = OpenAIEmbeddingConfig(**emb_payload)
+                embedding_obj["dense"] = OpenAIEmbeddingConfig(**dense_payload)
             elif provider == "local" or provider == "huggingface":
-                emb_payload["provider"] = "huggingface"
-                data["embedding"] = HuggingFaceEmbeddingConfig(**emb_payload)
+                dense_payload["provider"] = "huggingface"
+                embedding_obj["dense"] = HuggingFaceEmbeddingConfig(**dense_payload)
             elif provider == "ollama":
-                data["embedding"] = OllamaEmbeddingConfig(**emb_payload)
+                embedding_obj["dense"] = OllamaEmbeddingConfig(**dense_payload)
+            else:
+                # Fallback for other providers if already in dense_payload
+                embedding_obj["dense"] = dense_payload
+            
+            embedding_obj["sparse"] = SparseEmbeddingConfig(**sparse_payload)
+            data["embedding"] = embedding_obj
 
         # 3. Generation
         if "llm_provider" in data or "llm_model" in data or "temperature" in data:
@@ -106,7 +117,7 @@ class AppSettings(BaseModel):
                 
             data["chunking"] = chunk_payload
 
-        # 2. Retrieval (moved down to ensure config objects are ready if needed)
+        # 2. Retrieval mapping
         if "retrieval" not in data:
             data["retrieval"] = RetrievalConfig()
 
@@ -129,7 +140,6 @@ class AppSettings(BaseModel):
                 ):
                     retrieval.setdefault("rerank", {})["provider"] = prov
                 else:
-                    # If provider is 'none' but enabled is true, default to local
                     if retrieval.get("rerank", {}).get("enabled"):
                         retrieval.setdefault("rerank", {})["provider"] = "local"
 
@@ -140,51 +150,17 @@ class AppSettings(BaseModel):
             if "recall_k" in data:
                 retrieval.setdefault("vector", {})["top_k"] = data["recall_k"]
             if "hybrid_alpha" in data:
-                retrieval.setdefault("hybrid", {})["dense_weight"] = data[
-                    "hybrid_alpha"
-                ]
+                retrieval.setdefault("hybrid", {})["dense_weight"] = data["hybrid_alpha"]
+                retrieval.setdefault("hybrid", {})["sparse_weight"] = 1.0 - data["hybrid_alpha"]
                 retrieval.setdefault("hybrid", {})["enabled"] = True
-
-        retrieval = data["retrieval"]
-        if isinstance(retrieval, dict):
-            if "rag_engine" in data:
-                rag_engine = data["rag_engine"]
-                retrieval.setdefault("graph", {})["enabled"] = rag_engine == "graph"
-            if "graph_enabled" in data:
-                retrieval.setdefault("graph", {})["enabled"] = data["graph_enabled"]
-            if "reranker_enabled" in data:
-                retrieval.setdefault("rerank", {})["enabled"] = data["reranker_enabled"]
-
-            if "reranker_provider" in data:
-                prov = data["reranker_provider"]
-                if (
-                    prov
-                    and prov.lower() != "none"
-                    and prov in ["cohere", "openai", "local"]
-                ):
-                    retrieval.setdefault("rerank", {})["provider"] = prov
-                else:
-                    # If provider is 'none' but enabled is true, default to local
-                    if retrieval.get("rerank", {}).get("enabled"):
-                        retrieval.setdefault("rerank", {})["provider"] = "local"
-
-            if "rerank_top_k" in data:
-                retrieval.setdefault("rerank", {})["top_n"] = data["rerank_top_k"]
-            if "search_limit" in data:
-                retrieval.setdefault("vector", {})["top_k"] = data["search_limit"]
-            if "recall_k" in data:
-                retrieval.setdefault("vector", {})["top_k"] = data["recall_k"]
-            if "hybrid_alpha" in data:
-                retrieval.setdefault("hybrid", {})["dense_weight"] = data[
-                    "hybrid_alpha"
-                ]
-                retrieval.setdefault("hybrid", {})["enabled"] = True
-
+                # Automatically enable sparse if hybrid is used with a weight
+                if data["hybrid_alpha"] < 1.0:
+                    retrieval.setdefault("sparse", {})["enabled"] = True
         return data
 
     # --- 1. Embedding Node (Immutable) ---
     embedding: EmbeddingConfig = Field(
-        default_factory=lambda: OpenAIEmbeddingConfig(),
+        default_factory=lambda: EmbeddingConfig(),
         description="Embedding model configuration",
         json_schema_extra={"mutable": False, "category": "Embedding Component"},
     )
@@ -213,7 +189,7 @@ class AppSettings(BaseModel):
 
     # --- 3. Generation Node (Mutable) ---
     generation: GenerationConfig = Field(
-        default_factory=lambda: OpenAIGenerationConfig(),
+        default_factory=lambda: GenerationConfig(),
         description="LLM / VLM generation configuration",
         json_schema_extra={"mutable": True, "category": "Generation Component"},
     )
@@ -246,7 +222,7 @@ class AppSettings(BaseModel):
         json_schema_extra={"mutable": False, "category": "Ingestion Component"},
     )
     chunking: ChunkingConfig = Field(
-        default_factory=lambda: RecursiveChunkingConfig(),
+        default_factory=lambda: ChunkingConfig(strategy="recursive"),
         description="Text splitting configuration",
         json_schema_extra={"mutable": False, "category": "Ingestion Component"},
     )
@@ -281,8 +257,8 @@ class AppSettings(BaseModel):
         self.show_reasoning = self.runtime_stream_thoughts
 
         # Sync Embedding fields
-        self.embedding.provider = self.embedding_provider
-        self.embedding.model = self.embedding_model
+        self.embedding.dense.provider = self.embedding_provider
+        self.embedding.dense.model = self.embedding_model
 
         # Sync Chunking Strategy
         if (

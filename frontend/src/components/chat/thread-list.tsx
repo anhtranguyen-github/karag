@@ -80,7 +80,7 @@ export function ThreadList({
                             <X size={18} className="group-hover:rotate-90 transition-transform duration-300" />
                         </button>
                     )}
-                    <span className="text-[11px] font-black uppercase tracking-[0.3em] text-foreground/80 leading-none">History</span>
+                    <span className="text-[11px] font-black tracking-[0.3em] text-foreground/80 leading-none">history</span>
                 </div>
                 <button
                     onClick={handleCreateThread}
@@ -102,7 +102,7 @@ export function ThreadList({
                         <div className="w-10 h-10 rounded-full border-2 border-dashed border-border flex items-center justify-center">
                             <MessageSquare size={16} className="text-muted-foreground" />
                         </div>
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">No history yet</span>
+                        <span className="text-[10px] font-bold tracking-widest text-muted-foreground">no history yet</span>
                     </div>
                 ) : (
                     threads.map((thread) => (

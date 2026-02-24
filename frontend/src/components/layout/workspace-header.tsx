@@ -46,7 +46,7 @@ export function WorkspaceHeader({ onWorkspaceClick }: WorkspaceHeaderProps) {
                         "w-6 h-6 rounded-md flex items-center justify-center text-tiny font-bold",
                         isDefault ? "bg-gray-600 text-white" : "bg-blue-600 text-white"
                     )}>
-                        {currentWorkspace?.name?.[0]?.toUpperCase() || 'W'}
+                        {currentWorkspace?.name?.[0] || 'w'}
                     </div>
                     <div className="flex flex-col items-start">
                         <span className="text-caption font-semibold text-white">

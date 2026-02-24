@@ -177,6 +177,13 @@ export function ChatInterface({
                                 };
                             } else if (data.type === "sources") {
                                 newMsgs[idx] = { ...newMsgs[idx], sources: data.sources };
+                            } else if (data.type === "error") {
+                                setIsLoading(false);
+                                isStreaming.current = false;
+                                newMsgs[idx] = {
+                                    ...newMsgs[idx],
+                                    content: data.message || "An unexpected error occurred during research."
+                                };
                             }
                             return newMsgs;
                         });
