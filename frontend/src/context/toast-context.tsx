@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckCircle2, AlertCircle, Info, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -46,8 +46,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     const error = useCallback((message: string, duration?: number) => toast(message, 'error', duration), [toast]);
     const loading = useCallback((message: string) => toast(message, 'loading', 0), [toast]);
 
+    const value = useMemo(() => ({ toast, dismiss, success, error, loading }), [toast, dismiss, success, error, loading]);
+
     return (
-        <ToastContext.Provider value={{ toast, dismiss, success, error, loading }}>
+        <ToastContext.Provider value={value}>
             {children}
             <div className="fixed bottom-6 right-6 z-[200] flex flex-col gap-3 pointer-events-none">
                 <AnimatePresence mode="popLayout">

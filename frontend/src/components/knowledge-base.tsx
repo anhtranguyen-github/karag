@@ -307,6 +307,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                     });
                 }
                 setIsUploadModalOpen(false);
+                toast.success('Document uploaded successfully');
             } else {
                 const payload = await res.json();
                 let title = "Upload Failed";
@@ -385,6 +386,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
             if (res.ok) {
                 setIsUploadModalOpen(false);
                 setImportUrl('');
+                toast.success('Import task started successfully');
                 const payload = await res.json();
                 if (payload.data?.duplicate?.is_duplicate) {
                     setDuplicateData({

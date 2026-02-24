@@ -90,6 +90,7 @@ export function DocumentManager({ workspaceId, isGlobal = false }: DocumentManag
             });
             const result = await res.json();
             if (res.ok && result.success) {
+                toast.success(`${file.name} uploaded successfully`);
                 fetchDocuments();
             } else {
                 showError("Upload Failed", result.message || "Failed to upload document.");

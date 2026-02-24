@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { API_ROUTES } from '@/lib/api-config';
+import { useToast } from '@/context/toast-context';
 
 export interface TaskItem {
     id: string;
@@ -43,6 +44,10 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
     const [isStorageLoaded, setIsStorageLoaded] = useState(false);
     const [now, setNow] = useState(0);
+    const { success: toastSuccess, error: toastError } = useToast();
+
+    // Track status per taskId to detect transitions (completed/failed)
+    const lastStatusesRef = React.useRef<Record<string, string>>({});
 
     // Load dismissed IDs from localStorage on mount
     useEffect(() => {
@@ -92,6 +97,29 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
         const interval = setInterval(fetchTasks, 2000);
         return () => clearInterval(interval);
     }, [fetchTasks]);
+
+    // Toast notifications on status change
+    useEffect(() => {
+        const nextStatuses: Record<string, string> = {};
+
+        tasks.forEach(task => {
+            const lastStatus = lastStatusesRef.current[task.id];
+            if (lastStatus && lastStatus !== task.status) {
+                const filename = task.metadata.filename || 'Document';
+                const operation = task.metadata.operation || task.type;
+                const label = operation.charAt(0).toUpperCase() + operation.slice(1).replace(/_/g, ' ');
+
+                if (task.status === 'completed') {
+                    toastSuccess(`${label} complete: ${filename}`);
+                } else if (task.status === 'failed') {
+                    toastError(`${label} failed: ${filename}${task.message ? ` - ${task.message}` : ''}`);
+                }
+            }
+            nextStatuses[task.id] = task.status;
+        });
+
+        lastStatusesRef.current = nextStatuses;
+    }, [tasks, toastSuccess, toastError]);
 
     // Derived filtered lists
     const activeTasks = useMemo(() => tasks.filter(

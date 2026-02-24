@@ -6,7 +6,7 @@ export const ToolDefinitionSchema = z.object({
     description: z.string(),
     type: z.enum(['system', 'custom', 'mcp']),
     enabled: z.boolean(),
-    config: z.record(z.unknown()).optional(),
+    config: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type ToolDefinition = z.infer<typeof ToolDefinitionSchema>;

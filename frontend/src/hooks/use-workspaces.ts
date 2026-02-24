@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { API_ROUTES } from '@/lib/api-config';
 import { useError } from '@/context/error-context';
+import { z } from 'zod';
+import { AppResponseSchema } from '@/lib/schemas/api';
+import { WorkspaceSchema, CreateWorkspaceSchema, BaseCreateWorkspaceSchema } from '@/lib/schemas/workspaces';
 
 export interface Workspace {
     id: string;
@@ -50,11 +53,6 @@ export function useWorkspaces() {
             }
 
             const rawData = await res.json();
-
-            // Runtime Validation
-            const { AppResponseSchema } = await import('@/lib/schemas/api');
-            const { WorkspaceSchema } = await import('@/lib/schemas/workspaces');
-            const { z } = await import('zod');
 
             const ResponseSchema = AppResponseSchema(z.array(WorkspaceSchema));
             const result = ResponseSchema.safeParse(rawData);
@@ -111,9 +109,7 @@ export function useWorkspaces() {
 
     const createWorkspace = async (payload: { name: string; description?: string; rag_engine?: string }) => {
         // Optimistic Validation with Zod
-        const { CreateWorkspaceSchema } = await import('@/lib/schemas/workspaces');
-        const { AppResponseSchema } = await import('@/lib/schemas/api');
-        const { WorkspaceSchema } = await import('@/lib/schemas/workspaces');
+
 
         const validationResult = CreateWorkspaceSchema.safeParse({
             name: payload.name,
@@ -121,7 +117,7 @@ export function useWorkspaces() {
         });
 
         if (!validationResult.success) {
-            const errorMsg = validationResult.error.errors[0].message;
+            const errorMsg = validationResult.error.issues[0].message;
             showError("Invalid Input", errorMsg);
             return { success: false, error: errorMsg };
         }
@@ -182,11 +178,11 @@ export function useWorkspaces() {
     };
 
     const updateWorkspace = async (id: string, name: string, description?: string) => {
-        const { BaseCreateWorkspaceSchema } = await import('@/lib/schemas/workspaces');
+
         const nameValidation = BaseCreateWorkspaceSchema.shape.name.safeParse(name);
 
         if (!nameValidation.success) {
-            showError("Invalid Input", nameValidation.error.errors[0].message);
+            showError("Invalid Input", nameValidation.error.issues[0].message);
             return;
         }
 

@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { CreateWorkspaceInput } from '@/lib/schemas/workspaces';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { CreateWorkspaceInput, CreateWorkspaceSchema } from '@/lib/schemas/workspaces';
 import { api } from '@/lib/api-client';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,7 @@ import { EmbeddingProviderSelector, EmbeddingModelSelector, EmbeddingConfigDetai
 import { ChunkingStrategySelector, ChunkingStrategyDetails } from '../chunking/StrategySettings';
 import { RetrievalSettings } from '../retrieval/RetrievalSettings';
 import { GenerationSettings } from '../generation/GenerationSettings';
+import { useToast } from '@/context/toast-context';
 
 interface WorkspaceWizardProps {
     isOpen: boolean;
@@ -45,7 +47,10 @@ export function WorkspaceWizard({ isOpen, onClose }: WorkspaceWizardProps) {
     const [currentStep, setCurrentStep] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const { success: successToast, error: errorToast } = useToast();
+
     const form = useForm<CreateWorkspaceInput>({
+        resolver: zodResolver(CreateWorkspaceSchema) as any,
         defaultValues: {
             name: '',
             description: '',
@@ -91,7 +96,16 @@ export function WorkspaceWizard({ isOpen, onClose }: WorkspaceWizardProps) {
         },
     });
 
-    const nextStep = () => {
+    const nextStep = async () => {
+        // Validate fields for the current step before proceeding
+        let fieldsToValidate: any[] = [];
+        if (currentStep === 0) fieldsToValidate = ['name', 'description'];
+
+        if (fieldsToValidate.length > 0) {
+            const isValid = await form.trigger(fieldsToValidate as any);
+            if (!isValid) return;
+        }
+
         if (currentStep < STEPS.length - 1) {
             setCurrentStep(currentStep + 1);
         }
@@ -130,14 +144,18 @@ export function WorkspaceWizard({ isOpen, onClose }: WorkspaceWizardProps) {
             const result = await api.createWorkspaceWorkspacesPost({ workspaceCreate: payload });
 
             if (result.success) {
+                successToast(result.message || 'Workspace created successfully');
                 onClose();
                 router.refresh();
                 if (result.data?.id) {
                     router.push(`/workspaces/${result.data.id}`);
                 }
+            } else {
+                errorToast(result.message || 'Failed to create workspace');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to create workspace:', error);
+            errorToast(error.message || 'An unexpected error occurred');
         } finally {
             setIsSubmitting(false);
         }

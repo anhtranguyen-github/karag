@@ -8,6 +8,7 @@ from backend.app.rag.graph.nodes import (
     retrieve_context,
     web_search,
     blend_results,
+    rerank_results,
     reflect_and_decide,
     assemble_context,
     generate_answer,
@@ -26,6 +27,7 @@ def build_rag_graph():
     workflow.add_node("retrieve", retrieve_context)
     workflow.add_node("web_search", web_search)
     workflow.add_node("blend", blend_results)
+    workflow.add_node("rerank", rerank_results)
     workflow.add_node("reflect", reflect_and_decide)
     workflow.add_node("assemble", assemble_context)
     workflow.add_node("generate", generate_answer)
@@ -57,8 +59,9 @@ def build_rag_graph():
     # Flow: Retrieve -> Web Search
     workflow.add_edge("retrieve", "web_search")
 
-    # Flow: Web Search -> Blend
+    # Flow: Web Search -> Blend -> Rerank
     workflow.add_edge("web_search", "blend")
+    workflow.add_edge("blend", "rerank")
 
     # Conditional Branch: Reflection
     def should_reflect(state: GraphState):
@@ -73,7 +76,7 @@ def build_rag_graph():
         return "assemble"
 
     workflow.add_conditional_edges(
-        "blend", should_reflect, {"reflect": "reflect", "assemble": "assemble"}
+        "rerank", should_reflect, {"reflect": "reflect", "assemble": "assemble"}
     )
 
     # Conditional Branch: To Loop or Not to Loop

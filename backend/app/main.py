@@ -1,6 +1,7 @@
 import structlog
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
@@ -116,6 +117,32 @@ def create_app() -> FastAPI:
     app.include_router(api_v1_router)
     logger.info("router_init_complete", msg="API routers included.")
 
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        errors = exc.errors()
+        messages = []
+        for err in errors:
+            loc = ".".join([str(l) for l in err["loc"][1:]])
+            msg = err["msg"]
+            messages.append(f"{loc}: {msg}")
+        
+        main_message = f"Validation failed: {messages[0]}" if messages else "Validation failed"
+        
+        response = JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content={
+                "success": False,
+                "code": "VALIDATION_ERROR",
+                "message": main_message,
+                "data": {"details": messages},
+            },
+        )
+        origin = request.headers.get("origin")
+        if origin and (origin in karag_settings.CORS_ORIGINS or "*" in karag_settings.CORS_ORIGINS):
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
+
     @app.exception_handler(BaseAppException)
     async def app_exception_handler(request: Request, exc: BaseAppException):
         response = JSONResponse(
@@ -127,11 +154,9 @@ def create_app() -> FastAPI:
                 "data": exc.params,
             },
         )
-        # Manually attach CORS headers to ensure they are present on error responses
+        # Manually attach CORS headers
         origin = request.headers.get("origin")
-        if origin and (
-            origin in karag_settings.CORS_ORIGINS or "*" in karag_settings.CORS_ORIGINS
-        ):
+        if origin and (origin in karag_settings.CORS_ORIGINS or "*" in karag_settings.CORS_ORIGINS):
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Credentials"] = "true"
         return response
@@ -152,11 +177,8 @@ def create_app() -> FastAPI:
                 else None,
             },
         )
-        # Manually attach CORS headers to ensure they are present on error responses
         origin = request.headers.get("origin")
-        if origin and (
-            origin in karag_settings.CORS_ORIGINS or "*" in karag_settings.CORS_ORIGINS
-        ):
+        if origin and (origin in karag_settings.CORS_ORIGINS or "*" in karag_settings.CORS_ORIGINS):
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Credentials"] = "true"
         return response

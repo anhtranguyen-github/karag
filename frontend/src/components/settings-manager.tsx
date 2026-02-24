@@ -10,10 +10,12 @@ import {
 import { useSettings, AppSettings, useSettingsMetadata } from '@/hooks/use-settings';
 import { useWorkspaces } from '@/hooks/use-workspaces';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/context/toast-context';
 
 export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClose?: () => void, workspaceId?: string, workspaceName?: string }) {
     const { settings, updateSettings, isLoading: isSettingsLoading } = useSettings(workspaceId);
     const { metadata, isLoading: isMetadataLoading } = useSettingsMetadata();
+    const { success: toastSuccess, error: toastError } = useToast();
 
     const { workspaces, updateWorkspace } = useWorkspaces();
     const workspaceMetadata = workspaces.find(w => w.id === workspaceId);
@@ -77,9 +79,11 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
             }
 
             setLocalSettings({});
+            toastSuccess('Settings updated successfully');
             if (onClose) onClose();
-        } catch (err) {
+        } catch (err: any) {
             console.error('Save failed', err);
+            toastError(err.message || 'Failed to save settings');
         } finally {
             setIsSaving(false);
         }
@@ -429,7 +433,9 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                                 <h4 className="text-[11px] font-black text-muted-foreground tracking-[0.2em] mb-4">additional settings</h4>
                                                 <div className="grid gap-2">
                                                     {renderSettingRow('hybrid_alpha', 'Search balance', 'Balance between semantic meaning and exact keyword matches.')}
-                                                    {renderSettingRow('reranker_enabled', 'Refine results', 'An extra pass to improve result relevance.')}
+                                                    {renderSettingRow('reranker_enabled', 'Enable reranking', 'An extra pass to improve result relevance.')}
+                                                    {renderSettingRow('reranker_provider', 'Rerank provider', 'The service used to re-score retrieval results (Local is fastest).')}
+                                                    {renderSettingRow('rerank_top_k', 'Rerank Top-N', 'Number of final documents to keep after reranking.')}
                                                     {renderSettingRow('graph_enabled', 'Use graph', 'Uses document relationships to find better context.')}
                                                 </div>
                                             </div>

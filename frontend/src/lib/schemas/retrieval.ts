@@ -53,12 +53,50 @@ export const AdvancedQuerySchema = z.object({
 });
 
 export const RetrievalConfigSchema = z.object({
-    vector: VectorSearchSchema.default({}),
-    sparse: SparseRetrievalSchema.default({}),
-    hybrid: HybridRetrievalSchema.default({}),
-    rerank: RerankSchema.default({}),
-    graph: GraphRetrievalSchema.default({}),
-    advanced: AdvancedQuerySchema.default({}),
+    vector: VectorSearchSchema.default({
+        enabled: true,
+        top_k: 5,
+        similarity_metric: 'cosine',
+        enable_score_normalization: true
+    }),
+    sparse: SparseRetrievalSchema.default({
+        enabled: false,
+        bm25_k1: 1.5,
+        bm25_b: 0.75,
+        top_k: 5,
+        min_term_match: 1
+    }),
+    hybrid: HybridRetrievalSchema.default({
+        enabled: false,
+        dense_weight: 0.5,
+        sparse_weight: 0.5,
+        fusion_strategy: 'weighted_sum',
+        normalize_scores: true
+    }),
+    rerank: RerankSchema.default({
+        enabled: false,
+        provider: 'local',
+        model: 'bge-reranker-large',
+        top_n: 3,
+        rerank_batch_size: 16,
+        rerank_threshold: 0.0,
+        score_normalization: true
+    }),
+    graph: GraphRetrievalSchema.default({
+        enabled: false,
+        graph_type: 'knowledge',
+        max_hops: 2,
+        edge_types: [],
+        node_score_decay: 0.5,
+        merge_graph_with_vector: true,
+        graph_confidence_threshold: 0.3
+    }),
+    advanced: AdvancedQuerySchema.default({
+        query_embedding_batch_size: 1,
+        max_query_tokens: 512,
+        enable_query_expansion: false,
+        pm125_mode: 'off'
+    }),
 });
 
 export type RetrievalConfig = z.infer<typeof RetrievalConfigSchema>;

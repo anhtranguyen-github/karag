@@ -35,11 +35,34 @@ export const TracingSchema = z.object({
 
 export const RuntimeSettingsSchema = z.object({
     mode: z.enum(['auto', 'fast', 'think', 'deep']).default('auto'),
-    auto: AutoModeSchema.default({}),
-    fast: FastModeSchema.default({}),
-    think: ThinkModeSchema.default({}),
-    deep: DeepModeSchema.default({}),
-    tracing: TracingSchema.default({}),
+    auto: AutoModeSchema.default({
+        max_loops: 3,
+        timeout_ms: 60000
+    }),
+    fast: FastModeSchema.default({
+        max_loops: 1,
+        enable_reflection: false,
+        timeout_ms: 30000
+    }),
+    think: ThinkModeSchema.default({
+        max_loops: 5,
+        reflection_depth: 3,
+        confidence_threshold: 0.7,
+        timeout_ms: 90000
+    }),
+    deep: DeepModeSchema.default({
+        max_loops: 10,
+        multi_query_limit: 5,
+        backtracking_enabled: true,
+        timeout_ms: 180000
+    }),
+    tracing: TracingSchema.default({
+        tracing_enabled: true,
+        trace_level: 'detailed',
+        store_intermediate_results: true,
+        explainability_mode: true,
+        debug_node_outputs: false
+    }),
     stream_thoughts: z.boolean().default(true),
 });
 

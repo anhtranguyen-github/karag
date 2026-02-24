@@ -96,7 +96,7 @@ export const EmbeddingConfigSchema = z.object({
         CDP2EmbeddingSchema,
         VLMEmbeddingSchema,
     ]),
-    sparse: SparseEmbeddingSchema.default({ method: 'bm25' }),
+    sparse: SparseEmbeddingSchema.default({ method: 'bm25', language: 'en', on_the_fly: true }),
 });
 
 export type EmbeddingConfig = z.infer<typeof EmbeddingConfigSchema>;

@@ -128,10 +128,22 @@ class RAGService:
                     }
                 )
 
+            # --- Optional Reranking Step ---
+            if settings.retrieval.rerank.enabled:
+                from backend.app.providers.reranker import get_reranker
+                reranker = await get_reranker(workspace_id)
+                if reranker:
+                    # Reranker expects Dict with 'payload': {'text': ...}
+                    # Our results already match this structure mostly
+                    top_n = settings.retrieval.rerank.top_n
+                    reranked = await reranker.rerank(query, results, top_k=top_n)
+                    results = reranked
+
             duration = time.perf_counter() - start
             logger.info(
                 "rag_search_complete",
                 results=len(results),
+                rerank_enabled=settings.retrieval.rerank.enabled,
                 duration_ms=round(duration * 1000, 2),
                 workspace_id=workspace_id,
             )

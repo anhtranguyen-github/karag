@@ -173,28 +173,97 @@ async def web_search(state: GraphState) -> Dict[str, Any]:
 
 
 async def blend_results(state: GraphState) -> Dict[str, Any]:
-    """Consolidate internal and web results."""
+    """Consolidate internal and web results into a single candidate list."""
     internal = state.get("retrieved_results", [])
     web = state.get("web_results", [])
     
-    all_content = []
+    candidates = []
+    # Normalize formats
     for res in internal:
-        all_content.append(f"[Internal] {res.get('text', '')}")
+        candidates.append({
+            "text": res.get('text', ''),
+            "source": "internal",
+            "score": res.get('score', 0.0),
+            "payload": res.get('payload', {})
+        })
     for res in web:
         content = res.get("content") or res.get("snippet") or str(res)
-        all_content.append(f"[Web] {content}")
+        candidates.append({
+            "text": content,
+            "source": "web",
+            "score": 1.0, # Web results often don't have scores from Tavily in this format
+            "payload": res
+        })
 
-    # Deduplicate and format
-    unique_content = list(set(all_content))
-    limit = 25 if state["settings"].execution_mode == ExecutionMode.DEEP else 12
+    # Initial deduplication by text content
+    seen = set()
+    unique_candidates = []
+    for c in candidates:
+        if c["text"] not in seen:
+            unique_candidates.append(c)
+            seen.add(c["text"])
+
+    return {
+        "retrieved_results": unique_candidates, # Use retrieved_results as the 'working' list
+        "execution_metadata": {
+            **state["execution_metadata"],
+            "nodes_visited": state["execution_metadata"]["nodes_visited"] + ["blend"],
+        },
+    }
+
+
+async def rerank_results(state: GraphState) -> Dict[str, Any]:
+    """Optional reranking of blended results."""
+    from backend.app.providers.reranker import get_reranker
     
-    blended = "\n\n---\n\n".join(unique_content[:limit])
+    candidates = state.get("retrieved_results", [])
+    if not candidates:
+        return {"blended_context": "", "execution_metadata": {**state["execution_metadata"], "nodes_visited": state["execution_metadata"]["nodes_visited"] + ["rerank"]}}
+
+    reranker = await get_reranker(state["workspace_id"])
+    
+    if reranker:
+        # Cross-encoder expects List[Dict] with 'payload': {'text': ...}
+        # My candidates already have 'text' at top level, but reranker.py looks for payload['text']
+        formatted_for_reranker = []
+        for c in candidates:
+            formatted_for_reranker.append({
+                "payload": {"text": c["text"]},
+                "original_data": c
+            })
+        
+        top_n = 10 # Default fallback
+        try:
+            from backend.app.core.settings_manager import settings_manager
+            settings = await settings_manager.get_settings(state["workspace_id"])
+            top_n = settings.retrieval.rerank.top_n
+        except: pass
+
+        reranked = await reranker.rerank(state["query"], formatted_for_reranker, top_k=top_n)
+        
+        final_candidates = []
+        for r in reranked:
+            c = r["original_data"]
+            c["rerank_score"] = r["rerank_score"]
+            final_candidates.append(c)
+    else:
+        # Fallback to simple slice if no reranker
+        limit = 25 if state["settings"].execution_mode == ExecutionMode.DEEP else 12
+        final_candidates = candidates[:limit]
+
+    # Format into final blended string
+    formatted_parts = []
+    for c in final_candidates:
+        source_label = "[Internal]" if c["source"] == "internal" else "[Web]"
+        formatted_parts.append(f"{source_label} {c['text']}")
+
+    blended = "\n\n---\n\n".join(formatted_parts)
     
     return {
         "blended_context": blended,
         "execution_metadata": {
             **state["execution_metadata"],
-            "nodes_visited": state["execution_metadata"]["nodes_visited"] + ["blend"],
+            "nodes_visited": state["execution_metadata"]["nodes_visited"] + ["rerank"],
         },
     }
 

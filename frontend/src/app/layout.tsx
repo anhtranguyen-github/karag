@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 import { ErrorProvider } from "@/context/error-context";
 import { ToastProvider } from "@/context/toast-context";
 import { TaskProvider } from "@/context/task-context";
-import { JobMonitor } from "@/components/ui/job-monitor";
+import { JobPanel } from "@/components/job-panel";
 import { ThemeProvider } from "@/components/theme-provider";
 
 export default function RootLayout({
@@ -30,7 +30,7 @@ export default function RootLayout({
                         <ToastProvider>
                             <TaskProvider>
                                 {children}
-                                <JobMonitor />
+                                <JobPanel />
                             </TaskProvider>
                         </ToastProvider>
                     </ErrorProvider>

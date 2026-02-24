@@ -244,6 +244,7 @@ class AppSettings(BaseModel):
         self.retrieval.vector.top_k = self.search_limit
         self.retrieval.rerank.enabled = self.reranker_enabled
         self.retrieval.rerank.top_n = self.rerank_top_k
+        self.retrieval.rerank.provider = self.reranker_provider
 
         # Sync Generation fields
         self.generation.provider = self.llm_provider
@@ -325,6 +326,11 @@ class AppSettings(BaseModel):
         ge=1,
         le=20,
         description="Number of documents to keep after reranking.",
+        json_schema_extra={"mutable": True, "category": "Retrieval Component"},
+    )
+    reranker_provider: Literal["cohere", "openai", "local"] = Field(
+        default="local",
+        description="The service used for reranking results.",
         json_schema_extra={"mutable": True, "category": "Retrieval Component"},
     )
 
