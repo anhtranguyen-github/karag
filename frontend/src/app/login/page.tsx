@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@/context/auth-context";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Mail, Lock, LogIn, Database } from "lucide-react";
@@ -13,12 +13,16 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
     const { login, isLoading } = useAuth();
     const toast = useToast();
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const returnUrl = searchParams.get("returnUrl") || "/";
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
             await login(email, password);
             toast.success("Welcome back!");
+            router.replace(returnUrl);
         } catch {
             toast.error("Login failed. Please check your credentials.");
         }

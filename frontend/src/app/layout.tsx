@@ -12,6 +12,7 @@ import { TaskProvider } from "@/context/task-context";
 import { JobPanel } from "@/components/job-panel";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/context/auth-context";
+import { AuthGuard } from "@/components/auth/auth-guard";
 
 export default function RootLayout({
     children,
@@ -31,7 +32,9 @@ export default function RootLayout({
                         <ErrorProvider>
                             <ToastProvider>
                                 <TaskProvider>
-                                    {children}
+                                    <AuthGuard>
+                                        {children}
+                                    </AuthGuard>
                                     <JobPanel />
                                 </TaskProvider>
                             </ToastProvider>

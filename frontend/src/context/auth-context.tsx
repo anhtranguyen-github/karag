@@ -64,8 +64,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (tokenData.accessToken) {
                 localStorage.setItem("karag_token", tokenData.accessToken);
                 setToken(tokenData.accessToken);
-                // Redirect to home
-                router.push("/");
+                // Fetch user profile after login
+                try {
+                    const profile = await api.readUserMeAuthMeGet();
+                    setUser(profile);
+                } catch {
+                    // Profile fetch is optional at login time
+                }
             }
         } catch (error) {
             console.error("Login failed:", error);
