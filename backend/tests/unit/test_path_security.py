@@ -22,6 +22,11 @@ async def sec_client():
             status_code=exc.status_code, content={"message": exc.message}
         )
 
+    # Mock dependencies
+    from backend.app.api.deps import get_current_user, get_current_workspace
+    test_app.dependency_overrides[get_current_user] = lambda: {"id": "test-user", "email": "test@example.com"}
+    test_app.dependency_overrides[get_current_workspace] = lambda: {"id": "test-ws", "name": "Test Workspace"}
+
     # Mock the service layer to avoid DB interaction
     with patch(
         "backend.app.api.v1.documents.document_service", new=AsyncMock()
@@ -46,21 +51,21 @@ async def test_path_traversal_rejection(sec_client):
     client, mock_service = sec_client
 
     # 1. Classic traversal
-    res = await client.get("/documents/..%2f..%2fetc%2fpasswd")
+    res = await client.get("/workspaces/test-ws/documents/..%2f..%2fetc%2fpasswd")
     # Should be 404 because "../../etc/passwd" is effectively searched as an ID (or rejected by webserver/starlette)
     # The important part is that it DOES NOT crash and DOES NOT access filesystem
     assert res.status_code in [404, 422, 400]
 
     # 2. Null byte injection
-    res = await client.get("/documents/test.txt%00.pdf")
+    res = await client.get("/workspaces/test-ws/documents/test.txt%00.pdf")
     assert res.status_code in [404, 422, 400]
 
     # 3. URL encoded traversal
-    res = await client.delete("/documents/%2e%2e%2fconfig.json")
+    res = await client.delete("/workspaces/test-ws/documents/%2e%2e%2fconfig.json")
     assert res.status_code in [404, 422, 400]
 
     # 4. Inspect endpoint
-    res = await client.get("/documents/..%2f..%2f..%2f/inspect")
+    res = await client.get("/workspaces/test-ws/documents/..%2f..%2f..%2f/inspect")
     assert res.status_code in [404, 422, 400]
 
 
@@ -72,7 +77,7 @@ async def test_id_strictness(sec_client):
     # Setup mock to return None (Not Found)
     mock_service.get_by_id.return_value = None
 
-    res = await client.get("/documents/non-existent-id-123")
+    res = await client.get("/workspaces/test-ws/documents/non-existent-id-123")
     assert res.status_code == 404
     # Verify the service was called with the exact string, no normalization happened that turned it into a path
     mock_service.get_by_id.assert_called_with("non-existent-id-123")
