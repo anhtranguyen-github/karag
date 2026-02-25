@@ -2,6 +2,5 @@
     "version": 2,
     "framework": "nextjs",
     "buildCommand": "pnpm build",
-    "installCommand": "pnpm install",
-    "ignoreBuildStep": "bash ../scripts/vercel-check.sh"
+    "installCommand": "pnpm install"
 }
