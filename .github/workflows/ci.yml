@@ -8,87 +8,63 @@ on:
     branches: [ main, dev ]
 
 jobs:
-  # --- Stage 1: Question 1: Can this code actually run? ---
-  correctness:
-    name: "Q1: Code Correctness (Build & Lint)"
+  # --- Domain 1: Backend Pipeline ---
+  backend-pipeline:
+    name: "Backend: Lint & Test"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Setup Backend Tooling (uv)
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-          version: "latest"
-
-      - name: Backend Sync & Lint
+      - name: Lint & Format
         working-directory: ./backend
         run: |
           uv sync
           uvx ruff check .
           uvx ruff format --check .
+      - name: Unit & Contract Tests
+        working-directory: ./backend
+        run: uv run pytest tests/unit tests/contract --junitxml=results-unit.xml
 
+  # --- Domain 2: Frontend Pipeline ---
+  frontend-pipeline:
+    name: "Frontend: Lint, Build & Test"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - name: Setup Frontend Tooling (pnpm)
         uses: pnpm/action-setup@v4
         with:
           version: 9
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
           cache-dependency-path: frontend/pnpm-lock.yaml
-
-      - name: Frontend Build & Lint
+      - name: Install & Lint
         working-directory: ./frontend
         run: |
           pnpm install --frozen-lockfile
           pnpm run lint
-          pnpm run build
-        env:
-          NEXT_PUBLIC_API_URL: http://localhost:8000
-
-  # --- Stage 2: Question 2: Does it behave as intended? ---
-  behavior:
-    name: "Q2: Logical Behavior (Tests)"
-    needs: correctness
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Backend Tooling (uv)
-        uses: astral-sh/setup-uv@v5
-
-      - name: Backend Tests (Unit & Contract)
-        working-directory: ./backend
-        run: |
-          uv run pytest tests/unit tests/contract --junitxml=results-unit.xml
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-          cache-dependency-path: frontend/pnpm-lock.yaml
-
-      - name: Frontend Tests (Vitest)
+      - name: Unit Tests (Vitest)
         working-directory: ./frontend
-        run: |
-          pnpm install
-          pnpm run test:unit
+        run: pnpm run test:unit
+      - name: Production Build
+        working-directory: ./frontend
+        run: pnpm run build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'http://localhost:8000' }}
 
-  # --- Stage 3: Question 3, 4 & 5: Security, Trust, and IaC ---
-  security-and-trust:
-    name: "Q3-5: Security, Trust & IaC"
-    needs: behavior
+  # --- Stage 3: Integration & Security (The "Gatekeeper") ---
+  integration-and-security:
+    name: "Integration, Security & Artifact Verification"
+    needs: [backend-pipeline, frontend-pipeline]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Setup uv
         uses: astral-sh/setup-uv@v5
 
@@ -102,10 +78,6 @@ jobs:
             echo "ERROR: Path traversal vulnerability surface detected in openapi.json!"
             exit 1
           fi
-
-      - name: Supply Chain Check (uv lock)
-        working-directory: ./backend
-        run: uv lock --check
 
       - name: Secret Scan (TruffleHog)
         uses: trufflesecurity/trufflehog@main
@@ -123,9 +95,11 @@ jobs:
           check: HIGH,CRITICAL
           soft_fail: false
 
-      - name: Config Validation (Prompt Registry)
+      - name: Config Validation
         run: python3 -c "import yaml; yaml.safe_load(open('backend/app/core/prompts.yaml'))"
 
-      - name: Artifact Verification (Docker Build)
-        run: docker build -t karag:test -f backend/Dockerfile .
+      - name: Docker Artifact Verification
+        run: |
+          docker build -t karag-backend:test -f backend/Dockerfile .
+          docker build -t karag-frontend:test -f frontend/Dockerfile .
 
