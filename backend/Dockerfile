@@ -6,16 +6,24 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
 WORKDIR /app
 
+# Build argument to toggle CPU/GPU (default to CPU for smaller images)
+ARG TARGET_DEVICE=cpu
+
 # Enable bytecode compilation
 ENV UV_COMPILE_BYTECODE=1 \
-    UV_LINK_MODE=copy
+    UV_LINK_MODE=copy \
+    UV_CONCURRENT_DOWNLOADS=4
 
 # Install dependencies to a virtual environment
-# Using frozen lockfile ensures reproducible production builds
+# We use the pytorch-cpu index if TARGET_DEVICE is cpu to save ~3GB of space
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=backend/uv.lock,target=uv.lock \
     --mount=type=bind,source=backend/pyproject.toml,target=pyproject.toml \
-    uv sync --frozen --no-install-project --no-dev
+    if [ "$TARGET_DEVICE" = "cpu" ]; then \
+        uv sync --frozen --no-install-project --no-dev --extra-index-url https://download.pytorch.org/whl/cpu; \
+    else \
+        uv sync --frozen --no-install-project --no-dev; \
+    fi
 
 # --- Stage 2: Runtime ---
 FROM python:3.10.14-slim-bullseye
