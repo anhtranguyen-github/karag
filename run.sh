@@ -261,7 +261,6 @@ boot_infra() {
     echo -n "Waiting for core services..."
     local count=0
     if [ "$USE_CLOUD_QDRANT" = false ]; then
-        # Check health using the URL from config
         local HEALTH_URL="${QDRANT_URL%/}/healthz"
         while ! curl -s "$HEALTH_URL" > /dev/null; do
             echo -n "."
@@ -271,6 +270,36 @@ boot_infra() {
         done
         log_success " Local Qdrant READY!"
     fi
+
+    # Check MinIO if local
+    if [[ "${MINIO_ENDPOINT}" == *"localhost"* ]] || [[ "${MINIO_ENDPOINT}" == *"127.0.0.1"* ]]; then
+        local MINIO_HEALTH="http://localhost:9000/minio/health/live"
+        count=0
+        while ! curl -s "$MINIO_HEALTH" > /dev/null; do
+            echo -n "."
+            sleep 1
+            count=$((count+1))
+            [ $count -ge $MAX_RETRIES ] && { echo -e "${RED}\nFailed to start MinIO local instance at $MINIO_HEALTH.${NC}"; exit 1; }
+        done
+        log_success " Local MinIO READY!"
+    fi
+
+    # Check MongoDB if local
+    if [[ "${MONGO_URI}" == *"localhost"* ]] || [[ "${MONGO_URI}" == *"127.0.0.1"* ]]; then
+        count=0
+        while ! command -v mongosh >/dev/null 2>&1 || ! mongosh --eval 'db.runCommand("ping").ok' --quiet localhost:27017/test > /dev/null 2>&1; do
+            # Fallback to nc if mongosh missing
+            if ! command -v mongosh >/dev/null 2>&1 && command -v nc >/dev/null 2>&1; then
+                if nc -zw 2 localhost 27017; then break; fi
+            fi
+            echo -n "."
+            sleep 1
+            count=$((count+1))
+            [ $count -ge $MAX_RETRIES ] && { echo -e "${RED}\nFailed to start MongoDB local instance.${NC}"; exit 1; }
+        done
+        log_success " Local MongoDB READY!"
+    fi
+
     log_success " Infrastructure READY!"
 }
 

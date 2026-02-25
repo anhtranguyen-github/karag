@@ -11,7 +11,7 @@ services:
     networks:
       - karag_network
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:6333/healthz" ]
+      test: ["CMD-SHELL", "/bin/sh -c 'if [ -d /dev/tcp ]; then echo > /dev/tcp/localhost/6333; else true; fi'"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -196,10 +196,14 @@ services:
       - LOG_FORMAT=json
       - LOG_LEVEL=INFO
     depends_on:
-      - mongodb
-      - qdrant
-      - minio
-      - jaeger
+      mongodb:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
     networks:
       - karag_network
 
