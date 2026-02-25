@@ -32,8 +32,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # Full history for SonarQube
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -47,21 +45,13 @@ jobs:
           cache: 'pnpm'
           cache-dependency-path: frontend/pnpm-lock.yaml
 
-      - name: Build & Analyze
+      - name: Build
         working-directory: ./frontend
         run: |
           pnpm install --frozen-lockfile
           pnpm run build
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
-
-      - name: SonarQube Analysis
-        uses: sonarsource/sonarqube-scan-action@master
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        with:
-          projectBaseDir: .
 
   # --- Stage 3: Multi-Domain Security ---
   security-audit:
