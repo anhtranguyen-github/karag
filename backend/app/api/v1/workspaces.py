@@ -1,9 +1,10 @@
 from typing import List, Optional, Literal
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Depends
 from pydantic import BaseModel, Field, field_validator
 from backend.app.services.workspace_service import workspace_service
 from backend.app.core.exceptions import ValidationError, NotFoundError
 from backend.app.schemas.base import AppResponse
+from backend.app.api.deps import get_current_user, get_current_workspace
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
 
@@ -86,20 +87,26 @@ class WorkspaceUpdate(BaseModel):
 
 @router.get("/", response_model=AppResponse[List[Workspace]])
 @router.get("", response_model=AppResponse[List[Workspace]])
-async def list_workspaces():
-    workspaces = await workspace_service.list_all()
+async def list_workspaces(current_user: dict = Depends(get_current_user)):
+    workspaces = await workspace_service.list_all(current_user["id"])
     return AppResponse.success_response(data=workspaces)
 
 
 @router.post("/")
 @router.post("")
-async def create_workspace(ws: WorkspaceCreate):
-    result = await workspace_service.create(ws.model_dump())
+async def create_workspace(
+    ws: WorkspaceCreate, current_user: dict = Depends(get_current_user)
+):
+    result = await workspace_service.create(ws.model_dump(), current_user["id"])
     return AppResponse.from_result(result)
 
 
 @router.patch("/{workspace_id}")
-async def update_workspace(workspace_id: str, ws: WorkspaceUpdate):
+async def update_workspace(
+    workspace_id: str,
+    ws: WorkspaceUpdate,
+    current_workspace: dict = Depends(get_current_workspace),
+):
     update_data = {k: v for k, v in ws.model_dump().items() if v is not None}
     if not update_data:
         raise ValidationError("No data to update")
@@ -108,7 +115,11 @@ async def update_workspace(workspace_id: str, ws: WorkspaceUpdate):
 
 
 @router.delete("/{workspace_id}")
-async def delete_workspace(workspace_id: str, vault_delete: bool = False):
+async def delete_workspace(
+    workspace_id: str,
+    vault_delete: bool = False,
+    current_workspace: dict = Depends(get_current_workspace),
+):
     await workspace_service.delete(workspace_id, vault_delete=vault_delete)
     return AppResponse.success_response(
         data={"id": workspace_id}, message=f"Workspace {workspace_id} deleted"
@@ -116,7 +127,9 @@ async def delete_workspace(workspace_id: str, vault_delete: bool = False):
 
 
 @router.get("/{workspace_id}/details")
-async def get_workspace_details(workspace_id: str):
+async def get_workspace_details(
+    workspace_id: str, current_workspace: dict = Depends(get_current_workspace)
+):
     details = await workspace_service.get_details(workspace_id)
     if not details:
         raise NotFoundError(f"Workspace {workspace_id} not found")
@@ -124,7 +137,11 @@ async def get_workspace_details(workspace_id: str):
 
 
 @router.post("/{workspace_id}/share-document")
-async def share_document(workspace_id: str, request: Request):
+async def share_document(
+    workspace_id: str,
+    request: Request,
+    current_workspace: dict = Depends(get_current_workspace),
+):
     data = await request.json()
     source_name = data.get("source_name")
     target_workspace_id = data.get("target_workspace_id")
@@ -142,6 +159,8 @@ async def share_document(workspace_id: str, request: Request):
 
 
 @router.get("/{workspace_id}/graph")
-async def get_workspace_graph(workspace_id: str):
+async def get_workspace_graph(
+    workspace_id: str, current_workspace: dict = Depends(get_current_workspace)
+):
     graph_data = await workspace_service.get_graph_data(workspace_id)
     return AppResponse.success_response(data=graph_data)

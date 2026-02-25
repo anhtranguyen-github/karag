@@ -11,6 +11,7 @@ import { ToastProvider } from "@/context/toast-context";
 import { TaskProvider } from "@/context/task-context";
 import { JobPanel } from "@/components/job-panel";
 import { ThemeProvider } from "@/components/theme-provider";
+import { AuthProvider } from "@/context/auth-context";
 
 export default function RootLayout({
     children,
@@ -26,14 +27,16 @@ export default function RootLayout({
                     enableSystem
                     disableTransitionOnChange
                 >
-                    <ErrorProvider>
-                        <ToastProvider>
-                            <TaskProvider>
-                                {children}
-                                <JobPanel />
-                            </TaskProvider>
-                        </ToastProvider>
-                    </ErrorProvider>
+                    <AuthProvider>
+                        <ErrorProvider>
+                            <ToastProvider>
+                                <TaskProvider>
+                                    {children}
+                                    <JobPanel />
+                                </TaskProvider>
+                            </ToastProvider>
+                        </ErrorProvider>
+                    </AuthProvider>
                 </ThemeProvider>
             </body>
         </html>

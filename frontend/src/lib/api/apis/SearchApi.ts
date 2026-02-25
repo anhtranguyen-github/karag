@@ -25,9 +25,14 @@ import {
     HTTPValidationErrorToJSON,
 } from '../models/index';
 
-export interface GlobalSearchSearchGetRequest {
+export interface GlobalSearchWorkspacesWorkspaceIdSearchGetRequest {
+    workspaceId: string;
     q: string;
-    workspaceId?: string | null;
+}
+
+export interface VectorSearchWorkspacesWorkspaceIdSearchVectorGetRequest {
+    workspaceId: string;
+    q: string;
 }
 
 /**
@@ -39,11 +44,18 @@ export class SearchApi extends runtime.BaseAPI {
      * Perform a unified search across all architectural entities.
      * Global Search
      */
-    async globalSearchSearchGetRaw(requestParameters: GlobalSearchSearchGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponse>> {
+    async globalSearchWorkspacesWorkspaceIdSearchGetRaw(requestParameters: GlobalSearchWorkspacesWorkspaceIdSearchGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponse>> {
+        if (requestParameters['workspaceId'] == null) {
+            throw new runtime.RequiredError(
+                'workspaceId',
+                'Required parameter "workspaceId" was null or undefined when calling globalSearchWorkspacesWorkspaceIdSearchGet().'
+            );
+        }
+
         if (requestParameters['q'] == null) {
             throw new runtime.RequiredError(
                 'q',
-                'Required parameter "q" was null or undefined when calling globalSearchSearchGet().'
+                'Required parameter "q" was null or undefined when calling globalSearchWorkspacesWorkspaceIdSearchGet().'
             );
         }
 
@@ -53,14 +65,16 @@ export class SearchApi extends runtime.BaseAPI {
             queryParameters['q'] = requestParameters['q'];
         }
 
-        if (requestParameters['workspaceId'] != null) {
-            queryParameters['workspace_id'] = requestParameters['workspaceId'];
-        }
-
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            // oauth required
+            headerParameters["Authorization"] = await this.configuration.accessToken("OAuth2PasswordBearer", []);
+        }
 
-        let urlPath = `/search/`;
+
+        let urlPath = `/workspaces/{workspace_id}/search/`;
+        urlPath = urlPath.replace(`{${"workspace_id"}}`, encodeURIComponent(String(requestParameters['workspaceId'])));
 
         const response = await this.request({
             path: urlPath,
@@ -76,8 +90,63 @@ export class SearchApi extends runtime.BaseAPI {
      * Perform a unified search across all architectural entities.
      * Global Search
      */
-    async globalSearchSearchGet(requestParameters: GlobalSearchSearchGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponse> {
-        const response = await this.globalSearchSearchGetRaw(requestParameters, initOverrides);
+    async globalSearchWorkspacesWorkspaceIdSearchGet(requestParameters: GlobalSearchWorkspacesWorkspaceIdSearchGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponse> {
+        const response = await this.globalSearchWorkspacesWorkspaceIdSearchGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Perform a semantic search in the specific workspace using the RAG pipeline.
+     * Vector Search
+     */
+    async vectorSearchWorkspacesWorkspaceIdSearchVectorGetRaw(requestParameters: VectorSearchWorkspacesWorkspaceIdSearchVectorGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponse>> {
+        if (requestParameters['workspaceId'] == null) {
+            throw new runtime.RequiredError(
+                'workspaceId',
+                'Required parameter "workspaceId" was null or undefined when calling vectorSearchWorkspacesWorkspaceIdSearchVectorGet().'
+            );
+        }
+
+        if (requestParameters['q'] == null) {
+            throw new runtime.RequiredError(
+                'q',
+                'Required parameter "q" was null or undefined when calling vectorSearchWorkspacesWorkspaceIdSearchVectorGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['q'] != null) {
+            queryParameters['q'] = requestParameters['q'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            // oauth required
+            headerParameters["Authorization"] = await this.configuration.accessToken("OAuth2PasswordBearer", []);
+        }
+
+
+        let urlPath = `/workspaces/{workspace_id}/search/vector`;
+        urlPath = urlPath.replace(`{${"workspace_id"}}`, encodeURIComponent(String(requestParameters['workspaceId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AppResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Perform a semantic search in the specific workspace using the RAG pipeline.
+     * Vector Search
+     */
+    async vectorSearchWorkspacesWorkspaceIdSearchVectorGet(requestParameters: VectorSearchWorkspacesWorkspaceIdSearchVectorGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponse> {
+        const response = await this.vectorSearchWorkspacesWorkspaceIdSearchVectorGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

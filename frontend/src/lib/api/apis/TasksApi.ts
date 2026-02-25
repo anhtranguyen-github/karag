@@ -22,26 +22,30 @@ import {
     HTTPValidationErrorToJSON,
 } from '../models/index';
 
-export interface CancelTaskTasksTaskIdCancelPostRequest {
+export interface CancelTaskWorkspacesWorkspaceIdTasksTaskIdCancelPostRequest {
     taskId: string;
+    workspaceId: string;
 }
 
-export interface CleanupTasksTasksCleanupDeleteRequest {
+export interface CleanupTasksWorkspacesWorkspaceIdTasksCleanupDeleteRequest {
+    workspaceId: string;
     olderThanHours?: number;
 }
 
-export interface GetTaskStatusTasksTaskIdGetRequest {
+export interface GetTaskStatusWorkspacesWorkspaceIdTasksTaskIdGetRequest {
     taskId: string;
+    workspaceId: string;
 }
 
-export interface ListTasksTasksGetRequest {
+export interface ListTasksWorkspacesWorkspaceIdTasksGetRequest {
+    workspaceId: string;
     type?: string;
-    workspaceId?: string;
     limit?: number;
 }
 
-export interface RetryTaskTasksTaskIdRetryPostRequest {
+export interface RetryTaskWorkspacesWorkspaceIdTasksTaskIdRetryPostRequest {
     taskId: string;
+    workspaceId: string;
 }
 
 /**
@@ -53,11 +57,18 @@ export class TasksApi extends runtime.BaseAPI {
      * Cancel a pending or processing task.
      * Cancel Task
      */
-    async cancelTaskTasksTaskIdCancelPostRaw(requestParameters: CancelTaskTasksTaskIdCancelPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async cancelTaskWorkspacesWorkspaceIdTasksTaskIdCancelPostRaw(requestParameters: CancelTaskWorkspacesWorkspaceIdTasksTaskIdCancelPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         if (requestParameters['taskId'] == null) {
             throw new runtime.RequiredError(
                 'taskId',
-                'Required parameter "taskId" was null or undefined when calling cancelTaskTasksTaskIdCancelPost().'
+                'Required parameter "taskId" was null or undefined when calling cancelTaskWorkspacesWorkspaceIdTasksTaskIdCancelPost().'
+            );
+        }
+
+        if (requestParameters['workspaceId'] == null) {
+            throw new runtime.RequiredError(
+                'workspaceId',
+                'Required parameter "workspaceId" was null or undefined when calling cancelTaskWorkspacesWorkspaceIdTasksTaskIdCancelPost().'
             );
         }
 
@@ -65,9 +76,15 @@ export class TasksApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            // oauth required
+            headerParameters["Authorization"] = await this.configuration.accessToken("OAuth2PasswordBearer", []);
+        }
 
-        let urlPath = `/tasks/{task_id}/cancel`;
+
+        let urlPath = `/workspaces/{workspace_id}/tasks/{task_id}/cancel`;
         urlPath = urlPath.replace(`{${"task_id"}}`, encodeURIComponent(String(requestParameters['taskId'])));
+        urlPath = urlPath.replace(`{${"workspace_id"}}`, encodeURIComponent(String(requestParameters['workspaceId'])));
 
         const response = await this.request({
             path: urlPath,
@@ -87,8 +104,8 @@ export class TasksApi extends runtime.BaseAPI {
      * Cancel a pending or processing task.
      * Cancel Task
      */
-    async cancelTaskTasksTaskIdCancelPost(requestParameters: CancelTaskTasksTaskIdCancelPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.cancelTaskTasksTaskIdCancelPostRaw(requestParameters, initOverrides);
+    async cancelTaskWorkspacesWorkspaceIdTasksTaskIdCancelPost(requestParameters: CancelTaskWorkspacesWorkspaceIdTasksTaskIdCancelPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.cancelTaskWorkspacesWorkspaceIdTasksTaskIdCancelPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -96,7 +113,14 @@ export class TasksApi extends runtime.BaseAPI {
      * Remove completed/failed tasks older than the given number of hours.
      * Cleanup Tasks
      */
-    async cleanupTasksTasksCleanupDeleteRaw(requestParameters: CleanupTasksTasksCleanupDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async cleanupTasksWorkspacesWorkspaceIdTasksCleanupDeleteRaw(requestParameters: CleanupTasksWorkspacesWorkspaceIdTasksCleanupDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        if (requestParameters['workspaceId'] == null) {
+            throw new runtime.RequiredError(
+                'workspaceId',
+                'Required parameter "workspaceId" was null or undefined when calling cleanupTasksWorkspacesWorkspaceIdTasksCleanupDelete().'
+            );
+        }
+
         const queryParameters: any = {};
 
         if (requestParameters['olderThanHours'] != null) {
@@ -105,8 +129,14 @@ export class TasksApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            // oauth required
+            headerParameters["Authorization"] = await this.configuration.accessToken("OAuth2PasswordBearer", []);
+        }
 
-        let urlPath = `/tasks/cleanup`;
+
+        let urlPath = `/workspaces/{workspace_id}/tasks/cleanup`;
+        urlPath = urlPath.replace(`{${"workspace_id"}}`, encodeURIComponent(String(requestParameters['workspaceId'])));
 
         const response = await this.request({
             path: urlPath,
@@ -126,8 +156,8 @@ export class TasksApi extends runtime.BaseAPI {
      * Remove completed/failed tasks older than the given number of hours.
      * Cleanup Tasks
      */
-    async cleanupTasksTasksCleanupDelete(requestParameters: CleanupTasksTasksCleanupDeleteRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.cleanupTasksTasksCleanupDeleteRaw(requestParameters, initOverrides);
+    async cleanupTasksWorkspacesWorkspaceIdTasksCleanupDelete(requestParameters: CleanupTasksWorkspacesWorkspaceIdTasksCleanupDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.cleanupTasksWorkspacesWorkspaceIdTasksCleanupDeleteRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -135,11 +165,18 @@ export class TasksApi extends runtime.BaseAPI {
      * Get the current status of a specific task.
      * Get Task Status
      */
-    async getTaskStatusTasksTaskIdGetRaw(requestParameters: GetTaskStatusTasksTaskIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async getTaskStatusWorkspacesWorkspaceIdTasksTaskIdGetRaw(requestParameters: GetTaskStatusWorkspacesWorkspaceIdTasksTaskIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         if (requestParameters['taskId'] == null) {
             throw new runtime.RequiredError(
                 'taskId',
-                'Required parameter "taskId" was null or undefined when calling getTaskStatusTasksTaskIdGet().'
+                'Required parameter "taskId" was null or undefined when calling getTaskStatusWorkspacesWorkspaceIdTasksTaskIdGet().'
+            );
+        }
+
+        if (requestParameters['workspaceId'] == null) {
+            throw new runtime.RequiredError(
+                'workspaceId',
+                'Required parameter "workspaceId" was null or undefined when calling getTaskStatusWorkspacesWorkspaceIdTasksTaskIdGet().'
             );
         }
 
@@ -147,9 +184,15 @@ export class TasksApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            // oauth required
+            headerParameters["Authorization"] = await this.configuration.accessToken("OAuth2PasswordBearer", []);
+        }
 
-        let urlPath = `/tasks/{task_id}`;
+
+        let urlPath = `/workspaces/{workspace_id}/tasks/{task_id}`;
         urlPath = urlPath.replace(`{${"task_id"}}`, encodeURIComponent(String(requestParameters['taskId'])));
+        urlPath = urlPath.replace(`{${"workspace_id"}}`, encodeURIComponent(String(requestParameters['workspaceId'])));
 
         const response = await this.request({
             path: urlPath,
@@ -169,24 +212,27 @@ export class TasksApi extends runtime.BaseAPI {
      * Get the current status of a specific task.
      * Get Task Status
      */
-    async getTaskStatusTasksTaskIdGet(requestParameters: GetTaskStatusTasksTaskIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.getTaskStatusTasksTaskIdGetRaw(requestParameters, initOverrides);
+    async getTaskStatusWorkspacesWorkspaceIdTasksTaskIdGet(requestParameters: GetTaskStatusWorkspacesWorkspaceIdTasksTaskIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.getTaskStatusWorkspacesWorkspaceIdTasksTaskIdGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
-     * List tasks, optionally filtered by type and workspace.
+     * List tasks for the current workspace.
      * List Tasks
      */
-    async listTasksTasksGetRaw(requestParameters: ListTasksTasksGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async listTasksWorkspacesWorkspaceIdTasksGetRaw(requestParameters: ListTasksWorkspacesWorkspaceIdTasksGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        if (requestParameters['workspaceId'] == null) {
+            throw new runtime.RequiredError(
+                'workspaceId',
+                'Required parameter "workspaceId" was null or undefined when calling listTasksWorkspacesWorkspaceIdTasksGet().'
+            );
+        }
+
         const queryParameters: any = {};
 
         if (requestParameters['type'] != null) {
             queryParameters['type'] = requestParameters['type'];
-        }
-
-        if (requestParameters['workspaceId'] != null) {
-            queryParameters['workspace_id'] = requestParameters['workspaceId'];
         }
 
         if (requestParameters['limit'] != null) {
@@ -195,8 +241,14 @@ export class TasksApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            // oauth required
+            headerParameters["Authorization"] = await this.configuration.accessToken("OAuth2PasswordBearer", []);
+        }
 
-        let urlPath = `/tasks/`;
+
+        let urlPath = `/workspaces/{workspace_id}/tasks/`;
+        urlPath = urlPath.replace(`{${"workspace_id"}}`, encodeURIComponent(String(requestParameters['workspaceId'])));
 
         const response = await this.request({
             path: urlPath,
@@ -213,11 +265,11 @@ export class TasksApi extends runtime.BaseAPI {
     }
 
     /**
-     * List tasks, optionally filtered by type and workspace.
+     * List tasks for the current workspace.
      * List Tasks
      */
-    async listTasksTasksGet(requestParameters: ListTasksTasksGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.listTasksTasksGetRaw(requestParameters, initOverrides);
+    async listTasksWorkspacesWorkspaceIdTasksGet(requestParameters: ListTasksWorkspacesWorkspaceIdTasksGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.listTasksWorkspacesWorkspaceIdTasksGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -225,11 +277,18 @@ export class TasksApi extends runtime.BaseAPI {
      * Mark a failed task as retryable and re-dispatch it to background workers.
      * Retry Task
      */
-    async retryTaskTasksTaskIdRetryPostRaw(requestParameters: RetryTaskTasksTaskIdRetryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async retryTaskWorkspacesWorkspaceIdTasksTaskIdRetryPostRaw(requestParameters: RetryTaskWorkspacesWorkspaceIdTasksTaskIdRetryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         if (requestParameters['taskId'] == null) {
             throw new runtime.RequiredError(
                 'taskId',
-                'Required parameter "taskId" was null or undefined when calling retryTaskTasksTaskIdRetryPost().'
+                'Required parameter "taskId" was null or undefined when calling retryTaskWorkspacesWorkspaceIdTasksTaskIdRetryPost().'
+            );
+        }
+
+        if (requestParameters['workspaceId'] == null) {
+            throw new runtime.RequiredError(
+                'workspaceId',
+                'Required parameter "workspaceId" was null or undefined when calling retryTaskWorkspacesWorkspaceIdTasksTaskIdRetryPost().'
             );
         }
 
@@ -237,9 +296,15 @@ export class TasksApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            // oauth required
+            headerParameters["Authorization"] = await this.configuration.accessToken("OAuth2PasswordBearer", []);
+        }
 
-        let urlPath = `/tasks/{task_id}/retry`;
+
+        let urlPath = `/workspaces/{workspace_id}/tasks/{task_id}/retry`;
         urlPath = urlPath.replace(`{${"task_id"}}`, encodeURIComponent(String(requestParameters['taskId'])));
+        urlPath = urlPath.replace(`{${"workspace_id"}}`, encodeURIComponent(String(requestParameters['workspaceId'])));
 
         const response = await this.request({
             path: urlPath,
@@ -259,8 +324,8 @@ export class TasksApi extends runtime.BaseAPI {
      * Mark a failed task as retryable and re-dispatch it to background workers.
      * Retry Task
      */
-    async retryTaskTasksTaskIdRetryPost(requestParameters: RetryTaskTasksTaskIdRetryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.retryTaskTasksTaskIdRetryPostRaw(requestParameters, initOverrides);
+    async retryTaskWorkspacesWorkspaceIdTasksTaskIdRetryPost(requestParameters: RetryTaskWorkspacesWorkspaceIdTasksTaskIdRetryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.retryTaskWorkspacesWorkspaceIdTasksTaskIdRetryPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

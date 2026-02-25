@@ -19,7 +19,7 @@ import {
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { API_ROUTES } from '@/lib/api-config';
+import { api } from '@/lib/api-client';
 import { SourceViewer } from '@/components/source-viewer';
 import { useToast } from '@/context/toast-context';
 
@@ -42,12 +42,11 @@ export default function KnowledgePage() {
 
     const fetchDocuments = async () => {
         try {
-            const res = await fetch(API_ROUTES.DOCUMENTS);
-            if (res.ok) {
-                const result = await res.json();
-                if (result.success && result.data) {
-                    setDocuments(result.data);
-                }
+            const payload = await api.listAllDocumentsWorkspacesWorkspaceIdDocumentsAllGet({
+                workspaceId: "vault" // Using vault as a generic identifier if appropriate, or it should be parameterized
+            });
+            if (payload.success && payload.data) {
+                setDocuments(payload.data);
             }
         } catch (err) {
             console.error('Failed to fetch documents', err);
@@ -66,24 +65,20 @@ export default function KnowledgePage() {
 
         setIsUploading(true);
 
-        const formData = new FormData();
-        formData.append('file', file);
-
         try {
-            const res = await fetch(API_ROUTES.UPLOAD, {
-                method: 'POST',
-                body: formData,
+            const payload = await api.uploadDocumentWorkspacesWorkspaceIdUploadPost({
+                workspaceId: "vault",
+                file: file
             });
-            if (res.ok) {
+            if (payload.success) {
                 await fetchDocuments();
                 // Clear input
-                e.target.value = '';
+                if (e.target) e.target.value = '';
             } else {
-                const result = await res.json();
-                console.error(result.message || 'Upload failed');
+                console.error(payload.message || 'Upload failed');
             }
-        } catch {
-            console.error('Connection error occurred');
+        } catch (err) {
+            console.error('Connection error occurred', err);
         } finally {
             setIsUploading(false);
         }
@@ -92,11 +87,12 @@ export default function KnowledgePage() {
     const handleDelete = async (name: string) => {
         const toastId = toast.loading(`Deleting ${name}...`);
         try {
-            const res = await fetch(API_ROUTES.DOCUMENT_DELETE(name), {
-                method: 'DELETE',
+            const payload = await api.deleteDocumentWorkspacesWorkspaceIdDocumentsDocumentIdDelete({
+                workspaceId: "vault",
+                documentId: name
             });
             toast.dismiss(toastId);
-            if (res.ok) {
+            if (payload.success) {
                 toast.success(`Successfully deleted ${name}`);
                 setDocuments((prev) => prev.filter((d) => d.name !== name));
             } else {
@@ -112,17 +108,17 @@ export default function KnowledgePage() {
     const handleView = async (name: string) => {
         setIsViewing(true);
         try {
-            const res = await fetch(API_ROUTES.DOCUMENT_GET(name));
-            if (res.ok) {
-                const result = await res.json();
-                if (result.success && result.data) {
-                    const data = result.data;
-                    setActiveSource({
-                        id: 0,
-                        name: data.name || data.filename,
-                        content: data.content
-                    });
-                }
+            const payload = await api.getDocumentWorkspacesWorkspaceIdDocumentsDocumentIdGet({
+                workspaceId: "vault",
+                documentId: name
+            });
+            if (payload.success && payload.data) {
+                const data = payload.data;
+                setActiveSource({
+                    id: 0,
+                    name: data.name || data.filename,
+                    content: data.content
+                });
             }
         } catch (err) {
             console.error('Failed to view document', err);

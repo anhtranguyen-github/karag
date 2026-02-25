@@ -14,15 +14,18 @@ interface Task {
     updated_at: string;
 }
 
-export function JobMonitor() {
+export function JobMonitor({ workspaceId }: { workspaceId?: string }) {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [isExpanded, setIsExpanded] = useState(false);
 
     const fetchTasks = async () => {
         try {
-            const res = await api.listTasksTasksGet({ limit: 5 });
+            const payload = await api.listTasksWorkspacesWorkspaceIdTasksGet({
+                workspaceId: workspaceId!,
+                limit: 5
+            });
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            setTasks((res.data as any) || []);
+            setTasks((payload.data as any) || []);
         } catch (e) {
             console.error("Failed to fetch tasks", e);
         }
@@ -32,7 +35,7 @@ export function JobMonitor() {
         const interval = setInterval(fetchTasks, 5000);
         fetchTasks();
         return () => clearInterval(interval);
-    }, []);
+    }, [workspaceId]);
 
     const activeTasks = tasks.filter(t => t.status === "pending" || t.status === "processing");
     const hasActiveTasks = activeTasks.length > 0;

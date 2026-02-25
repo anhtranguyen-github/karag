@@ -320,11 +320,15 @@ class ChatService:
                 from backend.app.rag.graph.orchestrator import rag_executor
                 from backend.app.schemas.execution import RuntimeSettings
 
+                # Fetch history for context
+                history = await ChatService.get_history(thread_id)
                 settings = RuntimeSettings(**execution)
+                
                 initial_state = {
                     "query": message,
                     "workspace_id": workspace_id,
                     "settings": settings,
+                    "history": history,
                     "generated_queries": [],
                     "retrieved_results": [],
                     "draft_answers": [],

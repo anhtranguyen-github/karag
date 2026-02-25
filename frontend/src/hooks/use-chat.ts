@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
-import { API_ROUTES } from '@/lib/api-config';
+import { api } from '@/lib/api-client';
 import { useError } from '@/context/error-context';
 
 export interface Message {
@@ -39,28 +39,11 @@ export function useChat(workspaceId: string = "vault") {
 
     const fetchHistory = useCallback(async (id: string) => {
         try {
-            const res = await fetch(API_ROUTES.CHAT_HISTORY(id));
-            if (!res.ok) {
-                showError("History Retrieval Failed", "The server could not retrieve chat history for this thread.", `ID: ${id}`);
-                return;
-            }
+            const payload = await api.getChatHistoryWorkspacesWorkspaceIdChatHistoryThreadIdGet({
+                workspaceId: workspaceId,
+                threadId: id
+            });
 
-            const rawData = await res.json();
-
-            // Runtime Validation
-            const { AppResponseSchema } = await import('@/lib/schemas/api');
-            const { MessageSchema } = await import('@/lib/schemas/chat');
-            const { z } = await import('zod');
-
-            const ResponseSchema = AppResponseSchema(z.array(MessageSchema));
-            const result = ResponseSchema.safeParse(rawData);
-
-            if (!result.success) {
-                console.error("API Contract Violation (Chat History):", result.error);
-                return;
-            }
-
-            const payload = result.data;
             if (payload.success && payload.data) {
                 setMessages(payload.data);
             }
@@ -69,7 +52,7 @@ export function useChat(workspaceId: string = "vault") {
             const errorMessage = err instanceof Error ? err.message : "Failed to connect to chat history service.";
             showError("Network Error", errorMessage);
         }
-    }, [showError]);
+    }, [workspaceId, showError]);
 
     useEffect(() => {
         if (threadId) {
@@ -100,15 +83,19 @@ export function useChat(workspaceId: string = "vault") {
         let accumulatedContent = '';
 
         try {
-            await fetchEventSource(API_ROUTES.CHAT_STREAM, {
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+            const streamUrl = `${baseUrl}/workspaces/${workspaceId}/chat/stream`;
+            const token = localStorage.getItem("karag_token");
+
+            await fetchEventSource(streamUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                 },
                 body: JSON.stringify({
                     message: content,
                     thread_id: threadId,
-                    workspace_id: workspaceId
                 }),
                 onmessage(msg) {
                     if (msg.event === 'FatalError') throw new Error(msg.data);

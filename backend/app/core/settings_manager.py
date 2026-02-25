@@ -93,7 +93,7 @@ class SettingsManager:
 
     async def get_settings(self, workspace_id: Optional[str] = None) -> AppSettings:
         """Get settings for a specific workspace, falling back to global settings."""
-        if not workspace_id or workspace_id == "default":
+        if not workspace_id or workspace_id == "default" or workspace_id == "vault":
             return self._global_settings
 
         # Check cache first

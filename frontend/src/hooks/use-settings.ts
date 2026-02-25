@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { API_ROUTES } from '@/lib/api-config';
+import { api } from '@/lib/api-client';
 import { useError } from '@/context/error-context';
 
 export interface AppSettings {
@@ -39,7 +39,7 @@ export interface SettingMetadata {
     step?: number;
 }
 
-export function useSettingsMetadata() {
+export function useSettingsMetadata(workspaceId?: string) {
     const [metadata, setMetadata] = useState<Record<string, SettingMetadata> | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -47,25 +47,23 @@ export function useSettingsMetadata() {
     const fetchMetadata = useCallback(async () => {
         setIsLoading(true);
         try {
-            const res = await fetch(API_ROUTES.SETTINGS_METADATA);
-            if (res.ok) {
-                const payload = await res.json();
-                if (payload.success) {
-                    setMetadata(payload.data);
-                    setError(null);
-                } else {
-                    setError(payload.message || 'Failed to parse metadata.');
-                }
+            const payload = workspaceId
+                ? await api.getSettingsMetadataWorkspacesWorkspaceIdSettingsMetadataGet({ workspaceId })
+                : await api.getGlobalSettingsMetadataAdminSettingsMetadataGet();
+
+            if (payload.success) {
+                setMetadata(payload.data);
+                setError(null);
             } else {
-                setError('Metadata service unreachable.');
+                setError(payload.message || 'Failed to parse metadata.');
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to fetch settings metadata:', err);
             setError('Connection failed.');
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [workspaceId]);
 
     useEffect(() => {
         fetchMetadata();
@@ -82,24 +80,18 @@ export function useSettings(workspaceId?: string) {
     const fetchSettings = useCallback(async () => {
         setIsLoading(true);
         try {
-            const url = workspaceId
-                ? `${API_ROUTES.SETTINGS}?workspace_id=${encodeURIComponent(workspaceId)}`
-                : API_ROUTES.SETTINGS;
-            const res = await fetch(url);
-            if (!res.ok) {
-                showError("Connection error", "Unable to retrieve settings. Please check your connection.");
-                return;
-            }
-            const rawData = await res.json();
-
-            // Runtime Validation - use loose schema as retrieval_mode is removed
-            const payload = rawData;
+            const payload = workspaceId
+                ? await api.getSettingsWorkspacesWorkspaceIdSettingsGet({ workspaceId })
+                : await api.getGlobalSettingsAdminSettingsGet();
 
             if (payload.success && payload.data) {
                 setSettings(payload.data);
+            } else if (!payload.success) {
+                showError("Connection error", "Unable to retrieve settings. Please check your connection.");
             }
         } catch (err) {
             console.error('Failed to fetch settings:', err);
+            showError("Connection error", "Unable to retrieve settings. Please check your connection.");
         } finally {
             setIsLoading(false);
         }
@@ -107,29 +99,27 @@ export function useSettings(workspaceId?: string) {
 
     const updateSettings = async (updates: Partial<AppSettings>) => {
         try {
-            const url = workspaceId
-                ? `${API_ROUTES.SETTINGS}?workspace_id=${encodeURIComponent(workspaceId)}`
-                : API_ROUTES.SETTINGS;
-            const res = await fetch(url, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updates),
-            });
-            const data = await res.json();
+            const payload = workspaceId
+                ? await api.updateSettingsWorkspacesWorkspaceIdSettingsPatch({
+                    workspaceId,
+                    requestBody: updates
+                })
+                : await api.updateGlobalSettingsAdminSettingsPatch({
+                    requestBody: updates
+                });
 
-            if (res.ok) {
-                // The backend returns AppResponse.success_response(data=settings)
-                const newSettings = data.data || data;
+            if (payload.success) {
+                const newSettings = payload.data || payload;
                 setSettings(newSettings);
                 return newSettings;
             } else {
                 let title = "Failed to save";
-                const message = data.message || data.detail || "The server rejected the configuration update.";
-                if (data.code === "VALIDATION_ERROR") {
+                const message = payload.message || payload.detail || "The server rejected the configuration update.";
+                if (payload.code === "VALIDATION_ERROR") {
                     title = "Invalid input";
                 }
 
-                showError(title, message, data.params ? JSON.stringify(data.params) : undefined);
+                showError(title, message, payload.params ? JSON.stringify(payload.params) : undefined);
                 return null;
             }
         } catch (err) {

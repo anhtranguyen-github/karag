@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { API_ROUTES } from '@/lib/api-config';
+import { api } from '@/lib/api-client';
 import { useError } from '@/context/error-context';
 
 export interface Thread {
@@ -10,7 +10,7 @@ export interface Thread {
     updated_at?: string;
 }
 
-export function useThreads(workspaceId: string = "default") {
+export function useThreads(workspaceId: string) {
     const [threads, setThreads] = useState<Thread[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const { showError } = useError();
@@ -18,28 +18,9 @@ export function useThreads(workspaceId: string = "default") {
     const fetchThreads = useCallback(async () => {
         setIsLoading(true);
         try {
-            const res = await fetch(`${API_ROUTES.CHAT_THREADS}?workspace_id=${encodeURIComponent(workspaceId)}`);
-            if (!res.ok) {
-                showError("Subsystem Unavailable", "The thread management service is currently unreachable.");
-                return;
-            }
-
-            const rawData = await res.json();
-
-            // Runtime Validation
-            const { AppResponseSchema } = await import('@/lib/schemas/api');
-            const { ThreadSchema } = await import('@/lib/schemas/chat');
-            const { z } = await import('zod');
-
-            const ResponseSchema = AppResponseSchema(z.array(ThreadSchema));
-            const result = ResponseSchema.safeParse(rawData);
-
-            if (!result.success) {
-                console.error("API Contract Violation (Threads):", result.error);
-                return;
-            }
-
-            const payload = result.data;
+            const payload = await api.listChatThreadsWorkspacesWorkspaceIdChatThreadsGet({
+                workspaceId: workspaceId
+            });
             if (payload.success && payload.data) {
                 setThreads(payload.data);
             }
@@ -48,7 +29,7 @@ export function useThreads(workspaceId: string = "default") {
         } finally {
             setIsLoading(false);
         }
-    }, [workspaceId, showError]);
+    }, [workspaceId]);
 
     const updateThreadTitle = async (id: string, title: string) => {
         if (!title.trim()) {
@@ -57,17 +38,16 @@ export function useThreads(workspaceId: string = "default") {
         }
 
         try {
-            const res = await fetch(API_ROUTES.THREAD_TITLE(id), {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title })
+            const payload = await api.updateThreadTitleWorkspacesWorkspaceIdChatThreadsThreadIdTitlePatch({
+                workspaceId: workspaceId,
+                threadId: id,
+                threadTitleUpdate: { title }
             });
-            const data = await res.json();
 
-            if (res.ok) {
+            if (payload.success) {
                 await fetchThreads();
             } else {
-                showError("Rebranding Failed", data.message || data.detail || "Unable to update synchronization descriptor.");
+                showError("Rebranding Failed", "Unable to update synchronization descriptor.");
             }
         } catch (err) {
             console.error('Failed to update thread title:', err);
@@ -77,14 +57,14 @@ export function useThreads(workspaceId: string = "default") {
 
     const deleteThread = async (id: string) => {
         try {
-            const res = await fetch(API_ROUTES.THREAD_DELETE(id), {
-                method: 'DELETE'
+            const payload = await api.deleteThreadWorkspacesWorkspaceIdChatThreadsThreadIdDelete({
+                workspaceId: workspaceId,
+                threadId: id
             });
-            if (res.ok) {
+            if (payload.success) {
                 await fetchThreads();
             } else {
-                const data = await res.json();
-                showError("Decommissioning Failed", data.message || data.detail || "Unable to purge thread memory.");
+                showError("Decommissioning Failed", "Unable to purge thread memory.");
             }
         } catch (err) {
             console.error('Failed to delete thread:', err);

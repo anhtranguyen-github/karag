@@ -12,6 +12,7 @@ import {
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_ROUTES } from '@/lib/api-config';
+import { api } from '@/lib/api-client';
 import Link from 'next/link';
 
 interface InspectedPoint {
@@ -60,18 +61,18 @@ export default function DocumentsPage() {
         setInspectedPoints([]);
 
         try {
-            const [points, contentRes] = await Promise.all([
-                inspectDocument(doc.name),
-                fetch(API_ROUTES.DOCUMENT_GET(doc.name))
+            const [points, contentPayload] = await Promise.all([
+                inspectDocument(doc.name, doc.workspace_id),
+                api.getDocumentWorkspacesWorkspaceIdDocumentsDocumentIdGet({
+                    documentId: doc.name,
+                    workspaceId: doc.workspace_id
+                })
             ]);
 
             if (points) setInspectedPoints(points);
 
-            if (contentRes.ok) {
-                const result = await contentRes.json();
-                if (result.success && result.data) {
-                    setDocumentContent(result.data.content);
-                }
+            if (contentPayload.success && contentPayload.data) {
+                setDocumentContent(contentPayload.data.content);
             }
         } catch (err) {
             console.error('Failed to load document details:', err);

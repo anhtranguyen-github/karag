@@ -83,6 +83,11 @@ export class WorkspacesApi extends runtime.BaseAPI {
 
         headerParameters['Content-Type'] = 'application/json';
 
+        if (this.configuration && this.configuration.accessToken) {
+            // oauth required
+            headerParameters["Authorization"] = await this.configuration.accessToken("OAuth2PasswordBearer", []);
+        }
+
 
         let urlPath = `/workspaces`;
 
@@ -125,6 +130,11 @@ export class WorkspacesApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
         headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            // oauth required
+            headerParameters["Authorization"] = await this.configuration.accessToken("OAuth2PasswordBearer", []);
+        }
 
 
         let urlPath = `/workspaces/`;
@@ -171,6 +181,11 @@ export class WorkspacesApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            // oauth required
+            headerParameters["Authorization"] = await this.configuration.accessToken("OAuth2PasswordBearer", []);
+        }
+
 
         let urlPath = `/workspaces/{workspace_id}`;
         urlPath = urlPath.replace(`{${"workspace_id"}}`, encodeURIComponent(String(requestParameters['workspaceId'])));
@@ -211,6 +226,11 @@ export class WorkspacesApi extends runtime.BaseAPI {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            // oauth required
+            headerParameters["Authorization"] = await this.configuration.accessToken("OAuth2PasswordBearer", []);
+        }
 
 
         let urlPath = `/workspaces/{workspace_id}/details`;
@@ -253,6 +273,11 @@ export class WorkspacesApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            // oauth required
+            headerParameters["Authorization"] = await this.configuration.accessToken("OAuth2PasswordBearer", []);
+        }
+
 
         let urlPath = `/workspaces/{workspace_id}/graph`;
         urlPath = urlPath.replace(`{${"workspace_id"}}`, encodeURIComponent(String(requestParameters['workspaceId'])));
@@ -287,6 +312,11 @@ export class WorkspacesApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            // oauth required
+            headerParameters["Authorization"] = await this.configuration.accessToken("OAuth2PasswordBearer", []);
+        }
+
 
         let urlPath = `/workspaces`;
 
@@ -315,6 +345,11 @@ export class WorkspacesApi extends runtime.BaseAPI {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            // oauth required
+            headerParameters["Authorization"] = await this.configuration.accessToken("OAuth2PasswordBearer", []);
+        }
 
 
         let urlPath = `/workspaces/`;
@@ -351,6 +386,11 @@ export class WorkspacesApi extends runtime.BaseAPI {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            // oauth required
+            headerParameters["Authorization"] = await this.configuration.accessToken("OAuth2PasswordBearer", []);
+        }
 
 
         let urlPath = `/workspaces/{workspace_id}/share-document`;
@@ -401,6 +441,11 @@ export class WorkspacesApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
         headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            // oauth required
+            headerParameters["Authorization"] = await this.configuration.accessToken("OAuth2PasswordBearer", []);
+        }
 
 
         let urlPath = `/workspaces/{workspace_id}`;

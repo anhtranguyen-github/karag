@@ -7,7 +7,7 @@ import {
     Search, FileText, MessageSquare,
     Loader2, X, ArrowRight, Clock, Box
 } from 'lucide-react';
-import { API_ROUTES } from '@/lib/api-config';
+import { api } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
 
 type SearchScope = 'all' | 'documents' | 'chats' | 'workspaces';
@@ -62,52 +62,52 @@ function SearchContent() {
         const allResults: SearchResult[] = [];
 
         try {
-            const res = await fetch(`${API_ROUTES.SEARCH}?q=${encodeURIComponent(searchQuery)}`);
+            const payload = await api.globalSearchWorkspacesWorkspaceIdSearchGet({
+                workspaceId: "all",
+                q: searchQuery
+            });
 
-            if (res.ok) {
-                const result = await res.json();
-                if (result.success && result.data) {
-                    const data = result.data;
+            if (payload.success && payload.data) {
+                const data = payload.data as any;
 
-                    // Documents
-                    if ((scope === 'all' || scope === 'documents') && data.documents) {
-                        data.documents.forEach((doc: { id: string, name: string, workspace_id: string }) => {
-                            allResults.push({
-                                type: 'document',
-                                id: doc.id,
-                                title: doc.name,
-                                snippet: `Document in ${doc.workspace_id}`,
-                                workspace_id: doc.workspace_id,
-                                score: 1.0 // Mock score as regex search doesn't provide one
-                            });
+                // Documents
+                if ((scope === 'all' || scope === 'documents') && data.documents) {
+                    data.documents.forEach((doc: any) => {
+                        allResults.push({
+                            type: 'document',
+                            id: doc.id,
+                            title: doc.name || doc.filename,
+                            snippet: `Document in ${doc.workspace_id}`,
+                            workspace_id: doc.workspace_id,
+                            score: 1.0
                         });
-                    }
+                    });
+                }
 
-                    // Workspaces
-                    if ((scope === 'all' || scope === 'workspaces') && data.workspaces) {
-                        data.workspaces.forEach((ws: { id: string, name: string, description?: string }) => {
-                            allResults.push({
-                                type: 'workspace',
-                                id: ws.id,
-                                title: ws.name,
-                                snippet: ws.description || 'Workspace',
-                                workspace_id: ws.id
-                            });
+                // Workspaces
+                if ((scope === 'all' || scope === 'workspaces') && data.workspaces) {
+                    data.workspaces.forEach((ws: any) => {
+                        allResults.push({
+                            type: 'workspace',
+                            id: ws.id,
+                            title: ws.name,
+                            snippet: ws.description || 'Workspace',
+                            workspace_id: ws.id
                         });
-                    }
+                    });
+                }
 
-                    // Threads
-                    if ((scope === 'all' || scope === 'chats') && data.threads) {
-                        data.threads.forEach((thread: { id: string, title?: string, workspace_id: string }) => {
-                            allResults.push({
-                                type: 'chat',
-                                id: thread.id,
-                                title: thread.title || 'Untitled Chat',
-                                snippet: `Thread in ${thread.workspace_id}`,
-                                workspace_id: thread.workspace_id
-                            });
+                // Threads
+                if ((scope === 'all' || scope === 'chats') && data.threads) {
+                    data.threads.forEach((thread: any) => {
+                        allResults.push({
+                            type: 'chat',
+                            id: thread.id,
+                            title: thread.title || 'Untitled Chat',
+                            snippet: `Thread in ${thread.workspace_id}`,
+                            workspace_id: thread.workspace_id
                         });
-                    }
+                    });
                 }
             }
 
@@ -125,7 +125,7 @@ function SearchContent() {
         } finally {
             setIsSearching(false);
         }
-    }, [recentSearches]);
+    }, [recentSearches, scope]);
 
     // Debounced search
     useEffect(() => {

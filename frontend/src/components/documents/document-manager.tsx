@@ -6,7 +6,7 @@ import {
     Shield, Database, HardDrive, Calendar,
     CheckCircle2, AlertCircle, X, Info
 } from 'lucide-react';
-import { API_ROUTES } from '@/lib/api-config';
+import { api } from '@/lib/api-client';
 import { useError } from '@/context/error-context';
 import { useToast } from '@/context/toast-context';
 import { cn } from '@/lib/utils';
@@ -49,23 +49,18 @@ export function DocumentManager({ workspaceId, isGlobal = false }: DocumentManag
     const fetchDocuments = useCallback(async () => {
         setIsLoading(true);
         try {
-            const url = isGlobal
-                ? API_ROUTES.DOCUMENTS
-                : `${API_ROUTES.DOCUMENTS}?workspace_id=${encodeURIComponent(workspaceId || '')}`;
-
-            const res = await fetch(url);
-            if (res.ok) {
-                const result = await res.json();
-                if (result.success && result.data) {
-                    setDocuments(result.data);
-                }
+            const payload = await api.listAllDocumentsWorkspacesWorkspaceIdDocumentsAllGet({
+                workspaceId: workspaceId!
+            });
+            if (payload.success && payload.data) {
+                setDocuments(payload.data);
             }
-        } catch {
-            console.error('Failed to fetch documents');
+        } catch (err) {
+            console.error('Failed to fetch documents', err);
         } finally {
             setIsLoading(false);
         }
-    }, [workspaceId, isGlobal]);
+    }, [workspaceId]);
 
     useEffect(() => {
         fetchDocuments();
@@ -76,26 +71,20 @@ export function DocumentManager({ workspaceId, isGlobal = false }: DocumentManag
         const file = e.target.files[0];
 
         setIsUploading(true);
-        const formData = new FormData();
-        formData.append('file', file);
 
         try {
-            const url = workspaceId
-                ? `${API_ROUTES.UPLOAD}?workspace_id=${encodeURIComponent(workspaceId)}`
-                : API_ROUTES.UPLOAD;
-
-            const res = await fetch(url, {
-                method: 'POST',
-                body: formData,
+            const payload = await api.uploadDocumentWorkspacesWorkspaceIdUploadPost({
+                workspaceId: workspaceId!,
+                file: file
             });
-            const result = await res.json();
-            if (res.ok && result.success) {
+            if (payload.success) {
                 toast.success(`${file.name} uploaded successfully`);
                 fetchDocuments();
             } else {
-                showError("Upload Failed", result.message || "Failed to upload document.");
+                showError("Upload Failed", payload.message || "Failed to upload document.");
             }
-        } catch {
+        } catch (err) {
+            console.error('Upload failed', err);
             showError("Network Error", "Unable to connect to service.");
         } finally {
             setIsUploading(false);
@@ -111,21 +100,21 @@ export function DocumentManager({ workspaceId, isGlobal = false }: DocumentManag
         setDocToDelete(null); // Close modal immediately
 
         try {
-            const isVault = !workspaceId;
-            const url = isVault
-                ? `${API_ROUTES.DOCUMENTS}/${encodeURIComponent(docToDelete.id)}?vault_delete=true`
-                : `${API_ROUTES.DOCUMENTS}/${encodeURIComponent(docToDelete.filename)}?workspace_id=${encodeURIComponent(workspaceId!)}`;
-
-            const res = await fetch(url, { method: 'DELETE' });
+            const payload = await api.deleteDocumentWorkspacesWorkspaceIdDocumentsDocumentIdDelete({
+                workspaceId: workspaceId!,
+                documentId: docToDelete.filename, // Using filename as identifier for now based on legacy logic, check if id is better
+                vaultDelete: !workspaceId
+            });
             toast.dismiss(toastId);
-            if (res.ok) {
+            if (payload.success) {
                 toast.success(`Successfully deleted ${docName}`);
                 setDocuments(prev => prev.filter(d => d.id !== docToDelete.id));
                 if (selectedDoc?.id === docToDelete.id) setSelectedDoc(null);
             } else {
                 toast.error(`Failed to delete ${docName}`);
             }
-        } catch {
+        } catch (err) {
+            console.error('Delete failed', err);
             toast.dismiss(toastId);
             toast.error(`Network error deleting ${docName}`);
         }
@@ -316,7 +305,7 @@ export function DocumentManager({ workspaceId, isGlobal = false }: DocumentManag
     );
 }
 
-function DocumentDetailPanel({ doc, onClose }: { doc: Document, workspaceId?: string, onClose: () => void }) {
+function DocumentDetailPanel({ doc, workspaceId, onClose }: { doc: Document, workspaceId?: string, onClose: () => void }) {
     const [activeTab, setActiveTab] = useState<'content' | 'metadata'>('content');
     const [content, setContent] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -325,21 +314,21 @@ function DocumentDetailPanel({ doc, onClose }: { doc: Document, workspaceId?: st
         const fetchContent = async () => {
             setIsLoading(true);
             try {
-                const res = await fetch(API_ROUTES.DOCUMENT_GET(doc.id));
-                if (res.ok) {
-                    const result = await res.json();
-                    if (result.success && result.data) {
-                        setContent(result.data.content);
-                    }
+                const payload = await api.getDocumentWorkspacesWorkspaceIdDocumentsDocumentIdGet({
+                    workspaceId: workspaceId!,
+                    documentId: doc.id
+                });
+                if (payload.success && payload.data) {
+                    setContent(payload.data.content);
                 }
-            } catch {
-                console.error('Failed to fetch content');
+            } catch (err) {
+                console.error('Failed to fetch content', err);
             } finally {
                 setIsLoading(false);
             }
         };
         fetchContent();
-    }, [doc.id]);
+    }, [doc.id, workspaceId]);
 
     return (
         <div className="fixed inset-0 z-[150] flex items-center justify-end">

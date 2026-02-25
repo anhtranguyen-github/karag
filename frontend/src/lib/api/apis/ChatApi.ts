@@ -31,28 +31,33 @@ import {
     ThreadTitleUpdateToJSON,
 } from '../models/index';
 
-export interface ChatStreamChatStreamPostRequest {
+export interface ChatStreamWorkspacesWorkspaceIdChatStreamPostRequest {
+    workspaceId: string;
     chatStreamRequest: ChatStreamRequest;
 }
 
-export interface DeleteThreadChatThreadsThreadIdDeleteRequest {
+export interface DeleteThreadWorkspacesWorkspaceIdChatThreadsThreadIdDeleteRequest {
     threadId: string;
-}
-
-export interface GetChatHistoryChatHistoryThreadIdGetRequest {
-    threadId: string;
-}
-
-export interface GetThreadChatThreadsThreadIdGetRequest {
-    threadId: string;
-}
-
-export interface ListChatThreadsChatThreadsGetRequest {
     workspaceId: string;
 }
 
-export interface UpdateThreadTitleChatThreadsThreadIdTitlePatchRequest {
+export interface GetChatHistoryWorkspacesWorkspaceIdChatHistoryThreadIdGetRequest {
     threadId: string;
+    workspaceId: string;
+}
+
+export interface GetThreadWorkspacesWorkspaceIdChatThreadsThreadIdGetRequest {
+    threadId: string;
+    workspaceId: string;
+}
+
+export interface ListChatThreadsWorkspacesWorkspaceIdChatThreadsGetRequest {
+    workspaceId: string;
+}
+
+export interface UpdateThreadTitleWorkspacesWorkspaceIdChatThreadsThreadIdTitlePatchRequest {
+    threadId: string;
+    workspaceId: string;
     threadTitleUpdate: ThreadTitleUpdate;
 }
 
@@ -65,11 +70,18 @@ export class ChatApi extends runtime.BaseAPI {
      * Stream chat updates using SSE. Spawns background title generation for consistent UX.
      * Chat Stream
      */
-    async chatStreamChatStreamPostRaw(requestParameters: ChatStreamChatStreamPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async chatStreamWorkspacesWorkspaceIdChatStreamPostRaw(requestParameters: ChatStreamWorkspacesWorkspaceIdChatStreamPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        if (requestParameters['workspaceId'] == null) {
+            throw new runtime.RequiredError(
+                'workspaceId',
+                'Required parameter "workspaceId" was null or undefined when calling chatStreamWorkspacesWorkspaceIdChatStreamPost().'
+            );
+        }
+
         if (requestParameters['chatStreamRequest'] == null) {
             throw new runtime.RequiredError(
                 'chatStreamRequest',
-                'Required parameter "chatStreamRequest" was null or undefined when calling chatStreamChatStreamPost().'
+                'Required parameter "chatStreamRequest" was null or undefined when calling chatStreamWorkspacesWorkspaceIdChatStreamPost().'
             );
         }
 
@@ -79,8 +91,14 @@ export class ChatApi extends runtime.BaseAPI {
 
         headerParameters['Content-Type'] = 'application/json';
 
+        if (this.configuration && this.configuration.accessToken) {
+            // oauth required
+            headerParameters["Authorization"] = await this.configuration.accessToken("OAuth2PasswordBearer", []);
+        }
 
-        let urlPath = `/chat/stream`;
+
+        let urlPath = `/workspaces/{workspace_id}/chat/stream`;
+        urlPath = urlPath.replace(`{${"workspace_id"}}`, encodeURIComponent(String(requestParameters['workspaceId'])));
 
         const response = await this.request({
             path: urlPath,
@@ -101,19 +119,26 @@ export class ChatApi extends runtime.BaseAPI {
      * Stream chat updates using SSE. Spawns background title generation for consistent UX.
      * Chat Stream
      */
-    async chatStreamChatStreamPost(requestParameters: ChatStreamChatStreamPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.chatStreamChatStreamPostRaw(requestParameters, initOverrides);
+    async chatStreamWorkspacesWorkspaceIdChatStreamPost(requestParameters: ChatStreamWorkspacesWorkspaceIdChatStreamPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.chatStreamWorkspacesWorkspaceIdChatStreamPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
      * Delete Thread
      */
-    async deleteThreadChatThreadsThreadIdDeleteRaw(requestParameters: DeleteThreadChatThreadsThreadIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponse>> {
+    async deleteThreadWorkspacesWorkspaceIdChatThreadsThreadIdDeleteRaw(requestParameters: DeleteThreadWorkspacesWorkspaceIdChatThreadsThreadIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponse>> {
         if (requestParameters['threadId'] == null) {
             throw new runtime.RequiredError(
                 'threadId',
-                'Required parameter "threadId" was null or undefined when calling deleteThreadChatThreadsThreadIdDelete().'
+                'Required parameter "threadId" was null or undefined when calling deleteThreadWorkspacesWorkspaceIdChatThreadsThreadIdDelete().'
+            );
+        }
+
+        if (requestParameters['workspaceId'] == null) {
+            throw new runtime.RequiredError(
+                'workspaceId',
+                'Required parameter "workspaceId" was null or undefined when calling deleteThreadWorkspacesWorkspaceIdChatThreadsThreadIdDelete().'
             );
         }
 
@@ -121,9 +146,15 @@ export class ChatApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            // oauth required
+            headerParameters["Authorization"] = await this.configuration.accessToken("OAuth2PasswordBearer", []);
+        }
 
-        let urlPath = `/chat/threads/{thread_id}`;
+
+        let urlPath = `/workspaces/{workspace_id}/chat/threads/{thread_id}`;
         urlPath = urlPath.replace(`{${"thread_id"}}`, encodeURIComponent(String(requestParameters['threadId'])));
+        urlPath = urlPath.replace(`{${"workspace_id"}}`, encodeURIComponent(String(requestParameters['workspaceId'])));
 
         const response = await this.request({
             path: urlPath,
@@ -138,106 +169,134 @@ export class ChatApi extends runtime.BaseAPI {
     /**
      * Delete Thread
      */
-    async deleteThreadChatThreadsThreadIdDelete(requestParameters: DeleteThreadChatThreadsThreadIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponse> {
-        const response = await this.deleteThreadChatThreadsThreadIdDeleteRaw(requestParameters, initOverrides);
+    async deleteThreadWorkspacesWorkspaceIdChatThreadsThreadIdDelete(requestParameters: DeleteThreadWorkspacesWorkspaceIdChatThreadsThreadIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponse> {
+        const response = await this.deleteThreadWorkspacesWorkspaceIdChatThreadsThreadIdDeleteRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
      * Get Chat History
      */
-    async getChatHistoryChatHistoryThreadIdGetRaw(requestParameters: GetChatHistoryChatHistoryThreadIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponse>> {
+    async getChatHistoryWorkspacesWorkspaceIdChatHistoryThreadIdGetRaw(requestParameters: GetChatHistoryWorkspacesWorkspaceIdChatHistoryThreadIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponse>> {
         if (requestParameters['threadId'] == null) {
             throw new runtime.RequiredError(
                 'threadId',
-                'Required parameter "threadId" was null or undefined when calling getChatHistoryChatHistoryThreadIdGet().'
+                'Required parameter "threadId" was null or undefined when calling getChatHistoryWorkspacesWorkspaceIdChatHistoryThreadIdGet().'
             );
         }
 
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-
-        let urlPath = `/chat/history/{thread_id}`;
-        urlPath = urlPath.replace(`{${"thread_id"}}`, encodeURIComponent(String(requestParameters['threadId'])));
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => AppResponseFromJSON(jsonValue));
-    }
-
-    /**
-     * Get Chat History
-     */
-    async getChatHistoryChatHistoryThreadIdGet(requestParameters: GetChatHistoryChatHistoryThreadIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponse> {
-        const response = await this.getChatHistoryChatHistoryThreadIdGetRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Get Thread
-     */
-    async getThreadChatThreadsThreadIdGetRaw(requestParameters: GetThreadChatThreadsThreadIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponse>> {
-        if (requestParameters['threadId'] == null) {
-            throw new runtime.RequiredError(
-                'threadId',
-                'Required parameter "threadId" was null or undefined when calling getThreadChatThreadsThreadIdGet().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-
-        let urlPath = `/chat/threads/{thread_id}`;
-        urlPath = urlPath.replace(`{${"thread_id"}}`, encodeURIComponent(String(requestParameters['threadId'])));
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => AppResponseFromJSON(jsonValue));
-    }
-
-    /**
-     * Get Thread
-     */
-    async getThreadChatThreadsThreadIdGet(requestParameters: GetThreadChatThreadsThreadIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponse> {
-        const response = await this.getThreadChatThreadsThreadIdGetRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * List Chat Threads
-     */
-    async listChatThreadsChatThreadsGetRaw(requestParameters: ListChatThreadsChatThreadsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponse>> {
         if (requestParameters['workspaceId'] == null) {
             throw new runtime.RequiredError(
                 'workspaceId',
-                'Required parameter "workspaceId" was null or undefined when calling listChatThreadsChatThreadsGet().'
+                'Required parameter "workspaceId" was null or undefined when calling getChatHistoryWorkspacesWorkspaceIdChatHistoryThreadIdGet().'
             );
         }
 
         const queryParameters: any = {};
 
-        if (requestParameters['workspaceId'] != null) {
-            queryParameters['workspace_id'] = requestParameters['workspaceId'];
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            // oauth required
+            headerParameters["Authorization"] = await this.configuration.accessToken("OAuth2PasswordBearer", []);
         }
+
+
+        let urlPath = `/workspaces/{workspace_id}/chat/history/{thread_id}`;
+        urlPath = urlPath.replace(`{${"thread_id"}}`, encodeURIComponent(String(requestParameters['threadId'])));
+        urlPath = urlPath.replace(`{${"workspace_id"}}`, encodeURIComponent(String(requestParameters['workspaceId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AppResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Get Chat History
+     */
+    async getChatHistoryWorkspacesWorkspaceIdChatHistoryThreadIdGet(requestParameters: GetChatHistoryWorkspacesWorkspaceIdChatHistoryThreadIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponse> {
+        const response = await this.getChatHistoryWorkspacesWorkspaceIdChatHistoryThreadIdGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get Thread
+     */
+    async getThreadWorkspacesWorkspaceIdChatThreadsThreadIdGetRaw(requestParameters: GetThreadWorkspacesWorkspaceIdChatThreadsThreadIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponse>> {
+        if (requestParameters['threadId'] == null) {
+            throw new runtime.RequiredError(
+                'threadId',
+                'Required parameter "threadId" was null or undefined when calling getThreadWorkspacesWorkspaceIdChatThreadsThreadIdGet().'
+            );
+        }
+
+        if (requestParameters['workspaceId'] == null) {
+            throw new runtime.RequiredError(
+                'workspaceId',
+                'Required parameter "workspaceId" was null or undefined when calling getThreadWorkspacesWorkspaceIdChatThreadsThreadIdGet().'
+            );
+        }
+
+        const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            // oauth required
+            headerParameters["Authorization"] = await this.configuration.accessToken("OAuth2PasswordBearer", []);
+        }
 
-        let urlPath = `/chat/threads`;
+
+        let urlPath = `/workspaces/{workspace_id}/chat/threads/{thread_id}`;
+        urlPath = urlPath.replace(`{${"thread_id"}}`, encodeURIComponent(String(requestParameters['threadId'])));
+        urlPath = urlPath.replace(`{${"workspace_id"}}`, encodeURIComponent(String(requestParameters['workspaceId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AppResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Get Thread
+     */
+    async getThreadWorkspacesWorkspaceIdChatThreadsThreadIdGet(requestParameters: GetThreadWorkspacesWorkspaceIdChatThreadsThreadIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponse> {
+        const response = await this.getThreadWorkspacesWorkspaceIdChatThreadsThreadIdGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * List Chat Threads
+     */
+    async listChatThreadsWorkspacesWorkspaceIdChatThreadsGetRaw(requestParameters: ListChatThreadsWorkspacesWorkspaceIdChatThreadsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponse>> {
+        if (requestParameters['workspaceId'] == null) {
+            throw new runtime.RequiredError(
+                'workspaceId',
+                'Required parameter "workspaceId" was null or undefined when calling listChatThreadsWorkspacesWorkspaceIdChatThreadsGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            // oauth required
+            headerParameters["Authorization"] = await this.configuration.accessToken("OAuth2PasswordBearer", []);
+        }
+
+
+        let urlPath = `/workspaces/{workspace_id}/chat/threads`;
+        urlPath = urlPath.replace(`{${"workspace_id"}}`, encodeURIComponent(String(requestParameters['workspaceId'])));
 
         const response = await this.request({
             path: urlPath,
@@ -252,26 +311,33 @@ export class ChatApi extends runtime.BaseAPI {
     /**
      * List Chat Threads
      */
-    async listChatThreadsChatThreadsGet(requestParameters: ListChatThreadsChatThreadsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponse> {
-        const response = await this.listChatThreadsChatThreadsGetRaw(requestParameters, initOverrides);
+    async listChatThreadsWorkspacesWorkspaceIdChatThreadsGet(requestParameters: ListChatThreadsWorkspacesWorkspaceIdChatThreadsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponse> {
+        const response = await this.listChatThreadsWorkspacesWorkspaceIdChatThreadsGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
      * Update Thread Title
      */
-    async updateThreadTitleChatThreadsThreadIdTitlePatchRaw(requestParameters: UpdateThreadTitleChatThreadsThreadIdTitlePatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponse>> {
+    async updateThreadTitleWorkspacesWorkspaceIdChatThreadsThreadIdTitlePatchRaw(requestParameters: UpdateThreadTitleWorkspacesWorkspaceIdChatThreadsThreadIdTitlePatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponse>> {
         if (requestParameters['threadId'] == null) {
             throw new runtime.RequiredError(
                 'threadId',
-                'Required parameter "threadId" was null or undefined when calling updateThreadTitleChatThreadsThreadIdTitlePatch().'
+                'Required parameter "threadId" was null or undefined when calling updateThreadTitleWorkspacesWorkspaceIdChatThreadsThreadIdTitlePatch().'
+            );
+        }
+
+        if (requestParameters['workspaceId'] == null) {
+            throw new runtime.RequiredError(
+                'workspaceId',
+                'Required parameter "workspaceId" was null or undefined when calling updateThreadTitleWorkspacesWorkspaceIdChatThreadsThreadIdTitlePatch().'
             );
         }
 
         if (requestParameters['threadTitleUpdate'] == null) {
             throw new runtime.RequiredError(
                 'threadTitleUpdate',
-                'Required parameter "threadTitleUpdate" was null or undefined when calling updateThreadTitleChatThreadsThreadIdTitlePatch().'
+                'Required parameter "threadTitleUpdate" was null or undefined when calling updateThreadTitleWorkspacesWorkspaceIdChatThreadsThreadIdTitlePatch().'
             );
         }
 
@@ -281,9 +347,15 @@ export class ChatApi extends runtime.BaseAPI {
 
         headerParameters['Content-Type'] = 'application/json';
 
+        if (this.configuration && this.configuration.accessToken) {
+            // oauth required
+            headerParameters["Authorization"] = await this.configuration.accessToken("OAuth2PasswordBearer", []);
+        }
 
-        let urlPath = `/chat/threads/{thread_id}/title`;
+
+        let urlPath = `/workspaces/{workspace_id}/chat/threads/{thread_id}/title`;
         urlPath = urlPath.replace(`{${"thread_id"}}`, encodeURIComponent(String(requestParameters['threadId'])));
+        urlPath = urlPath.replace(`{${"workspace_id"}}`, encodeURIComponent(String(requestParameters['workspaceId'])));
 
         const response = await this.request({
             path: urlPath,
@@ -299,8 +371,8 @@ export class ChatApi extends runtime.BaseAPI {
     /**
      * Update Thread Title
      */
-    async updateThreadTitleChatThreadsThreadIdTitlePatch(requestParameters: UpdateThreadTitleChatThreadsThreadIdTitlePatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponse> {
-        const response = await this.updateThreadTitleChatThreadsThreadIdTitlePatchRaw(requestParameters, initOverrides);
+    async updateThreadTitleWorkspacesWorkspaceIdChatThreadsThreadIdTitlePatch(requestParameters: UpdateThreadTitleWorkspacesWorkspaceIdChatThreadsThreadIdTitlePatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponse> {
+        const response = await this.updateThreadTitleWorkspacesWorkspaceIdChatThreadsThreadIdTitlePatchRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

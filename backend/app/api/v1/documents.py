@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import APIRouter, UploadFile, File, BackgroundTasks
+from fastapi import APIRouter, UploadFile, File, BackgroundTasks, Depends
 from fastapi.encoders import jsonable_encoder
 from backend.app.services.document_service import document_service
 from backend.app.services.task.task_service import task_service
@@ -14,6 +14,8 @@ from backend.app.schemas.documents import (
     DocumentWorkspaceUpdate,
 )
 
+from backend.app.api.deps import get_current_workspace
+
 router = APIRouter(tags=["documents"])
 
 
@@ -21,9 +23,10 @@ router = APIRouter(tags=["documents"])
 async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    workspace_id: str = "vault",
+    current_workspace: dict = Depends(get_current_workspace),
     strategy: Optional[str] = None,
 ):
+    workspace_id = current_workspace["id"]
     result = await document_service.upload(file, workspace_id, strategy=strategy)
 
     if result["status"] == "success":
@@ -45,8 +48,9 @@ async def upload_document(
 async def import_url_document(
     background_tasks: BackgroundTasks,
     payload: UrlImportRequest,
-    workspace_id: str = "vault",
+    current_workspace: dict = Depends(get_current_workspace),
 ):
+    workspace_id = current_workspace["id"]
     url_str = str(payload.url)
     result = await document_service.import_url(
         url_str, workspace_id, strategy=payload.strategy
@@ -71,8 +75,9 @@ async def import_url_document(
 async def import_sitemap_document(
     background_tasks: BackgroundTasks,
     payload: SitemapImportRequest,
-    workspace_id: str = "vault",
+    current_workspace: dict = Depends(get_current_workspace),
 ):
+    workspace_id = current_workspace["id"]
     url_str = str(payload.url)
     result = await document_service.import_sitemap(url_str, workspace_id)
     if result["status"] == "success":
@@ -89,8 +94,9 @@ async def import_sitemap_document(
 async def import_github_document(
     background_tasks: BackgroundTasks,
     payload: GitHubImportRequest,
-    workspace_id: str = "vault",
+    current_workspace: dict = Depends(get_current_workspace),
 ):
+    workspace_id = current_workspace["id"]
     url_str = str(payload.url)
     result = await document_service.import_github(url_str, workspace_id, payload.branch)
     if result["status"] == "success":
@@ -108,8 +114,9 @@ async def import_github_document(
 async def import_audio_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    workspace_id: str = "vault",
+    current_workspace: dict = Depends(get_current_workspace),
 ):
+    workspace_id = current_workspace["id"]
     result = await document_service.import_audio(file, workspace_id)
     if result["status"] == "success":
         background_tasks.add_task(
@@ -127,19 +134,19 @@ async def import_audio_document(
 
 
 @router.get("/documents")
-async def list_documents(workspace_id: str = "vault"):
-    docs = await document_service.list_by_workspace(workspace_id)
+async def list_documents(current_workspace: dict = Depends(get_current_workspace)):
+    docs = await document_service.list_by_workspace(current_workspace["id"])
     return AppResponse.success_response(data=docs)
 
 
 @router.get("/documents-all")
-async def list_all_documents():
+async def list_all_documents(current_workspace: dict = Depends(get_current_workspace)):
     docs = await document_service.list_all()
     return AppResponse.success_response(data=docs)
 
 
 @router.get("/vault")
-async def list_vault_documents():
+async def list_vault_documents(current_workspace: dict = Depends(get_current_workspace)):
     docs = await document_service.list_vault()
     return AppResponse.success_response(data=docs)
 
@@ -148,14 +155,21 @@ async def list_vault_documents():
 
 
 @router.get("/documents/{document_id}/chunks")
-async def get_document_chunks(document_id: str, limit: int = 100):
+async def get_document_chunks(
+    document_id: str,
+    limit: int = 100,
+    current_workspace: dict = Depends(get_current_workspace),
+):
     return await document_service.get_chunks(document_id, limit=limit)
 
 
 @router.post("/documents/{document_id}/index")
 async def index_document(
-    background_tasks: BackgroundTasks, document_id: str, workspace_id: str = "vault"
+    background_tasks: BackgroundTasks,
+    document_id: str,
+    current_workspace: dict = Depends(get_current_workspace),
 ):
+    workspace_id = current_workspace["id"]
     """Non-blocking indexing triggered by document ID."""
     task_id = await task_service.create_task(
         "indexing",
@@ -178,14 +192,18 @@ async def index_document(
 
 
 @router.get("/documents/{document_id}/inspect")
-async def inspect_document(document_id: str):
+async def inspect_document(
+    document_id: str, current_workspace: dict = Depends(get_current_workspace)
+):
     results = await document_service.inspect(document_id)
     return AppResponse.success_response(data=results)
 
 
 @router.post("/documents/update-workspaces")
 async def update_document_workspaces(
-    background_tasks: BackgroundTasks, payload: DocumentWorkspaceUpdate
+    background_tasks: BackgroundTasks,
+    payload: DocumentWorkspaceUpdate,
+    current_workspace: dict = Depends(get_current_workspace),
 ):
     """Workspace operations using internal IDs."""
     document_id = payload.document_id
@@ -221,7 +239,9 @@ async def update_document_workspaces(
 
 
 @router.post("/documents/sync-workspaces")
-async def sync_document_workspaces():
+async def sync_document_workspaces(
+    current_workspace: dict = Depends(get_current_workspace),
+):
     result = await document_service.sync_workspaces()
     return AppResponse.success_response(data=result)
 
@@ -230,7 +250,9 @@ async def sync_document_workspaces():
 
 
 @router.get("/documents/{document_id}")
-async def get_document(document_id: str):
+async def get_document(
+    document_id: str, current_workspace: dict = Depends(get_current_workspace)
+):
     from backend.app.core.minio import minio_manager
     from backend.app.core.config import karag_settings
 
@@ -274,9 +296,13 @@ async def get_document(document_id: str):
 
 @router.delete("/documents/{document_id}")
 async def delete_document(
-    document_id: str, workspace_id: str = "vault", vault_delete: bool = False
+    document_id: str,
+    vault_delete: bool = False,
+    current_workspace: dict = Depends(get_current_workspace),
 ):
-    await document_service.delete(document_id, workspace_id, vault_delete=vault_delete)
+    await document_service.delete(
+        document_id, current_workspace["id"], vault_delete=vault_delete
+    )
     return AppResponse.success_response(
         data={"id": document_id},
         message=f"Document '{document_id}' deleted successfully.",

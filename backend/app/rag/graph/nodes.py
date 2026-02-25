@@ -66,8 +66,17 @@ async def analyze_intent(state: GraphState, config: RunnableConfig) -> Dict[str,
             "Classify as 'simple', 'complex', or 'research_heavy'."
         )
 
+    # Convert dict history to LangChain messages
+    history_messages = []
+    for m in state.get("history", []):
+        if m["role"] == "user":
+            history_messages.append(HumanMessage(content=m["content"]))
+        else:
+            history_messages.append(SystemMessage(content=m["content"])) # Assistant as system for intent analyzer
+
     messages = [
         SystemMessage(content=system_prompt),
+        *history_messages[-5:], # Last 5 for context
         HumanMessage(content=state["query"]),
     ]
     response = await llm.ainvoke(messages, config={**config, "tags": ["reasoning"]})
@@ -353,9 +362,18 @@ async def generate_answer(state: GraphState, config: RunnableConfig) -> Dict[str
             "3. Do NOT provide a generic 'I don't have real-time access' apology. Be specific about what happened in the search process."
         )
 
+    # Format history for the generator
+    history_context = ""
+    if state.get("history"):
+        history_parts = []
+        for m in state["history"][-6:]: # Last 6 messages
+            role = "User" if m["role"] == "user" else "Assistant"
+            history_parts.append(f"{role}: {m['content']}")
+        history_context = "--- CONVERSATION HISTORY ---\n" + "\n".join(history_parts) + "\n\n"
+
     messages = [
         SystemMessage(content=system_prompt),
-        HumanMessage(content=f"Context:\n{context}\n\nQuestion: {state['query']}"),
+        HumanMessage(content=f"{history_context}Context:\n{context}\n\nQuestion: {state['query']}"),
     ]
     response = await llm.ainvoke(messages, config={**config, "tags": ["final_answer"]})
     

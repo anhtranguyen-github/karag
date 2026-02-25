@@ -279,7 +279,7 @@ class QdrantStore(VectorStore):
         config: RetrievalConfig,
         query_vector: List[float],
         query_text: str,
-        workspace_id: Optional[str] = None,
+        workspace_id: str,
     ) -> List[SearchResult]:
         # Determine collection name based on vector dimension
         dim = len(query_vector)
@@ -300,20 +300,14 @@ class QdrantStore(VectorStore):
             start = time.perf_counter()
 
             # Define Workspace Filter
-            filter_query = None
-            if workspace_id:
-                filter_query = qmodels.Filter(
-                    should=[
-                        qmodels.FieldCondition(
-                            key="workspace_id",
-                            match=qmodels.MatchValue(value=workspace_id),
-                        ),
-                        qmodels.FieldCondition(
-                            key="shared_with",
-                            match=qmodels.MatchValue(value=workspace_id),
-                        ),
-                    ]
-                )
+            filter_query = qmodels.Filter(
+                must=[
+                    qmodels.FieldCondition(
+                        key="workspace_id",
+                        match=qmodels.MatchValue(value=workspace_id),
+                    )
+                ]
+            )
 
             # 1. Vector Search (Semantic)
             response = await self.client.query_points(
@@ -326,7 +320,7 @@ class QdrantStore(VectorStore):
             vector_results = response.points
 
             # 2. Text Search (Keyword/Exact)
-            text_filter = filter_query or qmodels.Filter()
+            text_filter = filter_query
             if not text_filter.must:
                 text_filter.must = []
 
@@ -442,20 +436,14 @@ class QdrantStore(VectorStore):
             collection_name, workspace_id
         )
 
-        filter_query = None
-        if workspace_id:
-            filter_query = qmodels.Filter(
-                should=[
-                    qmodels.FieldCondition(
-                        key="workspace_id",
-                        match=qmodels.MatchValue(value=workspace_id),
-                    ),
-                    qmodels.FieldCondition(
-                        key="shared_with",
-                        match=qmodels.MatchValue(value=workspace_id),
-                    ),
-                ]
-            )
+        filter_query = qmodels.Filter(
+            must=[
+                qmodels.FieldCondition(
+                    key="workspace_id",
+                    match=qmodels.MatchValue(value=workspace_id),
+                )
+            ]
+        )
 
         with tracer.start_as_current_span(
             "qdrant.list_documents",

@@ -8,11 +8,26 @@ import {
     HealthApi,
     SearchApi,
     AdminOpsApi,
-    EvaluationApi
+    EvaluationApi,
+    AuthApi
 } from "./api";
 
 const config = new Configuration({
     basePath: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000",
+    middleware: [
+        {
+            pre: async (context) => {
+                const token = typeof window !== "undefined" ? localStorage.getItem("karag_token") : null;
+                if (token) {
+                    context.init.headers = {
+                        ...context.init.headers,
+                        Authorization: `Bearer ${token}`,
+                    };
+                }
+                return context;
+            },
+        },
+    ],
 });
 
 // Create instances of all APIs
@@ -25,6 +40,7 @@ const health = new HealthApi(config);
 const search = new SearchApi(config);
 const adminOps = new AdminOpsApi(config);
 const evaluation = new EvaluationApi(config);
+const auth = new AuthApi(config);
 
 // Merge them into a single object for convenience
 // Note: This mimics a "DefaultApi" but with all methods
@@ -38,6 +54,7 @@ export const api = {
     ...search,
     ...adminOps,
     ...evaluation,
+    ...auth,
 
     ...getMethods(workspaces),
     ...getMethods(chat),
@@ -48,7 +65,8 @@ export const api = {
     ...getMethods(search),
     ...getMethods(adminOps),
     ...getMethods(evaluation),
-} as WorkspacesApi & ChatApi & DocumentsApi & SettingsApi & TasksApi & HealthApi & SearchApi & AdminOpsApi & EvaluationApi;
+    ...getMethods(auth),
+} as WorkspacesApi & ChatApi & DocumentsApi & SettingsApi & TasksApi & HealthApi & SearchApi & AdminOpsApi & EvaluationApi & AuthApi;
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- dynamic method extraction requires any */
 function getMethods(obj: object) {

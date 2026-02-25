@@ -6,6 +6,7 @@ import { ThreadList } from "@/components/chat/thread-list";
 import { useWorkspaces } from "@/hooks/use-workspaces";
 import { ChatInterface } from "@/components/chat/chat-interface";
 import { API_ROUTES } from "@/lib/api-config";
+import { api } from "@/lib/api-client";
 import { Loader2, Home, FileText, Settings, PanelLeftOpen } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -47,12 +48,18 @@ export default function GlobalChatPage() {
             }
 
             try {
-                const res = await fetch(API_ROUTES.THREAD_GET(threadId));
-                if (res.ok) {
-                    const payload = await res.json();
-                    if (payload.success && payload.data) {
-                        setWorkspaceId(payload.data.workspace_id);
-                    }
+                const targetWs = urlWorkspaceId || workspaceId;
+                if (!targetWs) {
+                    setIsLoading(false);
+                    return;
+                }
+                const payload = await api.getThreadWorkspacesWorkspaceIdChatThreadsThreadIdGet({
+                    threadId,
+                    workspaceId: targetWs
+                });
+
+                if (payload.success && payload.data) {
+                    setWorkspaceId((payload.data as any).workspace_id);
                 }
             } catch (err) {
                 console.error("Failed to fetch thread metadata", err);

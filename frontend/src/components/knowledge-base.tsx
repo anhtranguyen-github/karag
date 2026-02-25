@@ -1,5 +1,7 @@
 'use client';
 
+import { api } from '@/lib/api-client';
+
 import React, { useState, useEffect } from 'react';
 import {
     Upload, FileText, Trash2, Loader2,
@@ -143,22 +145,23 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
     // Poll for active tasks
     const fetchDocuments = React.useCallback(async () => {
         try {
-            const url = isGlobal
-                ? (API_ROUTES as { VAULT: string }).VAULT
-                : `${API_ROUTES.DOCUMENTS}?workspace_id=${encodeURIComponent(workspaceId)}`;
-
-            const res = await fetch(url);
-            if (res.ok) {
-                const payload = await res.json();
-                const data: BackendDocument[] = payload.data || [];
-                const mappedDocs = data.map((doc) => ({
-                    ...doc,
-                    name: doc.filename,
-                    shared: !isGlobal && doc.workspace_id !== workspaceId,
-                    workspace_name: doc.workspace_name || doc.workspace_id
-                }));
-                setDocuments(mappedDocs);
+            let payload;
+            if (isGlobal) {
+                payload = await api.listVaultDocumentsWorkspacesWorkspaceIdVaultGet({
+                    workspaceId: workspaceId!
+                });
+            } else {
+                payload = await api.listDocumentsWorkspacesWorkspaceIdDocumentsGet({ workspaceId });
             }
+
+            const data: BackendDocument[] = payload.data || [];
+            const mappedDocs = data.map((doc) => ({
+                ...doc,
+                name: doc.filename,
+                shared: !isGlobal && doc.workspace_id !== workspaceId,
+                workspace_name: doc.workspace_name || doc.workspace_id
+            }));
+            setDocuments(mappedDocs);
         } catch (err) {
             console.error('Failed to fetch documents', err);
         }
@@ -176,21 +179,20 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
     const fetchVaultDocuments = async () => {
         setIsVaultLoading(true);
         try {
-            const res = await fetch((API_ROUTES as { VAULT: string }).VAULT);
-            if (res.ok) {
-                const payload = await res.json();
-                const data: BackendDocument[] = payload.data || [];
-                const mappedDocs = data.map((doc) => ({
-                    ...doc,
-                    name: doc.filename,
-                    workspace_name: doc.workspace_name || doc.workspace_id
-                }));
-                // Filter out documents already in this workspace
-                const filtered = mappedDocs.filter(vd =>
-                    !documents.some(d => d.name === vd.name)
-                );
-                setVaultDocuments(filtered);
-            }
+            const payload = await api.listVaultDocumentsWorkspacesWorkspaceIdVaultGet({
+                workspaceId: workspaceId!
+            });
+            const data: BackendDocument[] = payload.data || [];
+            const mappedDocs = data.map((doc) => ({
+                ...doc,
+                name: doc.filename,
+                workspace_name: doc.workspace_name || doc.workspace_id
+            }));
+            // Filter out documents already in this workspace
+            const filtered = mappedDocs.filter(vd =>
+                !documents.some(d => d.name === vd.name)
+            );
+            setVaultDocuments(filtered);
         } catch (err) {
             console.error('Failed to fetch vault', err);
         } finally {
@@ -201,24 +203,16 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
     const handleLinkFromVault = async (doc: Document) => {
         // Fire-and-forget: submit and close modal immediately
         try {
-            const res = await fetch(API_ROUTES.DOCUMENTS_UPDATE_WS, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    document_id: doc.id,
-                    target_workspace_id: workspaceId,
+            await api.updateDocumentWorkspacesWorkspacesWorkspaceIdDocumentsUpdateWorkspacesPost({
+                workspaceId,
+                documentWorkspaceUpdate: {
+                    documentId: doc.id!,
+                    targetWorkspaceId: workspaceId,
                     action: 'link',
-                    force_reindex: false
-                })
+                    forceReindex: false
+                }
             });
-
-            if (res.ok) {
-                setIsVaultBrowserOpen(false);
-                // The job will appear in the global JobPanel — no need to block
-            } else {
-                const payload = await res.json();
-                showError("Link Failed", payload.message || 'Could not link document.');
-            }
+            setIsVaultBrowserOpen(false);
         } catch (_err) {
             showError("Network Error", "Transmission interrupted.");
         }
@@ -242,11 +236,8 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
     useEffect(() => {
         const fetchWorkspaces = async () => {
             try {
-                const res = await fetch(API_ROUTES.WORKSPACES);
-                if (res.ok) {
-                    const payload = await res.json();
-                    setWorkspaces(payload.data || []);
-                }
+                const payload = await api.listWorkspacesWorkspacesGet();
+                setWorkspaces(payload.data || []);
             } catch (err) {
                 console.error('Failed to fetch workspaces', err);
             }
@@ -290,48 +281,32 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         formData.append('file', file);
 
         try {
-            const res = await fetch(`${API_ROUTES.UPLOAD}?workspace_id=${encodeURIComponent(workspaceId)}`, {
-                method: 'POST',
-                body: formData,
+            const payload = await api.uploadDocumentWorkspacesWorkspaceIdUploadPost({
+                workspaceId,
+                file: file
             });
-            if (res.ok) {
-                const payload = await res.json();
-                // Success branch - payload is AppResponse
-                const data = payload.data;
-                if (data?.duplicate?.is_duplicate) {
+
+            // Handle duplicate detection redirect if supported by backend return types
+            // For now just show success as the job handle is returned
+            setIsUploadModalOpen(false);
+            toast.success('Document uploaded successfully');
+        } catch (err: any) {
+            let title = "Upload Failed";
+            let message = "Upload failed";
+            try {
+                const payload = await err.response.json();
+                message = payload.message || message;
+                if (payload.code === 'DUPLICATE_DETECTED' && payload.data) {
                     setDuplicateData({
-                        id: data.duplicate.existing_id,
-                        name: data.duplicate.existing_name,
-                        workspace: data.duplicate.original_workspace,
+                        id: payload.data.existing_doc?.id,
+                        name: payload.data.existing_doc?.filename,
+                        workspace: payload.data.existing_doc?.workspace,
                         is_duplicate: true
                     });
+                    return;
                 }
-                setIsUploadModalOpen(false);
-                toast.success('Document uploaded successfully');
-            } else {
-                const payload = await res.json();
-                let title = "Upload Failed";
-                const message = payload.message || 'Upload failed';
-
-                if (payload.code === 'VALIDATION_ERROR') {
-                    title = "Validation Error";
-                } else if (payload.code === 'CONFLICT_ERROR' || payload.code === 'DUPLICATE_DETECTED') {
-                    title = "Duplicate Document";
-                    if (payload.code === 'DUPLICATE_DETECTED' && payload.data) {
-                        setDuplicateData({
-                            id: payload.data.existing_doc?.id,
-                            name: payload.data.existing_doc?.filename,
-                            workspace: payload.data.existing_doc?.workspace,
-                            is_duplicate: true
-                        });
-                        return; // Handle via modal
-                    }
-                }
-
-                showError(title, message, `File: ${file.name}`);
-            }
-        } catch (_err) {
-            showError("Network Error", "Could not connect to document service.");
+            } catch (e) { }
+            showError(title, message, `File: ${file.name}`);
         } finally {
             setIsUploading(false);
         }
@@ -352,56 +327,34 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
 
         setIsUploading(true);
         try {
-            let url = '';
-            let body: { url?: string; branch?: string; path?: string } = { url: importUrl };
-
-            let type = 'url';
+            let payload;
             if (importUrl.includes('github.com')) {
-                type = 'github';
+                payload = await api.importGithubDocumentWorkspacesWorkspaceIdImportGithubPost({
+                    workspaceId,
+                    gitHubImportRequest: { url: importUrl, branch: githubBranch }
+                });
             } else if (importUrl.toLowerCase().endsWith('.xml') || importUrl.toLowerCase().includes('sitemap')) {
-                type = 'sitemap';
-            }
-
-            switch (type) {
-                case 'url':
-                    url = API_ROUTES.DOCUMENTS + '/import-url';
-                    break;
-                case 'sitemap':
-                    url = API_ROUTES.DOCUMENTS + '/import-sitemap';
-                    break;
-                case 'github':
-                    url = API_ROUTES.DOCUMENTS + '/import-github';
-                    body = { url: importUrl, branch: githubBranch };
-                    break;
-
-                default: return;
-            }
-
-            const res = await fetch(`${url}?workspace_id=${encodeURIComponent(workspaceId)}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-            });
-
-            if (res.ok) {
-                setIsUploadModalOpen(false);
-                setImportUrl('');
-                toast.success('Import task started successfully');
-                const payload = await res.json();
-                if (payload.data?.duplicate?.is_duplicate) {
-                    setDuplicateData({
-                        id: payload.data.duplicate.existing_id,
-                        name: payload.data.duplicate.existing_name,
-                        workspace: payload.data.duplicate.original_workspace,
-                        is_duplicate: true
-                    });
-                }
+                payload = await api.importSitemapDocumentWorkspacesWorkspaceIdImportSitemapPost({
+                    workspaceId,
+                    sitemapImportRequest: { url: importUrl }
+                });
             } else {
-                const payload = await res.json();
-                showError("Import Failed", payload.message || 'Failed to start import', `Source: ${importUrl}`);
+                payload = await api.importUrlDocumentWorkspacesWorkspaceIdImportUrlPost({
+                    workspaceId,
+                    urlImportRequest: { url: importUrl }
+                });
             }
-        } catch (_err) {
-            showError("Network Error", "Could not connect to document service.");
+
+            setIsUploadModalOpen(false);
+            setImportUrl('');
+            toast.success('Import task started successfully');
+        } catch (err: any) {
+            try {
+                const payload = await err.response.json();
+                showError("Import Failed", payload.message || 'Failed to start import', `Source: ${importUrl}`);
+            } catch (e) {
+                showError("Network Error", "Could not connect to document service.");
+            }
         } finally {
             setIsUploading(false);
         }
@@ -414,28 +367,27 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         setDuplicateData(null); // Close modal immediately
 
         try {
-            const res = await fetch(API_ROUTES.DOCUMENTS_UPDATE_WS, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    document_id: duplicateData.id,
-                    target_workspace_id: workspaceId,
+            await api.updateDocumentWorkspacesWorkspacesWorkspaceIdDocumentsUpdateWorkspacesPost({
+                workspaceId,
+                documentWorkspaceUpdate: {
+                    documentId: duplicateData.id,
+                    targetWorkspaceId: workspaceId,
                     action: 'link',
-                    force_reindex: false
-                })
+                    forceReindex: false
+                }
             });
 
             toast.dismiss(toastId);
-            if (res.ok) {
-                toast.success(`Successfully linked ${duplicateData.name}`);
-                fetchDocuments();
-            } else {
-                const payload = await res.json();
-                toast.error(`Link Failed: ${payload.message || 'Could not link document'}`);
-            }
-        } catch (err) {
+            toast.success(`Successfully linked ${duplicateData.name}`);
+            fetchDocuments();
+        } catch (err: any) {
             toast.dismiss(toastId);
-            toast.error("Network Error: Transmission interrupted.");
+            try {
+                const payload = await err.response.json();
+                toast.error(`Link Failed: ${payload.message || 'Could not link document'}`);
+            } catch (e) {
+                toast.error("Network Error: Transmission interrupted.");
+            }
         }
     };
 
@@ -445,86 +397,51 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         setDeletingDoc(null); // Close modal immediately
 
         try {
-            const url = new URL(API_ROUTES.DOCUMENT_DELETE(id));
             const targetWs = deleteTargetWs || deletingDoc?.workspace_id || workspaceId;
-            url.searchParams.append('workspace_id', targetWs);
-
-            if (vaultDelete) {
-                url.searchParams.append('vault_delete', 'true');
-            }
-
-            const res = await fetch(url.toString(), {
-                method: 'DELETE',
+            await api.deleteDocumentWorkspacesWorkspaceIdDocumentsDocumentIdDelete({
+                documentId: id,
+                workspaceId: targetWs,
+                vaultDelete
             });
             toast.dismiss(toastId);
-            if (res.ok) {
-                toast.success(`${docName} ${vaultDelete ? 'purged globally' : 'removed from workspace'}`);
-                setDocuments((prev) => prev.filter((d) => d.id !== id));
-            } else {
-                const payload = await res.json();
-                toast.error(`${docName} delete failed: ${payload.message || 'Operation failed'}`);
-            }
-        } catch (err) {
+            toast.success(`${docName} ${vaultDelete ? 'purged globally' : 'removed from workspace'}`);
+            setDocuments((prev) => prev.filter((d) => d.id !== id));
+        } catch (err: any) {
             toast.dismiss(toastId);
-            toast.error(`Network error while deleting ${docName}`);
+            try {
+                const payload = await err.response.json();
+                toast.error(`${docName} delete failed: ${payload.message || 'Operation failed'}`);
+            } catch (e) {
+                toast.error(`Network error while deleting ${docName}`);
+            }
         }
     };
-    /* // handleManage and handleIndex are currently unused but kept for future features
-    const _handleManage = async () => {
-        if (!managingDoc || !shareTarget) return;
-    
-        setIsManaging(true);
-        try {
-            const res = await fetch(API_ROUTES.DOCUMENTS_UPDATE_WS, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    document_id: managingDoc.id,
-                    target_workspace_id: shareTarget,
-                    action: manageMode,
-                    force_reindex: true
-                })
-            });
-    
-            if (res.ok) {
-                // Fire-and-forget: close modal, progress visible in JobPanel
-                setManagingDoc(null);
-                setShareTarget('');
-            } else {
-                const payload = await res.json();
-                showError("Transition Failed", payload.message || 'Workspace update failed.', `Document: ${managingDoc.name}`);
-            }
-        } catch (err) {
-            console.error('Failed to manage document', err);
-            const errorMessage = err instanceof Error ? err.message : 'Transmission lost during re-indexing.';
-            showError("Network Error", errorMessage);
-        } finally {
-            setIsManaging(false);
-        }
-    }; */
+
+
 
     const handleView = async (id: string, name: string) => {
         try {
-            const res = await fetch(API_ROUTES.DOCUMENT_GET(id));
-            if (res.ok) {
-                const payload = await res.json();
-                const data = payload.data;
-                setActiveSource({
-                    id: 0,
-                    name: data.filename || name,
-                    content: data.content,
-                    download_url: data.download_url
-                });
-                fetchDocuments(); // Refresh status/fragments after on-demand indexing
+            const payload = await api.getDocumentWorkspacesWorkspaceIdDocumentsDocumentIdGet({
+                documentId: id,
+                workspaceId
+            });
+            const data = payload.data;
+            setActiveSource({
+                id: 0,
+                name: data.filename || name,
+                content: data.content,
+                download_url: data.download_url
+            });
+            fetchDocuments(); // Refresh status/fragments after on-demand indexing
 
-            } else {
-                const payload = await res.json();
-                showError("Retrieval Failure", payload.message || 'Could not fetch document content.', `ID: ${id}`);
-            }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to view document', err);
-            const errorMessage = err instanceof Error ? err.message : 'Connection error.';
-            showError("Network Error", errorMessage);
+            try {
+                const payload = await err.response.json();
+                showError("Retrieval Failure", payload.message || 'Could not fetch document content.', `ID: ${id}`);
+            } catch (e) {
+                showError("Network Error", 'Connection error.');
+            }
         }
     };
 
@@ -533,15 +450,13 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         if (showModal) setIsDetailsModalOpen(true);
         const docId = doc.id || doc.name;
         try {
-            const res = await fetch(`${API_ROUTES.DOCUMENTS}/${encodeURIComponent(docId)}/inspect`);
-            if (res.ok) {
-                const payload = await res.json();
-                setDetailsDoc(payload.data);
-            } else {
-                showError("Inspect Failed", "Could not retrieve document relationships.");
-            }
+            const payload = await api.inspectDocumentWorkspacesWorkspaceIdDocumentsDocumentIdInspectGet({
+                documentId: docId,
+                workspaceId
+            });
+            setDetailsDoc(payload.data);
         } catch (_err) {
-            showError("Network Error", "Connection to metadata server failed.");
+            showError("Inspect Failed", "Could not retrieve document relationships.");
         } finally {
             setIsDetailsLoading(false);
         }
@@ -563,23 +478,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     };
 
-    /* const _handleIndex = async (doc: Document) => {
-        const docId = doc.id || doc.name;
-        // Fire-and-forget: submit indexing, progress shown in global JobPanel
-        try {
-            const res = await fetch(`${API_ROUTES.DOCUMENTS}/${encodeURIComponent(docId)}/index?workspace_id=${encodeURIComponent(doc.workspace_id || workspaceId)}`, {
-                method: 'POST'
-            });
-            if (!res.ok) {
-                const payload = await res.json();
-                showError("Indexing Error", payload.message || 'Manual indexing failed.');
-            }
-            // Task created — progress visible in the persistent JobPanel
-        } catch (err) {
-            console.error('Failed to index document', err);
-            showError("Network Error", "Could not reach the indexing service.");
-        }
-    }; */
+
 
     if (isSidebar) {
         return (
@@ -1403,7 +1302,8 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                         </button>
                         <button
                             onClick={async () => {
-                                if (!managingDoc || !confirmingAction) return;
+                                if (!confirmingAction || !managingDoc) return;
+                                setIsManaging(true);
                                 const isIndexing = confirmingAction.type === 'index';
                                 const toastId = toast.loading(`${isIndexing ? 'Indexing' : 'Removing interface'} for ${managingDoc.name}...`);
 
@@ -1412,38 +1312,40 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
 
                                 try {
                                     if (isIndexing) {
-                                        const res = await fetch(API_ROUTES.DOCUMENTS_UPDATE_WS, {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({
-                                                document_id: managingDoc.id,
-                                                target_workspace_id: confirmingAction.workspace_id,
-                                                action: 'link'
-                                            })
+                                        await api.updateDocumentWorkspacesWorkspacesWorkspaceIdDocumentsUpdateWorkspacesPost({
+                                            workspaceId: confirmingAction.workspace_id,
+                                            documentWorkspaceUpdate: {
+                                                documentId: managingDoc.id!,
+                                                targetWorkspaceId: confirmingAction.workspace_id,
+                                                action: 'link',
+                                                forceReindex: true
+                                            }
                                         });
                                         toast.dismiss(toastId);
-                                        if (res.ok) {
-                                            toast.success(`Indexing started for ${managingDoc.name} in ${confirmingAction.workspace_name}`);
-                                            fetchDocuments();
-                                        } else {
-                                            toast.error(`Failed to start indexing for ${managingDoc.name}`);
-                                        }
+                                        toast.success(`Indexing started for ${managingDoc.name} in ${confirmingAction.workspace_name}`);
+                                        fetchDocuments();
                                     } else {
-                                        const res = await fetch(`${API_ROUTES.DOCUMENTS}/${encodeURIComponent(managingDoc.id!)}?workspace_id=${encodeURIComponent(confirmingAction.workspace_id)}&vault_delete=false`, {
-                                            method: 'DELETE'
+                                        await api.deleteDocumentWorkspacesWorkspaceIdDocumentsDocumentIdDelete({
+                                            documentId: managingDoc.id!,
+                                            workspaceId: confirmingAction.workspace_id,
+                                            vaultDelete: false
                                         });
                                         toast.dismiss(toastId);
-                                        if (res.ok) {
-                                            toast.success(`Removed ${managingDoc.name} from ${confirmingAction.workspace_name}`);
-                                            handleDetailView(managingDoc, false);
-                                            fetchDocuments();
-                                        } else {
-                                            toast.error(`Failed to remove ${managingDoc.name} from workspace`);
-                                        }
+                                        toast.success(`Removed ${managingDoc.name} from ${confirmingAction.workspace_name}`);
+                                        handleDetailView(managingDoc, false);
+                                        fetchDocuments();
                                     }
-                                } catch (_err) {
+                                } catch (err: any) {
                                     toast.dismiss(toastId);
-                                    toast.error("Network Error: Protocol synchronization failure.");
+                                    try {
+                                        const payload = await err.response.json();
+                                        toast.error(`Action failed: ${payload.message || 'Unknown protocol error'}`);
+                                    } catch (e) {
+                                        toast.error("Network Error: Protocol synchronization failure.");
+                                    }
+                                } finally {
+                                    setIsManaging(false);
+                                    setConfirmingAction(null);
                                 }
                             }}
                             disabled={isManaging}

@@ -9,28 +9,39 @@ const getApiBaseUrl = () => {
 export const API_BASE_URL = getApiBaseUrl();
 
 export const API_ROUTES = {
-    CHAT_STREAM: `${API_BASE_URL}/chat/stream`,
-    CHAT_HISTORY: (threadId: string) => `${API_BASE_URL}/chat/history/${encodeURIComponent(threadId)}`,
-    CHAT_THREADS: `${API_BASE_URL}/chat/threads`,
-    THREAD_TITLE: (threadId: string) => `${API_BASE_URL}/chat/threads/${encodeURIComponent(threadId)}/title`,
-    THREAD_GET: (threadId: string) => `${API_BASE_URL}/chat/threads/${encodeURIComponent(threadId)}`,
-    THREAD_DELETE: (threadId: string) => `${API_BASE_URL}/chat/threads/${encodeURIComponent(threadId)}`,
-    DOCUMENTS: `${API_BASE_URL}/documents`,
-    DOCUMENTS_ALL: `${API_BASE_URL}/documents-all`,
-    DOCUMENTS_UPDATE_WS: `${API_BASE_URL}/documents/update-workspaces`,
-    VAULT: `${API_BASE_URL}/vault`,
-    DOCUMENT_GET: (id: string) => `${API_BASE_URL}/documents/${encodeURIComponent(id)}`,
-    DOCUMENT_DELETE: (id: string) => `${API_BASE_URL}/documents/${encodeURIComponent(id)}`,
-    UPLOAD: `${API_BASE_URL}/upload`,
-    SETTINGS: `${API_BASE_URL}/settings/`,
-    SETTINGS_METADATA: `${API_BASE_URL}/settings/metadata`,
+    // Auth
+    AUTH_LOGIN: `${API_BASE_URL}/auth/login`,
+    AUTH_REGISTER: `${API_BASE_URL}/auth/register`,
+
+    // Workspace-scoped routes
+    CHAT_STREAM: (workspaceId: string) => `${API_BASE_URL}/workspaces/${workspaceId}/chat/stream`,
+    CHAT_HISTORY: (workspaceId: string, threadId: string) => `${API_BASE_URL}/workspaces/${workspaceId}/chat/history/${encodeURIComponent(threadId)}`,
+    CHAT_THREADS: (workspaceId: string) => `${API_BASE_URL}/workspaces/${workspaceId}/chat/threads`,
+    THREAD_TITLE: (workspaceId: string, threadId: string) => `${API_BASE_URL}/workspaces/${workspaceId}/chat/threads/${encodeURIComponent(threadId)}/title`,
+    THREAD_GET: (workspaceId: string, threadId: string) => `${API_BASE_URL}/workspaces/${workspaceId}/chat/threads/${encodeURIComponent(threadId)}`,
+    THREAD_DELETE: (workspaceId: string, threadId: string) => `${API_BASE_URL}/workspaces/${workspaceId}/chat/threads/${encodeURIComponent(threadId)}`,
+
+    DOCUMENTS: (workspaceId: string) => `${API_BASE_URL}/workspaces/${workspaceId}/documents`,
+    DOCUMENTS_ALL: (workspaceId: string) => `${API_BASE_URL}/workspaces/${workspaceId}/documents-all`,
+    DOCUMENTS_UPDATE_WS: (workspaceId: string) => `${API_BASE_URL}/workspaces/${workspaceId}/documents/update-workspaces`,
+    VAULT: (workspaceId: string) => `${API_BASE_URL}/workspaces/${workspaceId}/vault`,
+    DOCUMENT_GET: (workspaceId: string, id: string) => `${API_BASE_URL}/workspaces/${workspaceId}/documents/${encodeURIComponent(id)}`,
+    DOCUMENT_DELETE: (workspaceId: string, id: string) => `${API_BASE_URL}/workspaces/${workspaceId}/documents/${encodeURIComponent(id)}`,
+    UPLOAD: (workspaceId: string) => `${API_BASE_URL}/workspaces/${workspaceId}/upload`,
+
+    SETTINGS: (workspaceId: string) => `${API_BASE_URL}/workspaces/${workspaceId}/settings/`,
+    SETTINGS_METADATA: (workspaceId: string) => `${API_BASE_URL}/workspaces/${workspaceId}/settings/metadata`,
+
+    SEARCH: (workspaceId: string) => `${API_BASE_URL}/workspaces/${workspaceId}/search`,
+    TASKS: (workspaceId: string) => `${API_BASE_URL}/workspaces/${workspaceId}/tasks/`,
+    TASK_STATUS: (workspaceId: string, id: string) => `${API_BASE_URL}/workspaces/${workspaceId}/tasks/${encodeURIComponent(id)}`,
+
+    // Global routes
     WORKSPACES: `${API_BASE_URL}/workspaces`,
     WORKSPACE_DETAIL: (id: string) => `${API_BASE_URL}/workspaces/${encodeURIComponent(id)}`,
     WORKSPACE_STATS: (id: string) => `${API_BASE_URL}/workspaces/${encodeURIComponent(id)}/details`,
     WORKSPACE_SHARE: (id: string) => `${API_BASE_URL}/workspaces/${encodeURIComponent(id)}/share-document`,
-    SEARCH: `${API_BASE_URL}/search`,
-    TASKS: `${API_BASE_URL}/tasks/`,
-    TASK_STATUS: (id: string) => `${API_BASE_URL}/tasks/${encodeURIComponent(id)}`,
+
     METRICS: `${API_BASE_URL}/metrics`,
     EVAL_DATASETS: `${API_BASE_URL}/eval/datasets`,
     EVAL_RUNS: `${API_BASE_URL}/eval/runs`,

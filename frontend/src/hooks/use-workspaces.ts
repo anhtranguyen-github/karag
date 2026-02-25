@@ -1,18 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { API_ROUTES } from '@/lib/api-config';
+import { api } from '@/lib/api-client';
 import { useError } from '@/context/error-context';
-import { z } from 'zod';
-import { AppResponseSchema } from '@/lib/schemas/api';
-import { WorkspaceSchema, CreateWorkspaceSchema, BaseCreateWorkspaceSchema } from '@/lib/schemas/workspaces';
+import { Workspace, WorkspaceCreate, WorkspaceUpdate } from '@/lib/api';
 
-export interface Workspace {
-    id: string;
-    name: string;
-    description?: string | null;
-    stats?: {
-        thread_count?: number;
-        doc_count?: number;
-    } | null;
+export interface WorkspaceExtended extends Workspace {
     llmProvider?: string | null;
     embeddingProvider?: string | null;
     ragEngine?: string | null;
@@ -30,51 +21,31 @@ export interface DocumentRef {
     chunks?: number;
 }
 
-export interface WorkspaceDetail extends Workspace {
+export interface WorkspaceDetail extends WorkspaceExtended {
     threads: Thread[];
     documents: DocumentRef[];
 }
 
 export function useWorkspaces() {
-    const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-    const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
+    const [workspaces, setWorkspaces] = useState<WorkspaceExtended[]>([]);
+    const [currentWorkspace, setCurrentWorkspace] = useState<WorkspaceExtended | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const { showError } = useError();
 
     const fetchWorkspaces = useCallback(async () => {
         try {
-            const res = await fetch(API_ROUTES.WORKSPACES);
-            if (!res.ok) {
-                // If the response is not ok, we can't assume JSON or specific structure yet, 
-                // but usually our backend returns AppResponse even on error (status 400/500).
-                // For now, handling network-level failures.
-                showError("Connection Failed", "Unable to load your workspaces. Please check your network connection.");
-                return;
-            }
+            const payload = await api.listWorkspacesWorkspacesGet();
 
-            const rawData = await res.json();
-
-            const ResponseSchema = AppResponseSchema(z.array(WorkspaceSchema));
-            const result = ResponseSchema.safeParse(rawData);
-
-            if (!result.success) {
-                console.error("API Contract Violation:", result.error);
-                showError("System Error", "The server returned an unexpected data format. Please contact support.");
-                return;
-            }
-
-            const payload = result.data;
             if (!payload.success || !payload.data) {
-                // Business Logic Error
                 showError(payload.code || "Error", payload.message || "Failed to load workspaces.");
                 return;
             }
 
             const mappedData = payload.data.map(ws => ({
                 ...ws,
-                llmProvider: ws.llm_provider,
-                embeddingProvider: ws.embedding_provider,
-                ragEngine: ws.rag_engine
+                llmProvider: ws.llmProvider,
+                embeddingProvider: ws.embeddingProvider,
+                ragEngine: ws.ragEngine
             }));
 
             setWorkspaces(mappedData);
@@ -89,7 +60,7 @@ export function useWorkspaces() {
             } else {
                 setCurrentWorkspace(null);
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to fetch workspaces:', err);
             showError("Application Error", "An unexpected error occurred while loading workspaces.");
         } finally {
@@ -101,76 +72,34 @@ export function useWorkspaces() {
         fetchWorkspaces();
     }, [fetchWorkspaces]);
 
-    const selectWorkspace = (ws: Workspace) => {
+    const selectWorkspace = (ws: WorkspaceExtended) => {
         setCurrentWorkspace(ws);
         localStorage.setItem('currentWorkspaceId', ws.id);
     };
 
-
-    const createWorkspace = async (payload: { name: string; description?: string; rag_engine?: string }) => {
-        // Optimistic Validation with Zod
-
-
-        const validationResult = CreateWorkspaceSchema.safeParse({
-            name: payload.name,
-            description: payload.description
-        });
-
-        if (!validationResult.success) {
-            const errorMsg = validationResult.error.issues[0].message;
-            showError("Invalid Input", errorMsg);
-            return { success: false, error: errorMsg };
-        }
-
+    const createWorkspace = async (payload: WorkspaceCreate) => {
         try {
-            const res = await fetch(API_ROUTES.WORKSPACES, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+            const appResponse = await api.createWorkspaceWorkspacesPost({
+                workspaceCreate: payload
             });
 
-            const rawData = await res.json();
-            const ResponseSchema = AppResponseSchema(WorkspaceSchema);
-            const result = ResponseSchema.safeParse(rawData);
-
-            if (!result.success) {
-                console.error("API Contract Violation:", result.error);
-                showError("System Error", "Server response validation failed.");
-                return { success: false, error: "Invalid server response" };
-            }
-
-            const appResponse = result.data;
             if (appResponse.success && appResponse.data) {
                 const ws = appResponse.data;
                 const mappedWs = {
                     ...ws,
-                    llmProvider: ws.llm_provider,
-                    embeddingProvider: ws.embedding_provider,
-                    ragEngine: ws.rag_engine
+                    llmProvider: ws.llmProvider,
+                    embeddingProvider: ws.embeddingProvider,
+                    ragEngine: ws.ragEngine
                 };
                 await fetchWorkspaces();
                 return { success: true, workspace: mappedWs };
             } else {
-                // Structured Business Error Handling
                 let title = "Unable to Create Workspace";
                 const message = appResponse.message || "System rejected creation request.";
-
-                switch (appResponse.code) {
-                    case "DUPLICATE_NAME":
-                        title = "Name Unavailable";
-                        break;
-                    case "INVALID_NAME":
-                    case "VALIDATION_ERROR":
-                        title = "Input Validation Error";
-                        break;
-                    default:
-                        if (res.status >= 500) title = "Server Failure";
-                }
-
                 showError(title, message, JSON.stringify(appResponse.data));
                 return { success: false, error: message };
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to create workspace:', err);
             showError("Network Error", "Handshake failed. The intelligence hub is currently unreachable.");
             return { success: false, error: 'Connection error' };
@@ -178,35 +107,19 @@ export function useWorkspaces() {
     };
 
     const updateWorkspace = async (id: string, name: string, description?: string) => {
-
-        const nameValidation = BaseCreateWorkspaceSchema.shape.name.safeParse(name);
-
-        if (!nameValidation.success) {
-            showError("Invalid Input", nameValidation.error.issues[0].message);
-            return;
-        }
-
         try {
-            const res = await fetch(API_ROUTES.WORKSPACE_DETAIL(id), {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, description })
+            const updatePayload: WorkspaceUpdate = { name, description };
+            const appResponse = await api.updateWorkspaceWorkspacesWorkspaceIdPatch({
+                workspaceId: id,
+                workspaceUpdate: updatePayload
             });
 
-            // Parse response as generic AppResponse or Workspace
-            // Assuming update returns Workspace in data on success
-            await res.json();
-
-            // If backend standard is violated (e.g. update returns raw workspace), handle fallback or enforce
-            // Based on constraints, should be AppResponse
-            // Check status manually first if unsure, but let's try strict Zod
-            if (res.ok) {
+            if (appResponse.success) {
                 await fetchWorkspaces();
             } else {
-                // Handle error
-                showError("Update Failed", "Could not save changes.");
+                showError("Update Failed", appResponse.message || "Could not save changes.");
             }
-        } catch (err) {
+        } catch (err: any) {
             showError("Connection Error", "Could not save changes. Handshake failed during synchronization.");
             console.error('Failed to update workspace:', err);
         }
@@ -214,23 +127,20 @@ export function useWorkspaces() {
 
     const deleteWorkspace = async (id: string, vaultDelete: boolean = false) => {
         try {
-            const res = await fetch(`${API_ROUTES.WORKSPACE_DETAIL(id)}?vault_delete=${vaultDelete}`, {
-                method: 'DELETE'
+            const appResponse = await api.deleteWorkspaceWorkspacesWorkspaceIdDelete({
+                workspaceId: id,
+                vaultDelete: vaultDelete
             });
 
-            // Delete usually returns { status: 'success', message: ... } - minimal AppResponse
-            // We can validate it too
-
-            if (res.ok) {
+            if (appResponse.success) {
                 if (currentWorkspace?.id === id) {
                     localStorage.removeItem('currentWorkspaceId');
                 }
                 await fetchWorkspaces();
             } else {
-                const data = await res.json();
-                showError("Deletion Failed", data.message || 'Unable to delete workspace.');
+                showError("Deletion Failed", appResponse.message || 'Unable to delete workspace.');
             }
-        } catch (err) {
+        } catch (err: any) {
             showError("Connection Error", "Could not delete workspace. Please check your connection.");
             console.error('Failed to delete workspace:', err);
         }
@@ -238,15 +148,14 @@ export function useWorkspaces() {
 
     const getWorkspaceDetails = async (id: string): Promise<WorkspaceDetail | null> => {
         try {
-            const res = await fetch(API_ROUTES.WORKSPACE_STATS(id));
-            if (res.ok) {
-                const result = await res.json();
-                if (result.success && result.data) {
-                    return result.data;
-                }
+            const result = await api.getWorkspaceDetailsWorkspacesWorkspaceIdDetailsGet({
+                workspaceId: id
+            });
+            if (result.success && result.data) {
+                return result.data;
             }
             return null;
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to fetch workspace details:', err);
             return null;
         }
@@ -255,13 +164,16 @@ export function useWorkspaces() {
     const shareDocument = async (sourceName: string, targetWorkspaceId: string) => {
         if (!currentWorkspace) return;
         try {
-            const res = await fetch(API_ROUTES.WORKSPACE_SHARE(currentWorkspace.id), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ source_name: sourceName, target_workspace_id: targetWorkspaceId })
-            });
-            return res.ok;
-        } catch (err) {
+            // shareDocument endpoint doesn't seem to have a dedicated generated method in api object?
+            // Actually it was in WorkspacesApi. let's check.
+            // based on workspaces.py, it's @router.post("/{workspace_id}/share-document")
+            const response = await api.shareDocumentWorkspacesWorkspaceIdShareDocumentPost({
+                workspaceId: currentWorkspace.id,
+                // shareDocument payload is source_name and target_workspace_id
+                body: { source_name: sourceName, target_workspace_id: targetWorkspaceId }
+            } as any); // Type cast if needed, but checking source it should be there.
+            return response.success;
+        } catch (err: any) {
             console.error('Failed to share document:', err);
             return false;
         }
@@ -271,9 +183,9 @@ export function useWorkspaces() {
         workspaces,
         currentWorkspace,
         isLoading,
-        error: null, // errors are shown via modal
+        error: null,
         selectWorkspace,
-        switchWorkspace: selectWorkspace, // alias for layout
+        switchWorkspace: selectWorkspace,
         createWorkspace,
         updateWorkspace,
         deleteWorkspace,

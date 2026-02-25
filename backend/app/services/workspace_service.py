@@ -11,11 +11,12 @@ logger = structlog.get_logger(__name__)
 
 class WorkspaceService:
     @staticmethod
-    async def list_all() -> List[Dict]:
+    async def list_all(user_id: str) -> List[Dict]:
         db = mongodb_manager.get_async_database()
 
         # Optimized Aggregation Pipeline to avoid N+1 queries
         pipeline = [
+            {"$match": {"owner_id": user_id}},
             {
                 "$lookup": {
                     "from": "documents",
@@ -62,7 +63,7 @@ class WorkspaceService:
         return await db.workspaces.aggregate(pipeline).to_list(1000)
 
     @staticmethod
-    async def create(data: Dict[str, Any]) -> Dict[str, Any]:
+    async def create(data: Dict[str, Any], user_id: str) -> Dict[str, Any]:
         """Create a new workspace with specified RAG settings."""
         db = mongodb_manager.get_async_database()
         name = data.get("name", "").strip()
@@ -101,6 +102,7 @@ class WorkspaceService:
             "id": workspace_id,
             "name": name,
             "description": data.get("description", ""),
+            "owner_id": user_id,
             "created_at": timestamp,
             "updated_at": timestamp,
         }
@@ -125,6 +127,7 @@ class WorkspaceService:
             "neo4j_uri",
             "neo4j_user",
             "neo4j_password",
+            "owner_id",
             "search_limit",
             "recall_k",
             "hybrid_alpha",

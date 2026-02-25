@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { API_ROUTES } from '@/lib/api-config';
+import { api } from '@/lib/api-client';
 import { useToast } from '@/context/toast-context';
 
 export interface TaskItem {
@@ -29,9 +29,9 @@ interface TaskContextType {
     recentCompletedTasks: TaskItem[];
     failedTasks: TaskItem[];
     hasActiveWork: boolean;
-    refreshTasks: () => Promise<void>;
-    retryTask: (taskId: string) => Promise<void>;
-    cancelTask: (taskId: string) => Promise<void>;
+    refreshTasks: (workspaceId?: string) => Promise<void>;
+    retryTask: (taskId: string, workspaceId?: string) => Promise<void>;
+    cancelTask: (taskId: string, workspaceId?: string) => Promise<void>;
     dismissTask: (taskId: string) => void;
 }
 
@@ -79,12 +79,13 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
         return () => clearInterval(interval);
     }, []);
 
-    const fetchTasks = useCallback(async () => {
+    const fetchTasks = useCallback(async (workspaceId?: string) => {
         try {
-            const res = await fetch(API_ROUTES.TASKS);
-            if (res.ok) {
-                const data = await res.json();
-                setTasks(data.data || []);
+            const payload = await api.listTasksWorkspacesWorkspaceIdTasksGet({
+                workspaceId: workspaceId!
+            });
+            if (payload.success && payload.data) {
+                setTasks(payload.data || []);
             }
         } catch (_err) {
             // Silently fail polling to avoid UI noise
@@ -94,7 +95,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     // Poll every 2 seconds
     useEffect(() => {
         fetchTasks();
-        const interval = setInterval(fetchTasks, 2000);
+        const interval = setInterval(() => fetchTasks(), 2000);
         return () => clearInterval(interval);
     }, [fetchTasks]);
 
@@ -141,34 +142,40 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
     const hasActiveWork = activeTasks.length > 0;
 
-    const retryTask = useCallback(async (taskId: string) => {
+    const retryTask = useCallback(async (taskId: string, workspaceId?: string) => {
         try {
-            const res = await fetch(`${API_ROUTES.TASKS}${taskId}/retry`, { method: 'POST' });
-            if (res.ok) {
+            const payload = await api.retryTaskWorkspacesWorkspaceIdTasksTaskIdRetryPost({
+                workspaceId: workspaceId!,
+                taskId
+            });
+            if (payload.success) {
                 // Remove from dismissed set so it reappears when retrying
                 setDismissedIds(prev => {
                     const next = new Set(prev);
                     next.delete(taskId);
                     return next;
                 });
-                await fetchTasks();
+                await fetchTasks(workspaceId);
             }
         } catch (err) {
             console.error('Retry failed', err);
         }
     }, [fetchTasks]);
 
-    const cancelTask = useCallback(async (taskId: string) => {
+    const cancelTask = useCallback(async (taskId: string, workspaceId?: string) => {
         try {
-            const res = await fetch(`${API_ROUTES.TASKS}${taskId}/cancel`, { method: 'POST' });
-            if (res.ok) {
+            const payload = await api.cancelTaskWorkspacesWorkspaceIdTasksTaskIdCancelPost({
+                workspaceId: workspaceId!,
+                taskId
+            });
+            if (payload.success) {
                 // Auto-dismiss canceled tasks to keep UI clean
                 setDismissedIds(prev => {
                     const next = new Set(prev);
                     next.add(taskId);
                     return next;
                 });
-                await fetchTasks();
+                await fetchTasks(workspaceId);
             }
         } catch (err) {
             console.error('Cancel failed', err);

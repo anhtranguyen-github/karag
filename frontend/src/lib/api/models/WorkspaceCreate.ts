@@ -33,6 +33,30 @@ export interface WorkspaceCreate {
     description?: string | null;
     /**
      * 
+     * @type {{ [key: string]: any; }}
+     * @memberof WorkspaceCreate
+     */
+    embedding?: { [key: string]: any; } | null;
+    /**
+     * 
+     * @type {{ [key: string]: any; }}
+     * @memberof WorkspaceCreate
+     */
+    retrieval?: { [key: string]: any; } | null;
+    /**
+     * 
+     * @type {{ [key: string]: any; }}
+     * @memberof WorkspaceCreate
+     */
+    generation?: { [key: string]: any; } | null;
+    /**
+     * 
+     * @type {{ [key: string]: any; }}
+     * @memberof WorkspaceCreate
+     */
+    chunking?: { [key: string]: any; } | null;
+    /**
+     * 
      * @type {string}
      * @memberof WorkspaceCreate
      */
@@ -123,6 +147,30 @@ export interface WorkspaceCreate {
     temperature?: number;
     /**
      * 
+     * @type {string}
+     * @memberof WorkspaceCreate
+     */
+    runtimeMode?: WorkspaceCreateRuntimeModeEnum;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof WorkspaceCreate
+     */
+    runtimeStreamThoughts?: boolean;
+    /**
+     * 
+     * @type {string}
+     * @memberof WorkspaceCreate
+     */
+    runtimeTraceLevel?: WorkspaceCreateRuntimeTraceLevelEnum;
+    /**
+     * 
+     * @type {string}
+     * @memberof WorkspaceCreate
+     */
+    chunkingStrategy?: WorkspaceCreateChunkingStrategyEnum;
+    /**
+     * 
      * @type {number}
      * @memberof WorkspaceCreate
      */
@@ -151,48 +199,6 @@ export interface WorkspaceCreate {
      * @memberof WorkspaceCreate
      */
     neo4jPassword?: string | null;
-    /**
-     * 
-     * @type {string}
-     * @memberof WorkspaceCreate
-     */
-    runtimeMode?: string;
-    /**
-     * 
-     * @type {boolean}
-     * @memberof WorkspaceCreate
-     */
-    runtimeStreamThoughts?: boolean;
-    /**
-     * 
-     * @type {string}
-     * @memberof WorkspaceCreate
-     */
-    runtimeTraceLevel?: string;
-    /**
-     * 
-     * @type {object}
-     * @memberof WorkspaceCreate
-     */
-    embedding?: any;
-    /**
-     * 
-     * @type {object}
-     * @memberof WorkspaceCreate
-     */
-    retrieval?: any;
-    /**
-     * 
-     * @type {object}
-     * @memberof WorkspaceCreate
-     */
-    generation?: any;
-    /**
-     * 
-     * @type {object}
-     * @memberof WorkspaceCreate
-     */
-    chunking?: any;
 }
 
 
@@ -204,6 +210,40 @@ export const WorkspaceCreateRagEngineEnum = {
     Graph: 'graph'
 } as const;
 export type WorkspaceCreateRagEngineEnum = typeof WorkspaceCreateRagEngineEnum[keyof typeof WorkspaceCreateRagEngineEnum];
+
+/**
+ * @export
+ */
+export const WorkspaceCreateRuntimeModeEnum = {
+    Auto: 'auto',
+    Fast: 'fast',
+    Think: 'think',
+    Deep: 'deep'
+} as const;
+export type WorkspaceCreateRuntimeModeEnum = typeof WorkspaceCreateRuntimeModeEnum[keyof typeof WorkspaceCreateRuntimeModeEnum];
+
+/**
+ * @export
+ */
+export const WorkspaceCreateRuntimeTraceLevelEnum = {
+    Basic: 'basic',
+    Detailed: 'detailed',
+    Debug: 'debug'
+} as const;
+export type WorkspaceCreateRuntimeTraceLevelEnum = typeof WorkspaceCreateRuntimeTraceLevelEnum[keyof typeof WorkspaceCreateRuntimeTraceLevelEnum];
+
+/**
+ * @export
+ */
+export const WorkspaceCreateChunkingStrategyEnum = {
+    Recursive: 'recursive',
+    Sentence: 'sentence',
+    Token: 'token',
+    Semantic: 'semantic',
+    Fixed: 'fixed',
+    Document: 'document'
+} as const;
+export type WorkspaceCreateChunkingStrategyEnum = typeof WorkspaceCreateChunkingStrategyEnum[keyof typeof WorkspaceCreateChunkingStrategyEnum];
 
 
 /**
@@ -223,9 +263,13 @@ export function WorkspaceCreateFromJSONTyped(json: any, ignoreDiscriminator: boo
         return json;
     }
     return {
-
+        
         'name': json['name'],
         'description': json['description'] == null ? undefined : json['description'],
+        'embedding': json['embedding'] == null ? undefined : json['embedding'],
+        'retrieval': json['retrieval'] == null ? undefined : json['retrieval'],
+        'generation': json['generation'] == null ? undefined : json['generation'],
+        'chunking': json['chunking'] == null ? undefined : json['chunking'],
         'embeddingProvider': json['embedding_provider'] == null ? undefined : json['embedding_provider'],
         'embeddingModel': json['embedding_model'] == null ? undefined : json['embedding_model'],
         'embeddingDim': json['embedding_dim'] == null ? undefined : json['embedding_dim'],
@@ -241,18 +285,15 @@ export function WorkspaceCreateFromJSONTyped(json: any, ignoreDiscriminator: boo
         'llmProvider': json['llm_provider'] == null ? undefined : json['llm_provider'],
         'llmModel': json['llm_model'] == null ? undefined : json['llm_model'],
         'temperature': json['temperature'] == null ? undefined : json['temperature'],
+        'runtimeMode': json['runtime_mode'] == null ? undefined : json['runtime_mode'],
+        'runtimeStreamThoughts': json['runtime_stream_thoughts'] == null ? undefined : json['runtime_stream_thoughts'],
+        'runtimeTraceLevel': json['runtime_trace_level'] == null ? undefined : json['runtime_trace_level'],
+        'chunkingStrategy': json['chunking_strategy'] == null ? undefined : json['chunking_strategy'],
         'chunkSize': json['chunk_size'] == null ? undefined : json['chunk_size'],
         'chunkOverlap': json['chunk_overlap'] == null ? undefined : json['chunk_overlap'],
         'neo4jUri': json['neo4j_uri'] == null ? undefined : json['neo4j_uri'],
         'neo4jUser': json['neo4j_user'] == null ? undefined : json['neo4j_user'],
         'neo4jPassword': json['neo4j_password'] == null ? undefined : json['neo4j_password'],
-        'runtimeMode': json['runtime_mode'] == null ? undefined : json['runtime_mode'],
-        'runtimeStreamThoughts': json['runtime_stream_thoughts'] == null ? undefined : json['runtime_stream_thoughts'],
-        'runtimeTraceLevel': json['runtime_trace_level'] == null ? undefined : json['runtime_trace_level'],
-        'embedding': json['embedding'] == null ? undefined : json['embedding'],
-        'retrieval': json['retrieval'] == null ? undefined : json['retrieval'],
-        'generation': json['generation'] == null ? undefined : json['generation'],
-        'chunking': json['chunking'] == null ? undefined : json['chunking'],
     };
 }
 
@@ -266,9 +307,13 @@ export function WorkspaceCreateToJSONTyped(value?: WorkspaceCreate | null, ignor
     }
 
     return {
-
+        
         'name': value['name'],
         'description': value['description'],
+        'embedding': value['embedding'],
+        'retrieval': value['retrieval'],
+        'generation': value['generation'],
+        'chunking': value['chunking'],
         'embedding_provider': value['embeddingProvider'],
         'embedding_model': value['embeddingModel'],
         'embedding_dim': value['embeddingDim'],
@@ -284,18 +329,15 @@ export function WorkspaceCreateToJSONTyped(value?: WorkspaceCreate | null, ignor
         'llm_provider': value['llmProvider'],
         'llm_model': value['llmModel'],
         'temperature': value['temperature'],
+        'runtime_mode': value['runtimeMode'],
+        'runtime_stream_thoughts': value['runtimeStreamThoughts'],
+        'runtime_trace_level': value['runtimeTraceLevel'],
+        'chunking_strategy': value['chunkingStrategy'],
         'chunk_size': value['chunkSize'],
         'chunk_overlap': value['chunkOverlap'],
         'neo4j_uri': value['neo4jUri'],
         'neo4j_user': value['neo4jUser'],
         'neo4j_password': value['neo4jPassword'],
-        'runtime_mode': value['runtimeMode'],
-        'runtime_stream_thoughts': value['runtimeStreamThoughts'],
-        'runtime_trace_level': value['runtimeTraceLevel'],
-        'embedding': value['embedding'],
-        'retrieval': value['retrieval'],
-        'generation': value['generation'],
-        'chunking': value['chunking'],
     };
 }
 

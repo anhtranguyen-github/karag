@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import { API_ROUTES } from '@/lib/api-config';
+import { api } from '@/lib/api-client';
 import { useError } from '@/context/error-context';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 
@@ -30,7 +30,8 @@ interface ChatContextType {
     sendMessage: (content: string, workspaceId: string) => Promise<void>;
     clearChat: (workspaceId: string) => void;
     fetchThreads: (workspaceId: string) => Promise<void>;
-    deleteThread: (id: string) => Promise<void>;
+    deleteThread: (id: string, workspaceId: string) => Promise<void>;
+    fetchHistory: (id: string, workspaceId: string) => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -46,7 +47,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     // Cache messages per thread to avoid re-fetching
     const historyCache = useRef<Record<string, Message[]>>({});
 
-    const fetchHistory = useCallback(async (id: string) => {
+    const fetchHistory = useCallback(async (id: string, workspaceId: string) => {
         if (!id) return;
         if (historyCache.current[id]) {
             setMessages(historyCache.current[id]);
@@ -54,10 +55,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         }
 
         try {
-            const res = await fetch(API_ROUTES.CHAT_HISTORY(id));
-            if (!res.ok) return;
-
-            const payload = await res.json();
+            const payload = await api.getChatHistoryWorkspacesWorkspaceIdChatHistoryThreadIdGet({
+                workspaceId: workspaceId!,
+                threadId: id
+            });
             if (payload.success && payload.data) {
                 setMessages(payload.data);
                 historyCache.current[id] = payload.data;
@@ -67,21 +68,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
-    useEffect(() => {
-        if (threadId) {
-            fetchHistory(threadId);
-        }
-    }, [threadId, fetchHistory]);
-
     const fetchThreads = useCallback(async (workspaceId: string) => {
         setIsLoadingThreads(true);
         try {
-            const res = await fetch(API_ROUTES.CHAT_THREADS + `?workspace_id=${encodeURIComponent(workspaceId)}`);
-            if (res.ok) {
-                const result = await res.json();
-                if (result.success && result.data) {
-                    setThreads(result.data);
-                }
+            const payload = await api.listChatThreadsWorkspacesWorkspaceIdChatThreadsGet({
+                workspaceId: workspaceId!
+            });
+            if (payload.success && payload.data) {
+                setThreads(payload.data);
             }
         } catch (err) {
             console.error('Failed to fetch threads:', err);
@@ -90,10 +84,13 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
-    const deleteThread = useCallback(async (id: string) => {
+    const deleteThread = useCallback(async (id: string, workspaceId: string) => {
         try {
-            const res = await fetch(API_ROUTES.THREAD_DELETE(id), { method: 'DELETE' });
-            if (res.ok) {
+            const payload = await api.deleteThreadWorkspacesWorkspaceIdChatThreadsThreadIdDelete({
+                workspaceId: workspaceId!,
+                threadId: id
+            });
+            if (payload.success) {
                 setThreads(prev => prev.filter(t => t.id !== id));
                 delete historyCache.current[id];
                 if (threadId === id) {
@@ -125,13 +122,19 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         let accumulatedContent = '';
 
         try {
-            await fetchEventSource(API_ROUTES.CHAT_STREAM, {
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+            const streamUrl = `${baseUrl}/workspaces/${workspaceId}/chat/stream`;
+            const token = localStorage.getItem("karag_token");
+
+            await fetchEventSource(streamUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
                 body: JSON.stringify({
                     message: content,
                     thread_id: threadId || assistantMessageId.substring(0, 8), // Fallback if threadId state hasn't updated
-                    workspace_id: workspaceId
                 }),
                 onmessage(msg) {
                     if (msg.event === 'FatalError') throw new Error(msg.data);
@@ -220,7 +223,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     return (
         <ChatContext.Provider value={{
             messages, threadId, isLoading, threads, isLoadingThreads,
-            setThreadId, sendMessage, clearChat, fetchThreads, deleteThread
+            setThreadId, sendMessage, clearChat, fetchThreads, deleteThread, fetchHistory
         }}>
             {children}
         </ChatContext.Provider>

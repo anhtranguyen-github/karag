@@ -1,22 +1,30 @@
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Depends
 from backend.app.services.task.task_service import task_service
 from backend.app.core.exceptions import NotFoundError
 from backend.app.schemas.base import AppResponse
 
-router = APIRouter(prefix="/tasks", tags=["tasks"])
+from backend.app.api.deps import get_current_workspace
+
+router = APIRouter(tags=["tasks"])
 
 
 @router.get("/")
-async def list_tasks(type: str = None, workspace_id: str = None, limit: int = 50):
-    """List tasks, optionally filtered by type and workspace."""
+async def list_tasks(
+    type: str = None,
+    limit: int = 50,
+    current_workspace: dict = Depends(get_current_workspace),
+):
+    """List tasks for the current workspace."""
     tasks = await task_service.list_tasks(
-        task_type=type, workspace_id=workspace_id, limit=limit
+        task_type=type, workspace_id=current_workspace["id"], limit=limit
     )
     return AppResponse.success_response(data=tasks)
 
 
 @router.get("/{task_id}")
-async def get_task_status(task_id: str):
+async def get_task_status(
+    task_id: str, current_workspace: dict = Depends(get_current_workspace)
+):
     """Get the current status of a specific task."""
     task = await task_service.get_task(task_id)
     if not task:
@@ -25,7 +33,11 @@ async def get_task_status(task_id: str):
 
 
 @router.post("/{task_id}/retry")
-async def retry_task(task_id: str, background_tasks: BackgroundTasks):
+async def retry_task(
+    task_id: str,
+    background_tasks: BackgroundTasks,
+    current_workspace: dict = Depends(get_current_workspace),
+):
     """Mark a failed task as retryable and re-dispatch it to background workers."""
     # Import locally to avoid circular dependencies if any exist in the future
     from backend.app.services.document_service import document_service
@@ -97,7 +109,9 @@ async def retry_task(task_id: str, background_tasks: BackgroundTasks):
 
 
 @router.post("/{task_id}/cancel")
-async def cancel_task(task_id: str):
+async def cancel_task(
+    task_id: str, current_workspace: dict = Depends(get_current_workspace)
+):
     """Cancel a pending or processing task."""
     task = await task_service.get_task(task_id)
     if not task:
@@ -117,7 +131,9 @@ async def cancel_task(task_id: str):
 
 
 @router.delete("/cleanup")
-async def cleanup_tasks(older_than_hours: int = 24):
+async def cleanup_tasks(
+    older_than_hours: int = 24, current_workspace: dict = Depends(get_current_workspace)
+):
     """Remove completed/failed tasks older than the given number of hours."""
     await task_service.cleanup_old_tasks(older_than_hours)
     return AppResponse.success_response(

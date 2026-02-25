@@ -98,8 +98,11 @@ export function ChatInterface({
             setMessages([]); // Clear while loading existing thread
 
             try {
-                const histRes = await api.getChatHistoryChatHistoryThreadIdGet({ threadId: propThreadId });
-                const history = (histRes.data as any[] || []).map((msg, idx) => ({
+                const histRes = await api.getChatHistoryWorkspacesWorkspaceIdChatHistoryThreadIdGet({
+                    threadId: propThreadId,
+                    workspaceId: workspaceId!
+                });
+                const history = ((histRes.data as unknown) as any[] || []).map((msg, idx) => ({
                     id: msg.id || `hist-${idx}-${Date.now()}`,
                     role: msg.role,
                     content: msg.content,
@@ -143,13 +146,16 @@ export function ChatInterface({
         }
 
         try {
-            await fetchEventSource(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/chat/stream`, {
+            const token = localStorage.getItem("karag_token");
+            await fetchEventSource(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/workspaces/${encodeURIComponent(wid)}/chat/stream`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { "Authorization": `Bearer ${token}` } : {})
+                },
                 body: JSON.stringify({
                     message: messageText,
                     thread_id: tid,
-                    workspace_id: wid,
                     execution: {
                         mode: mode,
                         [mode]: {

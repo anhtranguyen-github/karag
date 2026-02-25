@@ -7,7 +7,7 @@ import {
     Target, Terminal, Shield, FileText, Search, BrainCircuit
 } from 'lucide-react';
 import { useSettings, useSettingsMetadata } from '@/hooks/use-settings';
-import { API_ROUTES } from '@/lib/api-config';
+import { api } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
 import { OverviewTab } from '@/components/admin/overview-tab';
 import { LLMOpsTab } from '@/components/admin/llmops-tab';
@@ -50,25 +50,27 @@ export default function AdminConsolePage() {
 
     const fetchData = useCallback(async () => {
         try {
-            const [mRes, vRes, pRes] = await Promise.all([
-                fetch(API_ROUTES.METRICS),
-                fetch(API_ROUTES.ADMIN_VECTOR_STATUS),
-                fetch(API_ROUTES.ADMIN_PROMPTS)
+            const [overview, vectorStat, prompts] = await Promise.all([
+                api.getOpsOverviewAdminOpsOverviewGet(),
+                api.getVectorStatusAdminVectorStatusGet(),
+                api.getPromptsAdminPromptsGet()
             ]);
 
-            if (mRes.ok) setRawMetrics(await mRes.text());
-            if (vRes.ok) {
-                const vData = await vRes.json();
-                setVectorStatus(vData.data);
+            // Handling raw metrics (if overview returns prometheus-style text or a payload containing it)
+            // Note: If the new API returns a structured object, we might need to adjust parseMetric
+            if (typeof overview === 'string') {
+                setRawMetrics(overview);
+            } else if (overview?.data?.metrics) {
+                setRawMetrics(overview.data.metrics);
             }
-            if (pRes.ok) {
-                const pData = await pRes.json();
-                setPromptsRegistry(pData.data);
-            }
+
+            if (vectorStat) setVectorStatus(vectorStat.data || vectorStat);
+            if (prompts) setPromptsRegistry(prompts.data || prompts);
 
             setLastSync(new Date());
             setMetricsError(null);
-        } catch {
+        } catch (err) {
+            console.error('Operational data sync failed:', err);
             setMetricsError('Operational data sync failed.');
         } finally {
             // Loading state removed

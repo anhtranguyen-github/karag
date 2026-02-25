@@ -46,19 +46,31 @@ export function UploadModal({ isOpen, onClose, workspaceId, onUploadComplete }: 
     const handleUpload = async () => {
         setLoading(true);
         try {
-            const targetWorkspace = workspaceId || "vault";
+            const targetWorkspace = workspaceId && workspaceId !== "vault" ? workspaceId : workspaceId!;
 
             if (mode === "file") {
                 if (!file) return;
-                await api.uploadDocumentUploadPost({ file, workspaceId: targetWorkspace });
+                await api.uploadDocumentWorkspacesWorkspaceIdUploadPost({
+                    workspaceId: targetWorkspace,
+                    file
+                });
             } else if (mode === "link") {
                 if (!url) return;
                 if (url.includes('github.com')) {
-                    await api.importGithubDocumentImportGithubPost({ gitHubImportRequest: { url, branch }, workspaceId: targetWorkspace });
+                    await api.importGithubDocumentWorkspacesWorkspaceIdImportGithubPost({
+                        workspaceId: targetWorkspace,
+                        gitHubImportRequest: { url, branch }
+                    });
                 } else if (url.toLowerCase().endsWith('.xml') || url.toLowerCase().includes('sitemap')) {
-                    await api.importSitemapDocumentImportSitemapPost({ sitemapImportRequest: { url }, workspaceId: targetWorkspace });
+                    await api.importSitemapDocumentWorkspacesWorkspaceIdImportSitemapPost({
+                        workspaceId: targetWorkspace,
+                        sitemapImportRequest: { url }
+                    });
                 } else {
-                    await api.importUrlDocumentImportUrlPost({ urlImportRequest: { url }, workspaceId: targetWorkspace });
+                    await api.importUrlDocumentWorkspacesWorkspaceIdImportUrlPost({
+                        workspaceId: targetWorkspace,
+                        urlImportRequest: { url }
+                    });
                 }
             }
 

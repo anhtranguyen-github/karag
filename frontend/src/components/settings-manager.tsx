@@ -14,7 +14,7 @@ import { useToast } from '@/context/toast-context';
 
 export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClose?: () => void, workspaceId?: string, workspaceName?: string }) {
     const { settings, updateSettings, isLoading: isSettingsLoading } = useSettings(workspaceId);
-    const { metadata, isLoading: isMetadataLoading } = useSettingsMetadata();
+    const { metadata, isLoading: isMetadataLoading } = useSettingsMetadata(workspaceId);
     const { success: toastSuccess, error: toastError } = useToast();
 
     const { workspaces, updateWorkspace } = useWorkspaces();

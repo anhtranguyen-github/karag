@@ -7,7 +7,7 @@ import {
     HardDrive, Hash, Download, Loader2, AlertCircle,
     Copy, Check, ChevronRight, ExternalLink, FolderOpen
 } from 'lucide-react';
-import { API_ROUTES } from '@/lib/api-config';
+import { api } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -76,11 +76,11 @@ export default function DocumentDetailPage() {
         const fetchDocument = async () => {
             setIsLoading(true);
             try {
-                const res = await fetch(`${API_ROUTES.DOCUMENTS}/${encodeURIComponent(docId)}?workspace_id=${encodeURIComponent(workspaceId)}`);
-                if (res.ok) {
-                    const result = await res.json();
-                    if (result.success) setDocument(result.data);
-                }
+                const payload = await api.getDocumentWorkspacesWorkspaceIdDocumentsDocumentIdGet({
+                    workspaceId,
+                    documentId: docId
+                });
+                if (payload.success) setDocument(payload.data);
             } catch (err) {
                 console.error('Failed to load document:', err);
             } finally {
@@ -94,30 +94,30 @@ export default function DocumentDetailPage() {
         if (chunks.length > 0) return;
         setChunksLoading(true);
         try {
-            const res = await fetch(`${API_ROUTES.DOCUMENTS}/${encodeURIComponent(docId)}/chunks`);
-            if (res.ok) {
-                const result = await res.json();
-                setChunks(result.data || result || []);
-            }
+            const payload = await api.getDocumentChunksWorkspacesWorkspaceIdDocumentsDocumentIdChunksGet({
+                workspaceId,
+                documentId: docId
+            });
+            setChunks(payload.data || payload || []);
         } catch (err) {
             console.error('Failed to load chunks:', err);
         } finally {
             setChunksLoading(false);
         }
-    }, [docId, chunks.length]);
+    }, [docId, workspaceId, chunks.length]);
 
     const fetchInspect = useCallback(async () => {
         if (inspectData) return;
         try {
-            const res = await fetch(`${API_ROUTES.DOCUMENTS}/${encodeURIComponent(docId)}/inspect`);
-            if (res.ok) {
-                const result = await res.json();
-                setInspectData(result.data || null);
-            }
+            const payload = await api.inspectDocumentWorkspacesWorkspaceIdDocumentsDocumentIdInspectGet({
+                workspaceId,
+                documentId: docId
+            });
+            setInspectData(payload.data || null);
         } catch (err) {
             console.error('Failed to inspect document:', err);
         }
-    }, [docId, inspectData]);
+    }, [docId, workspaceId, inspectData]);
 
     useEffect(() => {
         if (activeTab === 'chunks') fetchChunks();

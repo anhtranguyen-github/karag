@@ -8,7 +8,7 @@ logger = structlog.get_logger(__name__)
 class SearchService:
     @staticmethod
     async def global_search(
-        query: str, workspace_id: Optional[str] = None
+        query: str, workspace_id: str
     ) -> Dict[str, List[Dict[str, Any]]]:
         """
         Global search across workspaces, threads, and documents.
@@ -22,13 +22,13 @@ class SearchService:
         # 1. Search Workspaces (Global)
         workspace_cursor = db.workspaces.find(
             {
+                "id": workspace_id,
                 "$or": [
                     {"name": {"$regex": query, "$options": "i"}},
                     {"description": {"$regex": query, "$options": "i"}},
-                    {"id": {"$regex": query, "$options": "i"}},
-                ]
+                ],
             }
-        ).limit(5)
+        ).limit(1)
 
         async for ws in workspace_cursor:
             results["workspaces"].append(
@@ -46,8 +46,7 @@ class SearchService:
                 {"tags": {"$regex": query, "$options": "i"}},
             ]
         }
-        if workspace_id:
-            thread_filter["workspace_id"] = workspace_id
+        thread_filter["workspace_id"] = workspace_id
 
         thread_cursor = db["thread_metadata"].find(thread_filter).limit(10)
         async for thread in thread_cursor:
@@ -62,8 +61,7 @@ class SearchService:
 
         # 3. Search Documents
         doc_filter = {"filename": {"$regex": query, "$options": "i"}}
-        if workspace_id:
-            doc_filter["workspace_id"] = workspace_id
+        doc_filter["workspace_id"] = workspace_id
 
         doc_cursor = db.documents.find(doc_filter).limit(10)
         async for doc in doc_cursor:

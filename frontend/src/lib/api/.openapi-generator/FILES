@@ -1,4 +1,5 @@
 apis/AdminOpsApi.ts
+apis/AuthApi.ts
 apis/ChatApi.ts
 apis/DocumentsApi.ts
 apis/EvaluationApi.ts
@@ -6,12 +7,13 @@ apis/HealthApi.ts
 apis/SearchApi.ts
 apis/SettingsApi.ts
 apis/TasksApi.ts
-apis/ToolsApi.ts
 apis/WorkspacesApi.ts
 apis/index.ts
 docs/AdminOpsApi.md
 docs/AppResponse.md
 docs/AppResponseListWorkspace.md
+docs/AppResponseUser.md
+docs/AuthApi.md
 docs/ChatApi.md
 docs/ChatStreamRequest.md
 docs/DocumentWorkspaceUpdate.md
@@ -26,9 +28,10 @@ docs/SettingsApi.md
 docs/SitemapImportRequest.md
 docs/TasksApi.md
 docs/ThreadTitleUpdate.md
-docs/ToolDefinition.md
-docs/ToolsApi.md
+docs/Token.md
 docs/UrlImportRequest.md
+docs/User.md
+docs/UserCreate.md
 docs/ValidationError.md
 docs/Workspace.md
 docs/WorkspaceCreate.md
@@ -38,6 +41,7 @@ docs/WorkspacesApi.md
 index.ts
 models/AppResponse.ts
 models/AppResponseListWorkspace.ts
+models/AppResponseUser.ts
 models/ChatStreamRequest.ts
 models/DocumentWorkspaceUpdate.ts
 models/GitHubImportRequest.ts
@@ -45,8 +49,10 @@ models/HTTPValidationError.ts
 models/LocationInner.ts
 models/SitemapImportRequest.ts
 models/ThreadTitleUpdate.ts
-models/ToolDefinition.ts
+models/Token.ts
 models/UrlImportRequest.ts
+models/User.ts
+models/UserCreate.ts
 models/ValidationError.ts
 models/Workspace.ts
 models/WorkspaceCreate.ts

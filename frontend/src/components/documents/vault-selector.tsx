@@ -38,9 +38,11 @@ export function VaultSelector({
     const fetchVault = async () => {
         setLoading(true);
         try {
-            const res = await api.listVaultDocumentsVaultGet();
+            const payload = await api.listVaultDocumentsWorkspacesWorkspaceIdVaultGet({
+                workspaceId: workspaceId!
+            });
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            setDocuments((res.data as any[]) || []);
+            setDocuments((payload.data as any[]) || []);
         } catch (e) {
             console.error(e);
         } finally {
@@ -59,14 +61,13 @@ export function VaultSelector({
         setLoading(true);
         try {
             const promises = Array.from(selectedIds).map(docId =>
-                fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/documents/update-workspaces`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        document_id: docId,
-                        target_workspace_id: workspaceId,
+                api.updateDocumentWorkspacesWorkspacesWorkspaceIdDocumentsUpdateWorkspacesPost({
+                    workspaceId: workspaceId,
+                    documentWorkspaceUpdate: {
+                        documentId: docId,
+                        targetWorkspaceId: workspaceId,
                         action: "share"
-                    })
+                    }
                 })
             );
             await Promise.all(promises);

@@ -12,9 +12,7 @@ tracer = get_tracer(__name__)
 
 
 class RAGService:
-    async def chunk_text(
-        self, text: str, workspace_id: Optional[str] = None
-    ) -> List[str]:
+    async def chunk_text(self, text: str, workspace_id: str) -> List[str]:
         """Split text into chunks using selected strategy."""
         from backend.app.core.settings_manager import settings_manager
         from backend.app.rag.chunking.registry import chunking_registry
@@ -46,7 +44,7 @@ class RAGService:
             return chunks
 
     async def get_embeddings(
-        self, texts: List[str], workspace_id: Optional[str] = None
+        self, texts: List[str], workspace_id: str
     ) -> List[List[float]]:
         """Generate embeddings using the flexible provider via LangChain Factory."""
         from backend.app.core.factory import LangChainFactory
@@ -75,7 +73,7 @@ class RAGService:
             return result
 
     async def get_query_embedding(
-        self, query: str, workspace_id: Optional[str] = None
+        self, query: str, workspace_id: str
     ) -> List[float]:
         """Generate embedding for a single query."""
         from backend.app.core.factory import LangChainFactory

@@ -22,13 +22,17 @@ import {
     HTTPValidationErrorToJSON,
 } from '../models/index';
 
-export interface GetSettingsSettingsGetRequest {
-    workspaceId?: string | null;
+export interface GetSettingsMetadataWorkspacesWorkspaceIdSettingsMetadataGetRequest {
+    workspaceId: string;
 }
 
-export interface UpdateSettingsSettingsPatchRequest {
+export interface GetSettingsWorkspacesWorkspaceIdSettingsGetRequest {
+    workspaceId: string;
+}
+
+export interface UpdateSettingsWorkspacesWorkspaceIdSettingsPatchRequest {
+    workspaceId: string;
     requestBody: { [key: string]: any; };
-    workspaceId?: string | null;
 }
 
 /**
@@ -40,13 +44,26 @@ export class SettingsApi extends runtime.BaseAPI {
      * Get metadata describing setting field properties and editability.
      * Get Settings Metadata
      */
-    async getSettingsMetadataSettingsMetadataGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async getSettingsMetadataWorkspacesWorkspaceIdSettingsMetadataGetRaw(requestParameters: GetSettingsMetadataWorkspacesWorkspaceIdSettingsMetadataGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        if (requestParameters['workspaceId'] == null) {
+            throw new runtime.RequiredError(
+                'workspaceId',
+                'Required parameter "workspaceId" was null or undefined when calling getSettingsMetadataWorkspacesWorkspaceIdSettingsMetadataGet().'
+            );
+        }
+
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            // oauth required
+            headerParameters["Authorization"] = await this.configuration.accessToken("OAuth2PasswordBearer", []);
+        }
 
-        let urlPath = `/settings/metadata`;
+
+        let urlPath = `/workspaces/{workspace_id}/settings/metadata`;
+        urlPath = urlPath.replace(`{${"workspace_id"}}`, encodeURIComponent(String(requestParameters['workspaceId'])));
 
         const response = await this.request({
             path: urlPath,
@@ -66,26 +83,35 @@ export class SettingsApi extends runtime.BaseAPI {
      * Get metadata describing setting field properties and editability.
      * Get Settings Metadata
      */
-    async getSettingsMetadataSettingsMetadataGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.getSettingsMetadataSettingsMetadataGetRaw(initOverrides);
+    async getSettingsMetadataWorkspacesWorkspaceIdSettingsMetadataGet(requestParameters: GetSettingsMetadataWorkspacesWorkspaceIdSettingsMetadataGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.getSettingsMetadataWorkspacesWorkspaceIdSettingsMetadataGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
-     * Get settings for a specific workspace or global defaults.
+     * Get settings for a specific workspace.
      * Get Settings
      */
-    async getSettingsSettingsGetRaw(requestParameters: GetSettingsSettingsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
-        const queryParameters: any = {};
-
-        if (requestParameters['workspaceId'] != null) {
-            queryParameters['workspace_id'] = requestParameters['workspaceId'];
+    async getSettingsWorkspacesWorkspaceIdSettingsGetRaw(requestParameters: GetSettingsWorkspacesWorkspaceIdSettingsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        if (requestParameters['workspaceId'] == null) {
+            throw new runtime.RequiredError(
+                'workspaceId',
+                'Required parameter "workspaceId" was null or undefined when calling getSettingsWorkspacesWorkspaceIdSettingsGet().'
+            );
         }
+
+        const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            // oauth required
+            headerParameters["Authorization"] = await this.configuration.accessToken("OAuth2PasswordBearer", []);
+        }
 
-        let urlPath = `/settings/`;
+
+        let urlPath = `/workspaces/{workspace_id}/settings/`;
+        urlPath = urlPath.replace(`{${"workspace_id"}}`, encodeURIComponent(String(requestParameters['workspaceId'])));
 
         const response = await this.request({
             path: urlPath,
@@ -102,38 +128,47 @@ export class SettingsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get settings for a specific workspace or global defaults.
+     * Get settings for a specific workspace.
      * Get Settings
      */
-    async getSettingsSettingsGet(requestParameters: GetSettingsSettingsGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.getSettingsSettingsGetRaw(requestParameters, initOverrides);
+    async getSettingsWorkspacesWorkspaceIdSettingsGet(requestParameters: GetSettingsWorkspacesWorkspaceIdSettingsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.getSettingsWorkspacesWorkspaceIdSettingsGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
-     * Update settings for a specific workspace or global defaults.
+     * Update settings for a specific workspace.
      * Update Settings
      */
-    async updateSettingsSettingsPatchRaw(requestParameters: UpdateSettingsSettingsPatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async updateSettingsWorkspacesWorkspaceIdSettingsPatchRaw(requestParameters: UpdateSettingsWorkspacesWorkspaceIdSettingsPatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        if (requestParameters['workspaceId'] == null) {
+            throw new runtime.RequiredError(
+                'workspaceId',
+                'Required parameter "workspaceId" was null or undefined when calling updateSettingsWorkspacesWorkspaceIdSettingsPatch().'
+            );
+        }
+
         if (requestParameters['requestBody'] == null) {
             throw new runtime.RequiredError(
                 'requestBody',
-                'Required parameter "requestBody" was null or undefined when calling updateSettingsSettingsPatch().'
+                'Required parameter "requestBody" was null or undefined when calling updateSettingsWorkspacesWorkspaceIdSettingsPatch().'
             );
         }
 
         const queryParameters: any = {};
 
-        if (requestParameters['workspaceId'] != null) {
-            queryParameters['workspace_id'] = requestParameters['workspaceId'];
-        }
-
         const headerParameters: runtime.HTTPHeaders = {};
 
         headerParameters['Content-Type'] = 'application/json';
 
+        if (this.configuration && this.configuration.accessToken) {
+            // oauth required
+            headerParameters["Authorization"] = await this.configuration.accessToken("OAuth2PasswordBearer", []);
+        }
 
-        let urlPath = `/settings/`;
+
+        let urlPath = `/workspaces/{workspace_id}/settings/`;
+        urlPath = urlPath.replace(`{${"workspace_id"}}`, encodeURIComponent(String(requestParameters['workspaceId'])));
 
         const response = await this.request({
             path: urlPath,
@@ -151,11 +186,11 @@ export class SettingsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Update settings for a specific workspace or global defaults.
+     * Update settings for a specific workspace.
      * Update Settings
      */
-    async updateSettingsSettingsPatch(requestParameters: UpdateSettingsSettingsPatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.updateSettingsSettingsPatchRaw(requestParameters, initOverrides);
+    async updateSettingsWorkspacesWorkspaceIdSettingsPatch(requestParameters: UpdateSettingsWorkspacesWorkspaceIdSettingsPatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.updateSettingsWorkspacesWorkspaceIdSettingsPatchRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -39,10 +39,10 @@ export interface AppResponse {
     message?: string;
     /**
      * 
-     * @type {{ [key: string]: any; }}
+     * @type {}
      * @memberof AppResponse
      */
-    data?: { [key: string]: any; };
+    data?: | null;
 }
 
 /**
@@ -61,11 +61,11 @@ export function AppResponseFromJSONTyped(json: any, ignoreDiscriminator: boolean
         return json;
     }
     return {
-        
+
         'success': json['success'] == null ? undefined : json['success'],
         'code': json['code'] == null ? undefined : json['code'],
         'message': json['message'] == null ? undefined : json['message'],
-        'data': json['data'] == null ? undefined : json['data'],
+        'data': json['data'],
     };
 }
 
@@ -79,7 +79,7 @@ export function AppResponseToJSONTyped(value?: AppResponse | null, ignoreDiscrim
     }
 
     return {
-        
+
         'success': value['success'],
         'code': value['code'],
         'message': value['message'],

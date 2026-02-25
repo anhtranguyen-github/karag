@@ -8,6 +8,7 @@ class GraphState(TypedDict):
     query: str
     workspace_id: str
     settings: RuntimeSettings
+    history: List[dict]  # Conversation history
 
     # Internal Processing
     intent_analysis: Optional[str]
