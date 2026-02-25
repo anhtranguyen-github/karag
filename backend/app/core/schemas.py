@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, model_validator, computed_field
 from typing import Optional, Literal, Any, Dict
-from backend.app.schemas.chunking import ChunkingConfig
+from backend.app.schemas.chunking import ChunkingConfig, RecursiveChunkingConfig
 from backend.app.schemas.embedding import (
     EmbeddingConfig,
     OpenAIEmbeddingConfig,
@@ -189,7 +189,7 @@ class AppSettings(BaseModel):
 
     # --- 3. Generation Node (Mutable) ---
     generation: GenerationConfig = Field(
-        default_factory=lambda: GenerationConfig(),
+        default_factory=OpenAIGenerationConfig,
         description="LLM / VLM generation configuration",
         json_schema_extra={"mutable": True, "category": "Generation Component"},
     )
@@ -222,7 +222,7 @@ class AppSettings(BaseModel):
         json_schema_extra={"mutable": False, "category": "Ingestion Component"},
     )
     chunking: ChunkingConfig = Field(
-        default_factory=lambda: ChunkingConfig(strategy="recursive"),
+        default_factory=RecursiveChunkingConfig,
         description="Text splitting configuration",
         json_schema_extra={"mutable": False, "category": "Ingestion Component"},
     )
