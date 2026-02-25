@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api-client';
 import { useError } from '@/context/error-context';
 import { Workspace, WorkspaceCreate, WorkspaceUpdate } from '@/lib/api';
+export type { Workspace, WorkspaceCreate, WorkspaceUpdate };
 
 export interface WorkspaceExtended extends Workspace {
     llmProvider?: string | null;
