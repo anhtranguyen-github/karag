@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useWorkspaces } from "@/hooks/use-workspaces";
 import { FileText, MessageSquare, Settings, ChevronLeft } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { HealthStatus } from "@/components/health-status";
 
 export default function WorkspaceLayout({
     children,
@@ -61,6 +62,7 @@ export default function WorkspaceLayout({
                     </div>
 
                     <div className="flex items-center gap-3">
+                        <HealthStatus />
                         <ThemeToggle />
                         <Link href={`/chats/new?workspaceId=${workspaceId}`}>
                             <button className="h-9 px-4 rounded-xl bg-secondary border border-border hover:bg-muted transition-all font-bold text-[10px] tracking-widest text-muted-foreground hover:text-foreground flex items-center gap-2">

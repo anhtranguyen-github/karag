@@ -9,6 +9,7 @@ import { WorkspaceWizard } from "@/components/workspace/WorkspaceWizard";
 import { DeleteWorkspaceModal } from "@/components/workspace/delete-workspace-modal";
 import { QuickViewWorkspaceModal } from "@/components/workspace/quick-view-modal";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { HealthStatus } from "@/components/health-status";
 import { Search, Trash2, Eye, Database, Plus, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/context/toast-context";
@@ -93,6 +94,7 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-4">
+            <HealthStatus />
             <ThemeToggle />
             <Link href="/vault">
               <button className="h-11 px-6 rounded-xl bg-secondary border border-border hover:bg-muted transition-all font-bold text-[11px] tracking-wide text-muted-foreground hover:text-foreground flex items-center gap-2 active:scale-95 group">
