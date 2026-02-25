@@ -2,6 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
 // Mock hooks
+vi.mock('@/hooks/use-workspaces', () => ({
+    useWorkspaces: () => ({
+        workspaces: [],
+        currentWorkspace: null,
+        isLoading: false,
+    }),
+}));
+
 vi.mock('@/hooks/use-chat', () => ({
     useChat: () => ({
         messages: [],
@@ -31,13 +39,14 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@/lib/api-client', () => ({
     api: {
-        getChatHistoryChatHistoryThreadIdGet: vi.fn().mockResolvedValue({ data: [] }),
-        listChatThreadsChatThreadsGet: vi.fn().mockResolvedValue({ data: [] }),
+        getThreadWorkspacesWorkspaceIdChatThreadsThreadIdGet: vi.fn().mockResolvedValue({ success: true, data: { workspace_id: 'test-workspace' } }),
+        getChatHistoryWorkspacesWorkspaceIdChatHistoryThreadIdGet: vi.fn().mockResolvedValue({ success: true, data: [] }),
+        listChatThreadsWorkspacesWorkspaceIdChatThreadsGet: vi.fn().mockResolvedValue({ success: true, data: [] }),
     }
 }));
 
-// Import after mocks
 import ChatPage from '@/app/chats/[id]/page';
+import { ToastProvider } from '@/context/toast-context';
 import { ErrorProvider } from '@/context/error-context';
 import { TaskProvider } from '@/context/task-context';
 
@@ -48,17 +57,19 @@ describe('ChatPage', () => {
 
     const renderWithProviders = (ui: React.ReactElement) => {
         return render(
-            <ErrorProvider>
-                <TaskProvider>
-                    {ui}
-                </TaskProvider>
-            </ErrorProvider>
+            <ToastProvider>
+                <ErrorProvider>
+                    <TaskProvider>
+                        {ui}
+                    </TaskProvider>
+                </ErrorProvider>
+            </ToastProvider>
         );
     };
 
     it('renders thread sidebar', async () => {
         renderWithProviders(<ChatPage />);
-        expect(await screen.findByText('History')).toBeInTheDocument();
+        expect(await screen.findByText(/history/i)).toBeInTheDocument();
         expect(await screen.findByTitle('New Chat')).toBeInTheDocument();
     });
 
@@ -69,6 +80,6 @@ describe('ChatPage', () => {
 
     it('shows empty state when no messages', async () => {
         renderWithProviders(<ChatPage />);
-        expect(await screen.findByText('Ask anything about your documents')).toBeInTheDocument();
+        expect(await screen.findByText(/Ask anything about your documents/i)).toBeInTheDocument();
     });
 });

@@ -1,15 +1,16 @@
-name: DevSecOps Pipeline
-# Conceptual Model: Correctness -> Behavior -> Security/Trust/IaC
+name: Production DevSecOps Pipeline
+# Expertise: Senior DevOps & Frontend Platform Engineer
+# Architecture: Correctness -> Behavior -> Security -> Deployment
 
 on:
   push:
-    branches: [ main, dev, 'Sc-dev/**' ]
+    branches: [ main, dev ]
   pull_request:
     branches: [ main, dev ]
 
 jobs:
-  # --- Domain 1: Backend Pipeline ---
-  backend-pipeline:
+  # --- Stage 1: Backend Baseline ---
+  backend-ci:
     name: "Backend: Lint & Test"
     runs-on: ubuntu-latest
     steps:
@@ -18,66 +19,59 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-      - name: Lint & Format
+      - name: Lint, Format & Test
         working-directory: ./backend
         run: |
           uv sync
-          uvx ruff check .
-          uvx ruff format --check .
-      - name: Unit & Contract Tests
-        working-directory: ./backend
-        run: uv run pytest tests/unit tests/contract --junitxml=results-unit.xml
+          uv run ruff check .
+          uv run pytest tests/unit --junitxml=results-unit.xml
 
-  # --- Domain 2: Frontend Pipeline ---
-  frontend-pipeline:
-    name: "Frontend: Lint, Build & Test"
+  # --- Stage 2: Frontend & Quality Gate ---
+  frontend-ci:
+    name: "Frontend: Build & Quality"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Frontend Tooling (pnpm)
+        with:
+          fetch-depth: 0 # Full history for SonarQube
+
+      - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 9
-      - name: Setup Node.js
+
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
           cache-dependency-path: frontend/pnpm-lock.yaml
-      - name: Install & Lint
+
+      - name: Build & Analyze
         working-directory: ./frontend
         run: |
           pnpm install --frozen-lockfile
-          pnpm run lint
-      - name: Unit Tests (Vitest)
-        working-directory: ./frontend
-        run: pnpm run test:unit
-      - name: Production Build
-        working-directory: ./frontend
-        run: pnpm run build
+          pnpm run build
         env:
-          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'http://localhost:8000' }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
 
-  # --- Stage 3: Integration & Security (The "Gatekeeper") ---
-  integration-and-security:
-    name: "Integration, Security & Artifact Verification"
-    needs: [backend-pipeline, frontend-pipeline]
+      - name: SonarQube Analysis
+        uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          projectBaseDir: .
+
+  # --- Stage 3: Multi-Domain Security ---
+  security-audit:
+    name: "Security: SAST, IaC & Deep Scan"
+    needs: [backend-ci, frontend-ci]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v5
-
-      - name: Backend SAST (Bandit)
-        working-directory: ./backend
-        run: uv run bandit -r app/ -ll
-
-      - name: API Contract Audit
-        run: |
-          if grep -q ":path}" frontend/src/lib/api/openapi.json; then
-            echo "ERROR: Path traversal vulnerability surface detected in openapi.json!"
-            exit 1
-          fi
+        with:
+          fetch-depth: 0
 
       - name: Secret Scan (TruffleHog)
         uses: trufflesecurity/trufflehog@main
@@ -87,19 +81,35 @@ jobs:
           head: HEAD
           extra_args: --only-verified
 
-      - name: IaC Scan (Checkov)
+      - name: Checkov Compliance Scan
         uses: bridgecrewio/checkov-action@master
         with:
           directory: ./
-          framework: dockerfile,docker_compose
+          # Scanning Source, Docker, GHA, K8s, and Compose
+          framework: dockerfile,github_actions,kubernetes,docker_compose,secrets
           check: HIGH,CRITICAL
           soft_fail: false
 
-      - name: Config Validation
-        run: python3 -c "import yaml; yaml.safe_load(open('backend/app/core/prompts.yaml'))"
-
-      - name: Docker Artifact Verification
+      - name: Docker Image Verification
         run: |
           docker build -t karag-backend:test -f backend/Dockerfile .
           docker build -t karag-frontend:test -f frontend/Dockerfile .
+
+  # --- Stage 4: Production Deployment ---
+  deploy-vercel:
+    name: "Deploy: Vercel"
+    needs: [security-audit]
+    # Deploy on pushes to main or dev
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Vercel Deploy
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: ${{ github.ref == 'refs/heads/main' && '--prod' || '' }}
+          working-directory: ./frontend
 

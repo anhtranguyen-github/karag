@@ -52,7 +52,7 @@ describe('CitationModal', () => {
     it('shows citation ID and workspace', () => {
         render(<CitationModal source={mockSource} onClose={vi.fn()} />);
 
-        expect(screen.getByText(/Citation Artifact \[1\]/)).toBeInTheDocument();
+        expect(screen.getByText(/citation artifact \[1\]/i)).toBeInTheDocument();
         expect(screen.getByText('ws-123')).toBeInTheDocument();
     });
 

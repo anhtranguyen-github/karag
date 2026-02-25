@@ -15,6 +15,18 @@ vi.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
 }));
 
+// Mock Toast context globally
+vi.mock('@/context/toast-context', () => ({
+    useToast: () => ({
+        success: vi.fn(),
+        error: vi.fn(),
+        info: vi.fn(),
+        loading: vi.fn(),
+        dismiss: vi.fn(),
+    }),
+    ToastProvider: ({ children }: { children: any }) => children,
+}));
+
 import { server } from '../src/mocks/server';
 
 // Establish API mocking before all tests.

@@ -21,8 +21,9 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@/lib/api-client', () => ({
     api: {
-        getChatHistoryChatHistoryThreadIdGet: vi.fn().mockResolvedValue({ data: [] }),
-        listChatThreadsChatThreadsGet: vi.fn().mockResolvedValue({ data: [] }),
+        getThreadWorkspacesWorkspaceIdChatThreadsThreadIdGet: vi.fn().mockResolvedValue({ success: true, data: { workspace_id: 'test-workspace' } }),
+        getChatHistoryWorkspacesWorkspaceIdChatHistoryThreadIdGet: vi.fn().mockResolvedValue({ success: true, data: [] }),
+        listChatThreadsWorkspacesWorkspaceIdChatThreadsGet: vi.fn().mockResolvedValue({ success: true, data: [] }),
     }
 }));
 
@@ -70,8 +71,8 @@ describe('Chat Flow Integration', () => {
         fireEvent.change(input, { target: { value: 'Hello Assistant' } });
         fireEvent.submit(input.closest('form')!);
 
-        // Assistant message should appear (thinking) - Updated to match component "Searching..."
-        expect(await screen.findByText('Searching...')).toBeInTheDocument();
+        // Assistant message should appear (thinking)
+        expect(await screen.findByText(/Searching.../i)).toBeInTheDocument();
 
         // fetchEventSource should be called
         expect(mockFetchEventSource).toHaveBeenCalled();
@@ -98,7 +99,8 @@ describe('Chat Flow Integration', () => {
 
         // Re-mock to return history
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (api.getChatHistoryChatHistoryThreadIdGet as any).mockResolvedValue({
+        (api.getChatHistoryWorkspacesWorkspaceIdChatHistoryThreadIdGet as any).mockResolvedValue({
+            success: true,
             data: mockHistory
         });
 

@@ -7,10 +7,10 @@ import { WorkspaceProvider } from '@/context/workspace-context';
 vi.mock('@/hooks/use-workspaces', () => ({
     useWorkspaces: () => ({
         workspaces: [
-            { id: 'default', name: 'Default Workspace', stats: { doc_count: 5, thread_count: 3 } },
-            { id: 'test-workspace', name: 'Test Workspace', stats: { doc_count: 10, thread_count: 7 } },
+            { id: 'default', name: 'Default Workspace', stats: { docCount: 5, threadCount: 3 } },
+            { id: 'test-workspace', name: 'Test Workspace', stats: { docCount: 10, threadCount: 7 } },
         ],
-        currentWorkspace: { id: 'test-workspace', name: 'Test Workspace', stats: { doc_count: 10, thread_count: 7 } },
+        currentWorkspace: { id: 'test-workspace', name: 'Test Workspace', stats: { docCount: 10, threadCount: 7 } },
     }),
 }));
 

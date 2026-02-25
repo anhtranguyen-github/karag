@@ -23,7 +23,11 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/lib/api-client', () => ({
     api: {
         listWorkspacesWorkspacesGet: vi.fn(),
-        getSettingsMetadataSettingsMetadataGet: vi.fn(),
+        getSettingsMetadataWorkspacesWorkspaceIdSettingsMetadataGet: vi.fn(),
+        getGlobalSettingsMetadataAdminSettingsMetadataGet: vi.fn(),
+        getSettingsWorkspacesWorkspaceIdSettingsGet: vi.fn(),
+        getGlobalSettingsAdminSettingsGet: vi.fn(),
+        getWorkspaceMetadataWorkspacesWorkspaceIdMetadataGet: vi.fn(),
         createWorkspaceWorkspacesPost: vi.fn(),
     }
 }));
@@ -40,9 +44,13 @@ describe('Workspace Navigation Integration', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (api.listWorkspacesWorkspacesGet as any).mockResolvedValue({ data: mockWorkspaces });
+        (api.listWorkspacesWorkspacesGet as any).mockResolvedValue({ success: true, data: mockWorkspaces });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (api.getSettingsMetadataSettingsMetadataGet as any).mockResolvedValue({ data: {} });
+        (api.getSettingsMetadataWorkspacesWorkspaceIdSettingsMetadataGet as any).mockResolvedValue({ success: true, data: {} });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (api.getGlobalSettingsMetadataAdminSettingsMetadataGet as any).mockResolvedValue({ success: true, data: {} });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (api.getGlobalSettingsAdminSettingsGet as any).mockResolvedValue({ success: true, data: {} });
     });
 
     it('navigates to workspace when card clicked', async () => {
@@ -62,7 +70,7 @@ describe('Workspace Navigation Integration', () => {
 
     it('opens create modal and creates workspace', async () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (api.createWorkspaceWorkspacesPost as any).mockResolvedValue({ data: { id: 'new-ws', name: 'New Workspace' } });
+        (api.createWorkspaceWorkspacesPost as any).mockResolvedValue({ success: true, data: { id: 'new-ws', name: 'New Workspace' } });
 
         render(
             <ErrorProvider>
@@ -79,12 +87,11 @@ describe('Workspace Navigation Integration', () => {
         fireEvent.change(nameInput, { target: { value: 'New Workspace' } });
 
         // Jump to last step via sidebar
-        const nav = await screen.findByRole('navigation');
-        const genStepText = await within(nav).findByText(/AI Model/i);
-        fireEvent.click(genStepText.closest('button')!);
+        const stepButton = await screen.findByRole('button', { name: /AI Model/i });
+        fireEvent.click(stepButton);
 
         // Submit - use findByText to wait for it to appear
-        const submitButton = await screen.findByText(/Launch Workspace/i);
+        const submitButton = await screen.findByText(/Initialize Hub/i);
         fireEvent.click(submitButton);
 
         await waitFor(() => {
@@ -95,12 +102,18 @@ describe('Workspace Navigation Integration', () => {
             }));
         }, { timeout: 3000 });
 
-        expect(mockRefresh).toHaveBeenCalled();
+        await waitFor(() => {
+            expect(mockRefresh).toHaveBeenCalled();
+        }, { timeout: 3000 });
+
+        await waitFor(() => {
+            expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining('/workspaces/new-ws'));
+        }, { timeout: 3000 });
     });
 
     it('selects simple fields in create modal', async () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (api.createWorkspaceWorkspacesPost as any).mockResolvedValue({ data: { id: 'new-ws' } });
+        (api.createWorkspaceWorkspacesPost as any).mockResolvedValue({ success: true, data: { id: 'new-ws' } });
 
         render(
             <ErrorProvider>
@@ -115,11 +128,11 @@ describe('Workspace Navigation Integration', () => {
         fireEvent.change(nameInput, { target: { value: 'Custom WS' } });
 
         // Jump to last step via sidebar
-        const nav = await screen.findByRole('navigation');
-        const genStepText = await within(nav).findByText(/AI Model/i);
-        fireEvent.click(genStepText.closest('button')!);
+        const genStepText = await screen.findByText(/AI Model/i);
+        const stepButton = genStepText.closest('.group')?.querySelector('button');
+        fireEvent.click(stepButton!);
 
-        const submitButton = await screen.findByText(/Launch Workspace/i);
+        const submitButton = await screen.findByText(/Initialize Hub/i);
         fireEvent.click(submitButton);
 
         await waitFor(() => {

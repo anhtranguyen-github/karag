@@ -267,7 +267,7 @@ export function WorkspaceWizard({ isOpen, onClose }: WorkspaceWizardProps) {
         >
             <div className="flex flex-col h-[85vh]">
                 {/* Header Step Progress */}
-                <div className="flex items-center justify-between px-12 py-8 bg-card/30 border-b border-border/50">
+                <div role="navigation" className="flex items-center justify-between px-12 py-8 bg-card/30 border-b border-border/50">
                     {STEPS.map((step, idx) => {
                         const Icon = step.icon;
                         const isActive = idx === currentStep;
@@ -279,6 +279,7 @@ export function WorkspaceWizard({ isOpen, onClose }: WorkspaceWizardProps) {
                                     <button
                                         type="button"
                                         onClick={() => jumpToStep(idx)}
+                                        aria-label={step.title}
                                         className={cn(
                                             "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 relative z-10",
                                             isActive
