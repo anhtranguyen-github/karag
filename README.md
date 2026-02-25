@@ -1,6 +1,12 @@
-# ScienChan
+# Karag
 
-An advanced, multi-workspace RAG (Retrieval-Augmented Generation) chat application designed for deep document analysis and intelligent conversation.
+An advanced, enterprise-grade, multi-workspace RAG (Retrieval-Augmented Generation) and Agentic chatbot platform designed for deep document analysis, intelligent conversation, and comprehensive administrative control.
+
+![Version](https://img.shields.io/badge/version-2.0.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Next.js](https://img.shields.io/badge/frontend-Next.js%2015-black)
+![FastAPI](https://img.shields.io/badge/backend-FastAPI-009688)
+![DevSecOps](https://img.shields.io/badge/DevSecOps-Jenkins%20%7C%20SonarQube-orange)
 
 ## System Showcase
 
@@ -14,111 +20,98 @@ An advanced, multi-workspace RAG (Retrieval-Augmented Generation) chat applicati
 ![System Overview](assets/screenshots/showcase_admin_overview.png)
 ![Observability](assets/screenshots/showcase_admin_observability.png)
 
-![Version](https://img.shields.io/badge/version-2.0.0-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
-![Next.js](https://img.shields.io/badge/frontend-Next.js%2015-black)
-![FastAPI](https://img.shields.io/badge/backend-FastAPI-009688)
-![CI/CD](https://img.shields.io/badge/cicd-Jenkins-orange)
-
 ## Features
 
-- **Multi-Workspace Architecture**: Organize documents and chats into isolated workspaces with independent settings.
-- **Master Intelligence Vault**: Centralized console for cross-workspace document management, sharing, and global purging.
-- **Intelligent Chat**: Converse with your data using multiple modes:
-  - **Fast**: Quick, direct responses.
-  - **Thinking**: More thorough analysis.
-  - **Reasoning**: Full chain-of-thought with detailed source citations.
-- **Global Search**: Unified search across documents, chat history, and workspaces.
-- **Advanced RAG Engines**: Support for various retrieval strategies including Vector search and Graph-based RAG.
-- **Admin Console**: Centralized system control center for managing providers (LLM/Embedding), global system parameters, real-time observability (Prometheus), and distributed tracing (Jaeger).
-- **On-Demand Neural Indexing**: Implemented lazy-loading for RAG ingestion. Vector indexing is triggered only when needed, reducing initial storage costs.
-- **Provider Agnostic**: Configurable support for OpenAI, Anthropic, Ollama, and more, with dynamic metadata discovery.
+- **Multi-Workspace Architecture**: Organize documents and chats into isolated workspaces with independent settings, Vector DB collections, and Knowledge Graphs.
+- **Master Intelligence Vault**: Centralized console for cross-workspace document management, deduplication, and global purging.
+- **Intelligent Agentic Chat**: Converse with your data using dynamic execution modes powered by LangGraph:
+  - **Fast**: Direct LLM response and rapid answers.
+  - **Think**: Deep reasoning and vector retrieval step-by-step thinking.
+  - **Deep**: Full multi-agent research with comprehensive web searches, tool use, and complex data synthesization.
+- **Global Search**: Unified semantic and keyword hybrid search across documents, chat history, and workspaces.
+- **Advanced RAG Engines**: Integrated support for Vector Search (Qdrant) and Graph-based RAG (Neo4j).
+- **Admin Console**: Centralized system control center for managing providers (LLM/Embedding), user roles, global parameters, observability, and infrastructure health.
+- **Provider Agnostic**: Configurable support for OpenAI, Anthropic, Ollama, vLLM, and Llama.cpp with dynamic metadata discovery for both LLM and Embedding tasks.
+- **On-Demand Neural Indexing**: RAG ingestion lazy-loading and background-worker synchronization for processing heavy PDFs, web imports, and GitHub repositories.
 
-## CI/CD Pipeline
+## Operations, DevSecOps & Monitoring
 
-The project implements a robust **DevOps / CI/CD pipeline** via Jenkins:
+Karag is built for production-grade dependability, observability, and reliable operations out-of-the-box.
 
-- **Source Control**: Automated triggers on GitHub push/commit events.
-- **Unit Testing**: Pre-build verification using `pytest`.
-- **Code Quality**: Static analysis and security scanning via **SonarQube**.
-- **IaC Security**: Infrastructure-as-Code scanning using **Checkov** (fails on HIGH/CRITICAL findings).
-- **Dockerization**: Automated building of production-ready Docker images.
-
-See `Jenkinsfile` and `sonar-project.properties` for configuration details.
-
-## Operations & Monitoring
-
-ScienChan is built for production-grade observability and reliable operations:
-
-- **Structured Logging**: Uses `structlog` for JSON-formatted, context-rich logs across all services.
-- **Distributed Tracing**: Fully instrumented with **OpenTelemetry**. View transaction flows in **Jaeger**.
-- **Metrics**: Real-time system health and performance monitoring via **Prometheus**.
-- **Modular Runner**: The `run.sh` script provides a high-level CLI for managing the entire stack:
-    - **Turbo Mode**: Adaptive orchestration that prioritizes Cloud APIs to save local resources.
-    - **Self-Healing**: Automatically cleans stale locks, kills zombie processes, and validates environment integrity.
-- **On-Demand Indexing**: Neural vector indexing is triggered lazily, optimizing storage and compute costs for cold documents.
+- **DevSecOps Pipeline**: Fully integrated CI/CD setup via **Jenkins** with GitHub Actions fallback.
+  - **Static Analysis**: TypeScript validation, Next.js linting, and Python `ruff` formatting.
+  - **Security Audits**: Continuous secret scanning (`TruffleHog`) and Infrastructure-as-Code compliance scanning (`Checkov`).
+  - **Code Quality**: Deep static analysis and coverage measurement via **SonarQube**.
+- **Observability Stack**:
+  - **Structured Logging**: `structlog` implemented for JSON-formatted, context-rich logs.
+  - **Distributed Tracing**: Fully instrumented OpenTelemetry (OTEL) traces visualized through **Jaeger**.
+  - **Metrics**: Real-time system health tracking via **Prometheus**.
+- **Modular Runner (`run.sh`)**: A high-level, self-healing orchestration CLI for managing the entire Local + Cloud stack ecosystem, automatically handling zombie processes, port collisions, and docker lifecycle hooks.
 
 ## Architecture
 
-- **Frontend**: Next.js (App Router), Tailwind CSS, Framer Motion, and Lucide React.
-- **Backend**: FastAPI, LangGraph for orchestration, and LangChain for LLM integration.
-- **Data Stores**:
-  - **Qdrant**: High-performance vector database for semantic search and global vault deduplication.
-  - **MongoDB**: For session management, workspace metadata, and chat history.
-  - **MinIO**: S3-compatible object storage for paper/document persistence with deduplicated storage.
+- **Frontend**: Next.js 15 (App Router), React 19, Tailwind CSS, Framer Motion, and shadcn/ui.
+- **Backend**: FastAPI (Python 3.10+), LangGraph, LangChain, and Pydantic.
+- **Database & Services Infrastructure**:
+  - **Qdrant**: High-performance semantic vector database.
+  - **MongoDB**: For persistence of users, sessions, workspace metadata, and chat history.
+  - **MinIO**: S3-compatible object storage for high-speed document asset persistence.
+  - **Neo4j**: Optional Knowledge Graph backend for GraphRAG context mapping.
+  - **Local Models**: Containerized profiles for `Ollama`, `vLLM`, and `llama-cpp`.
 
 ## Getting Started
 
 ### Prerequisites
 
-- **Docker** and **Docker Compose**
-- **pnpm** (for frontend)
-- **Python 3.10+** (for backend)
+- **Docker** and **Docker Compose** (V2)
+- **pnpm** (for frontend development)
+- **uv** (for fast backend dependency installation via Python)
 
 ### Installation
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/anhtranguyen-github/ScienChan.git
-   cd ScienChan
+   git clone https://github.com/anhtranguyen-github/karag.git
+   cd karag
    ```
 
 2. **Setup Environment**:
-   Create a `.env` file in the root and add your configuration:
+   Duplicate or create a `.env` file in the root directory:
    ```env
-   # Backend
+   # API Keys
    OPENAI_API_KEY=your_key_here
-   MONGODB_URL=mongodb://localhost:27017
+
+   # Cloud/Local Infrastructure Overrides (Defaults point to localhost Docker)
+   MONGO_URI=mongodb://localhost:27017
    QDRANT_URL=http://localhost:6333
-   
-   # MinIO
-   MINIO_ENDPOINT=localhost:9000
-   MINIO_ACCESS_KEY=minioadmin
-   MINIO_SECRET_KEY=minioadmin
+   NEO4J_URI=bolt://localhost:7687
+   # ... See .env for more
    ```
 
 3. **Run the Application**:
-   Use the modular runner script for a self-healing development experience. It automatically handles zombie processes and cache corruption:
+   Use the `run.sh` script to streamline starting up the multi-container environment gracefully:
 
    ```bash
    chmod +x run.sh
    
-   # Start everything in Turbo Mode (Cloud-first, handles local cleanup)
-   ./run.sh turbo --llm openai
+   # Quick Start: Boot databases, sync packages, and start the app
+   ./run.sh quick
    
-   # Deep clean and restart if you face corruption issues
-   ./run.sh turbo --llm openai --force-clean
+   # Full Production Start: Verify correctness (type-checking, linting, tests) then boot
+   ./run.sh up
    
-   # Check status of all services
-   ./run.sh status
+   # Cloud-First Mode: Skips booting local GPU model containers (vLLM/Ollama) to save memory
+   ./run.sh up --lite
    ```
 
-   **Runner Commands:**
-   - `all`: Full local stack.
-   - `turbo`: Adaptive stack (Cloud LLM + local DB).
-   - `stop`: Graceful shutdown of Docker and local processes.
-   - `clean`: Deep wipe of volumes and logs.
-   - `status`: Health check dashboard.
+   **Runner CLI Commands:**
+   - `up`: (Default) Verify code, start infrastructure, and launch the platform.
+   - `quick`: Rapid launch omitting heavy DevSecOps profiling and verification tasks.
+   - `verify`: Run correctness checks (linting, typing, imports) locally.
+   - `test`: Run backend and frontend automated test suites.
+   - `clean`: Stops all processes, containers, and purges `.venv` / `node_modules` caches.
+   - `stop`: Gracefully downs the application stack.
+   - `status`: Heartbeat dashboard of all platform dependencies.
 
 ## Development
 
@@ -131,39 +124,36 @@ pnpm run dev
 
 ### Backend
 ```bash
-# Install uv if not present
+# Install uv toolchain
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
 cd backend
-# Create venv and sync dependencies
 uv sync
-
-# Run server
 uv run app/main.py
 ```
 
 ## Testing
 
-The project includes a comprehensive test suite across the stack.
+The project is governed by strict end-to-end testing suites.
 
 ### Backend Tests
 ```bash
 cd backend
-uv run python -m pytest
+uv run pytest tests/unit -v
 ```
 
 ### Frontend Tests
 ```bash
 cd frontend
-pnpm run test:unit    # Unit & Integration
-pnpm run test:e2e     # End-to-End with Playwright
+pnpm run test         # Vitest unit & component matching
+pnpm run type-check   # Validate TS boundaries
 ```
 
 ## Contributing
 
 1. Fork the Project
 2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+3. Commit your Changes (`git commit -m 'feat: Add some AmazingFeature'`)
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
@@ -173,4 +163,4 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
 
-Built with ❤️.
+Built with ❤️ for AI Engineers & Data Scientists.
