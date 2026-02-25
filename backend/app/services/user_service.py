@@ -1,9 +1,9 @@
 import uuid
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional, Dict
 from backend.app.core.mongodb import mongodb_manager
 from backend.app.core.auth import get_password_hash, verify_password
-from backend.app.schemas.users import UserCreate, UserInDB
+from backend.app.schemas.users import UserCreate
 
 
 class UserService:

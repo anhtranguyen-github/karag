@@ -122,7 +122,7 @@ def create_app() -> FastAPI:
         errors = exc.errors()
         messages = []
         for err in errors:
-            loc = ".".join([str(l) for l in err["loc"][1:]])
+            loc = ".".join([str(part) for part in err["loc"][1:]])
             msg = err["msg"]
             messages.append(f"{loc}: {msg}")
         

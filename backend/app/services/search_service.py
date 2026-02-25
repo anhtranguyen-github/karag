@@ -1,5 +1,5 @@
 import structlog
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from backend.app.core.mongodb import mongodb_manager
 
 logger = structlog.get_logger(__name__)

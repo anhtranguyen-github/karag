@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Query, Depends
-from typing import Dict, Any, Optional
+from fastapi import APIRouter, Depends
+from typing import Dict, Any
 from backend.app.core.settings_manager import settings_manager
 
 from backend.app.schemas.base import AppResponse

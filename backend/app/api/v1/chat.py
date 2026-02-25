@@ -4,9 +4,6 @@ import structlog
 from backend.app.services.chat_service import chat_service
 from backend.app.schemas.chat import ChatStreamRequest, ThreadTitleUpdate
 from backend.app.schemas.base import AppResponse
-
-logger = structlog.get_logger(__name__)
-
 from backend.app.api.deps import get_current_workspace
 
 logger = structlog.get_logger(__name__)

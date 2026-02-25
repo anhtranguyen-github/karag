@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, model_validator, computed_field
 from typing import Optional, Literal, Any, Dict
-from backend.app.schemas.chunking import ChunkingConfig, RecursiveChunkingConfig
+from backend.app.schemas.chunking import ChunkingConfig
 from backend.app.schemas.embedding import (
     EmbeddingConfig,
     OpenAIEmbeddingConfig,

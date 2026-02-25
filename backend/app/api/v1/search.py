@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Query, Depends
-from typing import Optional
 from backend.app.services.search_service import search_service
 
 from backend.app.schemas.base import AppResponse

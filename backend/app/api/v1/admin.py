@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from typing import Dict, Any
 from backend.app.core.prompt_manager import prompt_manager
 from backend.app.core.settings_manager import settings_manager

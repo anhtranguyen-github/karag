@@ -1,12 +1,13 @@
 from datetime import timedelta
 from typing import Any
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 
 from backend.app.core.auth import create_access_token
 from backend.app.services.user_service import user_service
 from backend.app.schemas.users import User, UserCreate, Token
 from backend.app.schemas.base import AppResponse
+from backend.app.api.deps import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -50,7 +51,6 @@ async def login_access_token(
     }
 
 
-from backend.app.api.deps import get_current_user
 
 @router.get("/me", response_model=User)
 async def read_user_me(

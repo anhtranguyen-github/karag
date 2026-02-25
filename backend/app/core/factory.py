@@ -16,19 +16,9 @@ from backend.app.core.config import karag_settings
 from backend.app.core.settings_manager import settings_manager
 from backend.app.schemas.embedding import (
     EmbeddingConfig,
-    OpenAIEmbeddingConfig,
-    AzureOpenAIEmbeddingConfig,
-    VoyageEmbeddingConfig,
-    HuggingFaceEmbeddingConfig,
-    OllamaEmbeddingConfig,
 )
 from backend.app.schemas.generation import (
     GenerationConfig,
-    OpenAIGenerationConfig,
-    AzureOpenAIGenerationConfig,
-    LlamaGenerationConfig,
-    CDP2GenerationConfig,
-    VLMGenerationConfig,
 )
 
 logger = structlog.get_logger(__name__)

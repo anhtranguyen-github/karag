@@ -119,7 +119,7 @@ async def build_query_context(
         "Break complex questions into atomic search components."
     )
     if state["loop_count"] > 0:
-        system_prompt += f"\nPrevious results were insufficient. Analyze current context gaps and refine queries."
+        system_prompt += "\nPrevious results were insufficient. Analyze current context gaps and refine queries."
 
     messages = [SystemMessage(content=system_prompt), HumanMessage(content=query)]
     response = await llm.ainvoke(messages, config={**config, "tags": ["reasoning"]})
@@ -131,7 +131,8 @@ async def build_query_context(
 async def retrieve_context(state: GraphState) -> Dict[str, Any]:
     """Search the internal vector database."""
     queries = state["generated_queries"]
-    if not queries: return {"retrieved_results": []}
+    if not queries:
+        return {"retrieved_results": []}
 
     import asyncio
     search_tasks = [
@@ -246,7 +247,8 @@ async def rerank_results(state: GraphState) -> Dict[str, Any]:
             from backend.app.core.settings_manager import settings_manager
             settings = await settings_manager.get_settings(state["workspace_id"])
             top_n = settings.retrieval.rerank.top_n
-        except: pass
+        except Exception:
+            pass
 
         reranked = await reranker.rerank(state["query"], formatted_for_reranker, top_k=top_n)
         

@@ -4,7 +4,6 @@ import uuid
 from datetime import datetime
 from motor.motor_asyncio import AsyncIOMotorClient
 from qdrant_client import AsyncQdrantClient
-from qdrant_client.http import models as qmodels
 from passlib.context import CryptContext
 from dotenv import load_dotenv
 
