@@ -5,9 +5,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useWorkspaceContext } from '@/context/workspace-context';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/auth-context';
 import {
     MessageSquare, FileText, Settings,
-    ChevronDown, Database, Zap, ShieldCheck
+    ChevronDown, Database, Zap, ShieldCheck,
+    User as UserIcon
 } from 'lucide-react';
 
 interface WorkspaceHeaderProps {
@@ -16,6 +18,7 @@ interface WorkspaceHeaderProps {
 
 export function WorkspaceHeader({ onWorkspaceClick }: WorkspaceHeaderProps) {
     const { currentWorkspace, workspaceId, isDefault, ragEngine, documentCount } = useWorkspaceContext();
+    const { user } = useAuth();
     const pathname = usePathname();
 
     const navItems = [
@@ -101,10 +104,15 @@ export function WorkspaceHeader({ onWorkspaceClick }: WorkspaceHeaderProps) {
                     Admin
                 </Link>
                 <Link
-                    href="/"
-                    className="text-tiny text-gray-500 hover:text-white px-3 py-1.5 rounded hover:bg-white/5 transition-all"
+                    href="/profile"
+                    className="flex items-center gap-2 h-9 px-3 rounded-lg hover:bg-white/5 transition-all group"
                 >
-                    Exit
+                    <div className="w-6 h-6 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center group-hover:bg-indigo-500/20 transition-all">
+                        <UserIcon size={12} className="text-indigo-400" />
+                    </div>
+                    <span className="text-tiny font-bold text-gray-400 group-hover:text-white transition-all">
+                        {user?.fullName || "User"}
+                    </span>
                 </Link>
             </div>
         </header>

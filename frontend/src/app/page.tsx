@@ -13,6 +13,8 @@ import { HealthStatus } from "@/components/health-status";
 import { Search, Trash2, Eye, Database, Plus, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/context/toast-context";
+import { useAuth } from "@/context/auth-context";
+import { User as UserIcon } from "lucide-react";
 
 export default function Home() {
   const router = useRouter();
@@ -23,6 +25,7 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState("");
   const [workspaceToDelete, setWorkspaceToDelete] = useState<Workspace | null>(null);
   const [workspaceToView, setWorkspaceToView] = useState<Workspace | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchWorkspaces();
@@ -96,6 +99,12 @@ export default function Home() {
           <div className="flex items-center gap-4">
             <HealthStatus />
             <ThemeToggle />
+            <Link href="/profile">
+              <button className="h-11 px-6 rounded-xl bg-secondary border border-border hover:bg-muted transition-all font-bold text-[11px] tracking-wide text-muted-foreground hover:text-foreground flex items-center gap-2 active:scale-95 group">
+                <UserIcon size={16} />
+                {user?.fullName || "Profile"}
+              </button>
+            </Link>
             <Link href="/vault">
               <button className="h-11 px-6 rounded-xl bg-secondary border border-border hover:bg-muted transition-all font-bold text-[11px] tracking-wide text-muted-foreground hover:text-foreground flex items-center gap-2 active:scale-95 group">
                 <Database size={16} />

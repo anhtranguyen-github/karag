@@ -48,3 +48,15 @@ async def login_access_token(
         ),
         "token_type": "bearer",
     }
+
+
+from backend.app.api.deps import get_current_user
+
+@router.get("/me", response_model=User)
+async def read_user_me(
+    current_user: dict = Depends(get_current_user),
+) -> Any:
+    """
+    Get current user.
+    """
+    return current_user

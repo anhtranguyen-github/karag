@@ -32,17 +32,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [router]);
 
     useEffect(() => {
-        const storedToken = localStorage.getItem("karag_token");
-        if (storedToken) {
-            setToken(storedToken);
-            // In a real app, we'd fetch the user profile here
-            // For now, we'll just assume they're authenticated if the token exists
-            // and we'll let subsequent API calls fail if the token is invalid.
+        const fetchUser = async () => {
+            const storedToken = localStorage.getItem("karag_token");
+            if (storedToken) {
+                setToken(storedToken);
+                try {
+                    const profile = await api.readUserMeAuthMeGet();
+                    setUser(profile);
+                } catch (error) {
+                    console.error("Failed to fetch user profile:", error);
+                    logout();
+                }
+            }
             setIsLoading(false);
-        } else {
-            setIsLoading(false);
-        }
-    }, []);
+        };
+        fetchUser();
+    }, [logout]);
 
     const login = async (email: string, password: string) => {
         setIsLoading(true);
