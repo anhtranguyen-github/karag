@@ -8,18 +8,6 @@ An advanced, enterprise-grade, multi-workspace RAG (Retrieval-Augmented Generati
 ![FastAPI](https://img.shields.io/badge/backend-FastAPI-009688)
 ![DevSecOps](https://img.shields.io/badge/DevSecOps-Jenkins%20%7C%20SonarQube-orange)
 
-## System Showcase
-
-### User Experience
-![Dashboard](assets/screenshots/showcase_user_dashboard.png)
-![Workspace Chat](assets/screenshots/showcase_user_chat.png)
-![Document Management](assets/screenshots/showcase_user_documents.png)
-![Master Vault](assets/screenshots/showcase_user_vault.png)
-
-### Admin Control Plane
-![System Overview](assets/screenshots/showcase_admin_overview.png)
-![Observability](assets/screenshots/showcase_admin_observability.png)
-
 ## Features
 
 - **Multi-Workspace Architecture**: Organize documents and chats into isolated workspaces with independent settings, Vector DB collections, and Knowledge Graphs.
