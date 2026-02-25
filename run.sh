@@ -247,9 +247,16 @@ boot_infra() {
         fi
     fi
 
-    # SC2086 fix: $services intentionally word-splits here; disable warning
-    # shellcheck disable=SC2086
-    $DOCKER_CMD up -d $services
+    # If LITE_MODE is true, only start database services, skip profiles
+    if [ "$LITE_MODE" = "true" ]; then
+        log_info "Lite mode: Skipping local model and devops services."
+        # shellcheck disable=SC2086
+        $DOCKER_CMD up -d $services
+    else
+        # SC2086 fix: $services intentionally word-splits here; disable warning
+        # shellcheck disable=SC2086
+        $DOCKER_CMD --profile local-models --profile devops up -d $services
+    fi
 
     echo -n "Waiting for core services..."
     local count=0
@@ -276,6 +283,11 @@ launch_backend() {
     export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}."
 
     log_info "Starting FastAPI in background..."
+    if [ "$LITE_MODE" = "true" ]; then
+        # Ensure we are using CPU-optimized build if running via docker, 
+        # but for local 'uv run', it uses the local venv.
+        log_info "Running in LITE mode."
+    fi
     nohup uv run --project backend backend/app/main.py > logs/backend.log 2>&1 &
     local B_PID=$!
 
@@ -458,6 +470,7 @@ show_help() {
     echo "  --prod           Run frontend in production mode (requires build)"
     echo "  --clear-cloud    Purge cloud databases as part of the startup"
     echo "  --clear-local    Purge local databases as part of the startup"
+    echo "  --lite           Cloud-first mode: Skip all GPU/Local model services and use CPU backend"
     echo ""
 }
 
@@ -473,6 +486,7 @@ FORCE_CLEAN=false
 PROD_MODE=false
 CLEAR_CLOUD=false
 CLEAR_LOCAL=false
+LITE_MODE=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -483,6 +497,7 @@ while [[ $# -gt 0 ]]; do
         --prod)        PROD_MODE=true; shift ;;
         --clear-cloud|--cloud) CLEAR_CLOUD=true; shift ;;
         --clear-local|--local) CLEAR_LOCAL=true; shift ;;
+        --lite)                LITE_MODE=true; shift ;;
         *) log_error "Unknown option: $1"; exit 1 ;;
     esac
 done

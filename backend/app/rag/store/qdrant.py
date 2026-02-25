@@ -181,15 +181,24 @@ class QdrantStore(VectorStore):
                             )
                         }
 
-                    await self.client.create_collection(
-                        collection_name=collection_name,
-                        vectors_config=vectors_config,
-                        sparse_vectors_config=sparse_vectors_config,
-                        optimizers_config=qmodels.OptimizersConfigDiff(
-                            indexing_threshold=10000,
-                        ),
-                    )
-                    created = True
+                    try:
+                        await self.client.create_collection(
+                            collection_name=collection_name,
+                            vectors_config=vectors_config,
+                            sparse_vectors_config=sparse_vectors_config,
+                            optimizers_config=qmodels.OptimizersConfigDiff(
+                                indexing_threshold=10000,
+                            ),
+                        )
+                        created = True
+                    except Exception as e:
+                        if "already exists" in str(e).lower() or "409" in str(e):
+                            logger.info(
+                                "qdrant_collection_exists_race",
+                                collection=collection_name,
+                            )
+                        else:
+                            raise e
                     logger.info(
                         "qdrant_collection_created",
                         collection=collection_name,

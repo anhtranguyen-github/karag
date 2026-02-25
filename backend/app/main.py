@@ -72,7 +72,7 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     logger.info("app_init_start", msg="Initializing FastAPI app...")
     app = FastAPI(
-        title="Knowledge Bank API",
+        title="Karag API",
         description="Modular RAG & Agentic Chatbot API",
         version="2.0.0",
         lifespan=lifespan,
@@ -108,7 +108,7 @@ def create_app() -> FastAPI:
     async def root():
         return {
             "status": "online",
-            "message": "Knowledge Bank API is running",
+            "message": "Karag API is running",
             "version": "2.0.0",
         }
 

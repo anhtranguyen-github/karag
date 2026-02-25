@@ -136,8 +136,8 @@ class MinioManager:
             )
 
             # Rewrite internal Docker hostname to localhost for host-based client access
-            if "ai-minio" in url:
-                url = url.replace("ai-minio", "localhost")
+            if "karag-minio" in url:
+                url = url.replace("karag-minio", "localhost")
 
             return url
         except Exception as e:

@@ -29,7 +29,7 @@ class KaragSettings(BaseSettings):
 
     # MongoDB Configuration
     MONGO_URI: str = "mongodb://localhost:27017"
-    MONGO_DB: str = "ai_architect"
+    MONGO_DB: str = "karag"
 
     # MinIO Configuration
     MINIO_ENDPOINT: str = "localhost:9000"
@@ -46,7 +46,7 @@ class KaragSettings(BaseSettings):
     # Observability Configuration
     OTEL_ENABLED: bool = False  # Master switch for distributed tracing
     OTEL_EXPORTER_ENDPOINT: str = "http://localhost:4317"  # OTLP gRPC endpoint
-    OTEL_SERVICE_NAME: str = "scienchan-backend"
+    OTEL_SERVICE_NAME: str = "karag-backend"
     OTEL_SAMPLE_RATE: float = 1.0  # 1.0 = 100% in dev, lower in prod
     METRICS_ENABLED: bool = True  # Prometheus metrics at /metrics
     LOG_FORMAT: str = "json"  # "json" for production, "console" for dev

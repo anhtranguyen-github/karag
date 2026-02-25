@@ -1,7 +1,6 @@
 # --- Stage 1: Build ---
 FROM node:20.12.2-slim AS builder
 
-# Set environment
 WORKDIR /app
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
@@ -25,15 +24,15 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Create non-root user
-RUN groupadd -r nodejs && useradd -r -g nodejs nodejs && mkdir -p /app/frontend/.next && chown -R nodejs:nodejs /app/frontend
+RUN groupadd -r nodejs && useradd -r -g nodejs nodejs
 
-# Copy built artifacts from builder
+# Copy built artifacts (Standalone mode)
+# Standalone mode only includes the necessary files from node_modules
+COPY --from=builder --chown=nodejs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nodejs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nodejs:nodejs /app/public ./public
-COPY --from=builder --chown=nodejs:nodejs /app/.next ./.next
-COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nodejs:nodejs /app/package.json ./package.json
 
-# Install curl for healthcheck
+# Install curl for healthcheck and clean up
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
@@ -46,6 +45,7 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:3000/ || exit 1
+    CMD curl -f http://localhost:3000/api/health || curl -f http://localhost:3000/ || exit 1
 
-CMD ["pnpm", "start"]
+# Standalone output uses server.js
+CMD ["node", "server.js"]

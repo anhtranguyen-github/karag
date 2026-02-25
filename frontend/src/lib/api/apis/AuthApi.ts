@@ -15,10 +15,10 @@
 
 import * as runtime from '../runtime';
 import type {
-    AppResponseUser,
-    HTTPValidationError,
-    Token,
-    UserCreate,
+  AppResponseUser,
+  HTTPValidationError,
+  Token,
+  UserCreate,
 } from '../models/index';
 import {
     AppResponseUserFromJSON,
@@ -29,9 +29,7 @@ import {
     TokenToJSON,
     UserCreateFromJSON,
     UserCreateToJSON,
-    UserFromJSON,
 } from '../models/index';
-import type { User } from '../models/index';
 
 export interface LoginAccessTokenAuthLoginPostRequest {
     username: string;
@@ -173,44 +171,6 @@ export class AuthApi extends runtime.BaseAPI {
      */
     async registerAuthRegisterPost(requestParameters: RegisterAuthRegisterPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponseUser> {
         const response = await this.registerAuthRegisterPostRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Get current user.
-     * Get Current User
-     */
-    async readUserMeAuthMeGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<User>> {
-        const queryParameters: any = {};
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.accessToken) {
-            const token = this.configuration.accessToken;
-            const tokenValue = typeof token === 'function' ? await token("bearer", []) : await token;
-
-            if (tokenValue) {
-                headerParameters["Authorization"] = `Bearer ${tokenValue}`;
-            }
-        }
-
-        let urlPath = `/auth/me`;
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => UserFromJSON(jsonValue));
-    }
-
-    /**
-     * Get current user.
-     * Get Current User
-     */
-    async readUserMeAuthMeGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<User> {
-        const response = await this.readUserMeAuthMeGetRaw(initOverrides);
         return await response.value();
     }
 

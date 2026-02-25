@@ -1,5 +1,5 @@
-# --- Stage 1: Build & Sync ---
-FROM python:3.10.14-slim-bullseye AS builder
+# --- Stage 1: Build ---
+FROM python:3.10-slim-bookworm AS builder
 
 # Install uv for extremely fast dependency management
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
@@ -9,32 +9,31 @@ WORKDIR /app
 # Build argument to toggle CPU/GPU (default to CPU for smaller images)
 ARG TARGET_DEVICE=cpu
 
-# Enable bytecode compilation
+# Enable uv optimizations
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
-    UV_CONCURRENT_DOWNLOADS=4
+    UV_CONCURRENT_DOWNLOADS=8
 
-# Install dependencies to a virtual environment
-# We use the pytorch-cpu index if TARGET_DEVICE is cpu to save ~3GB of space
+# Install dependencies
+# We use a cache mount for uv to speed up subsequent builds
 RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=backend/uv.lock,target=uv.lock \
     --mount=type=bind,source=backend/pyproject.toml,target=pyproject.toml \
-    if [ "$TARGET_DEVICE" = "cpu" ]; then \
-        uv sync --frozen --no-install-project --no-dev --extra-index-url https://download.pytorch.org/whl/cpu; \
+    if [ "$TARGET_DEVICE" = "gpu" ] || [ "$TARGET_DEVICE" = "cuda" ]; then \
+        uv sync --no-install-project --no-dev --extra local; \
     else \
-        uv sync --frozen --no-install-project --no-dev; \
+        uv sync --no-install-project --no-dev; \
     fi
 
 # --- Stage 2: Runtime ---
-FROM python:3.10.14-slim-bullseye
+FROM python:3.10-slim-bookworm
 
-# Create a non-root user for security
+# Create a non-root user
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
 WORKDIR /app
 
 # Copy the virtual environment from the builder stage
-COPY --from=builder /app/.venv /app/.venv
+COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
 
 # Add virtual environment to PATH
 ENV PATH="/app/.venv/bin:$PATH" \
@@ -42,23 +41,24 @@ ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app
 
-# Install runtime system dependencies (minimal)
+# Install runtime system dependencies (minimal) and clean up
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy backend application code with correct ownership
+# Copy backend application code
 COPY --chown=appuser:appuser backend/app ./backend/app
 
-# Ensure persistent data directory exists with correct permissions
-RUN mkdir -p /app/backend/data && chown -R appuser:appuser /app/backend/data
+# Ensure persistent data and logs directories exist
+RUN mkdir -p /app/backend/data /app/logs && \
+    chown -R appuser:appuser /app/backend/data /app/logs
 
-# Switch to non-root user
 USER appuser
 
-# Metadata
 EXPOSE 8000
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+
+# Healthcheck targets the root endpoint
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8000/ || exit 1
 
 # Production-grade entrypoint

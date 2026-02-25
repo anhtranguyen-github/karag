@@ -42,7 +42,7 @@ export interface AppResponse {
      * @type {}
      * @memberof AppResponse
      */
-    data?: | null;
+    data?:  | null;
 }
 
 /**
@@ -61,11 +61,11 @@ export function AppResponseFromJSONTyped(json: any, ignoreDiscriminator: boolean
         return json;
     }
     return {
-
+        
         'success': json['success'] == null ? undefined : json['success'],
         'code': json['code'] == null ? undefined : json['code'],
         'message': json['message'] == null ? undefined : json['message'],
-        'data': json['data'],
+        'data': json['data'] == null ? undefined : FromJSON(json['data']),
     };
 }
 
@@ -79,11 +79,11 @@ export function AppResponseToJSONTyped(value?: AppResponse | null, ignoreDiscrim
     }
 
     return {
-
+        
         'success': value['success'],
         'code': value['code'],
         'message': value['message'],
-        'data': value['data'],
+        'data': ToJSON(value['data']),
     };
 }
 

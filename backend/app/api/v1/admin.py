@@ -4,7 +4,7 @@ from backend.app.core.prompt_manager import prompt_manager
 from backend.app.core.settings_manager import settings_manager
 from backend.app.schemas.base import AppResponse
 
-router = APIRouter(prefix="/admin", tags=["Admin & Ops"])
+router = APIRouter(prefix="/admin", tags=["AdminOps"])
 
 
 @router.get("/prompts")
