@@ -42,7 +42,7 @@ export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderPr
         workspaceId,
         isDefault: workspaceId === 'default',
         ragEngine: wsWithSettings?.settings?.rag_engine || 'basic',
-        documentCount: ws?.stats?.doc_count || 0,
+        documentCount: ws?.stats?.docCount || 0,
     };
 
     return (
