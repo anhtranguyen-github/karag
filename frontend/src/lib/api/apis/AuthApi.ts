@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Knowledge Bank API
+ * Karag API
  * Modular RAG & Agentic Chatbot API
  *
  * The version of the OpenAPI document: 2.0.0
@@ -18,6 +18,7 @@ import type {
   AppResponseUser,
   HTTPValidationError,
   Token,
+  User,
   UserCreate,
 } from '../models/index';
 import {
@@ -27,6 +28,8 @@ import {
     HTTPValidationErrorToJSON,
     TokenFromJSON,
     TokenToJSON,
+    UserFromJSON,
+    UserToJSON,
     UserCreateFromJSON,
     UserCreateToJSON,
 } from '../models/index';
@@ -130,6 +133,42 @@ export class AuthApi extends runtime.BaseAPI {
      */
     async loginAccessTokenAuthLoginPost(requestParameters: LoginAccessTokenAuthLoginPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Token> {
         const response = await this.loginAccessTokenAuthLoginPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get current user.
+     * Read User Me
+     */
+    async readUserMeAuthMeGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<User>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            // oauth required
+            headerParameters["Authorization"] = await this.configuration.accessToken("OAuth2PasswordBearer", []);
+        }
+
+
+        let urlPath = `/auth/me`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => UserFromJSON(jsonValue));
+    }
+
+    /**
+     * Get current user.
+     * Read User Me
+     */
+    async readUserMeAuthMeGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<User> {
+        const response = await this.readUserMeAuthMeGetRaw(initOverrides);
         return await response.value();
     }
 

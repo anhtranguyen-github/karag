@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Knowledge Bank API
+ * Karag API
  * Modular RAG & Agentic Chatbot API
  *
  * The version of the OpenAPI document: 2.0.0

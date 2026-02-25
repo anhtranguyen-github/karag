@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Knowledge Bank API
+ * Karag API
  * Modular RAG & Agentic Chatbot API
  *
  * The version of the OpenAPI document: 2.0.0
@@ -42,7 +42,7 @@ export interface AppResponse {
      * @type {}
      * @memberof AppResponse
      */
-    data?:  | null;
+    data?: | null;
 }
 
 /**
@@ -61,11 +61,11 @@ export function AppResponseFromJSONTyped(json: any, ignoreDiscriminator: boolean
         return json;
     }
     return {
-        
+
         'success': json['success'] == null ? undefined : json['success'],
         'code': json['code'] == null ? undefined : json['code'],
         'message': json['message'] == null ? undefined : json['message'],
-        'data': json['data'] == null ? undefined : FromJSON(json['data']),
+        'data': json['data'] == null ? undefined : json['data'],
     };
 }
 
@@ -79,11 +79,11 @@ export function AppResponseToJSONTyped(value?: AppResponse | null, ignoreDiscrim
     }
 
     return {
-        
+
         'success': value['success'],
         'code': value['code'],
         'message': value['message'],
-        'data': ToJSON(value['data']),
+        'data': value['data'],
     };
 }
 

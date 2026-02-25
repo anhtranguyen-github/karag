@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Knowledge Bank API
+ * Karag API
  * Modular RAG & Agentic Chatbot API
  *
  * The version of the OpenAPI document: 2.0.0
@@ -14,11 +14,92 @@
 
 
 import * as runtime from '../runtime';
+import type {
+  HTTPValidationError,
+} from '../models/index';
+import {
+    HTTPValidationErrorFromJSON,
+    HTTPValidationErrorToJSON,
+} from '../models/index';
+
+export interface UpdateGlobalSettingsAdminSettingsPatchRequest {
+    requestBody: { [key: string]: any; };
+}
 
 /**
  * 
  */
 export class AdminOpsApi extends runtime.BaseAPI {
+
+    /**
+     * Get global system settings.
+     * Get Global Settings
+     */
+    async getGlobalSettingsAdminSettingsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/admin/settings`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Get global system settings.
+     * Get Global Settings
+     */
+    async getGlobalSettingsAdminSettingsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.getGlobalSettingsAdminSettingsGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get metadata for settings fields.
+     * Get Global Settings Metadata
+     */
+    async getGlobalSettingsMetadataAdminSettingsMetadataGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/admin/settings/metadata`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Get metadata for settings fields.
+     * Get Global Settings Metadata
+     */
+    async getGlobalSettingsMetadataAdminSettingsMetadataGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.getGlobalSettingsMetadataAdminSettingsMetadataGetRaw(initOverrides);
+        return await response.value();
+    }
 
     /**
      * Get a high-level overview of system components.
@@ -122,6 +203,51 @@ export class AdminOpsApi extends runtime.BaseAPI {
      */
     async getVectorStatusAdminVectorStatusGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
         const response = await this.getVectorStatusAdminVectorStatusGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Update global system settings (workspace_id=\'default\').
+     * Update Global Settings
+     */
+    async updateGlobalSettingsAdminSettingsPatchRaw(requestParameters: UpdateGlobalSettingsAdminSettingsPatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        if (requestParameters['requestBody'] == null) {
+            throw new runtime.RequiredError(
+                'requestBody',
+                'Required parameter "requestBody" was null or undefined when calling updateGlobalSettingsAdminSettingsPatch().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/admin/settings`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+            body: requestParameters['requestBody'],
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * Update global system settings (workspace_id=\'default\').
+     * Update Global Settings
+     */
+    async updateGlobalSettingsAdminSettingsPatch(requestParameters: UpdateGlobalSettingsAdminSettingsPatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.updateGlobalSettingsAdminSettingsPatchRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
