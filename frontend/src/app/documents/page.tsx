@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { API_ROUTES } from '@/lib/api-config';
 import { api } from '@/lib/api-client';
 import Link from 'next/link';
 

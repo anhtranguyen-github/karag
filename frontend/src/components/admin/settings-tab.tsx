@@ -1,6 +1,5 @@
-import React from 'react';
 import { motion } from 'framer-motion';
-import { Cpu, Scale, Loader2, Layout, Boxes, Search, Wand2, Activity, Shield, Settings } from 'lucide-react';
+import { Cpu, Loader2, Layout, Boxes, Search, Wand2, Activity, Shield, Settings, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AppSettings, SettingMetadata } from '@/hooks/use-settings';
 
@@ -11,7 +10,7 @@ interface SettingsTabProps {
     isSaving: string | null;
 }
 
-const CATEGORY_ICONS: Record<string, any> = {
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
     'Generation Component': Wand2,
     'Retrieval Component': Search,
     'Embedding Component': Boxes,

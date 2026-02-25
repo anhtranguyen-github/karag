@@ -12,9 +12,6 @@ import { CitationModal } from "./citation-modal";
 import { ChatMessage } from "@/components/chat-message";
 import { Message } from "@/context/chat-context";
 
-// Singleton cache to persist messages across Page re-mounts (common in Next.js route changes)
-const persistenceCache: Record<string, Message[]> = {};
-const persistenceMeta: Record<string, any> = {};
 
 export function ChatInterface({
     threadId: propThreadId,
@@ -23,8 +20,7 @@ export function ChatInterface({
     threadId?: string;
     workspaceId?: string;
 }) {
-    const router = useRouter();
-    const [workspaceId, setWorkspaceId] = useState<string | undefined>(propWorkspaceId);
+    const [workspaceId] = useState<string | undefined>(propWorkspaceId);
 
     useEffect(() => {
         const handleForceNew = () => {
@@ -102,7 +98,13 @@ export function ChatInterface({
                     threadId: propThreadId,
                     workspaceId: workspaceId!
                 });
-                const history = ((histRes.data as unknown) as any[] || []).map((msg, idx) => ({
+                const history = (histRes.data as unknown as Array<{
+                    id?: string;
+                    role: 'user' | 'assistant';
+                    content: string;
+                    sources?: any[];
+                    reasoning_steps?: string[];
+                }> || []).map((msg, idx) => ({
                     id: msg.id || `hist-${idx}-${Date.now()}`,
                     role: msg.role,
                     content: msg.content,
@@ -119,7 +121,7 @@ export function ChatInterface({
         };
 
         loadThread();
-    }, [propThreadId]);
+    }, [propThreadId, workspaceId]);
 
     const resumeStreaming = async (tid: string, wid: string, mode: string, currentMsgs: Message[]) => {
         const lastUserMsg = [...currentMsgs].reverse().find(m => m.role === "user");

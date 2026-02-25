@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 import { ThreadList } from "@/components/chat/thread-list";
 import { useWorkspaces } from "@/hooks/use-workspaces";
 import { ChatInterface } from "@/components/chat/chat-interface";
-import { API_ROUTES } from "@/lib/api-config";
 import { api } from "@/lib/api-client";
 import { Loader2, Home, FileText, Settings, PanelLeftOpen } from "lucide-react";
 import Link from "next/link";
@@ -25,7 +24,6 @@ export default function GlobalChatPage() {
     const { workspaces } = useWorkspaces();
     const workspace = workspaceId ? workspaces.find(w => w.id === workspaceId) : null;
     const [isHistoryOpen, setIsHistoryOpen] = useState(true);
-    const isRedirecting = useRef(false);
 
     useEffect(() => {
         const fetchThreadMeta = async () => {
@@ -59,7 +57,8 @@ export default function GlobalChatPage() {
                 });
 
                 if (payload.success && payload.data) {
-                    setWorkspaceId((payload.data as any).workspace_id);
+                    const data = payload.data as { workspace_id: string };
+                    setWorkspaceId(data.workspace_id);
                 }
             } catch (err) {
                 console.error("Failed to fetch thread metadata", err);
@@ -69,7 +68,7 @@ export default function GlobalChatPage() {
         };
 
         fetchThreadMeta();
-    }, [threadId, searchParams]); // Dependency on searchParams for URL sync
+    }, [threadId, searchParams, workspaceId]); // Dependency on searchParams for URL sync
 
     const handleSelectThread = (id: string) => {
         // Since we use history.pushState for new chats to prevent blinking,

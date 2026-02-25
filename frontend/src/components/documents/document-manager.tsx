@@ -27,10 +27,9 @@ export interface Document {
 
 interface DocumentManagerProps {
     workspaceId?: string; // Optional: if provided, filters by workspace
-    isGlobal?: boolean;
 }
 
-export function DocumentManager({ workspaceId, isGlobal = false }: DocumentManagerProps) {
+export function DocumentManager({ workspaceId }: DocumentManagerProps) {
     const { showError } = useError();
     const toast = useToast();
 
@@ -42,7 +41,6 @@ export function DocumentManager({ workspaceId, isGlobal = false }: DocumentManag
     const [isUploading, setIsUploading] = useState(false);
 
     const [docToDelete, setDocToDelete] = useState<Document | null>(null);
-    const [isDeletingFile, setIsDeletingFile] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -299,7 +297,6 @@ export function DocumentManager({ workspaceId, isGlobal = false }: DocumentManag
                 onConfirm={confirmDelete}
                 doc={docToDelete}
                 isVault={!workspaceId}
-                isDeleting={isDeletingFile}
             />
         </div>
     );
@@ -475,9 +472,9 @@ function formatDate(dateStr: string) {
 }
 
 function DeleteDocumentModal({
-    isOpen, onClose, onConfirm, doc, isVault, isDeleting
+    isOpen, onClose, onConfirm, doc, isVault
 }: {
-    isOpen: boolean; onClose: () => void; onConfirm: () => void; doc: Document | null; isVault: boolean; isDeleting: boolean;
+    isOpen: boolean; onClose: () => void; onConfirm: () => void; doc: Document | null; isVault: boolean;
 }) {
     if (!doc) return null;
 
@@ -531,21 +528,18 @@ function DeleteDocumentModal({
                 <div className="flex gap-3 mt-2">
                     <button
                         onClick={onClose}
-                        disabled={isDeleting}
                         className="flex-1 h-12 rounded-2xl bg-secondary border border-border text-[9px] font-black tracking-[0.2em] uppercase hover:bg-secondary/80 transition-all active:scale-95"
                     >
                         Abort
                     </button>
                     <button
                         onClick={onConfirm}
-                        disabled={isDeleting}
                         className={cn(
                             "flex-[1.5] h-12 rounded-2xl bg-red-500 text-white text-[9px] font-black tracking-[0.2em] uppercase transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-500/20 active:scale-95",
-                            isDeleting ? "opacity-50" : "hover:bg-red-600"
+                            "hover:bg-red-600"
                         )}
                     >
-                        {isDeleting ? <Loader2 size={14} className="animate-spin" /> : null}
-                        {isDeleting ? "Purging..." : "Confirm"}
+                        Confirm
                     </button>
                 </div>
             </div>

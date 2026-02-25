@@ -4,8 +4,7 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Plus, MessageSquare, Loader2, X } from "lucide-react";
+import { Plus, MessageSquare, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api-client";
 
@@ -28,7 +27,6 @@ export function ThreadList({
     onToggle?: () => void,
     workspaceId?: string
 }) {
-    const params = useParams();
     const searchParams = useSearchParams();
     const workspaceId = propWorkspaceId || searchParams.get("workspaceId");
     const [threads, setThreads] = useState<Thread[]>([]);
@@ -41,7 +39,7 @@ export function ThreadList({
         }
         try {
             const res = await api.listChatThreadsWorkspacesWorkspaceIdChatThreadsGet({ workspaceId: workspaceId as string });
-            setThreads((res.data as any) || []);
+            setThreads((res.data as unknown as Thread[]) || []);
         } catch (e) {
             console.error("Failed to fetch threads", e);
         } finally {
@@ -57,7 +55,7 @@ export function ThreadList({
             const interval = setInterval(() => fetchThreads(false), 8000);
             return () => clearInterval(interval);
         }
-    }, [workspaceId]); // Removed fetchThreads from dependencies to avoid unnecessary triggers
+    }, [workspaceId, fetchThreads]);
 
     const handleCreateThread = () => {
         if (workspaceId) {

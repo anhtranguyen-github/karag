@@ -36,9 +36,12 @@ export function SchemaForm({ schema, gridCols = 2 }: SchemaFormProps) {
 
 function FieldRenderer({ field }: { field: FieldConfig }) {
     const { control } = useFormContext();
-    const isVisibleCheck = field.dependsOn
-        ? useWatch({ control, name: field.dependsOn.field }) === field.dependsOn.value
-        : true;
+    const dependsOn = field.dependsOn;
+    const watchedValue = useWatch({
+        control,
+        name: dependsOn?.field || '___non_existent_field___'
+    });
+    const isVisibleCheck = dependsOn ? watchedValue === dependsOn.value : true;
 
     if (!isVisibleCheck) return null;
 

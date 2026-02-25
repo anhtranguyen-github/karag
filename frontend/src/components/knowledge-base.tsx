@@ -5,12 +5,11 @@ import { api } from '@/lib/api-client';
 import React, { useState, useEffect } from 'react';
 import {
     Upload, FileText, Trash2, Loader2,
-    Database, Search, Eye, Sparkles,
-    Plus, Filter, Shield, ArrowRight, AlertTriangle,
-    X, Globe, Link2, Github, Music, Info,
-    ArrowRightLeft, Layers, Zap, HardDrive, Calendar, Cpu
+    Database, Search, Sparkles,
+    Plus, Filter, Shield, AlertTriangle,
+    X, Globe, Link2, Github, Info, Eye,
+    ArrowRightLeft, Layers, HardDrive, Calendar, Cpu, Zap
 } from 'lucide-react';
-import { API_ROUTES, API_BASE_URL } from '@/lib/api-config';
 import { Modal } from '@/components/ui/modal';
 import { SourceViewer } from '@/components/source-viewer';
 import { WorkspaceWizard } from "@/components/workspace/WorkspaceWizard";
@@ -174,7 +173,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                 openUpload: () => setIsUploadModalOpen(true),
             });
         }
-    }, [onActionsReady, fetchDocuments]);
+    }, [onActionsReady]); // fetchDocuments is stable via useCallback
 
     const fetchVaultDocuments = async () => {
         setIsVaultLoading(true);
@@ -290,20 +289,23 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
             // For now just show success as the job handle is returned
             setIsUploadModalOpen(false);
             toast.success('Document uploaded successfully');
-        } catch (err: any) {
+        } catch (err: unknown) {
             let title = "Upload Failed";
             let message = "Upload failed";
             try {
-                const payload = await err.response.json();
-                message = payload.message || message;
-                if (payload.code === 'DUPLICATE_DETECTED' && payload.data) {
-                    setDuplicateData({
-                        id: payload.data.existing_doc?.id,
-                        name: payload.data.existing_doc?.filename,
-                        workspace: payload.data.existing_doc?.workspace,
-                        is_duplicate: true
-                    });
-                    return;
+                const response = (err as any).response;
+                if (response) {
+                    const payload = await response.json();
+                    message = payload.message || message;
+                    if (payload.code === 'DUPLICATE_DETECTED' && payload.data) {
+                        setDuplicateData({
+                            id: payload.data.existing_doc?.id,
+                            name: payload.data.existing_doc?.filename,
+                            workspace: payload.data.existing_doc?.workspace,
+                            is_duplicate: true
+                        });
+                        return;
+                    }
                 }
             } catch (e) { }
             showError(title, message, `File: ${file.name}`);
@@ -348,10 +350,15 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
             setIsUploadModalOpen(false);
             setImportUrl('');
             toast.success('Import task started successfully');
-        } catch (err: any) {
+        } catch (err: unknown) {
             try {
-                const payload = await err.response.json();
-                showError("Import Failed", payload.message || 'Failed to start import', `Source: ${importUrl}`);
+                const response = (err as any).response;
+                if (response) {
+                    const payload = await response.json();
+                    showError("Import Failed", payload.message || 'Failed to start import', `Source: ${importUrl}`);
+                } else {
+                    showError("Import Failed", 'Failed to start import', `Source: ${importUrl}`);
+                }
             } catch (e) {
                 showError("Network Error", "Could not connect to document service.");
             }
@@ -380,11 +387,16 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
             toast.dismiss(toastId);
             toast.success(`Successfully linked ${duplicateData.name}`);
             fetchDocuments();
-        } catch (err: any) {
+        } catch (err: unknown) {
             toast.dismiss(toastId);
             try {
-                const payload = await err.response.json();
-                toast.error(`Link Failed: ${payload.message || 'Could not link document'}`);
+                const response = (err as any).response;
+                if (response) {
+                    const payload = await response.json();
+                    toast.error(`Link Failed: ${payload.message || 'Could not link document'}`);
+                } else {
+                    toast.error("Link Failed: Could not link document");
+                }
             } catch (e) {
                 toast.error("Network Error: Transmission interrupted.");
             }
@@ -406,11 +418,16 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
             toast.dismiss(toastId);
             toast.success(`${docName} ${vaultDelete ? 'purged globally' : 'removed from workspace'}`);
             setDocuments((prev) => prev.filter((d) => d.id !== id));
-        } catch (err: any) {
+        } catch (err: unknown) {
             toast.dismiss(toastId);
             try {
-                const payload = await err.response.json();
-                toast.error(`${docName} delete failed: ${payload.message || 'Operation failed'}`);
+                const response = (err as any).response;
+                if (response) {
+                    const payload = await response.json();
+                    toast.error(`${docName} delete failed: ${payload.message || 'Operation failed'}`);
+                } else {
+                    toast.error(`${docName} delete failed: Operation failed`);
+                }
             } catch (e) {
                 toast.error(`Network error while deleting ${docName}`);
             }
@@ -434,11 +451,16 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
             });
             fetchDocuments(); // Refresh status/fragments after on-demand indexing
 
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Failed to view document', err);
             try {
-                const payload = await err.response.json();
-                showError("Retrieval Failure", payload.message || 'Could not fetch document content.', `ID: ${id}`);
+                const response = (err as any).response;
+                if (response) {
+                    const payload = await response.json();
+                    showError("Retrieval Failure", payload.message || 'Could not fetch document content.', `ID: ${id}`);
+                } else {
+                    showError("Retrieval Failure", 'Could not fetch document content.', `ID: ${id}`);
+                }
             } catch (e) {
                 showError("Network Error", 'Connection error.');
             }

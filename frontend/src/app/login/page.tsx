@@ -5,14 +5,13 @@ import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Mail, Lock, LogIn, Database, ArrowRight } from "lucide-react";
+import { Mail, Lock, LogIn, Database } from "lucide-react";
 import { useToast } from "@/context/toast-context";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const { login, isLoading } = useAuth();
-    const router = useRouter();
     const toast = useToast();
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -20,7 +19,7 @@ export default function LoginPage() {
         try {
             await login(email, password);
             toast.success("Welcome back!");
-        } catch (error) {
+        } catch {
             toast.error("Login failed. Please check your credentials.");
         }
     };

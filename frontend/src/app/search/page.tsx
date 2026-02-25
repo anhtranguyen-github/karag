@@ -23,12 +23,6 @@ interface SearchResult {
     score?: number;
 }
 
-interface SearchWorkspace {
-    id: string;
-    name: string;
-    description?: string;
-    stats?: { doc_count: number };
-}
 
 // SearchDoc removed as it was unused
 
@@ -68,7 +62,11 @@ function SearchContent() {
             });
 
             if (payload.success && payload.data) {
-                const data = payload.data as any;
+                const data = payload.data as {
+                    documents?: Array<{ id: string; name?: string; filename?: string; workspace_id: string }>;
+                    workspaces?: Array<{ id: string; name: string; description?: string }>;
+                    threads?: Array<{ id: string; title?: string; workspace_id: string }>;
+                };
 
                 // Documents
                 if ((scope === 'all' || scope === 'documents') && data.documents) {

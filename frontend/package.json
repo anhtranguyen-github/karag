@@ -61,10 +61,12 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "@nestjs/core",
       "@openapitools/openapi-generator-cli",
       "esbuild",
       "msw",
-      "sharp"
+      "sharp",
+      "unrs-resolver"
     ]
   }
 }

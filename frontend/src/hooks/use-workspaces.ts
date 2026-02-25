@@ -61,7 +61,7 @@ export function useWorkspaces() {
             } else {
                 setCurrentWorkspace(null);
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Failed to fetch workspaces:', err);
             showError("Application Error", "An unexpected error occurred while loading workspaces.");
         } finally {
@@ -95,12 +95,12 @@ export function useWorkspaces() {
                 await fetchWorkspaces();
                 return { success: true, workspace: mappedWs };
             } else {
-                let title = "Unable to Create Workspace";
+                const title = "Unable to Create Workspace";
                 const message = appResponse.message || "System rejected creation request.";
                 showError(title, message, JSON.stringify(appResponse.data));
                 return { success: false, error: message };
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Failed to create workspace:', err);
             showError("Network Error", "Handshake failed. The intelligence hub is currently unreachable.");
             return { success: false, error: 'Connection error' };
@@ -120,7 +120,7 @@ export function useWorkspaces() {
             } else {
                 showError("Update Failed", appResponse.message || "Could not save changes.");
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             showError("Connection Error", "Could not save changes. Handshake failed during synchronization.");
             console.error('Failed to update workspace:', err);
         }
@@ -141,7 +141,7 @@ export function useWorkspaces() {
             } else {
                 showError("Deletion Failed", appResponse.message || 'Unable to delete workspace.');
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             showError("Connection Error", "Could not delete workspace. Please check your connection.");
             console.error('Failed to delete workspace:', err);
         }
@@ -156,7 +156,7 @@ export function useWorkspaces() {
                 return result.data;
             }
             return null;
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Failed to fetch workspace details:', err);
             return null;
         }
@@ -172,9 +172,9 @@ export function useWorkspaces() {
                 workspaceId: currentWorkspace.id,
                 // shareDocument payload is source_name and target_workspace_id
                 body: { source_name: sourceName, target_workspace_id: targetWorkspaceId }
-            } as any); // Type cast if needed, but checking source it should be there.
+            } as { workspaceId: string; body: { source_name: string; target_workspace_id: string } });
             return response.success;
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Failed to share document:', err);
             return false;
         }

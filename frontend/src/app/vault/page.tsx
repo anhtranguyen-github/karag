@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import Link from "next/link";
 import { KnowledgeBase, KnowledgeBaseActions } from "@/components/knowledge-base";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { ChevronLeft, Database, Network, Plus } from "lucide-react";
+import { ChevronLeft, Database, Plus } from "lucide-react";
 
 export default function VaultPage() {
     const [actions, setActions] = useState<KnowledgeBaseActions | null>(null);

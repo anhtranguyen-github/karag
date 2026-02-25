@@ -4,13 +4,6 @@ import React from 'react';
 import { CreateWorkspaceInput } from '@/lib/schemas/workspaces';
 import { cn } from '@/lib/utils';
 import { Settings2, Type, Hash, Brain, Layers, Layout } from 'lucide-react';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { useFormContext } from 'react-hook-form';
 
 export function ChunkingStrategySelector() {
@@ -18,7 +11,7 @@ export function ChunkingStrategySelector() {
     const { setValue, watch } = useFormContext<CreateWorkspaceInput>();
     const [localStrategy, setLocalStrategy] = React.useState(watch('chunking.strategy'));
 
-    const strategies = [
+    const strategies: { id: CreateWorkspaceInput['chunking']['strategy']; label: string; icon: typeof Layout }[] = [
         { id: 'recursive', label: 'Recursive', icon: Layers },
         { id: 'sentence', label: 'Sentence', icon: Type },
         { id: 'token', label: 'Token', icon: Hash },
@@ -27,9 +20,9 @@ export function ChunkingStrategySelector() {
         { id: 'document', label: 'Document', icon: Layout },
     ];
 
-    const handleStrategyChange = (strategyId: string) => {
-        setLocalStrategy(strategyId as any);
-        setValue('chunking.strategy', strategyId as any);
+    const handleStrategyChange = (strategyId: CreateWorkspaceInput['chunking']['strategy']) => {
+        setLocalStrategy(strategyId);
+        setValue('chunking.strategy', strategyId);
 
         // Set strategy-specific defaults
         if (strategyId === 'recursive') {
