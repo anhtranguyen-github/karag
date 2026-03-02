@@ -1,3 +1,4 @@
+import os
 import structlog
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
@@ -114,8 +115,12 @@ def create_app() -> FastAPI:
 
     # Include modular routes
     logger.info("router_init", msg="Including API routers...")
-    app.include_router(api_v1_router)
-    logger.info("router_init_complete", msg="API routers included.")
+    
+    # Add optional prefix support for Vercel/Proxy environments
+    api_prefix = os.getenv("API_PREFIX", "")
+    app.include_router(api_v1_router, prefix=api_prefix)
+    
+    logger.info("router_init_complete", msg=f"API routers included with prefix: '{api_prefix}'")
 
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(request: Request, exc: RequestValidationError):
