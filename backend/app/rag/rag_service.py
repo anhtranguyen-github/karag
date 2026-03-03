@@ -6,6 +6,12 @@ from backend.app.core.telemetry import (
     get_tracer,
     EMBEDDING_REQUEST_LATENCY,
 )
+from backend.app.rag.advanced_retrieval import (
+    MultiQueryRetriever,
+    ContextualCompressor,
+    HybridRetriever,
+    RetrievalResult,
+)
 
 logger = structlog.get_logger(__name__)
 tracer = get_tracer(__name__)
@@ -212,5 +218,89 @@ class RAGService:
                 "tracing": metadata,
             }
 
+    async def search_advanced(
+        self,
+        query: str,
+        workspace_id: str,
+        limit: Optional[int] = None,
+        enable_multi_query: bool = False,
+        enable_compression: bool = False,
+        llm_client = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Advanced search with optional multi-query and compression.
+        
+        Args:
+            query: Search query
+            workspace_id: Workspace ID
+            limit: Max results
+            enable_multi_query: Use query variations for better recall
+            enable_compression: Compress results to relevant parts
+            llm_client: LLM client for multi-query and compression
+            
+        Returns:
+            List of search results
+        """
+        with tracer.start_as_current_span(
+            "rag.search_advanced",
+            attributes={
+                "workspace_id": workspace_id,
+                "multi_query": enable_multi_query,
+                "compression": enable_compression,
+            },
+        ):
+            start = time.perf_counter()
+            
+            # Base search function
+            async def base_search(q: str, top_k: int) -> List[RetrievalResult]:
+                results = await self.search(q, workspace_id, limit=top_k)
+                return [
+                    RetrievalResult(
+                        text=r["text"],
+                        score=r["score"],
+                        metadata=r["payload"],
+                        source=r["payload"].get("source", "unknown"),
+                    )
+                    for r in results
+                ]
+            
+            # Apply multi-query if enabled
+            if enable_multi_query and llm_client:
+                retriever = MultiQueryRetriever(llm_client, num_variations=3)
+                results = await retriever.retrieve(
+                    query=query,
+                    retriever_fn=base_search,
+                    top_k_per_query=limit or 5,
+                )
+            else:
+                results = await base_search(query, limit or 5)
+            
+            # Apply compression if enabled
+            if enable_compression and llm_client and results:
+                compressor = ContextualCompressor(llm_client)
+                results = await compressor.compress(query, results)
+            
+            # Convert back to dict format
+            dict_results = [
+                {
+                    "text": r.text,
+                    "payload": r.metadata,
+                    "score": r.score,
+                }
+                for r in results
+            ]
+            
+            duration = time.perf_counter() - start
+            logger.info(
+                "rag_advanced_search_complete",
+                results=len(dict_results),
+                multi_query=enable_multi_query,
+                compression=enable_compression,
+                duration_ms=round(duration * 1000, 2),
+                workspace_id=workspace_id,
+            )
+            
+            return dict_results
 
-rag_service = RAGService()
+
+rag_service = RAGService()  

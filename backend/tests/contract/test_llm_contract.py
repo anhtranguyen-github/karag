@@ -18,6 +18,8 @@ def test_llm_response_schema():
     # Example response from our provider
     response = LLMResponse(
         content="Hello world",
+        model="gpt-4o",
+        provider="openai",
         usage={"input_tokens": 5, "output_tokens": 2},
         metadata={"model": "gpt-4o"},
     )

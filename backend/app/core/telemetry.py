@@ -123,6 +123,30 @@ LLM_TOKEN_USAGE = Counter(
     ["provider", "model", "token_type"],  # token_type = prompt or completion
 )
 
+# Cache metrics
+LLM_CACHE_HIT = Counter(
+    "llm_cache_hits_total",
+    "Total LLM cache hits",
+)
+
+LLM_CACHE_MISS = Counter(
+    "llm_cache_misses_total",
+    "Total LLM cache misses",
+)
+
+# Fallback metrics
+LLM_FALLBACK_USED = Counter(
+    "llm_fallback_used_total",
+    "Total fallback model invocations",
+    ["primary", "fallback"],
+)
+
+LLM_RETRY_COUNT = Counter(
+    "llm_retries_total",
+    "Total LLM request retries",
+    ["provider", "status"],
+)
+
 
 def record_llm_usage(
     provider: str,

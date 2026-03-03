@@ -9,12 +9,14 @@ from backend.app.api.v1 import (
     eval,
     admin,
     auth,
+    completions,
 )
 
 api_v1_router = APIRouter()
 
 api_v1_router.include_router(auth.router)
 api_v1_router.include_router(workspaces.router)
+api_v1_router.include_router(completions.router)
 
 # Workspace-scoped routes
 ws_router = APIRouter(prefix="/workspaces/{workspace_id}")

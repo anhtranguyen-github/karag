@@ -25,8 +25,14 @@ llm_response:
   type: object
   required:
     - content
+    - model
+    - provider
   properties:
     content:
+      type: string
+    model:
+      type: string
+    provider:
       type: string
     usage:
       type: object
