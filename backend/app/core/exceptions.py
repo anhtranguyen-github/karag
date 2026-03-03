@@ -53,3 +53,27 @@ class NotFoundError(BaseAppException):
             status_code=status.HTTP_404_NOT_FOUND,
             params=params,
         )
+
+
+class AuthenticationError(BaseAppException):
+    """Raised when authentication fails."""
+
+    def __init__(self, message: str = "Authentication required", params: Optional[Dict[str, Any]] = None):
+        super().__init__(
+            message=message,
+            code="AUTHENTICATION_ERROR",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            params=params,
+        )
+
+
+class AuthorizationError(BaseAppException):
+    """Raised when user lacks permission for an action."""
+
+    def __init__(self, message: str = "Access denied", params: Optional[Dict[str, Any]] = None):
+        super().__init__(
+            message=message,
+            code="AUTHORIZATION_ERROR",
+            status_code=status.HTTP_403_FORBIDDEN,
+            params=params,
+        )
