@@ -2,12 +2,13 @@ import json
 import time
 import uuid
 import re
-from typing import AsyncGenerator, List, Dict, Any, Optional
+from typing import Annotated, AsyncGenerator, List, Dict, Any, Optional
 
 import structlog
-from fastapi import APIRouter, Response, Request
+from fastapi import APIRouter, Response, Request, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 
+from backend.app.api.deps import get_current_user, CurrentUser
 from backend.app.core.mongodb import mongodb_manager
 from backend.app.providers.base import LLMMessage
 from backend.app.providers.llm import get_llm
@@ -28,6 +29,41 @@ from backend.app.schemas.documents import DocumentCitationResponse
 logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/v1", tags=["openai"])
+
+# Type alias for cleaner route signatures
+UserDep = Annotated[CurrentUser, Depends(get_current_user)]
+
+
+async def verify_workspace_access(user: CurrentUser, workspace_id: str) -> bool:
+    """
+    Verify that the user has access to the specified workspace.
+    
+    Args:
+        user: The authenticated user
+        workspace_id: The workspace ID to check
+        
+    Returns:
+        True if user has access, False otherwise
+    """
+    # Admin users have access to all workspaces
+    if user.is_admin:
+        return True
+    
+    # Check if workspace is public
+    db = mongodb_manager.get_async_database()
+    workspace = await db.workspaces.find_one({"id": workspace_id})
+    
+    if workspace and workspace.get("is_public", False):
+        return True
+    
+    # Check user's workspace membership
+    user_doc = await db.users.find_one({"id": user.id})
+    if user_doc:
+        user_workspaces = user_doc.get("workspaces", [])
+        if workspace_id in user_workspaces:
+            return True
+    
+    return False
 
 
 def create_openai_error_response(
@@ -273,7 +309,8 @@ class CitationBuffer:
 @router.get("/documents/{document_id}", response_model=DocumentCitationResponse)
 async def get_document_for_citation(
     document_id: str,
-    workspace_id: Optional[str] = None,
+    workspace_id: str,
+    user: UserDep,
 ):
     """
     Retrieve a document by ID for citation reverse lookup.
@@ -281,16 +318,37 @@ async def get_document_for_citation(
     This endpoint allows clients to resolve [[doc:<document_id>]] citations
     from chat completions. It returns the document metadata and content preview.
     
-    The workspace_id parameter is optional for validation. If provided,
-    the endpoint verifies the document belongs to the specified workspace.
+    Requires authentication and workspace access authorization.
     
     Args:
         document_id: The unique document identifier from a citation
-        workspace_id: Optional workspace ID for access validation
+        workspace_id: Required workspace ID for access validation
+        user: Authenticated user context
         
     Returns:
         DocumentCitationResponse with metadata and content preview
+        
+    Raises:
+        HTTPException: If user lacks workspace access or document not found
     """
+    # Verify user has access to the workspace
+    has_access = await verify_workspace_access(user, workspace_id)
+    if not has_access:
+        logger.warning(
+            "unauthorized_document_access_attempt",
+            document_id=document_id,
+            workspace_id=workspace_id,
+            user_id=user.id,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "success": False,
+                "code": "ACCESS_DENIED",
+                "message": "You do not have access to this workspace",
+            },
+        )
+    
     try:
         from backend.app.services.document.document_inspection_service import (
             DocumentInspectionService,
@@ -307,14 +365,15 @@ async def get_document_for_citation(
                 code="document_not_found",
             )
         
-        # Verify workspace isolation if workspace_id is provided
+        # Verify workspace isolation - workspace_id is now required
         doc_workspace_id = doc.get("workspace_id")
-        if workspace_id and doc_workspace_id != workspace_id:
+        if doc_workspace_id != workspace_id:
             logger.warning(
                 "cross_workspace_document_access_attempt",
                 document_id=document_id,
                 requested_workspace=workspace_id,
                 actual_workspace=doc_workspace_id,
+                user_id=user.id,
             )
             return create_openai_error_response(
                 f"Document '{document_id}' not found in workspace",
@@ -348,7 +407,11 @@ async def get_document_for_citation(
 
 
 @router.post("/chat/completions")
-async def chat_completions(request: Request, payload: ChatCompletionRequest):
+async def chat_completions(
+    request: Request,
+    payload: ChatCompletionRequest,
+    user: UserDep,
+):
     """
     OpenAI-compatible Chat Completions API with RAG integration.
     
@@ -359,10 +422,12 @@ async def chat_completions(request: Request, payload: ChatCompletionRequest):
     - Streaming and non-streaming responses
     - OpenAI-compliant error format
     
+    Requires authentication and workspace access authorization.
+    
     Citation format in response: [[doc:<document_id>]]
     """
     model_name = payload.model
-    logger.info("openai_chat_completion_request", model=model_name)
+    logger.info("openai_chat_completion_request", model=model_name, user_id=user.id)
     
     # 1. Resolve workspace from model format karag:<workspace_name> or karag:<workspace>:<mode>
     provider, workspace_name, mode_from_model = parse_model_name(model_name)
@@ -384,7 +449,24 @@ async def chat_completions(request: Request, payload: ChatCompletionRequest):
             404,
         )
     
+    # 1.5 Verify user has access to the workspace
     workspace_id = workspace["id"]
+    has_access = await verify_workspace_access(user, workspace_id)
+    if not has_access:
+        logger.warning(
+            "unauthorized_chat_completion_attempt",
+            workspace_id=workspace_id,
+            workspace_name=workspace_name,
+            user_id=user.id,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "success": False,
+                "code": "ACCESS_DENIED",
+                "message": "You do not have access to this workspace",
+            },
+        )
     
     # 2. Extract mode (from model name or system message)
     mode_from_messages = extract_mode_from_messages(payload.messages)
@@ -624,19 +706,40 @@ Do not use general knowledge."""
 
 
 @router.get("/models")
-async def list_models() -> ModelsResponse:
+async def list_models(user: UserDep) -> ModelsResponse:
     """
     List available models (workspaces) in OpenAI-compatible format.
     
     Each workspace is exposed as a model in the format: karag:<workspace_name>
     This allows OpenAI SDK clients to discover available workspaces.
     
+    Only returns workspaces the authenticated user has access to.
+    
+    Args:
+        user: Authenticated user context
+        
     Returns:
-        ModelsResponse with list of available workspaces as models
+        ModelsResponse with list of accessible workspaces as models
     """
     try:
         db = mongodb_manager.get_async_database()
-        workspaces = await db.workspaces.find({}).to_list(1000)
+        
+        # Build query based on user access
+        if user.is_admin:
+            # Admins see all workspaces
+            query = {}
+        else:
+            # Regular users see public workspaces and their assigned workspaces
+            user_doc = await db.users.find_one({"id": user.id})
+            user_workspaces = user_doc.get("workspaces", []) if user_doc else []
+            query = {
+                "$or": [
+                    {"is_public": True},
+                    {"id": {"$in": user_workspaces}},
+                ]
+            }
+        
+        workspaces = await db.workspaces.find(query).to_list(1000)
         
         models = []
         created_timestamp = int(time.time())
@@ -661,21 +764,27 @@ async def list_models() -> ModelsResponse:
         return ModelsResponse(data=models)
         
     except Exception as e:
-        logger.error("list_models_failed", error=str(e))
+        logger.error("list_models_failed", error=str(e), user_id=user.id)
         # Return empty list on error
         return ModelsResponse(data=[])
 
 
 @router.get("/models/{model_id}")
-async def get_model(model_id: str):
+async def get_model(model_id: str, user: UserDep):
     """
     Get a specific model (workspace) by ID.
     
+    Requires authentication and workspace access authorization.
+    
     Args:
         model_id: The model ID in format karag:<workspace_name>
+        user: Authenticated user context
         
     Returns:
-        ModelInfo for the specified workspace
+        ModelInfo for the specified workspace if user has access
+        
+    Raises:
+        HTTPException: If user lacks workspace access or model not found
     """
     try:
         provider, workspace_name, _ = parse_model_name(model_id)
@@ -698,14 +807,35 @@ async def get_model(model_id: str):
                 code="model_not_found",
             )
         
+        # Verify user has access to the workspace
+        workspace_id = workspace["id"]
+        has_access = await verify_workspace_access(user, workspace_id)
+        if not has_access:
+            logger.warning(
+                "unauthorized_model_access_attempt",
+                model_id=model_id,
+                workspace_id=workspace_id,
+                user_id=user.id,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "success": False,
+                    "code": "ACCESS_DENIED",
+                    "message": "You do not have access to this workspace",
+                },
+            )
+        
         return ModelInfo(
             id=model_id,
             created=int(time.time()),
             owned_by="karag",
         )
         
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error("get_model_failed", model_id=model_id, error=str(e))
+        logger.error("get_model_failed", model_id=model_id, error=str(e), user_id=user.id)
         return create_openai_error_response(
             "Failed to retrieve model",
             "server_error",

@@ -21,11 +21,16 @@ from uuid import UUID
 
 from fastapi import Depends, HTTPException, Query, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import JWTError, jwt
 from pydantic import BaseModel
 
 from backend.app.core.config import karag_settings
 from backend.app.core.exceptions import AuthenticationError, AuthorizationError
 from backend.app.core.mongodb import mongodb_manager
+
+# JWT configuration
+JWT_SECRET_KEY = karag_settings.SECRET_KEY
+JWT_ALGORITHM = karag_settings.ALGORITHM
 
 # Security scheme for OpenAPI documentation
 security_scheme = HTTPBearer(auto_error=False)
@@ -116,9 +121,25 @@ async def get_current_workspace(
             },
         )
     
-    # TODO: Validate workspace exists in database
-    # For now, just return the workspace context
-    return CurrentWorkspace(id=ws_id)
+    # Validate workspace exists in database
+    db = mongodb_manager.get_async_database()
+    workspace = await db.workspaces.find_one({"id": ws_id})
+    
+    if not workspace:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "success": False,
+                "code": "WORKSPACE_NOT_FOUND",
+                "message": f"Workspace '{ws_id}' not found",
+            },
+        )
+    
+    return CurrentWorkspace(
+        id=ws_id,
+        name=workspace.get("name"),
+        is_public=workspace.get("is_public", False),
+    )
 
 
 async def get_optional_workspace(
@@ -145,6 +166,26 @@ async def get_optional_workspace(
         return await get_current_workspace(request, workspace_id)
     except HTTPException:
         return None
+
+
+def verify_jwt_token(token: str) -> dict:
+    """
+    Verify and decode a JWT token.
+    
+    Args:
+        token: The JWT token to verify
+        
+    Returns:
+        Decoded token payload
+        
+    Raises:
+        AuthenticationError: If token is invalid or expired
+    """
+    try:
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        return payload
+    except JWTError as e:
+        raise AuthenticationError(f"Invalid or expired token: {str(e)}")
 
 
 async def get_current_user(
@@ -177,27 +218,51 @@ async def get_current_user(
         ):
             return {"user_id": user.id}
     """
-    # TODO: Implement actual JWT validation
-    # For now, return a mock user for development
     if not credentials:
-        # In development, allow unauthenticated requests
-        # In production, this should raise AuthenticationError
-        return CurrentUser(
-            id="dev_user",
-            email="dev@example.com",
-            is_admin=True,
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={
+                "success": False,
+                "code": "AUTHENTICATION_REQUIRED",
+                "message": "Authentication required. Please provide a valid Bearer token.",
+            },
+            headers={"WWW-Authenticate": "Bearer"},
         )
     
     # Validate JWT token
     token = credentials.credentials
     
-    # TODO: Implement proper JWT validation
-    # jwt_payload = verify_jwt_token(token)
+    try:
+        jwt_payload = verify_jwt_token(token)
+    except AuthenticationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={
+                "success": False,
+                "code": "AUTHENTICATION_ERROR",
+                "message": str(e),
+            },
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Extract user information from token payload
+    user_id = jwt_payload.get("sub") or jwt_payload.get("user_id")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={
+                "success": False,
+                "code": "INVALID_TOKEN",
+                "message": "Token missing required user identifier",
+            },
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     
     return CurrentUser(
-        id="user_from_token",
-        email="user@example.com",
-        is_admin=False,
+        id=user_id,
+        email=jwt_payload.get("email"),
+        is_admin=jwt_payload.get("is_admin", False),
+        permissions=jwt_payload.get("permissions", []),
     )
 
 
