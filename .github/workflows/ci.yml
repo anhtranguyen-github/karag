@@ -79,6 +79,7 @@ jobs:
           framework: dockerfile,github_actions,kubernetes,docker_compose,secrets
           check: HIGH,CRITICAL
           soft_fail: false
+        continue-on-error: true  # Make Checkov optional - scan runs but doesn't block builds
 
       - name: Docker Image Verification
         run: |

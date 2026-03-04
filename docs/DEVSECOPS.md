@@ -101,7 +101,7 @@ Our security strategy employs defense in depth with multiple specialized tools:
 | **Bandit** | Python SAST - detects common security issues | Jenkins |
 | **Semgrep** | Enhanced SAST - multi-language static analysis | Jenkins |
 | **TruffleHog** | Secret scanning - detects leaked credentials | GitHub Actions |
-| **Checkov** | IaC scanning - Dockerfile, K8s, Compose, GHA | Both |
+| **Checkov** | IaC scanning - Dockerfile, K8s, Compose, GHA (optional/non-blocking) | Both |
 | **Trivy** | Container scanning - OS and application vulnerabilities | GitHub Actions |
 
 ### 3.2 Tool Details
@@ -127,10 +127,11 @@ Our security strategy employs defense in depth with multiple specialized tools:
 
 #### IaC Scanning
 
-**Checkov**
+**Checkov** (Optional/Non-Blocking)
 - Scans Dockerfiles, GitHub Actions, Kubernetes, Docker Compose
-- Fails on `HIGH` and `CRITICAL` severity findings
+- Reports `HIGH` and `CRITICAL` severity findings but does **not** fail the build
 - Runs in both GitHub Actions and Jenkins pipelines
+- Configured with `continue-on-error: true` in GitHub Actions to allow builds to proceed
 
 #### Container Scanning
 
@@ -255,7 +256,7 @@ A build will fail if any of the following conditions are met:
 | **Test Failures** | pytest or vitest reports failing tests |
 | **SAST Findings** | Bandit or Semgrep detects security issues |
 | **Secret Leaks** | TruffleHog finds verified secrets |
-| **IaC Violations** | Checkov reports HIGH/CRITICAL issues |
+| **IaC Violations** | Checkov reports findings (non-blocking, scan runs but doesn't fail build) |
 | **Container Vulns** | Trivy finds HIGH/CRITICAL vulnerabilities |
 | **SonarQube** | Quality gate fails (coverage, duplications, issues) |
 
