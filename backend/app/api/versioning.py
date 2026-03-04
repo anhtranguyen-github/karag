@@ -13,7 +13,7 @@ from typing import Optional, Callable, Dict, Any
 from enum import Enum
 from functools import wraps
 
-from fastapi import Request, HTTPException, Header, Query
+from fastapi import Header, Query
 from pydantic import BaseModel
 
 

@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import time
 import uuid
-from typing import Callable
 
 import structlog
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint

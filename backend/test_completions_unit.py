@@ -5,8 +5,6 @@ Tests core functions without requiring full server startup.
 """
 
 import pytest
-import re
-from typing import List
 
 # Test the functions directly
 import sys

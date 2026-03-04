@@ -19,9 +19,10 @@ from backend.app.providers.base import (
     LLMResponse,
     ToolCapable,
     LangGraphCompatible,
+    LegacyLLMResponse,
 )
 from backend.app.core.llm_cache import llm_cache
-from backend.app.core.llm_resilience import LLMWithFallback, RateLimitError, APIError
+from backend.app.core.llm_resilience import RateLimitError, APIError
 
 logger = structlog.get_logger(__name__)
 

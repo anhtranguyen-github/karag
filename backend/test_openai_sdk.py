@@ -14,7 +14,6 @@ It verifies:
 import os
 import sys
 import asyncio
-from typing import Optional
 
 # Test configuration
 BASE_URL = os.getenv("KARAG_API_URL", "http://localhost:8000/api/v1")
@@ -68,7 +67,7 @@ async def test_list_models():
 
 async def test_chat_completion_non_streaming():
     """Test non-streaming chat completion."""
-    print(f"\n--- Testing Non-Streaming Chat Completion ---")
+    print("\n--- Testing Non-Streaming Chat Completion ---")
     print(f"Workspace: {TEST_WORKSPACE}")
     
     try:
@@ -101,7 +100,7 @@ async def test_chat_completion_non_streaming():
         assert response.usage.completion_tokens >= 0, "Invalid completion_tokens"
         assert response.usage.total_tokens >= 0, "Invalid total_tokens"
         
-        print(f"✓ Non-streaming response received")
+        print("✓ Non-streaming response received")
         print(f"  ID: {response.id}")
         print(f"  Content preview: {choice.message.content[:100]}...")
         print(f"  Finish reason: {choice.finish_reason}")
@@ -115,7 +114,7 @@ async def test_chat_completion_non_streaming():
 
 async def test_chat_completion_streaming():
     """Test streaming chat completion."""
-    print(f"\n--- Testing Streaming Chat Completion ---")
+    print("\n--- Testing Streaming Chat Completion ---")
     print(f"Workspace: {TEST_WORKSPACE}")
     
     try:
@@ -155,7 +154,7 @@ async def test_chat_completion_streaming():
         
         full_content = "".join(collected_content)
         
-        print(f"✓ Streaming response received")
+        print("✓ Streaming response received")
         print(f"  Chunks: {chunk_count}")
         print(f"  Content: {full_content}")
         
@@ -169,7 +168,7 @@ async def test_chat_completion_streaming():
 
 async def test_citations():
     """Test that citations are properly embedded in content."""
-    print(f"\n--- Testing Citations ---")
+    print("\n--- Testing Citations ---")
     print(f"Workspace: {TEST_WORKSPACE}")
     
     try:
@@ -190,7 +189,7 @@ async def test_citations():
         import re
         citations = re.findall(r'\[\[doc:([^\]]+)\]\]', content)
         
-        print(f"✓ Response received")
+        print("✓ Response received")
         print(f"  Content preview: {content[:150]}...")
         print(f"  Citations found: {len(citations)}")
         
@@ -206,7 +205,7 @@ async def test_citations():
 
 async def test_mode_qa():
     """Test QA mode behavior."""
-    print(f"\n--- Testing QA Mode ---")
+    print("\n--- Testing QA Mode ---")
     
     try:
         client = create_client()
@@ -222,7 +221,7 @@ async def test_mode_qa():
         
         content = response.choices[0].message.content
         
-        print(f"✓ QA mode response received")
+        print("✓ QA mode response received")
         print(f"  Content: {content[:100]}...")
         
         return True
@@ -233,14 +232,14 @@ async def test_mode_qa():
 
 async def test_error_handling():
     """Test error responses are OpenAI-compatible."""
-    print(f"\n--- Testing Error Handling ---")
+    print("\n--- Testing Error Handling ---")
     
     try:
         client = create_client()
         
         # Test with non-existent workspace
         try:
-            response = await client.chat.completions.create(
+            await client.chat.completions.create(
                 model="karag:nonexistent_workspace_xyz",
                 messages=[
                     {"role": "user", "content": "Hello"}
@@ -250,7 +249,7 @@ async def test_error_handling():
             return False
         except Exception as e:
             # Should get an error response
-            print(f"✓ Error properly returned for non-existent workspace")
+            print("✓ Error properly returned for non-existent workspace")
             print(f"  Error type: {type(e).__name__}")
             return True
     except Exception as e:
@@ -260,7 +259,7 @@ async def test_error_handling():
 
 async def test_document_retrieval():
     """Test document retrieval for citations."""
-    print(f"\n--- Testing Document Retrieval ---")
+    print("\n--- Testing Document Retrieval ---")
     
     try:
         import httpx
@@ -297,7 +296,7 @@ async def test_document_retrieval():
             
             if response.status_code == 200:
                 doc_data = response.json()
-                print(f"✓ Document retrieved successfully")
+                print("✓ Document retrieved successfully")
                 print(f"  Filename: {doc_data.get('filename')}")
                 print(f"  Content type: {doc_data.get('content_type')}")
             else:

@@ -7,7 +7,7 @@ Only caches when temperature=0 for reproducible outputs.
 
 import hashlib
 import json
-from typing import Optional, Any
+from typing import Optional
 from datetime import datetime, timedelta
 
 import structlog

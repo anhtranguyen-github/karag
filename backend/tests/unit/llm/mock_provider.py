@@ -13,6 +13,7 @@ from backend.app.providers.base import (
     LLMProvider,
     LLMResponse,
     ToolCapable,
+    LegacyLLMResponse,
 )
 
 

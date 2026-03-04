@@ -17,7 +17,6 @@ Following FastAPI dependency injection best practices:
 from __future__ import annotations
 
 from typing import Annotated, Optional
-from uuid import UUID
 
 from fastapi import Depends, HTTPException, Query, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -25,7 +24,7 @@ from jose import JWTError, jwt
 from pydantic import BaseModel
 
 from backend.app.core.config import karag_settings
-from backend.app.core.exceptions import AuthenticationError, AuthorizationError
+from backend.app.core.exceptions import AuthenticationError
 from backend.app.core.mongodb import mongodb_manager
 
 # JWT configuration

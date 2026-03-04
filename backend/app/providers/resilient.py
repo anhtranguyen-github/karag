@@ -8,7 +8,7 @@ Wraps the standard provider factory with resilience patterns:
 - Enhanced error handling
 """
 
-from typing import List, Optional, Any, AsyncIterator
+from typing import Dict, List, Optional, Any, AsyncIterator
 import structlog
 
 from backend.app.providers.base import (
@@ -22,7 +22,6 @@ from backend.app.core.llm_resilience import (
     create_openai_with_fallback,
     create_anthropic_with_fallback,
 )
-from backend.app.core.config import karag_settings
 from backend.app.core.factory import ProviderFactory
 
 logger = structlog.get_logger(__name__)

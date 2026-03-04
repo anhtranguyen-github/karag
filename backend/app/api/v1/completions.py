@@ -144,7 +144,6 @@ def build_rag_context_with_citations(
         text = res.get("text", "")
         payload = res.get("payload", {})
         doc_id = payload.get("doc_id", "unknown")
-        source = payload.get("source", "unknown")
         
         if not text:
             continue

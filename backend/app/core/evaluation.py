@@ -12,7 +12,6 @@ Implements systematic evaluation of LLM outputs for quality:
 from typing import List, Dict, Optional, Any
 from dataclasses import dataclass
 from enum import Enum
-import json
 
 import structlog
 from backend.app.core.telemetry import get_tracer

@@ -9,7 +9,6 @@ from backend.app.core.telemetry import (
 from backend.app.rag.advanced_retrieval import (
     MultiQueryRetriever,
     ContextualCompressor,
-    HybridRetriever,
     RetrievalResult,
 )
 

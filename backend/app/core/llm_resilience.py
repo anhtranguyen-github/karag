@@ -12,7 +12,6 @@ import time
 import asyncio
 from typing import List, Optional, Callable, TypeVar, Any
 from dataclasses import dataclass
-from enum import Enum
 
 import structlog
 from tenacity import (
@@ -28,7 +27,6 @@ from backend.app.core.telemetry import (
     LLM_FALLBACK_USED,
     LLM_RETRY_COUNT,
 )
-from backend.app.core.config import karag_settings
 
 logger = structlog.get_logger(__name__)
 tracer = get_tracer(__name__)
