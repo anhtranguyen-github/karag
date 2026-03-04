@@ -65,7 +65,6 @@ async def get_current_workspace(
     workspace_id: Annotated[
         Optional[str],
         Query(
-            None,
             description="Workspace ID for workspace-scoped operations",
             examples=["ws_123abc"],
         ),
