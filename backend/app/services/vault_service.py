@@ -19,10 +19,7 @@ from backend.app.core.exceptions import NotFoundError, ConflictError, Authorizat
 from backend.app.schemas.baas import (
     Vault, 
     VectorStoreConfig, 
-    FileStoreConfig,
-    Document,
-    Chunk,
-    VaultAccessError
+    FileStoreConfig
 )
 
 logger = structlog.get_logger(__name__)

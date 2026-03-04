@@ -14,7 +14,7 @@ from typing import Optional, List
 from passlib.context import CryptContext
 
 from backend.app.core.mongodb import mongodb_manager
-from backend.app.core.exceptions import AuthenticationError, NotFoundError, ConflictError
+from backend.app.core.exceptions import AuthenticationError, NotFoundError
 from backend.app.schemas.baas import (
     APIKey, 
     APIKeyCreateResponse,

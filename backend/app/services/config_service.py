@@ -14,8 +14,7 @@ from typing import Optional, Any, Dict
 from datetime import datetime
 
 from backend.app.core.mongodb import mongodb_manager
-from backend.app.core.config import karag_settings
-from backend.app.core.exceptions import ValidationError, NotFoundError
+from backend.app.core.exceptions import ValidationError
 from backend.app.schemas.baas import (
     SystemConfig,
     WorkspaceConfig,
