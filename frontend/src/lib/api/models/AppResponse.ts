@@ -65,7 +65,7 @@ export function AppResponseFromJSONTyped(json: any, ignoreDiscriminator: boolean
         'success': json['success'] == null ? undefined : json['success'],
         'code': json['code'] == null ? undefined : json['code'],
         'message': json['message'] == null ? undefined : json['message'],
-        'data': json['data'] == null ? undefined : json['data'],
+        'data': json['data'] == null ? undefined : FromJSON(json['data']),
     };
 }
 
@@ -83,7 +83,7 @@ export function AppResponseToJSONTyped(value?: AppResponse | null, ignoreDiscrim
         'success': value['success'],
         'code': value['code'],
         'message': value['message'],
-        'data': value['data'],
+        'data': ToJSON(value['data']),
     };
 }
 
