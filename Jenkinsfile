@@ -16,7 +16,7 @@ pipeline {
     }
 
     stages {
-        stage('Step 0: Initialize') {
+        stage('Initialize') {
             steps {
                 echo "Initializing workspace for ${env.APP_NAME}..."
                 checkout scm
@@ -24,7 +24,7 @@ pipeline {
             }
         }
 
-        stage('Question 1: Can this code run?') {
+        stage('Build & Lint') {
             parallel {
                 stage('Backend: Environment & Lint') {
                     steps {
@@ -69,7 +69,7 @@ pipeline {
             }
         }
 
-        stage('Question 2: Does it behave as intended?') {
+        stage('Test') {
             parallel {
                 stage('Backend: Unit & Contract') {
                     steps {
@@ -108,7 +108,7 @@ pipeline {
             }
         }
 
-        stage('Question 3: Are there obvious security risks?') {
+        stage('Security SAST') {
             parallel {
                 stage('Backend: SAST (Bandit)') {
                     steps {
@@ -144,7 +144,7 @@ pipeline {
             }
         }
 
-        stage('Question 4: Are dependencies and artifacts trustworthy?') {
+        stage('Supply Chain & Artifacts') {
             parallel {
                 stage('Supply Chain: uv Audit') {
                     steps {
@@ -162,7 +162,7 @@ pipeline {
             }
         }
 
-        stage('Question 5: Are infrastructure and configs safe?') {
+        stage('Infrastructure & Config') {
             parallel {
                 stage('IaC Scan: Checkov') {
                     steps {
@@ -205,11 +205,10 @@ pipeline {
             cleanWs()
         }
         success {
-            echo "All 5 security/correctness questions answered: YES."
+            echo "All security and correctness checks passed."
         }
         failure {
-            echo "CI Pipeline failed. Check the specific 'Question' stage for details."
+            echo "CI Pipeline failed. Check the specific stage for details."
         }
     }
 }
-
