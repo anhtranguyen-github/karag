@@ -179,6 +179,34 @@ Intent: """,
     logger.info("prompt_registry_init_complete", prompts=len(prompts))
 
 
+async def _initialize_baas_core() -> None:
+    """
+    Initialize BaaS Core components (Blocks 1-5).
+    
+    - Block 1: Initialize API key system
+    - Block 2: Initialize global vault
+    - Block 4: Initialize system configuration
+    """
+    logger.info("baas_init_start", msg="Initializing BaaS Core...")
+    
+    # Block 4: Initialize system config
+    from backend.app.services.config_service import config_service
+    await config_service.initialize_system_config()
+    logger.info("baas_system_config_ready")
+    
+    # Block 2: Initialize global vault
+    from backend.app.services.vault_service import vault_service
+    await vault_service.initialize_global_vault()
+    logger.info("baas_global_vault_ready")
+    
+    # Block 1: Cleanup expired API keys
+    from backend.app.services.api_key_service import api_key_service
+    cleaned_count = await api_key_service.cleanup_expired_keys()
+    logger.info("baas_api_keys_cleaned", expired_keys_removed=cleaned_count)
+    
+    logger.info("baas_init_complete", msg="BaaS Core ready")
+
+
 async def _shutdown_services() -> None:
     """Gracefully shutdown all services."""
     from backend.app.core.factory import LangChainFactory
@@ -212,6 +240,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         await _initialize_vector_store()
         await _initialize_task_system()
         await _initialize_prompt_registry()
+        await _initialize_baas_core()  # Blocks 1-5 initialization
 
         logger.info("infra_init_complete", msg="Infrastructure ready.")
         yield
