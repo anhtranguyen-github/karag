@@ -1,0 +1,111 @@
+# Benchmark presets for RAG evaluation
+
+benchmarks:
+  # Standard QA benchmark
+  standard_qa:
+    name: "Standard QA Evaluation"
+    description: "Comprehensive QA evaluation with both retrieval and generation metrics"
+    runner: "standard_qa"
+    datasets:
+      - ms_marco
+      - squad_v2
+      - natural_questions
+    config:
+      max_samples: 1000
+      k_values: [1, 5, 10]
+      compute_retrieval_metrics: true
+      compute_generation_metrics: true
+      timeout_per_sample: 30.0
+
+  # Retrieval-focused benchmark
+  retrieval_focused:
+    name: "Retrieval Quality Benchmark"
+    description: "Focus on document retrieval quality"
+    runner: "retrieval"
+    datasets:
+      - ms_marco
+      - beir
+    config:
+      max_samples: 500
+      k_values: [1, 5, 10, 20, 50]
+      compute_retrieval_metrics: true
+      compute_generation_metrics: false
+
+  # End-to-end benchmark
+  end_to_end:
+    name: "End-to-End Pipeline Benchmark"
+    description: "Full RAG pipeline evaluation with detailed intermediate results"
+    runner: "end_to_end"
+    datasets:
+      - hotpot_qa
+      - ms_marco
+    config:
+      max_samples: 500
+      k_values: [1, 5, 10]
+      save_intermediate: true
+
+  # Robustness benchmark
+  robustness:
+    name: "Robustness Test Suite"
+    description: "Test robustness against noise and adversarial inputs"
+    runner: "robustness"
+    datasets:
+      - squad_v2
+      - trivia_qa
+    config:
+      max_samples: 200
+      k_values: [5]
+    parameters:
+      noise_level: 0.1
+      test_types:
+        - typo
+        - noise
+        - ambiguous
+        - counterfactual
+
+  # Vietnamese benchmark
+  vietnamese:
+    name: "Vietnamese RAG Benchmark"
+    description: "Evaluation on Vietnamese datasets"
+    runner: "standard_qa"
+    datasets:
+      - uit_viquad
+      - uit_vinewsqa
+    config:
+      max_samples: 1000
+      k_values: [1, 5, 10]
+
+  # Quick smoke test
+  smoke_test:
+    name: "Smoke Test"
+    description: "Quick sanity check with small sample"
+    runner: "standard_qa"
+    datasets:
+      - squad_v2
+    config:
+      max_samples: 10
+      k_values: [5]
+
+  # Full comprehensive benchmark
+  comprehensive:
+    name: "Comprehensive Benchmark"
+    description: "Complete evaluation across all metrics and datasets"
+    runner: "standard_qa"
+    datasets:
+      - ms_marco
+      - squad_v2
+      - hotpot_qa
+      - natural_questions
+      - trivia_qa
+      - uit_viquad
+    config:
+      max_samples: 500
+      k_values: [1, 5, 10, 20]
+      compute_retrieval_metrics: true
+      compute_generation_metrics: true
+
+# Benchmark groups for CI/CD
+ci_benchmarks:
+  quick: smoke_test
+  nightly: standard_qa
+  weekly: comprehensive

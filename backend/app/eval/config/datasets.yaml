@@ -1,0 +1,195 @@
+# Dataset configurations for RAG evaluation
+# Supports both English and Vietnamese datasets
+
+datasets:
+  # English Datasets
+  rgb:
+    name: "RGB - Retrieval-Augmented Generation Benchmark"
+    description: "600+ samples for RAG evaluation"
+    language: "en"
+    task_type: "qa"
+    hf_path: " ambiguous - needs specific loader"
+    domains: ["general", "wiki"]
+    num_samples: 600
+    citation: "RGB: Benchmark for RAG Systems"
+
+  crag:
+    name: "CRAG - Comprehensive RAG Benchmark"
+    description: "4,409 QA pairs across 5 domains"
+    language: "en"
+    task_type: "qa"
+    hf_path: "yahoo/CRAG"
+    domains: ["finance", "movie", "sports", "open", "entity"]
+    num_samples: 4409
+    column_mapping:
+      query: "query"
+      answer: "answer"
+      contexts: "passages"
+
+  ms_marco:
+    name: "MS MARCO"
+    description: "Large-scale web search benchmark"
+    language: "en"
+    task_type: "retrieval"
+    hf_path: "microsoft/ms_marco"
+    config_name: "v1.1"
+    domains: ["web", "search"]
+    num_samples: 100000
+    column_mapping:
+      query: "query"
+      answer: "answers"
+      contexts: "passages"
+
+  squad_v2:
+    name: "SQuAD 2.0"
+    description: "Reading comprehension with unanswerable questions"
+    language: "en"
+    task_type: "qa"
+    hf_path: "rajpurkar/squad_v2"
+    domains: ["wiki", "reading_comprehension"]
+    num_samples: 150000
+    column_mapping:
+      query: "question"
+      answer: "answers.text"
+      contexts: "context"
+
+  hotpot_qa:
+    name: "HotpotQA"
+    description: "Multi-hop reasoning QA dataset"
+    language: "en"
+    task_type: "qa"
+    hf_path: "hotpot_qa"
+    config_name: "distractor"
+    domains: ["wiki", "multi_hop"]
+    num_samples: 90000
+    column_mapping:
+      query: "question"
+      answer: "answer"
+      contexts: "context"
+
+  natural_questions:
+    name: "Natural Questions"
+    description: "Google search queries with answers"
+    language: "en"
+    task_type: "qa"
+    hf_path: "google-research-datasets/natural_questions"
+    domains: ["search", "real_queries"]
+    num_samples: 300000
+    column_mapping:
+      query: "question"
+      answer: "annotations.short_answers"
+      contexts: "document.text"
+
+  trivia_qa:
+    name: "TriviaQA"
+    description: "Trivia question answering"
+    language: "en"
+    task_type: "qa"
+    hf_path: "trivia_qa"
+    config_name: "unfiltered.nocontext"
+    domains: ["trivia", "general"]
+    num_samples: 650000
+    column_mapping:
+      query: "question"
+      answer: "answer.value"
+
+  beir:
+    name: "BEIR"
+    description: "Heterogeneous benchmark for IR"
+    language: "en"
+    task_type: "retrieval"
+    subsets:
+      - nfcorpus
+      - fiqa
+      - arguana
+      - scidocs
+      - scifact
+    domains: ["medical", "finance", "science", "legal"]
+
+  # Vietnamese Datasets
+  uit_viquad:
+    name: "UIT-ViQuAD v1.0"
+    description: "23,000+ QA pairs from Vietnamese Wikipedia"
+    language: "vi"
+    task_type: "qa"
+    hf_path: "uitnlp/viquad"
+    domains: ["wiki", "vietnamese"]
+    num_samples: 23000
+    column_mapping:
+      query: "question"
+      answer: "answers.text"
+      contexts: "context"
+
+  uit_vinewsqa:
+    name: "UIT-ViNewsQA"
+    description: "22,077 medical news QA pairs"
+    language: "vi"
+    task_type: "qa"
+    hf_path: "uitnlp/vinewsqa"
+    domains: ["medical", "vietnamese", "news"]
+    num_samples: 22077
+    column_mapping:
+      query: "question"
+      answer: "answer"
+      contexts: "context"
+
+  vifactcheck:
+    name: "ViFactCheck"
+    description: "7,232 fact-checking pairs"
+    language: "vi"
+    task_type: "fact_checking"
+    hf_path: "ambiguous - needs specific loader"
+    domains: ["fact_checking", "vietnamese"]
+    num_samples: 7232
+
+  vsmrc:
+    name: "VSMRC"
+    description: "16,347 multiple-choice questions"
+    language: "vi"
+    task_type: "multiple_choice"
+    hf_path: "ambiguous - needs specific loader"
+    domains: ["reading_comprehension", "vietnamese"]
+    num_samples: 16347
+
+  vimedretrieve:
+    name: "ViMedRetrieve"
+    description: "44,000+ medical retrieval pairs"
+    language: "vi"
+    task_type: "retrieval"
+    hf_path: "ambiguous - needs specific loader"
+    domains: ["medical", "vietnamese", "retrieval"]
+    num_samples: 44000
+
+# Dataset groups for easy reference
+groups:
+  english_qa:
+    - ms_marco
+    - squad_v2
+    - hotpot_qa
+    - natural_questions
+    - trivia_qa
+  
+  vietnamese:
+    - uit_viquad
+    - uit_vinewsqa
+    - vifactcheck
+    - vsmrc
+    - vimedretrieve
+  
+  medical:
+    - uit_vinewsqa
+    - vimedretrieve
+  
+  all:
+    - rgb
+    - crag
+    - ms_marco
+    - squad_v2
+    - hotpot_qa
+    - natural_questions
+    - trivia_qa
+    - uit_viquad
+    - uit_vinewsqa
+    - vifactcheck
+    - vsmrc
+    - vimedretrieve

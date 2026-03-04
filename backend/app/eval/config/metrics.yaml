@@ -1,0 +1,142 @@
+# Metrics configuration for RAG evaluation
+
+metrics:
+  # Retrieval Metrics
+  retrieval:
+    recall_at_k:
+      name: "Recall@k"
+      description: "Proportion of relevant documents retrieved"
+      k_values: [1, 5, 10, 20]
+      range: [0, 1]
+      higher_is_better: true
+    
+    precision_at_k:
+      name: "Precision@k"
+      description: "Proportion of retrieved documents that are relevant"
+      k_values: [1, 5, 10, 20]
+      range: [0, 1]
+      higher_is_better: true
+    
+    ndcg_at_k:
+      name: "nDCG@k"
+      description: "Normalized Discounted Cumulative Gain"
+      k_values: [1, 5, 10, 20]
+      range: [0, 1]
+      higher_is_better: true
+    
+    mrr:
+      name: "MRR"
+      description: "Mean Reciprocal Rank"
+      range: [0, 1]
+      higher_is_better: true
+    
+    hit_rate:
+      name: "Hit Rate@k"
+      description: "Whether at least one relevant document is retrieved"
+      k_values: [1, 5, 10]
+      range: [0, 1]
+      higher_is_better: true
+    
+    map:
+      name: "MAP"
+      description: "Mean Average Precision"
+      range: [0, 1]
+      higher_is_better: true
+
+  # Generation Metrics (RAGAS-style)
+  generation:
+    faithfulness:
+      name: "Faithfulness"
+      description: "Whether answer is grounded in retrieved context"
+      range: [0, 1]
+      higher_is_better: true
+      methods:
+        - claim_verification
+        - entailment
+        - llm_judge
+    
+    answer_relevancy:
+      name: "Answer Relevancy"
+      description: "Whether answer addresses the query"
+      range: [0, 1]
+      higher_is_better: true
+    
+    context_precision:
+      name: "Context Precision"
+      description: "Signal-to-noise ratio in retrieved chunks"
+      range: [0, 1]
+      higher_is_better: true
+    
+    context_recall:
+      name: "Context Recall"
+      description: "Coverage of ground truth in retrieved context"
+      range: [0, 1]
+      higher_is_better: true
+
+  # End-to-End Metrics
+  end_to_end:
+    exact_match:
+      name: "Exact Match"
+      description: "Exact string match with ground truth"
+      range: [0, 1]
+      higher_is_better: true
+    
+    f1_score:
+      name: "F1 Score"
+      description: "Token-level F1 score"
+      range: [0, 1]
+      higher_is_better: true
+    
+    answer_similarity:
+      name: "Answer Similarity"
+      description: "Semantic similarity using ROUGE-L or BERTScore"
+      range: [0, 1]
+      higher_is_better: true
+      methods:
+        - rouge_l
+        - bertscore
+
+  # Performance Metrics
+  performance:
+    latency_ms:
+      name: "Latency"
+      description: "Response time in milliseconds"
+      unit: "ms"
+      higher_is_better: false
+    
+    throughput:
+      name: "Throughput"
+      description: "Queries per second"
+      unit: "qps"
+      higher_is_better: true
+
+# Metric aggregation settings
+aggregation:
+  default_methods:
+    - mean
+    - std
+    - min
+    - max
+    - median
+  
+  percentile_thresholds:
+    - 25
+    - 50
+    - 75
+    - 95
+    - 99
+
+# Metric thresholds for pass/fail
+thresholds:
+  retrieval:
+    recall@10: 0.7
+    precision@5: 0.6
+    mrr: 0.5
+  
+  generation:
+    faithfulness: 0.7
+    answer_relevancy: 0.6
+  
+  end_to_end:
+    f1_score: 0.5
+    exact_match: 0.3
