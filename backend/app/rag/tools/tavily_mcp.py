@@ -1,11 +1,15 @@
 import httpx
+import os
 from typing import List, Dict, Any
 import structlog
 
 logger = structlog.get_logger(__name__)
 
-TAVILY_API_KEY = "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"
+TAVILY_API_KEY = os.getenv("TAVILY_API_KEY", "")
 TAVILY_SEARCH_URL = "https://api.tavily.com/search"
+
+if not TAVILY_API_KEY:
+    logger.warning("TAVILY_API_KEY environment variable not set - Tavily search will be unavailable")
 
 
 class TavilySearchTool:
@@ -22,6 +26,10 @@ class TavilySearchTool:
         Execute web search using Tavily REST API.
         Returns a list of result dicts with url, title, content keys.
         """
+        if not self.api_key:
+            logger.error("tavily_search_failed_no_api_key")
+            raise ValueError("TAVILY_API_KEY not configured. Set the TAVILY_API_KEY environment variable.")
+
         logger.info("tavily_search_start", query=query)
 
         payload = {

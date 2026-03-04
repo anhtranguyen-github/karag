@@ -108,6 +108,10 @@ backend/data/*.json
 /assets/
 TESTING_CONSTRAINTS_AND_BUGS.md
 
+# Allow DevSecOps documentation
+!/docs/DEVSECOPS.md
+!/docs/GITHUB_SECRETS.md
+
 # ===================
 # Python (if applicable)
 # ===================
