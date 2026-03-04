@@ -16,9 +16,9 @@ async def get_prompts():
 @router.get("/vector/status")
 async def get_vector_status():
     """Get status of the vector store."""
-    from backend.app.core.factory import LangChainFactory
+    from backend.app.core.factory import ProviderFactory
 
-    store = await LangChainFactory.get_vector_store()
+    store = await ProviderFactory.get_vector_store()
     status = await store.get_system_info()
     return AppResponse.success_response(data=status)
 

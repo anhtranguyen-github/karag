@@ -107,7 +107,7 @@ async def test_document_service_delete(mocker):
     mock_store.delete_document = AsyncMock()
 
     mocker.patch(
-        "backend.app.core.factory.LangChainFactory.get_vector_store",
+        "backend.app.core.factory.ProviderFactory.get_vector_store",
         return_value=mock_store,
     )
 

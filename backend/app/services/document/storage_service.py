@@ -35,9 +35,9 @@ class StorageService:
         if not doc:
             raise NotFoundError(f"Document '{doc_id}' not found.")
 
-        from backend.app.core.factory import LangChainFactory
+        from backend.app.core.factory import ProviderFactory
 
-        store = await LangChainFactory.get_vector_store()
+        store = await ProviderFactory.get_vector_store()
 
         if vault_delete:
             content_hash = doc.get("content_hash")
@@ -125,7 +125,7 @@ class StorageService:
                 {"shared_with": workspace_id}, {"$pull": {"shared_with": workspace_id}}
             )
 
-            from backend.app.core.factory import LangChainFactory
+            from backend.app.core.factory import ProviderFactory
 
-            store = await LangChainFactory.get_vector_store()
+            store = await ProviderFactory.get_vector_store()
             await store.purge_workspace(workspace_id)

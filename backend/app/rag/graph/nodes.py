@@ -3,7 +3,7 @@ from typing import Dict, Any
 from backend.app.rag.graph.state import GraphState
 from backend.app.schemas.execution import ExecutionMode
 from backend.app.rag.rag_service import rag_service
-from backend.app.core.factory import LangChainFactory
+from backend.app.core.factory import ProviderFactory
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 
@@ -44,7 +44,7 @@ async def analyze_intent(state: GraphState, config: RunnableConfig) -> Dict[str,
             "execution_metadata": {**state.get("execution_metadata", {}), "intent": "greeting"}
         }
 
-    llm = await LangChainFactory.get_llm(state["workspace_id"])
+    llm = await ProviderFactory.get_llm(state["workspace_id"])
     
     today = time.strftime("%Y-%m-%d")
     if mode == ExecutionMode.AUTO:
@@ -112,7 +112,7 @@ async def build_query_context(
         return {"generated_queries": []}
 
     today = time.strftime("%Y-%m-%d")
-    llm = await LangChainFactory.get_llm(state["workspace_id"])
+    llm = await ProviderFactory.get_llm(state["workspace_id"])
     system_prompt = (
         f"Today is {today}. Generate {count} unique, highly specific search queries to retrieve foundational facts for: '{query}'. "
         "Focus on specific entities, dates, and recent events. "
@@ -297,7 +297,7 @@ async def reflect_and_decide(
     if len(state.get("blended_context", "")) > threshold and state["loop_count"] > 0:
         return {"is_sufficient": True}
 
-    llm = await LangChainFactory.get_llm(state["workspace_id"])
+    llm = await ProviderFactory.get_llm(state["workspace_id"])
     
     # Persona-based reflection
     if mode == ExecutionMode.THINK:
@@ -337,7 +337,7 @@ async def assemble_context(state: GraphState) -> Dict[str, Any]:
 
 async def generate_answer(state: GraphState, config: RunnableConfig) -> Dict[str, Any]:
     """Produce final response with mode-specific structure."""
-    llm = await LangChainFactory.get_llm(state["workspace_id"])
+    llm = await ProviderFactory.get_llm(state["workspace_id"])
     mode = state["settings"].execution_mode
 
     today = time.strftime("%Y-%m-%d")

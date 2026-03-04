@@ -209,14 +209,14 @@ async def _initialize_baas_core() -> None:
 
 async def _shutdown_services() -> None:
     """Gracefully shutdown all services."""
-    from backend.app.core.factory import LangChainFactory
+    from backend.app.core.factory import ProviderFactory
     from backend.app.services.task.task_worker import task_worker
 
     # Stop task worker
     await task_worker.stop()
 
     # Close graph store driver
-    graph_store = await LangChainFactory.get_graph_store()
+    graph_store = await ProviderFactory.get_graph_store()
     await graph_store.close()
 
 

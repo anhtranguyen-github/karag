@@ -135,7 +135,7 @@ async def test_ingestion_progress_updates(mocker, mock_db_and_col):
     # Patch the factory or the store methods
     mock_store = AsyncMock()
     mocker.patch(
-        "backend.app.core.factory.LangChainFactory.get_vector_store",
+        "backend.app.core.factory.ProviderFactory.get_vector_store",
         return_value=mock_store,
     )
     mock_store.upsert_documents = AsyncMock()

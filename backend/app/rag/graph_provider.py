@@ -47,9 +47,9 @@ class GraphProvider:
         )
 
         try:
-            from backend.app.core.factory import LangChainFactory
+            from backend.app.core.factory import ProviderFactory
 
-            graph_store = await LangChainFactory.get_graph_store()
+            graph_store = await ProviderFactory.get_graph_store()
 
             graph_context = await graph_store.get_related_entities(
                 keywords=keywords,
@@ -79,9 +79,9 @@ class GraphProvider:
                 )
 
             # STEP 4: Final retrieval from Vector DB (ranked chunks)
-            from backend.app.core.factory import LangChainFactory
+            from backend.app.core.factory import ProviderFactory
 
-            store = await LangChainFactory.get_vector_store()
+            store = await ProviderFactory.get_vector_store()
 
             search_results = await store.search(
                 config=settings.retrieval,
@@ -108,9 +108,9 @@ class GraphProvider:
                 "graph_retrieval_failed", error=str(e), workspace_id=workspace_id
             )
             # Fallback to basic search if Neo4j is down or fails
-            from backend.app.core.factory import LangChainFactory
+            from backend.app.core.factory import ProviderFactory
 
-            store = await LangChainFactory.get_vector_store()
+            store = await ProviderFactory.get_vector_store()
 
             search_results = await store.search(
                 config=settings.retrieval,
@@ -125,9 +125,9 @@ class GraphProvider:
 
     async def upsert_entities(self, entities: List[Dict[str, Any]], workspace_id: str):
         """Insert or update entities and relationships using the injected GraphStore."""
-        from backend.app.core.factory import LangChainFactory
+        from backend.app.core.factory import ProviderFactory
 
-        graph_store = await LangChainFactory.get_graph_store()
+        graph_store = await ProviderFactory.get_graph_store()
 
         await graph_store.upsert_entities(entities=entities, workspace_id=workspace_id)
 

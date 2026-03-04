@@ -51,8 +51,8 @@ class RAGService:
     async def get_embeddings(
         self, texts: List[str], workspace_id: str
     ) -> List[List[float]]:
-        """Generate embeddings using the flexible provider via LangChain Factory."""
-        from backend.app.core.factory import LangChainFactory
+        """Generate embeddings using the flexible provider via ProviderFactory."""
+        from backend.app.core.factory import ProviderFactory
 
         with tracer.start_as_current_span(
             "rag.generate_embeddings",
@@ -62,7 +62,7 @@ class RAGService:
             },
         ):
             start = time.perf_counter()
-            provider = await LangChainFactory.get_embeddings(workspace_id)
+            provider = await ProviderFactory.get_embeddings(workspace_id)
             result = await provider.aembed_documents(texts)
             duration = time.perf_counter() - start
 
@@ -81,9 +81,9 @@ class RAGService:
         self, query: str, workspace_id: str
     ) -> List[float]:
         """Generate embedding for a single query."""
-        from backend.app.core.factory import LangChainFactory
+        from backend.app.core.factory import ProviderFactory
 
-        provider = await LangChainFactory.get_embeddings(workspace_id)
+        provider = await ProviderFactory.get_embeddings(workspace_id)
         return await provider.aembed_query(query)
 
     async def search(
@@ -96,7 +96,7 @@ class RAGService:
         Modular retrieval using LangChain Retrievers.
         Decisions are guided by Schema, execution by LangChain.
         """
-        from backend.app.core.factory import LangChainFactory
+        from backend.app.core.factory import ProviderFactory
         from backend.app.core.settings_manager import settings_manager
 
         with tracer.start_as_current_span(
@@ -109,7 +109,7 @@ class RAGService:
             start = time.perf_counter()
 
             # Execute retrieval via adapter pattern
-            store = await LangChainFactory.get_vector_store(workspace_id)
+            store = await ProviderFactory.get_vector_store(workspace_id)
             settings = await settings_manager.get_settings(workspace_id)
 
             query_vector = await self.get_query_embedding(query, workspace_id)

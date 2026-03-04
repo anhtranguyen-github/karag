@@ -19,7 +19,6 @@ from backend.app.providers.base import (
     LLMResponse,
     ToolCapable,
     LangGraphCompatible,
-    LegacyLLMResponse,
 )
 from backend.app.core.llm_cache import llm_cache
 from backend.app.core.llm_resilience import RateLimitError, APIError
@@ -352,44 +351,4 @@ class LangChainAdapter(LLMProvider, ToolCapable, LangGraphCompatible):
         async for chunk in self._llm.astream(input, config=config, **kwargs):
             yield chunk
     
-    # =========================================================================
-    # Legacy Compatibility Methods (to be deprecated)
-    # =========================================================================
-    
-    async def generate_chat(
-        self, messages: List[Dict[str, str]], **kwargs
-    ) -> "LegacyLLMResponse":
-        """Legacy method for backward compatibility.
-        
-        Accepts dict messages instead of LLMMessage objects.
-        """
-        from backend.app.providers.base import LegacyLLMResponse
-        
-        # Convert dict messages to LLMMessage
-        llm_messages = []
-        for msg in messages:
-            role = msg.get("role", "user")
-            content = msg.get("content", "")
-            llm_messages.append(LLMMessage(role=role, content=content))
-        
-        response = await self.chat(llm_messages, **kwargs)
-        
-        return LegacyLLMResponse(
-            content=response.content,
-            usage=response.usage,
-            metadata=response.metadata,
-        )
-    
-    async def generate_stream(
-        self, messages: List[Dict[str, str]], **kwargs
-    ) -> AsyncIterator[str]:
-        """Legacy method for backward compatibility."""
-        # Convert dict messages to LLMMessage
-        llm_messages = []
-        for msg in messages:
-            role = msg.get("role", "user")
-            content = msg.get("content", "")
-            llm_messages.append(LLMMessage(role=role, content=content))
-        
-        async for chunk in self.stream(llm_messages, **kwargs):
-            yield chunk
+

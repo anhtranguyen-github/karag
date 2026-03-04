@@ -319,10 +319,10 @@ class WorkspaceService:
 
         # 2. Knowledge Graph Nodes (Neo4j)
         if settings.rag_engine == "graph":
-            from backend.app.core.factory import LangChainFactory
+            from backend.app.core.factory import ProviderFactory
 
             try:
-                graph_store = await LangChainFactory.get_graph_store()
+                graph_store = await ProviderFactory.get_graph_store()
                 records = await graph_store.get_workspace_graph(
                     workspace_id=workspace_id, limit=100
                 )

@@ -22,8 +22,6 @@ from backend.app.providers.base import (
     ToolCapable,
     StructuredOutputCapable,
     LangGraphCompatible,
-    ILLMProvider,  # Legacy alias
-    LegacyLLMResponse,  # Legacy alias
 )
 from backend.app.providers.embedding import EmbeddingProvider
 from backend.app.providers.llm import get_llm
@@ -42,8 +40,4 @@ __all__ = [
     
     # Entry points
     "get_llm",
-    
-    # Legacy compatibility (deprecated)
-    "ILLMProvider",
-    "LegacyLLMResponse",
 ]

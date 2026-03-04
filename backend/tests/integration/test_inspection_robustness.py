@@ -76,7 +76,7 @@ async def test_get_chunks_correct_collection(mocker):
     mock_store.get_document_chunks = AsyncMock(return_value=[])
 
     mocker.patch(
-        "backend.app.core.factory.LangChainFactory.get_vector_store",
+        "backend.app.core.factory.ProviderFactory.get_vector_store",
         return_value=mock_store,
     )
 

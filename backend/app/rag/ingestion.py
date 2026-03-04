@@ -17,7 +17,7 @@ from langchain_community.document_loaders import (
     Docx2txtLoader,
 )
 
-from backend.app.core.factory import LangChainFactory
+from backend.app.core.factory import ProviderFactory
 from backend.app.schemas.database import IngestionConfig
 from backend.app.rag.store.base import DocumentPoint
 
@@ -41,7 +41,7 @@ class IngestionPipeline:
             vector_size=settings.embedding.dimensions,
             chunking=settings.chunking,
         )
-        store = await LangChainFactory.get_vector_store(workspace_id)
+        store = await ProviderFactory.get_vector_store(workspace_id)
         return config, store
 
     async def initialize(self, workspace_id: str = "default"):

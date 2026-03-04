@@ -179,17 +179,4 @@ class LangGraphCompatible(Protocol):
         ...
 
 
-# =============================================================================
-# Legacy Compatibility (to be deprecated)
-# =============================================================================
 
-# Keep old names for backward compatibility during transition
-ILLMProvider = LLMProvider
-
-
-@dataclass
-class LegacyLLMResponse:
-    """Legacy response format for backward compatibility."""
-    content: str
-    usage: Optional[Dict[str, int]] = None
-    metadata: Optional[Dict[str, Any]] = None

@@ -196,7 +196,3 @@ class ProviderFactory:
 
         # Like VectorStore, this can switch implementations based on settings
         return Neo4jStore()
-
-
-# Legacy alias for backward compatibility during transition
-LangChainFactory = ProviderFactory

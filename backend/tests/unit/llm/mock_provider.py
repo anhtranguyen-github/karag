@@ -13,7 +13,6 @@ from backend.app.providers.base import (
     LLMProvider,
     LLMResponse,
     ToolCapable,
-    LegacyLLMResponse,
 )
 
 
@@ -169,43 +168,6 @@ class MockLLMProvider(LLMProvider, ToolCapable):
         new_mock._bound_tools = tools
         new_mock.call_history = self.call_history
         return new_mock
-    
-    # =============================================================================
-    # Legacy Compatibility (to be deprecated)
-    # =============================================================================
-    
-    async def generate_chat(
-        self, messages: List[Dict[str, str]], **kwargs
-    ) -> "LegacyLLMResponse":
-        """Legacy method for backward compatibility."""
-        from backend.app.providers.base import LegacyLLMResponse
-        
-        # Convert dict messages to LLMMessage
-        llm_messages = [
-            LLMMessage(role=m.get("role", "user"), content=m.get("content", ""))
-            for m in messages
-        ]
-        
-        response = await self.chat(llm_messages, **kwargs)
-        
-        return LegacyLLMResponse(
-            content=response.content,
-            usage=response.usage,
-            metadata=response.metadata,
-        )
-    
-    async def generate_stream(
-        self, messages: List[Dict[str, str]], **kwargs
-    ) -> AsyncIterator[str]:
-        """Legacy method for backward compatibility."""
-        # Convert dict messages to LLMMessage
-        llm_messages = [
-            LLMMessage(role=m.get("role", "user"), content=m.get("content", ""))
-            for m in messages
-        ]
-        
-        async for chunk in self.stream(llm_messages, **kwargs):
-            yield chunk
     
     async def ainvoke(self, input: Any, config: Optional[Any] = None, **kwargs) -> Any:
         """LangGraph-compatible invocation for testing."""
