@@ -20,7 +20,10 @@ from backend.app.schemas.openai import (
     OpenAIMessage,
     OpenAIError,
     OpenAIErrorResponse,
+    ModelsResponse,
+    ModelInfo,
 )
+from backend.app.schemas.documents import DocumentCitationResponse
 
 logger = structlog.get_logger(__name__)
 
@@ -39,95 +42,139 @@ def create_openai_error_response(
     )
 
 
-def parse_model_name(model_name: str) -> tuple[str, str]:
+def parse_model_name(model_name: str) -> tuple[str, str, Optional[str]]:
     """
-    Parse model name to extract provider and workspace.
+    Parse model name to extract provider, workspace, and mode.
     
-    Format: karag:<workspace_name>
+    Formats:
+    - karag:<workspace_name>
+    - karag:<workspace_name>:<mode>
     
     Returns:
-        Tuple of (provider, workspace_name)
+        Tuple of (provider, workspace_name, mode)
     """
-    model_parts = model_name.split(":", 1)
+    model_parts = model_name.split(":")
+    
     if len(model_parts) < 2 or not model_parts[1]:
-        return ("karag", "default")
-    return (model_parts[0], model_parts[1])
+        return ("karag", "default", None)
+    
+    provider = model_parts[0]
+    workspace_name = model_parts[1]
+    mode = model_parts[2] if len(model_parts) > 2 else None
+    
+    return (provider, workspace_name, mode)
+
+
+def extract_mode_from_messages(messages: List[OpenAIMessage]) -> Optional[str]:
+    """
+    Extract mode from system message if present.
+    
+    Mode can be specified in system message as:
+    - [mode:chat] or [mode:qa] or [mode:tutor] or [mode:strict_rag]
+    
+    Returns:
+        Mode string if found, None otherwise
+    """
+    for msg in messages:
+        if msg.role == "system":
+            mode_match = re.search(r'\[mode:(\w+)\]', msg.content)
+            if mode_match:
+                return mode_match.group(1)
+    return None
 
 
 def build_rag_context_with_citations(
     search_results: List[Dict[str, Any]],
     max_context_chars: int = 10000
-) -> tuple[str, Dict[str, str]]:
+) -> str:
     """
-    Build RAG context from search results with citation support.
+    Build RAG context from search results with direct document ID citations.
+    
+    The context is formatted so that LLM can directly cite using [[doc:<document_id>]]
+    format without needing index mapping.
     
     Args:
         search_results: List of search results from RAG
         max_context_chars: Maximum characters for context
         
     Returns:
-        Tuple of (context_string, doc_id_mapping)
-        doc_id_mapping maps chunk indices to document IDs for citation
+        Context string with document IDs embedded for direct citation
     """
     context_parts = []
-    doc_id_mapping = {}
     current_chars = 0
+    seen_doc_ids = set()
     
-    for idx, res in enumerate(search_results):
+    for res in search_results:
         text = res.get("text", "")
         payload = res.get("payload", {})
         doc_id = payload.get("doc_id", "unknown")
+        source = payload.get("source", "unknown")
         
         if not text:
             continue
-            
-        # Track which chunk index maps to which doc_id
-        doc_id_mapping[str(idx)] = doc_id
         
-        # Format: [0] Text content... [[doc:doc_id]]
-        chunk_header = f"[{idx}] "
-        chunk_text = f"{chunk_header}{text}"
+        # Format: Text content... [[doc:document_id]]
+        # The citation is embedded directly in the context
+        chunk_text = f"{text} [[doc:{doc_id}]]"
         
         if current_chars + len(chunk_text) > max_context_chars:
             remaining = max_context_chars - current_chars
             if remaining > 100:
-                truncated = text[:remaining - len(chunk_header) - 3]
-                context_parts.append(f"[{idx}] {truncated}...")
+                truncated = text[:remaining - 50]
+                context_parts.append(f"{truncated}... [[doc:{doc_id}]]")
             break
-            
+        
         context_parts.append(chunk_text)
         current_chars += len(chunk_text)
+        seen_doc_ids.add(doc_id)
     
-    return "\n\n".join(context_parts), doc_id_mapping
+    return "\n\n".join(context_parts)
 
 
-def build_citation_prompt(context: str, num_chunks: int) -> str:
+def build_citation_prompt(context: str, mode: Optional[str] = None) -> str:
     """
     Build system prompt that instructs LLM to cite sources.
     
     Args:
         context: The retrieved context
-        num_chunks: Number of context chunks
+        mode: Optional chat mode (chat, qa, tutor, strict_rag)
         
     Returns:
         System prompt with citation instructions
     """
-    return f"""You are a helpful assistant with access to a knowledge base. Use the provided context to answer the user's question.
+    # Mode-specific instructions
+    mode_instructions = {
+        "qa": """You are a precise Q&A assistant. Answer questions based ONLY on the provided context.
+If the answer is not in the context, respond EXACTLY: "Not found in the provided documents."
+Be concise and factual.""",
+        "tutor": """You are a helpful tutor. Explain concepts based on the provided context.
+Use examples from the context when possible. Be encouraging but accurate.
+If information isn't in the context, say so clearly.""",
+        "strict_rag": """You are a strict RAG assistant. You may ONLY use information from the provided context.
+If the answer cannot be found in the context, respond EXACTLY: "Not found in the provided documents."
+Do not use your general knowledge.""",
+        "chat": """You are a helpful assistant with access to a knowledge base. Use the provided context to answer questions.
+You may supplement with general knowledge when appropriate, but prioritize context information.""",
+    }
+    
+    base_instruction = mode_instructions.get(mode, mode_instructions["chat"])
+    
+    return f"""{base_instruction}
 
 When referencing information from the context, you MUST cite the source using the format: [[doc:<document_id>]]
 
-The context is organized with numbered chunks [0] through [{num_chunks-1}]. Each chunk has an associated document ID.
-When you use information from a chunk, append the citation immediately after the relevant text.
+The context contains embedded citations in the format [[doc:<document_id>]] after each text segment.
+When you use information, include the citation immediately after the relevant text.
 
 Example:
-- Context: [0] The sky is blue. [1] Grass is green.
+- Context: The sky is blue. [[doc:doc_123]] Grass is green. [[doc:doc_456]]
 - Good response: "The sky is blue [[doc:doc_123]] and grass is green [[doc:doc_456]]."
 
 Important:
 - Only cite when using specific information from the context
 - Citations must be in the exact format: [[doc:<document_id>]]
 - Do not make up document IDs
-- If you don't know the answer, say so honestly
+- Include citations naturally in the text flow
 
 Context:
 ---
@@ -165,7 +212,7 @@ class CitationBuffer:
     
     def __init__(self):
         self.buffer = ""
-        self.max_citation_len = 100  # Max expected citation length
+        self.max_citation_len = 150  # Max expected citation length
         
     def add(self, text: str) -> Optional[str]:
         """
@@ -223,19 +270,26 @@ class CitationBuffer:
         return result
 
 
-@router.get("/documents/{document_id}")
-async def get_document_for_citation(document_id: str):
+@router.get("/documents/{document_id}", response_model=DocumentCitationResponse)
+async def get_document_for_citation(
+    document_id: str,
+    workspace_id: Optional[str] = None,
+):
     """
     Retrieve a document by ID for citation reverse lookup.
     
     This endpoint allows clients to resolve [[doc:<document_id>]] citations
-    from chat completions. It returns the document metadata and content.
+    from chat completions. It returns the document metadata and content preview.
+    
+    The workspace_id parameter is optional for validation. If provided,
+    the endpoint verifies the document belongs to the specified workspace.
     
     Args:
         document_id: The unique document identifier from a citation
+        workspace_id: Optional workspace ID for access validation
         
     Returns:
-        Document metadata and content
+        DocumentCitationResponse with metadata and content preview
     """
     try:
         from backend.app.services.document.document_inspection_service import (
@@ -243,23 +297,47 @@ async def get_document_for_citation(document_id: str):
         )
         
         inspection_service = DocumentInspectionService()
-        doc = await inspection_service.inspect_document(document_id)
+        doc = await inspection_service.get_by_id(document_id)
         
         if not doc:
             return create_openai_error_response(
                 f"Document '{document_id}' not found",
                 "invalid_request_error",
                 404,
+                code="document_not_found",
             )
         
-        return {
-            "id": document_id,
-            "filename": doc.get("filename"),
-            "content_type": doc.get("content_type"),
-            "workspace_id": doc.get("workspace_id"),
-            "source": doc.get("source"),
-            "status": doc.get("status"),
-        }
+        # Verify workspace isolation if workspace_id is provided
+        doc_workspace_id = doc.get("workspace_id")
+        if workspace_id and doc_workspace_id != workspace_id:
+            logger.warning(
+                "cross_workspace_document_access_attempt",
+                document_id=document_id,
+                requested_workspace=workspace_id,
+                actual_workspace=doc_workspace_id,
+            )
+            return create_openai_error_response(
+                f"Document '{document_id}' not found in workspace",
+                "invalid_request_error",
+                404,
+                code="document_not_found",
+            )
+        
+        # Get content preview (first 5000 chars)
+        content_preview = None
+        if doc.get("content"):
+            content_preview = doc["content"][:5000]
+        
+        return DocumentCitationResponse(
+            id=document_id,
+            filename=doc.get("filename", "Unknown"),
+            content_type=doc.get("content_type", "application/octet-stream"),
+            workspace_id=doc_workspace_id or "unknown",
+            source=doc.get("source"),
+            status=doc.get("status", "unknown"),
+            content_preview=content_preview,
+            created_at=doc.get("created_at"),
+        )
     except Exception as e:
         logger.error("document_lookup_failed", document_id=document_id, error=str(e))
         return create_openai_error_response(
@@ -275,7 +353,8 @@ async def chat_completions(request: Request, payload: ChatCompletionRequest):
     OpenAI-compatible Chat Completions API with RAG integration.
     
     Supports:
-    - Workspace resolution via model name (karag:<workspace_name>)
+    - Workspace resolution via model name (karag:<workspace_name> or karag:<workspace>:<mode>)
+    - Mode extraction from model name or system messages
     - Automatic RAG retrieval with citation support
     - Streaming and non-streaming responses
     - OpenAI-compliant error format
@@ -285,8 +364,8 @@ async def chat_completions(request: Request, payload: ChatCompletionRequest):
     model_name = payload.model
     logger.info("openai_chat_completion_request", model=model_name)
     
-    # 1. Resolve workspace from model format karag:<workspace_name>
-    provider, workspace_name = parse_model_name(model_name)
+    # 1. Resolve workspace from model format karag:<workspace_name> or karag:<workspace>:<mode>
+    provider, workspace_name, mode_from_model = parse_model_name(model_name)
     
     if provider != "karag":
         return create_openai_error_response(
@@ -307,62 +386,78 @@ async def chat_completions(request: Request, payload: ChatCompletionRequest):
     
     workspace_id = workspace["id"]
     
-    # 2. Extract query for retrieval (last user message)
+    # 2. Extract mode (from model name or system message)
+    mode_from_messages = extract_mode_from_messages(payload.messages)
+    mode = mode_from_model or mode_from_messages or "chat"
+    
+    logger.info(
+        "workspace_resolved",
+        workspace_id=workspace_id,
+        workspace_name=workspace_name,
+        mode=mode,
+    )
+    
+    # 3. Extract query for retrieval (last user message)
     query = ""
     for msg in reversed(payload.messages):
         if msg.role == "user":
             query = msg.content
             break
     
-    # 3. Retrieve relevant documents with citation support
+    # 4. Retrieve relevant documents with citation support
     retrieved_context = ""
-    doc_id_mapping = {}
+    has_documents = False
     
     if query:
         try:
             search_results = await rag_service.search(query, workspace_id)
             if search_results:
-                # Build context with citation mapping
-                retrieved_context, doc_id_mapping = build_rag_context_with_citations(
+                # Build context with embedded document IDs for citations
+                retrieved_context = build_rag_context_with_citations(
                     search_results,
                     max_context_chars=10000
                 )
+                has_documents = True
                 
                 logger.info(
                     "rag_context_built",
                     workspace_id=workspace_id,
-                    num_chunks=len(doc_id_mapping),
-                    num_docs=len(set(doc_id_mapping.values())),
+                    num_results=len(search_results),
+                    mode=mode,
                 )
         except Exception as e:
             logger.error(
-                "retrieval_failed_fallback_to_llm",
+                "retrieval_failed",
                 error=str(e),
                 workspace_id=workspace_id,
             )
-            # Fallback to LLM without documents
+            # Continue without context on retrieval failure
             retrieved_context = ""
-            doc_id_mapping = {}
     
-    # 4. Construct internal messages with citation instructions
+    # 5. Construct internal messages with citation instructions
     internal_messages = []
     
     # Add system message with context and citation instructions
-    if retrieved_context and doc_id_mapping:
-        citation_prompt = build_citation_prompt(
-            retrieved_context, 
-            len(doc_id_mapping)
-        )
+    if has_documents and retrieved_context:
+        citation_prompt = build_citation_prompt(retrieved_context, mode)
         internal_messages.append(LLMMessage(role="system", content=citation_prompt))
+    elif mode == "strict_rag" or mode == "qa":
+        # For strict modes, add instruction even without documents
+        no_doc_prompt = """You are a strict Q&A assistant. Answer based ONLY on provided documents.
+If no documents are provided or the answer cannot be found, respond EXACTLY: "Not found in the provided documents."
+Do not use general knowledge."""
+        internal_messages.append(LLMMessage(role="system", content=no_doc_prompt))
     
-    # Preserve original message order and roles
+    # Preserve original message order and roles (skip system messages if we added our own)
+    user_system_skipped = False
     for msg in payload.messages:
-        # Skip existing system messages if we added our own context
-        if msg.role == "system" and retrieved_context:
+        if msg.role == "system" and (has_documents or mode in ("strict_rag", "qa")) and not user_system_skipped:
+            # Skip the first system message as we replaced it
+            user_system_skipped = True
             continue
         internal_messages.append(LLMMessage(role=msg.role, content=msg.content))
     
-    # 5. Call the LLM
+    # 6. Call the LLM
     try:
         llm = await get_llm(workspace_id)
         
@@ -379,6 +474,10 @@ async def chat_completions(request: Request, payload: ChatCompletionRequest):
         
         # Filter out None values
         llm_kwargs = {k: v for k, v in llm_kwargs.items() if v is not None}
+        
+        # Mode-specific parameter adjustments
+        if mode == "strict_rag":
+            llm_kwargs["temperature"] = llm_kwargs.get("temperature", 0.7) * 0.5  # Lower temp for strict mode
 
         if payload.stream:
             async def stream_generator() -> AsyncGenerator[str, None]:
@@ -470,6 +569,18 @@ async def chat_completions(request: Request, payload: ChatCompletionRequest):
             # Content already has citations embedded from LLM
             content_with_citations = response.content
             
+            # Handle strict modes - check if response contains actual citations
+            if mode in ("strict_rag", "qa") and has_documents:
+                # Extract citations to verify grounding
+                _, citations = extract_citations_from_content(content_with_citations)
+                if not citations and "not found" not in content_with_citations.lower():
+                    # No citations found - might be hallucination
+                    logger.warning(
+                        "no_citations_in_response",
+                        workspace_id=workspace_id,
+                        mode=mode,
+                    )
+            
             # Format OpenAI-compatible JSON response
             completion_id = f"chatcmpl-{uuid.uuid4().hex[:24]}"
             created = int(time.time())
@@ -507,6 +618,96 @@ async def chat_completions(request: Request, payload: ChatCompletionRequest):
         # Avoid leaking internal error details as per Failure Handling rules
         return create_openai_error_response(
             "The model provider returned an error. Please try again later.",
+            "server_error",
+            500,
+        )
+
+
+@router.get("/models")
+async def list_models() -> ModelsResponse:
+    """
+    List available models (workspaces) in OpenAI-compatible format.
+    
+    Each workspace is exposed as a model in the format: karag:<workspace_name>
+    This allows OpenAI SDK clients to discover available workspaces.
+    
+    Returns:
+        ModelsResponse with list of available workspaces as models
+    """
+    try:
+        db = mongodb_manager.get_async_database()
+        workspaces = await db.workspaces.find({}).to_list(1000)
+        
+        models = []
+        created_timestamp = int(time.time())
+        
+        for ws in workspaces:
+            workspace_name = ws.get("name", "unknown")
+            model_id = f"karag:{workspace_name}"
+            
+            models.append(ModelInfo(
+                id=model_id,
+                created=created_timestamp,
+                owned_by="karag",
+            ))
+        
+        # Always include a default model
+        models.append(ModelInfo(
+            id="karag:default",
+            created=created_timestamp,
+            owned_by="karag",
+        ))
+        
+        return ModelsResponse(data=models)
+        
+    except Exception as e:
+        logger.error("list_models_failed", error=str(e))
+        # Return empty list on error
+        return ModelsResponse(data=[])
+
+
+@router.get("/models/{model_id}")
+async def get_model(model_id: str):
+    """
+    Get a specific model (workspace) by ID.
+    
+    Args:
+        model_id: The model ID in format karag:<workspace_name>
+        
+    Returns:
+        ModelInfo for the specified workspace
+    """
+    try:
+        provider, workspace_name, _ = parse_model_name(model_id)
+        
+        if provider != "karag":
+            return create_openai_error_response(
+                f"Unsupported provider '{provider}'",
+                "invalid_request_error",
+                400,
+            )
+        
+        db = mongodb_manager.get_async_database()
+        workspace = await db.workspaces.find_one({"name": workspace_name})
+        
+        if not workspace:
+            return create_openai_error_response(
+                f"Model '{model_id}' not found",
+                "invalid_request_error",
+                404,
+                code="model_not_found",
+            )
+        
+        return ModelInfo(
+            id=model_id,
+            created=int(time.time()),
+            owned_by="karag",
+        )
+        
+    except Exception as e:
+        logger.error("get_model_failed", model_id=model_id, error=str(e))
+        return create_openai_error_response(
+            "Failed to retrieve model",
             "server_error",
             500,
         )

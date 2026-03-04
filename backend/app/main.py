@@ -353,7 +353,7 @@ def _setup_routes(app: FastAPI) -> None:
     logger.info("router_init", msg="Including API routers...")
 
     # Add optional prefix support for Vercel/Proxy environments
-    api_prefix = os.getenv("API_PREFIX", "")
+    api_prefix = os.getenv("API_PREFIX", "/api/v1")
     app.include_router(api_v1_router, prefix=api_prefix)
 
     logger.info(
