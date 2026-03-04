@@ -17,48 +17,48 @@ tracer = get_tracer(__name__)
 
 class EmbeddingProvider(ABC):
     """Minimal interface for embedding providers.
-    
+
     This abstraction isolates the application from specific embedding
     implementations, allowing for provider switching without code changes.
     """
-    
+
     @property
     @abstractmethod
     def provider_name(self) -> str:
         """Return the provider identifier (e.g., 'openai', 'azure', 'huggingface')."""
         pass
-    
+
     @property
     @abstractmethod
     def model_name(self) -> str:
         """Return the model identifier."""
         pass
-    
+
     @property
     @abstractmethod
     def dimensions(self) -> int:
         """Return the embedding vector dimensions."""
         pass
-    
+
     @abstractmethod
     async def embed_documents(self, texts: List[str]) -> List[List[float]]:
         """Embed a list of documents.
-        
+
         Args:
             texts: List of text documents to embed
-            
+
         Returns:
             List of embedding vectors (one per document)
         """
         pass
-    
+
     @abstractmethod
     async def embed_query(self, text: str) -> List[float]:
         """Embed a query text.
-        
+
         Args:
             text: Query text to embed
-            
+
         Returns:
             Embedding vector for the query
         """
@@ -67,10 +67,10 @@ class EmbeddingProvider(ABC):
 
 class LangChainEmbeddingAdapter(EmbeddingProvider):
     """Adapter wrapping LangChain embedding models.
-    
+
     All LangChain-specific logic is contained within this class.
     """
-    
+
     def __init__(
         self,
         embeddings: Any,  # LangChain Embeddings instance
@@ -79,7 +79,7 @@ class LangChainEmbeddingAdapter(EmbeddingProvider):
         dimensions: Optional[int] = None,
     ):
         """Initialize the adapter.
-        
+
         Args:
             embeddings: LangChain Embeddings instance
             provider_name: Identifier for the provider
@@ -90,7 +90,7 @@ class LangChainEmbeddingAdapter(EmbeddingProvider):
         self._provider_name = provider_name
         self._model_name = model_name or self._extract_model_name(embeddings)
         self._dimensions = dimensions or self._extract_dimensions(embeddings)
-    
+
     def _extract_model_name(self, embeddings: Any) -> str:
         """Extract model name from LangChain embeddings."""
         for attr in ["model", "model_name", "model_id"]:
@@ -99,7 +99,7 @@ class LangChainEmbeddingAdapter(EmbeddingProvider):
                 if value:
                     return str(value)
         return "unknown"
-    
+
     def _extract_dimensions(self, embeddings: Any) -> int:
         """Extract dimensions from LangChain embeddings."""
         # Try to get dimensions from various attributes
@@ -108,7 +108,7 @@ class LangChainEmbeddingAdapter(EmbeddingProvider):
                 value = getattr(embeddings, attr)
                 if value:
                     return int(value)
-        
+
         # Try to infer from the model name
         model_name = self._model_name.lower()
         dimension_map = {
@@ -123,11 +123,11 @@ class LangChainEmbeddingAdapter(EmbeddingProvider):
             "bge-base": 768,
             "bge-large": 1024,
         }
-        
+
         for key, dim in dimension_map.items():
             if key in model_name:
                 return dim
-        
+
         # Default fallback
         logger.warning(
             "unknown_embedding_dimensions",
@@ -135,27 +135,27 @@ class LangChainEmbeddingAdapter(EmbeddingProvider):
             model=self._model_name,
         )
         return 1536  # Common default
-    
+
     @property
     def provider_name(self) -> str:
         """Return the provider identifier."""
         return self._provider_name
-    
+
     @property
     def model_name(self) -> str:
         """Return the model identifier."""
         return self._model_name
-    
+
     @property
     def dimensions(self) -> int:
         """Return the embedding vector dimensions."""
         return self._dimensions
-    
+
     async def embed_documents(self, texts: List[str]) -> List[List[float]]:
         """Embed a list of documents."""
         if not texts:
             return []
-        
+
         try:
             # LangChain's aembed_documents is async
             if hasattr(self._embeddings, "aembed_documents"):
@@ -163,6 +163,7 @@ class LangChainEmbeddingAdapter(EmbeddingProvider):
             else:
                 # Fallback to sync method in thread pool
                 import asyncio
+
                 return await asyncio.get_event_loop().run_in_executor(
                     None, self._embeddings.embed_documents, texts
                 )
@@ -175,12 +176,12 @@ class LangChainEmbeddingAdapter(EmbeddingProvider):
                 error=str(e),
             )
             raise
-    
+
     async def embed_query(self, text: str) -> List[float]:
         """Embed a query text."""
         if not text:
             return [0.0] * self._dimensions
-        
+
         try:
             # LangChain's aembed_query is async
             if hasattr(self._embeddings, "aembed_query"):
@@ -188,6 +189,7 @@ class LangChainEmbeddingAdapter(EmbeddingProvider):
             else:
                 # Fallback to sync method in thread pool
                 import asyncio
+
                 return await asyncio.get_event_loop().run_in_executor(
                     None, self._embeddings.embed_query, text
                 )
@@ -204,9 +206,9 @@ class LangChainEmbeddingAdapter(EmbeddingProvider):
 # Legacy compatibility - factory function
 async def get_embeddings(workspace_id: Optional[str] = None) -> EmbeddingProvider:
     """Factory function to get the configured embedding provider.
-    
+
     This is the legacy entry point that now returns the new abstraction.
     """
     from backend.app.core.factory import ProviderFactory
-    
+
     return await ProviderFactory.get_embeddings(workspace_id)

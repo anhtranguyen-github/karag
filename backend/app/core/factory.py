@@ -22,7 +22,7 @@ logger = structlog.get_logger(__name__)
 
 class ProviderFactory:
     """Factory for creating provider instances.
-    
+
     This factory translates domain schemas into LangChain infrastructure objects,
     then wraps them in provider-agnostic adapters.
     """
@@ -30,13 +30,13 @@ class ProviderFactory:
     @staticmethod
     async def get_llm(workspace_id: Optional[str] = None) -> LLMProvider:
         """Get LLM provider for workspace.
-        
+
         Creates a LangChain model internally based on workspace settings,
         wraps it in a LangChainAdapter, and returns the LLMProvider interface.
-        
+
         Args:
             workspace_id: Optional workspace identifier for settings
-            
+
         Returns:
             LLMProvider implementation
         """
@@ -55,7 +55,7 @@ class ProviderFactory:
         # Import LangChain models internally
         if provider == "openai":
             from langchain_openai import ChatOpenAI
-            
+
             llm = ChatOpenAI(
                 model=config.model,
                 api_key=karag_settings.OPENAI_API_KEY,
@@ -65,7 +65,7 @@ class ProviderFactory:
             )
         elif provider == "azure":
             from langchain_openai import AzureChatOpenAI
-            
+
             llm = AzureChatOpenAI(
                 azure_deployment=getattr(config, "deployment_name", ""),
                 openai_api_version=getattr(config, "api_version", ""),
@@ -74,7 +74,7 @@ class ProviderFactory:
             )
         elif provider in ["llama", "ollama", "local"]:
             from langchain_ollama import ChatOllama
-            
+
             llm = ChatOllama(
                 model=config.model,
                 base_url=karag_settings.OLLAMA_BASE_URL,
@@ -98,19 +98,19 @@ class ProviderFactory:
     @staticmethod
     async def get_embeddings(workspace_id: Optional[str] = None) -> EmbeddingProvider:
         """Get embedding provider for workspace.
-        
+
         Creates a LangChain embeddings model internally based on workspace settings,
         wraps it in a LangChainEmbeddingAdapter, and returns the EmbeddingProvider interface.
-        
+
         Args:
             workspace_id: Optional workspace identifier for settings
-            
+
         Returns:
             EmbeddingProvider implementation
         """
         settings = await settings_manager.get_settings(workspace_id)
         config: EmbeddingConfig = settings.embedding
-        
+
         # Access the underlying implementation from the wrapper
         impl = config.dense
         provider = impl.provider
@@ -118,14 +118,14 @@ class ProviderFactory:
         # Import LangChain embeddings internally
         if provider == "openai":
             from langchain_openai import OpenAIEmbeddings
-            
+
             embeddings = OpenAIEmbeddings(
                 model=impl.model,
                 api_key=karag_settings.OPENAI_API_KEY,
             )
         elif provider == "azure":
             from langchain_openai import AzureOpenAIEmbeddings
-            
+
             embeddings = AzureOpenAIEmbeddings(
                 azure_deployment=getattr(impl, "deployment_name", ""),
                 openai_api_version=getattr(impl, "api_version", ""),
@@ -133,29 +133,31 @@ class ProviderFactory:
             )
         elif provider == "voyage":
             from langchain_voyageai import VoyageAIEmbeddings
-            
+
             embeddings = VoyageAIEmbeddings(
                 model=impl.model,
                 voyage_api_key=karag_settings.VOYAGE_API_KEY,
             )
         elif provider == "huggingface":
             from langchain_community.embeddings import HuggingFaceEmbeddings
-            
+
             embeddings = HuggingFaceEmbeddings(
                 model_name=impl.model,
                 model_kwargs={"device": getattr(impl, "device", "cpu")},
-                encode_kwargs={"normalize_embeddings": getattr(impl, "normalize_embeddings", True)},
+                encode_kwargs={
+                    "normalize_embeddings": getattr(impl, "normalize_embeddings", True)
+                },
             )
         elif provider == "ollama":
             from langchain_ollama import OllamaEmbeddings
-            
+
             embeddings = OllamaEmbeddings(
                 model=impl.model,
                 base_url=karag_settings.OLLAMA_BASE_URL,
             )
         elif provider == "cohere":
             from langchain_cohere import CohereEmbeddings
-            
+
             embeddings = CohereEmbeddings(
                 model=impl.model,
                 cohere_api_key=getattr(karag_settings, "COHERE_API_KEY", None),
@@ -178,7 +180,7 @@ class ProviderFactory:
     @staticmethod
     async def get_vector_store(workspace_id: Optional[str] = None):
         """Returns the appropriate VectorStore implementation.
-        
+
         Currently defaults to QdrantStore.
         """
         from backend.app.rag.store.qdrant import QdrantStore
@@ -189,7 +191,7 @@ class ProviderFactory:
     @staticmethod
     async def get_graph_store(workspace_id: Optional[str] = None):
         """Returns the appropriate GraphStore implementation.
-        
+
         Currently defaults to Neo4jStore.
         """
         from backend.app.rag.store.neo4j_store import Neo4jStore

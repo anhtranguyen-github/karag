@@ -34,7 +34,11 @@ from backend.app.core.middleware import (
     ObservabilityMiddleware,
     SecurityHeadersMiddleware,
 )
-from backend.app.core.prompt_registry import PromptStatus, PromptVersion, prompt_registry
+from backend.app.core.prompt_registry import (
+    PromptStatus,
+    PromptVersion,
+    prompt_registry,
+)
 from backend.app.core.telemetry import init_telemetry
 
 # Load environment variables before any other initialization
@@ -49,6 +53,7 @@ logger = structlog.get_logger(__name__)
 
 class HealthCheckResponse(BaseModel):
     """Health check response model."""
+
     status: str
     message: str
     version: str
@@ -57,6 +62,7 @@ class HealthCheckResponse(BaseModel):
 
 class AppMetadata:
     """Application metadata constants."""
+
     TITLE: str = "Karag API"
     DESCRIPTION: str = "Modular RAG & Agentic Chatbot API"
     VERSION: str = "2.0.0"
@@ -76,21 +82,21 @@ def _attach_cors_headers(
 ) -> JSONResponse:
     """
     Attach CORS headers to response if origin is allowed.
-    
+
     Args:
         response: The JSON response to modify
         request: The incoming request to check for origin
-        
+
     Returns:
         The modified response with CORS headers if applicable
     """
     origin = request.headers.get("origin")
     allowed_origins = karag_settings.CORS_ORIGINS
-    
+
     if origin and (origin in allowed_origins or "*" in allowed_origins):
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
-    
+
     return response
 
 
@@ -98,13 +104,13 @@ async def _initialize_infrastructure() -> None:
     """Initialize all infrastructure components during startup."""
     from backend.app.core.minio import minio_manager
     from backend.app.core.path_utils import BASE_DIR
-    
+
     logger.info(
         "infra_init_start",
         msg="Initializing Infrastructure...",
         base_dir=str(BASE_DIR),
     )
-    
+
     # Initialize MinIO bucket
     minio_manager.ensure_bucket()
 
@@ -113,7 +119,7 @@ async def _initialize_vector_store() -> None:
     """Initialize vector store with correct embedding dimensions."""
     from backend.app.core.settings_manager import settings_manager
     from backend.app.rag.ingestion import ingestion_pipeline
-    
+
     global_settings = settings_manager.get_global_settings()
     target_dim = global_settings.embedding_dim
 
@@ -182,28 +188,31 @@ Intent: """,
 async def _initialize_baas_core() -> None:
     """
     Initialize BaaS Core components (Blocks 1-5).
-    
+
     - Block 1: Initialize API key system
     - Block 2: Initialize global vault
     - Block 4: Initialize system configuration
     """
     logger.info("baas_init_start", msg="Initializing BaaS Core...")
-    
+
     # Block 4: Initialize system config
     from backend.app.services.config_service import config_service
+
     await config_service.initialize_system_config()
     logger.info("baas_system_config_ready")
-    
+
     # Block 2: Initialize global vault
     from backend.app.services.vault_service import vault_service
+
     await vault_service.initialize_global_vault()
     logger.info("baas_global_vault_ready")
-    
+
     # Block 1: Cleanup expired API keys
     from backend.app.services.api_key_service import api_key_service
+
     cleaned_count = await api_key_service.cleanup_expired_keys()
     logger.info("baas_api_keys_cleaned", expired_keys_removed=cleaned_count)
-    
+
     logger.info("baas_init_complete", msg="BaaS Core ready")
 
 
@@ -224,14 +233,14 @@ async def _shutdown_services() -> None:
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     Application lifespan context manager.
-    
+
     Handles initialization on startup and cleanup on shutdown.
     All exceptions during initialization are logged and re-raised
     to prevent the app from starting in an inconsistent state.
-    
+
     Args:
         app: The FastAPI application instance
-        
+
     Yields:
         None
     """
@@ -260,7 +269,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 def _setup_exception_handlers(app: FastAPI) -> None:
     """
     Configure exception handlers for the application.
-    
+
     Args:
         app: The FastAPI application instance
     """
@@ -273,16 +282,14 @@ def _setup_exception_handlers(app: FastAPI) -> None:
         """Handle Pydantic validation errors with detailed messages."""
         errors = exc.errors()
         messages = []
-        
+
         for err in errors:
             loc = ".".join(str(part) for part in err["loc"][1:])
             msg = err["msg"]
             messages.append(f"{loc}: {msg}")
-        
+
         main_message = (
-            f"Validation failed: {messages[0]}" 
-            if messages 
-            else "Validation failed"
+            f"Validation failed: {messages[0]}" if messages else "Validation failed"
         )
 
         response = JSONResponse(
@@ -325,9 +332,9 @@ def _setup_exception_handlers(app: FastAPI) -> None:
             path=request.url.path,
             exc_info=True,
         )
-        
+
         debug_mode = karag_settings.LOG_LEVEL.upper() == "DEBUG"
-        
+
         response = JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={
@@ -343,16 +350,16 @@ def _setup_exception_handlers(app: FastAPI) -> None:
 def _setup_middleware(app: FastAPI) -> None:
     """
     Configure middleware stack.
-    
+
     Order matters: middleware is executed in reverse order of addition,
     so the last added middleware wraps the request first.
-    
+
     Args:
         app: The FastAPI application instance
     """
     # Security headers middleware - innermost for all responses
     app.add_middleware(SecurityHeadersMiddleware)
-    
+
     # Observability middleware: correlation IDs, structured logging, Prometheus metrics
     app.add_middleware(ObservabilityMiddleware)
 
@@ -375,7 +382,7 @@ def _setup_middleware(app: FastAPI) -> None:
 def _setup_routes(app: FastAPI) -> None:
     """
     Configure API routes.
-    
+
     Args:
         app: The FastAPI application instance
     """
@@ -428,10 +435,10 @@ def _setup_routes(app: FastAPI) -> None:
 def create_app() -> FastAPI:
     """
     Application factory function.
-    
+
     Creates and configures the FastAPI application with all middleware,
     routes, and exception handlers.
-    
+
     Returns:
         Configured FastAPI application instance
     """

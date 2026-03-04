@@ -24,8 +24,15 @@ async def sec_client():
 
     # Mock dependencies
     from backend.app.api.deps import get_current_user, get_current_workspace
-    test_app.dependency_overrides[get_current_user] = lambda: {"id": "test-user", "email": "test@example.com"}
-    test_app.dependency_overrides[get_current_workspace] = lambda: {"id": "test-ws", "name": "Test Workspace"}
+
+    test_app.dependency_overrides[get_current_user] = lambda: {
+        "id": "test-user",
+        "email": "test@example.com",
+    }
+    test_app.dependency_overrides[get_current_workspace] = lambda: {
+        "id": "test-ws",
+        "name": "Test Workspace",
+    }
 
     # Mock the service layer to avoid DB interaction
     with patch(

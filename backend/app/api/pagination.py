@@ -22,7 +22,7 @@ T = TypeVar("T")
 class PaginationParams:
     """
     Common pagination parameters for dependency injection.
-    
+
     Usage:
         @router.get("/items")
         async def list_items(
@@ -56,19 +56,19 @@ class PaginationParams:
 class CursorParams:
     """
     Cursor-based pagination parameters for dependency injection.
-    
+
     Cursor pagination is optimal for:
     - Large datasets where offset becomes slow
     - Real-time data that changes frequently
     - Infinite scroll implementations
-    
+
     Usage:
         @router.get("/items")
         async def list_items(
             cursor: Annotated[CursorParams, Depends()]
         ) -> AppResponse[list[Item]]:
             items, next_cursor = await fetch_items(
-                cursor=cursor.cursor, 
+                cursor=cursor.cursor,
                 limit=cursor.limit
             )
             return create_cursor_response(items, next_cursor, cursor)
@@ -93,6 +93,7 @@ class CursorParams:
 
 class PageInfo(BaseModel):
     """Offset-based pagination metadata."""
+
     page: int = Field(..., ge=1, description="Current page number")
     limit: int = Field(..., ge=1, le=100, description="Items per page")
     total: int = Field(..., ge=0, description="Total number of items")
@@ -114,6 +115,7 @@ class PageInfo(BaseModel):
 
 class CursorInfo(BaseModel):
     """Cursor-based pagination metadata."""
+
     next_cursor: Optional[str] = Field(
         None,
         description="Opaque cursor for fetching next page",
@@ -132,7 +134,7 @@ class CursorInfo(BaseModel):
 class PaginatedResponse(BaseModel, Generic[T]):
     """
     Standard paginated response format for offset-based pagination.
-    
+
     Example:
         {
             "data": {
@@ -150,12 +152,14 @@ class PaginatedResponse(BaseModel, Generic[T]):
             "code": "SUCCESS"
         }
     """
+
     items: list[T] = Field(..., description="Items for the current page")
     pagination: PageInfo = Field(..., description="Pagination metadata")
 
 
 class CursorPaginatedResponse(BaseModel, Generic[T]):
     """Cursor-based paginated response."""
+
     items: list[T] = Field(..., description="Items for the current page")
     pagination: CursorInfo = Field(..., description="Cursor pagination metadata")
 
@@ -169,16 +173,16 @@ def create_paginated_response(
 ) -> dict[str, Any]:
     """
     Create a paginated response from items and params.
-    
+
     Args:
         items: List of items for current page
         total: Total count of all items
         params: Pagination parameters
         message: Optional success message
-        
+
     Returns:
         Dictionary ready to be wrapped in AppResponse
-        
+
     Example:
         >>> @router.get("/users")
         >>> async def list_users(
@@ -194,7 +198,7 @@ def create_paginated_response(
         ...     )
     """
     total_pages = (total + params.limit - 1) // params.limit if params.limit > 0 else 0
-    
+
     pagination_info = PageInfo(
         page=params.page,
         limit=params.limit,
@@ -203,7 +207,7 @@ def create_paginated_response(
         has_next=params.page < total_pages,
         has_prev=params.page > 1,
     )
-    
+
     return {
         "items": items,
         "pagination": pagination_info.model_dump(),
@@ -221,14 +225,14 @@ def create_cursor_response(
 ) -> dict[str, Any]:
     """
     Create a cursor-based paginated response.
-    
+
     Args:
         items: List of items for current page
         next_cursor: Opaque cursor for next page (None if no more items)
         params: Cursor pagination parameters
         prev_cursor: Optional cursor for previous page
         message: Optional success message
-        
+
     Returns:
         Dictionary ready to be wrapped in AppResponse
     """
@@ -238,7 +242,7 @@ def create_cursor_response(
         has_more=next_cursor is not None,
         limit=params.limit,
     )
-    
+
     return {
         "items": items,
         "pagination": cursor_info.model_dump(),
@@ -255,16 +259,16 @@ def generate_link_header(
 ) -> Optional[str]:
     """
     Generate RFC 8288 Link header for HATEOAS pagination.
-    
+
     Args:
         base_url: Base URL for the endpoint (without query params)
         params: Current pagination parameters
         total: Total number of items
         extra_params: Additional query parameters to preserve
-        
+
     Returns:
         Link header string or None if pagination not applicable
-        
+
     Example:
         >>> link_header = generate_link_header(
         ...     "/api/v1/users",
@@ -278,39 +282,39 @@ def generate_link_header(
     """
     links: list[str] = []
     total_pages = (total + params.limit - 1) // params.limit if params.limit > 0 else 0
-    
+
     def make_url(page: int) -> str:
         query_params: dict[str, Any] = {"page": page, "limit": params.limit}
         if extra_params:
             query_params.update(extra_params)
         return f"{base_url}?{urlencode(query_params)}"
-    
+
     # First page
     if params.page > 1:
         links.append(f'<{make_url(1)}>; rel="first"')
         links.append(f'<{make_url(params.page - 1)}>; rel="prev"')
-    
+
     # Next and last pages
     if params.page < total_pages:
         links.append(f'<{make_url(params.page + 1)}>; rel="next"')
         links.append(f'<{make_url(total_pages)}>; rel="last"')
-    
+
     return ", ".join(links) if links else None
 
 
 def parse_cursor(cursor: Optional[str]) -> tuple[Optional[str], Optional[int]]:
     """
     Parse a cursor string into its components.
-    
+
     Simple implementation - can be extended for more complex cursor formats
     like base64-encoded JSON, UUIDs, timestamps, etc.
-    
+
     Args:
         cursor: The opaque cursor string
-        
+
     Returns:
         Tuple of (id_or_token, optional_offset)
-        
+
     Example:
         >>> parse_cursor("user_123:50")
         ("user_123", 50)
@@ -319,7 +323,7 @@ def parse_cursor(cursor: Optional[str]) -> tuple[Optional[str], Optional[int]]:
     """
     if not cursor:
         return None, None
-    
+
     # Simple format: "id:offset" or just "id"
     parts = cursor.split(":")
     if len(parts) == 2:
@@ -333,11 +337,11 @@ def encode_cursor(
 ) -> str:
     """
     Encode cursor components into a string.
-    
+
     Args:
         last_id: The ID of the last item in the current page
         offset: Optional offset for additional positioning
-        
+
     Returns:
         Encoded cursor string
     """

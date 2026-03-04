@@ -7,7 +7,7 @@ Provides abstract base class and common functionality for all evaluation runners
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Callable, Dict, Iterator, List, Optional, Union
+from typing import Any, Callable, Dict, Iterator, List, Optional
 from enum import Enum
 
 import structlog
@@ -19,6 +19,7 @@ logger = structlog.get_logger(__name__)
 
 class RunnerStatus(Enum):
     """Status of an evaluation run."""
+
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -29,1145 +30,37 @@ class RunnerStatus(Enum):
 @dataclass
 class RunnerConfig:
     """Configuration for an evaluation run."""
+
     # Dataset settings
     max_samples: Optional[int] = None
     shuffle: bool = False
     seed: Optional[int] = None
-    
+
     # Execution settings
     batch_size: int = 1
     max_concurrent: int = 1
     timeout_per_sample: Optional[float] = None
     retry_attempts: int = 3
-    
+
     # Metric settings
     compute_retrieval_metrics: bool = True
     compute_generation_metrics: bool = True
     k_values: List[int] = field(default_factory=lambda: [1, 5, 10])
-    
+
     # Output settings
     save_intermediate: bool = True
     max_intermediate_samples: int = 1000  # Limit to prevent memory issues
     output_format: str = "json"
-    
+
     def __post_init__(self):
         if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-            self.k_values = [1, 5, 10]if self.k_values is None:
-
+            self.k_values = [1, 5, 10]
 
 
 @dataclass
 class SampleResult:
     """Result for a single evaluation sample."""
+
     sample_id: str
     query: str
     ground_truth_answer: Optional[str]
@@ -1178,7 +71,7 @@ class SampleResult:
     latency_ms: Optional[float] = None
     error: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     def __post_init__(self):
         if self.retrieved_documents is None:
             self.retrieved_documents = []
@@ -1193,25 +86,26 @@ class SampleResult:
 @dataclass
 class RunnerResult:
     """Result of an evaluation run."""
+
     runner_name: str
     dataset_name: str
     status: RunnerStatus
     config: RunnerConfig
-    
+
     # Timing
     started_at: datetime = field(default_factory=datetime.utcnow)
     completed_at: Optional[datetime] = None
-    
+
     # Results
     sample_results: List[SampleResult] = field(default_factory=list)
     aggregated_metrics: Dict[str, Dict[str, float]] = field(default_factory=dict)
-    
+
     # Metadata
     total_samples: int = 0
     successful_samples: int = 0
     failed_samples: int = 0
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     def __post_init__(self):
         if self.sample_results is None:
             self.sample_results = []
@@ -1219,21 +113,21 @@ class RunnerResult:
             self.aggregated_metrics = {}
         if self.metadata is None:
             self.metadata = {}
-    
+
     @property
     def success_rate(self) -> float:
         """Calculate success rate."""
         if self.total_samples == 0:
             return 0.0
         return self.successful_samples / self.total_samples
-    
+
     @property
     def duration_seconds(self) -> Optional[float]:
         """Calculate total duration."""
         if self.completed_at:
             return (self.completed_at - self.started_at).total_seconds()
         return None
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert result to dictionary."""
         return {
@@ -1247,7 +141,9 @@ class RunnerResult:
             },
             "timing": {
                 "started_at": self.started_at.isoformat(),
-                "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+                "completed_at": self.completed_at.isoformat()
+                if self.completed_at
+                else None,
                 "duration_seconds": self.duration_seconds,
             },
             "summary": {
@@ -1274,10 +170,10 @@ class RunnerResult:
 class BaseRunner(ABC):
     """
     Abstract base class for evaluation runners.
-    
+
     All evaluation runners must inherit from this class and implement
-the required abstract methods.
-    
+    the required abstract methods.
+
     Example:
         class MyRunner(BaseRunner):
             async def run(
@@ -1289,17 +185,17 @@ the required abstract methods.
                 # Implementation
                 pass
     """
-    
+
     def __init__(self, name: str):
         """
         Initialize the runner.
-        
+
         Args:
             name: Unique name for this runner
         """
         self.name = name
         self.logger = logger.bind(runner=name)
-    
+
     @abstractmethod
     async def run(
         self,
@@ -1309,7 +205,7 @@ the required abstract methods.
     ) -> RunnerResult:
         """
         Run evaluation on a dataset.
-        
+
         Args:
             dataset: Iterator over dataset entries
             rag_pipeline: Function that runs the RAG pipeline
@@ -1318,22 +214,22 @@ the required abstract methods.
                 - "documents": list of retrieved document IDs
                 - "contexts": list of retrieved contexts (optional)
             config: Runner configuration
-            
+
         Returns:
             RunnerResult with evaluation results
         """
         pass
-    
+
     async def validate_setup(
         self,
         rag_pipeline: Callable,
     ) -> bool:
         """
         Validate that the RAG pipeline is properly configured.
-        
+
         Args:
             rag_pipeline: RAG pipeline function
-            
+
         Returns:
             True if valid, False otherwise
         """
@@ -1345,7 +241,7 @@ the required abstract methods.
         except Exception as e:
             self.logger.error("validation_failed", error=str(e))
             return False
-    
+
     def _create_result(
         self,
         dataset_name: str,
@@ -1359,78 +255,61 @@ the required abstract methods.
             status=status,
             config=config,
         )
-    
+
     def _aggregate_metrics(
         self,
         sample_results: List[SampleResult],
     ) -> Dict[str, Dict[str, float]]:
         """
         Aggregate metrics across all samples.
-        
+
         Args:
             sample_results: List of sample results
-            
+
         Returns:
-            Dictionary with aggregated statistics
+            Aggregated metrics by category
         """
-        from backend.app.eval.metrics.retrieval import RetrievalMetrics
-        from backend.app.eval.metrics.generation import GenerationMetrics
-        
-        aggregated = {}
-        
-        # Aggregate retrieval metrics
-        retrieval_results = [sr.retrieval_metrics for sr in sample_results if sr.retrieval_metrics]
-        if retrieval_results:
-            aggregated["retrieval"] = self._compute_stats(retrieval_results)
-        
-        # Aggregate generation metrics
-        generation_results = [sr.generation_metrics for sr in sample_results if sr.generation_metrics]
-        if generation_results:
-            aggregated["generation"] = self._compute_stats(generation_results)
-        
-        # Aggregate latency
-        latencies = [sr.latency_ms for sr in sample_results if sr.latency_ms is not None]
-        if latencies:
-            aggregated["latency_ms"] = {
-                "mean": sum(latencies) / len(latencies),
-                "min": min(latencies),
-                "max": max(latencies),
-                "count": len(latencies),
-            }
-        
-        return aggregated
-    
-    def _compute_stats(
-        self,
-        metrics_list: List[Dict[str, float]],
-    ) -> Dict[str, Dict[str, float]]:
-        """Compute statistics for a list of metric dictionaries."""
-        if not metrics_list:
-            return {}
-        
+        aggregated = {
+            "retrieval": {},
+            "generation": {},
+        }
+
         # Collect all metric names
-        all_metrics = set()
-        for m in metrics_list:
-            all_metrics.update(m.keys())
-        
-        stats = {}
-        for metric_name in all_metrics:
-            values = [m[metric_name] for m in metrics_list if metric_name in m]
+        retrieval_metrics = set()
+        generation_metrics = set()
+
+        for sr in sample_results:
+            retrieval_metrics.update(sr.retrieval_metrics.keys())
+            generation_metrics.update(sr.generation_metrics.keys())
+
+        # Aggregate retrieval metrics
+        for metric in retrieval_metrics:
+            values = [
+                sr.retrieval_metrics[metric]
+                for sr in sample_results
+                if metric in sr.retrieval_metrics
+            ]
             if values:
-                stats[metric_name] = {
+                aggregated["retrieval"][metric] = {
                     "mean": sum(values) / len(values),
-                    "std": self._std(values),
                     "min": min(values),
                     "max": max(values),
                     "count": len(values),
                 }
-        
-        return stats
-    
-    def _std(self, values: List[float]) -> float:
-        """Calculate standard deviation."""
-        if len(values) < 2:
-            return 0.0
-        mean = sum(values) / len(values)
-        variance = sum((x - mean) ** 2 for x in values) / len(values)
-        return variance ** 0.5
+
+        # Aggregate generation metrics
+        for metric in generation_metrics:
+            values = [
+                sr.generation_metrics[metric]
+                for sr in sample_results
+                if metric in sr.generation_metrics
+            ]
+            if values:
+                aggregated["generation"][metric] = {
+                    "mean": sum(values) / len(values),
+                    "min": min(values),
+                    "max": max(values),
+                    "count": len(values),
+                }
+
+        return aggregated

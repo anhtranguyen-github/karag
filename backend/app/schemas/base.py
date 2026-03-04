@@ -19,6 +19,7 @@ T = TypeVar("T")
 
 class ErrorDetail(BaseModel):
     """Detailed error information for validation or processing errors."""
+
     field: Optional[str] = Field(
         None,
         description="Field related to the error (if applicable)",
@@ -35,6 +36,7 @@ class ErrorDetail(BaseModel):
 
 class PaginationInfo(BaseModel):
     """Pagination metadata for list responses."""
+
     page: int = Field(..., ge=1, description="Current page number")
     limit: int = Field(..., ge=1, le=100, description="Items per page")
     total: int = Field(..., ge=0, description="Total number of items")
@@ -46,7 +48,7 @@ class PaginationInfo(BaseModel):
 class AppResponse(BaseModel, Generic[T]):
     """
     Standardized API response wrapper.
-    
+
     All API responses follow this structure for consistency:
     {
         "success": bool,
@@ -54,23 +56,24 @@ class AppResponse(BaseModel, Generic[T]):
         "message": str,
         "data": T | null
     }
-    
+
     Type Parameters:
         T: The type of data contained in the response
-        
+
     Examples:
         >>> # Success response with data
         >>> response = AppResponse.success_response(
         ...     data={"id": 1, "name": "Test"},
         ...     message="User created successfully"
         ... )
-        
+
         >>> # Error response
         >>> response = AppResponse.business_failure(
         ...     code="VALIDATION_ERROR",
         ...     message="Invalid input provided"
         ... )
     """
+
     success: bool = Field(
         default=True,
         description="Whether the operation was successful",
@@ -105,13 +108,13 @@ class AppResponse(BaseModel, Generic[T]):
     ) -> AppResponse[Any]:
         """
         Create a failure response.
-        
+
         Args:
             code: Machine-readable error code (will be uppercased)
             message: Human-readable error message
             data: Optional error details or context
             details: Optional list of detailed error information
-            
+
         Returns:
             AppResponse configured for failure
         """
@@ -133,13 +136,13 @@ class AppResponse(BaseModel, Generic[T]):
     ) -> AppResponse[T]:
         """
         Create a success response.
-        
+
         Args:
             data: Response payload
             message: Success message
             code: Success code (will be uppercased)
             pagination: Optional pagination metadata for list responses
-            
+
         Returns:
             AppResponse configured for success
         """
@@ -149,7 +152,7 @@ class AppResponse(BaseModel, Generic[T]):
                 "items": data,
                 "pagination": pagination.model_dump(),
             }
-        
+
         return cls(
             success=True,
             code=code.upper(),
@@ -161,16 +164,16 @@ class AppResponse(BaseModel, Generic[T]):
     def from_result(cls, result: dict[str, Any]) -> AppResponse[Any]:
         """
         Convert a service result dict to an AppResponse.
-        
+
         This factory method handles the common pattern where services
         return a dictionary with 'status', 'message', 'code', and 'data' keys.
-        
+
         Args:
             result: Service result dictionary
-            
+
         Returns:
             Properly configured AppResponse
-            
+
         Example:
             >>> result = {
             ...     "status": "success",
@@ -185,7 +188,7 @@ class AppResponse(BaseModel, Generic[T]):
                 message=result.get("message") or "Success",
                 code=result.get("code") or "SUCCESS",
             )
-        
+
         return cls.business_failure(
             code=result.get("code") or "ERROR",
             message=result.get("message") or "Error",
@@ -204,19 +207,19 @@ class AppResponse(BaseModel, Generic[T]):
     ) -> AppResponse[dict[str, Any]]:
         """
         Create a paginated response with items and pagination metadata.
-        
+
         Args:
             items: List of items for the current page
             total: Total number of items across all pages
             page: Current page number (1-indexed)
             limit: Items per page
             message: Success message
-            
+
         Returns:
             AppResponse with paginated data structure
         """
         total_pages = (total + limit - 1) // limit if limit > 0 else 0
-        
+
         pagination = PaginationInfo(
             page=page,
             limit=limit,
@@ -225,7 +228,7 @@ class AppResponse(BaseModel, Generic[T]):
             has_next=page < total_pages,
             has_prev=page > 1,
         )
-        
+
         return cls.success_response(
             data={
                 "items": items,
@@ -238,10 +241,11 @@ class AppResponse(BaseModel, Generic[T]):
 class BatchOperationResult(BaseModel, Generic[T]):
     """
     Result of a batch operation (create, update, delete multiple items).
-    
+
     Provides detailed information about which operations succeeded
     and which failed.
     """
+
     success: list[T] = Field(
         default_factory=list,
         description="Successfully processed items",

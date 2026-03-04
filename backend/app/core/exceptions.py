@@ -58,7 +58,11 @@ class NotFoundError(BaseAppException):
 class AuthenticationError(BaseAppException):
     """Raised when authentication fails."""
 
-    def __init__(self, message: str = "Authentication required", params: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self,
+        message: str = "Authentication required",
+        params: Optional[Dict[str, Any]] = None,
+    ):
         super().__init__(
             message=message,
             code="AUTHENTICATION_ERROR",
@@ -70,7 +74,9 @@ class AuthenticationError(BaseAppException):
 class AuthorizationError(BaseAppException):
     """Raised when user lacks permission for an action."""
 
-    def __init__(self, message: str = "Access denied", params: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self, message: str = "Access denied", params: Optional[Dict[str, Any]] = None
+    ):
         super().__init__(
             message=message,
             code="AUTHORIZATION_ERROR",

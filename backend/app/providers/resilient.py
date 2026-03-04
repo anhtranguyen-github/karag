@@ -30,14 +30,14 @@ logger = structlog.get_logger(__name__)
 class ResilientProvider(LLMProvider, ToolCapable):
     """
     LLM provider wrapper that adds resilience features.
-    
+
     Automatically handles:
     - Fallback to backup models
     - Retry with exponential backoff
     - Rate limiting
     - Enhanced error conversion
     """
-    
+
     def __init__(
         self,
         primary_model: str,
@@ -52,25 +52,25 @@ class ResilientProvider(LLMProvider, ToolCapable):
         )
         self._current_model = primary_model
         self._primary = primary_model
-    
+
     @property
     def provider_name(self) -> str:
         return "resilient"
-    
+
     @property
     def model_name(self) -> str:
         return self._current_model
-    
+
     async def chat(self, messages: List[LLMMessage], **kwargs) -> LLMResponse:
         """Execute chat with fallback and retry."""
-        
+
         async def generate(model: str) -> LLMResponse:
             self._current_model = model
             provider = await ProviderFactory.get_llm(self._workspace_id)
             return await provider.chat(messages, **kwargs)
-        
+
         return await self._fallback_client.generate(generate)
-    
+
     async def stream(self, messages: List[LLMMessage], **kwargs) -> AsyncIterator[str]:
         """Stream with fallback support."""
         # For streaming, we try primary first without complex fallback
@@ -86,24 +86,21 @@ class ResilientProvider(LLMProvider, ToolCapable):
                 message="Streaming fallback not supported, using primary model",
             )
             raise
-    
+
     async def chat_with_tools(
-        self,
-        messages: List[LLMMessage],
-        tools: List[Dict[str, Any]],
-        **kwargs
+        self, messages: List[LLMMessage], tools: List[Dict[str, Any]], **kwargs
     ) -> LLMResponse:
         """Execute chat with tools and fallback."""
-        
+
         async def generate(model: str) -> LLMResponse:
             self._current_model = model
             provider = await ProviderFactory.get_llm(self._workspace_id)
             if isinstance(provider, ToolCapable):
                 return await provider.chat_with_tools(messages, tools, **kwargs)
             raise RuntimeError(f"Provider {model} does not support tools")
-        
+
         return await self._fallback_client.generate(generate)
-    
+
     def bind_tools(self, tools: List[Dict[str, Any]]) -> "ResilientProvider":
         """Bind tools for future calls."""
         # Return self as tools are handled per-call
@@ -112,7 +109,7 @@ class ResilientProvider(LLMProvider, ToolCapable):
 
 class ResilientProviderFactory:
     """Factory for creating resilient providers."""
-    
+
     @staticmethod
     async def get_llm(
         workspace_id: Optional[str] = None,
@@ -120,24 +117,25 @@ class ResilientProviderFactory:
     ) -> LLMProvider:
         """
         Get LLM provider with optional fallback support.
-        
+
         Args:
             workspace_id: Workspace for settings
             enable_fallback: Whether to enable fallback chain
-            
+
         Returns:
             LLMProvider (resilient wrapper if fallback enabled)
         """
         if not enable_fallback:
             return await ProviderFactory.get_llm(workspace_id)
-        
+
         # Get settings to determine fallback chain
         from backend.app.core.settings_manager import settings_manager
+
         settings = await settings_manager.get_settings(workspace_id)
-        
+
         primary = settings.generation.model
         provider = settings.generation.provider
-        
+
         # Configure fallback chain based on provider
         if provider == "openai":
             fallback_client = create_openai_with_fallback()
@@ -152,7 +150,7 @@ class ResilientProviderFactory:
                 fallbacks=[],
             )
             fallbacks = []
-        
+
         return ResilientProvider(
             primary_model=primary,
             fallback_models=fallbacks,

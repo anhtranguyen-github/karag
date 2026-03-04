@@ -17,7 +17,9 @@ async def get_settings(current_workspace: dict = Depends(get_current_workspace))
 
 
 @router.get("/metadata")
-async def get_settings_metadata(current_workspace: dict = Depends(get_current_workspace)):
+async def get_settings_metadata(
+    current_workspace: dict = Depends(get_current_workspace),
+):
     """Get metadata describing setting field properties and editability."""
     metadata = settings_manager.get_settings_metadata()
     return AppResponse.success_response(data=metadata)

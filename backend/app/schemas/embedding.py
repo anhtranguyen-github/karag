@@ -164,7 +164,9 @@ DenseEmbeddingConfig = Annotated[
 
 class EmbeddingConfig(BaseModel):
     dense: DenseEmbeddingConfig = Field(default_factory=lambda: OpenAIEmbeddingConfig())
-    sparse: SparseEmbeddingConfig = Field(default_factory=lambda: SparseEmbeddingConfig())
+    sparse: SparseEmbeddingConfig = Field(
+        default_factory=lambda: SparseEmbeddingConfig()
+    )
 
     @property
     def provider(self) -> str:

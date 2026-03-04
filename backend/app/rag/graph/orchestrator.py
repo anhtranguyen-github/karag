@@ -48,9 +48,9 @@ def build_rag_graph():
         return "build_query"
 
     workflow.add_conditional_edges(
-        "analyze", 
-        analyze_router, 
-        {"build_query": "build_query", "assemble": "assemble"}
+        "analyze",
+        analyze_router,
+        {"build_query": "build_query", "assemble": "assemble"},
     )
 
     # Flow: Build Query -> Retrieve

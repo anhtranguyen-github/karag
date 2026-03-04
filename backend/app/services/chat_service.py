@@ -323,7 +323,7 @@ class ChatService:
                 # Fetch history for context
                 history = await ChatService.get_history(thread_id)
                 settings = RuntimeSettings(**execution)
-                
+
                 initial_state = {
                     "query": message,
                     "workspace_id": workspace_id,
@@ -450,14 +450,18 @@ class ChatService:
                                     web_sources = [
                                         {
                                             "id": len(collected_sources) + i + 1,
-                                            "name": r.get("url", r.get("source", "Web")),
-                                            "content": r.get("content", r.get("snippet", ""))
+                                            "name": r.get(
+                                                "url", r.get("source", "Web")
+                                            ),
+                                            "content": r.get(
+                                                "content", r.get("snippet", "")
+                                            ),
                                         }
                                         for i, r in enumerate(results)
                                     ]
                                     collected_sources.extend(web_sources)
                                     yield f"data: {json.dumps({'type': 'sources', 'sources': collected_sources})}\n\n"
-                                    
+
                                 msg = f"Web Search: Found {len(results)} results from external sources."
                                 collected_reasoning.append(msg)
                                 yield f"data: {json.dumps({'type': 'reasoning', 'steps': [msg]})}\n\n"

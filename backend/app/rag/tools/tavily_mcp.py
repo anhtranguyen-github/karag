@@ -9,7 +9,9 @@ TAVILY_API_KEY = os.getenv("TAVILY_API_KEY", "")
 TAVILY_SEARCH_URL = "https://api.tavily.com/search"
 
 if not TAVILY_API_KEY:
-    logger.warning("TAVILY_API_KEY environment variable not set - Tavily search will be unavailable")
+    logger.warning(
+        "TAVILY_API_KEY environment variable not set - Tavily search will be unavailable"
+    )
 
 
 class TavilySearchTool:
@@ -28,7 +30,9 @@ class TavilySearchTool:
         """
         if not self.api_key:
             logger.error("tavily_search_failed_no_api_key")
-            raise ValueError("TAVILY_API_KEY not configured. Set the TAVILY_API_KEY environment variable.")
+            raise ValueError(
+                "TAVILY_API_KEY not configured. Set the TAVILY_API_KEY environment variable."
+            )
 
         logger.info("tavily_search_start", query=query)
 
@@ -55,7 +59,9 @@ class TavilySearchTool:
             logger.error("tavily_search_timeout", query=query)
             return []
         except httpx.HTTPStatusError as e:
-            logger.error("tavily_search_http_error", status=e.response.status_code, error=str(e))
+            logger.error(
+                "tavily_search_http_error", status=e.response.status_code, error=str(e)
+            )
             return []
         except Exception as e:
             logger.error("tavily_search_failed", error=str(e))

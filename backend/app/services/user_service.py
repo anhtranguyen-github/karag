@@ -22,10 +22,10 @@ class UserService:
     @staticmethod
     async def create(obj_in: UserCreate) -> Dict:
         db = mongodb_manager.get_async_database()
-        
+
         user_id = str(uuid.uuid4())
         timestamp = datetime.utcnow()
-        
+
         user_in_db = {
             "id": user_id,
             "email": obj_in.email,
@@ -36,7 +36,7 @@ class UserService:
             "created_at": timestamp,
             "updated_at": timestamp,
         }
-        
+
         await db.users.insert_one(user_in_db)
         return user_in_db
 

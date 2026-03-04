@@ -63,7 +63,9 @@ class WorkspaceCreate(BaseModel):
     runtime_mode: Literal["auto", "fast", "think", "deep"] = "auto"
     runtime_stream_thoughts: bool = True
     runtime_trace_level: Literal["basic", "detailed", "debug"] = "detailed"
-    chunking_strategy: Literal["recursive", "sentence", "token", "semantic", "fixed", "document"] = "recursive"
+    chunking_strategy: Literal[
+        "recursive", "sentence", "token", "semantic", "fixed", "document"
+    ] = "recursive"
     chunk_size: int = Field(800, ge=100, le=4000)
     chunk_overlap: int = Field(150, ge=0, le=1000)
 

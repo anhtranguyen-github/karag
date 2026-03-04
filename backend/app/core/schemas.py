@@ -50,14 +50,14 @@ class AppSettings(BaseModel):
             # If embedding exists as a dict, we update it; if it's an object, we start fresh from flat fields
             provider = data.get("embedding_provider", "openai")
             model = data.get("embedding_model")
-            
+
             dense_payload = {}
             sparse_payload = {}
-            
+
             if isinstance(data.get("embedding"), dict):
                 dense_payload.update(data["embedding"].get("dense", {}))
                 sparse_payload.update(data["embedding"].get("sparse", {}))
-            
+
             dense_payload["provider"] = provider
             if model:
                 dense_payload["model"] = model
@@ -73,7 +73,7 @@ class AppSettings(BaseModel):
             else:
                 # Fallback for other providers if already in dense_payload
                 embedding_obj["dense"] = dense_payload
-            
+
             embedding_obj["sparse"] = SparseEmbeddingConfig(**sparse_payload)
             data["embedding"] = embedding_obj
 
@@ -82,11 +82,11 @@ class AppSettings(BaseModel):
             provider = data.get("llm_provider", "openai")
             model = data.get("llm_model")
             temp = data.get("temperature")
-            
+
             gen_payload = {}
             if isinstance(data.get("generation"), dict):
                 gen_payload.update(data["generation"])
-                
+
             gen_payload["provider"] = provider
             if model:
                 gen_payload["model"] = model
@@ -100,21 +100,25 @@ class AppSettings(BaseModel):
                 data["generation"] = LlamaGenerationConfig(**gen_payload)
 
         # 4. Chunking
-        if "chunk_size" in data or "chunk_overlap" in data or "chunking_strategy" in data:
+        if (
+            "chunk_size" in data
+            or "chunk_overlap" in data
+            or "chunking_strategy" in data
+        ):
             strategy = data.get("chunking_strategy", "recursive")
             size = data.get("chunk_size")
             overlap = data.get("chunk_overlap")
-            
+
             chunk_payload = {"strategy": strategy}
             if isinstance(data.get("chunking"), dict):
                 chunk_payload.update(data["chunking"])
-            
+
             if size is not None:
                 chunk_payload["max_chunk_size"] = size
                 chunk_payload["chunk_size"] = size
             if overlap is not None:
                 chunk_payload["chunk_overlap"] = overlap
-                
+
             data["chunking"] = chunk_payload
 
         # 2. Retrieval mapping
@@ -150,8 +154,12 @@ class AppSettings(BaseModel):
             if "recall_k" in data:
                 retrieval.setdefault("vector", {})["top_k"] = data["recall_k"]
             if "hybrid_alpha" in data:
-                retrieval.setdefault("hybrid", {})["dense_weight"] = data["hybrid_alpha"]
-                retrieval.setdefault("hybrid", {})["sparse_weight"] = 1.0 - data["hybrid_alpha"]
+                retrieval.setdefault("hybrid", {})["dense_weight"] = data[
+                    "hybrid_alpha"
+                ]
+                retrieval.setdefault("hybrid", {})["sparse_weight"] = (
+                    1.0 - data["hybrid_alpha"]
+                )
                 retrieval.setdefault("hybrid", {})["enabled"] = True
                 # Automatically enable sparse if hybrid is used with a weight
                 if data["hybrid_alpha"] < 1.0:

@@ -146,7 +146,9 @@ async def list_all_documents(current_workspace: dict = Depends(get_current_works
 
 
 @router.get("/vault")
-async def list_vault_documents(current_workspace: dict = Depends(get_current_workspace)):
+async def list_vault_documents(
+    current_workspace: dict = Depends(get_current_workspace),
+):
     docs = await document_service.list_vault()
     return AppResponse.success_response(data=docs)
 

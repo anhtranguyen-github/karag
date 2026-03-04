@@ -22,6 +22,7 @@ tracer = get_tracer(__name__)
 
 class EvaluationMetric(Enum):
     """Available evaluation metrics."""
+
     RELEVANCE = "relevance"
     COHERENCE = "coherence"
     GROUNDEDNESS = "groundedness"
@@ -33,11 +34,12 @@ class EvaluationMetric(Enum):
 @dataclass
 class EvaluationScore:
     """Score for a single metric."""
+
     metric: EvaluationMetric
     score: float  # 0.0 to 1.0
     reasoning: str
     threshold: float = 0.7
-    
+
     @property
     def passed(self) -> bool:
         """Check if score meets threshold."""
@@ -47,11 +49,12 @@ class EvaluationScore:
 @dataclass
 class EvaluationResult:
     """Complete evaluation result."""
+
     scores: List[EvaluationScore]
     overall_score: float
     passed: bool
     metadata: Dict[str, Any]
-    
+
     def get_score(self, metric: EvaluationMetric) -> Optional[float]:
         """Get score for specific metric."""
         for s in self.scores:
@@ -63,10 +66,9 @@ class EvaluationResult:
 class LLMEvaluator:
     """
     Evaluate LLM responses for quality.
-    
+
     Uses a combination of:
     1. Rule-based checks (fast)
     2. LLM-as-judge (comprehensive)
     3. Statistical metrics (reference-based)
     """
-    

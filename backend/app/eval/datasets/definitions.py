@@ -11,9 +11,9 @@ from backend.app.eval.datasets.registry import dataset_registry
 
 def register_all_datasets():
     """Register all supported datasets with the registry."""
-    
+
     # English Datasets
-    
+
     # MS MARCO
     dataset_registry.register(
         "ms_marco",
@@ -26,9 +26,9 @@ def register_all_datasets():
             num_samples=100000,
             domains=["web", "search"],
             citation="Bajaj et al., 2016",
-        )
+        ),
     )
-    
+
     # SQuAD 2.0
     dataset_registry.register(
         "squad_v2",
@@ -41,9 +41,9 @@ def register_all_datasets():
             num_samples=150000,
             domains=["wiki", "reading_comprehension"],
             citation="Rajpurkar et al., 2018",
-        )
+        ),
     )
-    
+
     # HotpotQA
     dataset_registry.register(
         "hotpot_qa",
@@ -56,9 +56,9 @@ def register_all_datasets():
             num_samples=90000,
             domains=["wiki", "multi_hop"],
             citation="Yang et al., 2018",
-        )
+        ),
     )
-    
+
     # Natural Questions
     dataset_registry.register(
         "natural_questions",
@@ -71,9 +71,9 @@ def register_all_datasets():
             num_samples=300000,
             domains=["search", "real_queries"],
             citation="Kwiatkowski et al., 2019",
-        )
+        ),
     )
-    
+
     # TriviaQA
     dataset_registry.register(
         "trivia_qa",
@@ -86,11 +86,11 @@ def register_all_datasets():
             num_samples=650000,
             domains=["trivia", "general"],
             citation="Joshi et al., 2017",
-        )
+        ),
     )
-    
+
     # Vietnamese Datasets
-    
+
     # UIT-ViQuAD
     dataset_registry.register(
         "uit_viquad",
@@ -103,9 +103,9 @@ def register_all_datasets():
             num_samples=23000,
             domains=["wiki", "vietnamese"],
             citation="Nguyen et al., 2020",
-        )
+        ),
     )
-    
+
     # UIT-ViNewsQA
     dataset_registry.register(
         "uit_vinewsqa",
@@ -118,7 +118,7 @@ def register_all_datasets():
             num_samples=22077,
             domains=["medical", "vietnamese", "news"],
             citation="UIT NLP Group",
-        )
+        ),
     )
 
 

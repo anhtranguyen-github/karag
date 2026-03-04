@@ -10,7 +10,12 @@ from backend.app.eval.datasets.registry import DatasetRegistry, dataset_registry
 from backend.app.eval.metrics.retrieval import RetrievalMetrics
 from backend.app.eval.metrics.generation import GenerationMetrics
 from backend.app.eval.metrics.aggregator import MetricsAggregator, AggregateResult
-from backend.app.eval.runners.base import BaseRunner, RunnerConfig, RunnerResult, SampleResult
+from backend.app.eval.runners.base import (
+    BaseRunner,
+    RunnerConfig,
+    RunnerResult,
+    SampleResult,
+)
 from backend.app.eval.runners.standard_runner import StandardQARunner
 from backend.app.eval.runners.retrieval_runner import RetrievalRunner
 from backend.app.eval.runners.end_to_end_runner import EndToEndRunner

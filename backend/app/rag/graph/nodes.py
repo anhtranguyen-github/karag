@@ -33,19 +33,23 @@ async def init_execution(state: GraphState) -> Dict[str, Any]:
 async def analyze_intent(state: GraphState, config: RunnableConfig) -> Dict[str, Any]:
     """Analyze query intent and plan the execution path."""
     mode = state["settings"].execution_mode
-    
+
     # Fast track for simple greetings
     import re
+
     greetings = r"^(hello|hi|hey|greetings|howdy|what's up|hi there|hello there)(\s[a-z]+)*[!?.]*$"
     if re.match(greetings, state["query"].lower().strip()):
         return {
-            "intent_analysis": "greeting", 
+            "intent_analysis": "greeting",
             "confidence_level": 1.0,
-            "execution_metadata": {**state.get("execution_metadata", {}), "intent": "greeting"}
+            "execution_metadata": {
+                **state.get("execution_metadata", {}),
+                "intent": "greeting",
+            },
         }
 
     llm = await ProviderFactory.get_llm(state["workspace_id"])
-    
+
     today = time.strftime("%Y-%m-%d")
     if mode == ExecutionMode.AUTO:
         system_prompt = (
@@ -72,11 +76,13 @@ async def analyze_intent(state: GraphState, config: RunnableConfig) -> Dict[str,
         if m["role"] == "user":
             history_messages.append(HumanMessage(content=m["content"]))
         else:
-            history_messages.append(SystemMessage(content=m["content"])) # Assistant as system for intent analyzer
+            history_messages.append(
+                SystemMessage(content=m["content"])
+            )  # Assistant as system for intent analyzer
 
     messages = [
         SystemMessage(content=system_prompt),
-        *history_messages[-5:], # Last 5 for context
+        *history_messages[-5:],  # Last 5 for context
         HumanMessage(content=state["query"]),
     ]
     response = await llm.ainvoke(messages, config={**config, "tags": ["reasoning"]})
@@ -100,7 +106,7 @@ async def build_query_context(
     # Determine query count based on mode requirements
     count = 2
     if mode == ExecutionMode.FAST:
-        count = 8 # "FAST: many retrieval queries"
+        count = 8  # "FAST: many retrieval queries"
     elif mode == ExecutionMode.DEEP:
         count = state["settings"].deep.multi_query_limit
     elif mode == ExecutionMode.THINK:
@@ -135,12 +141,12 @@ async def retrieve_context(state: GraphState) -> Dict[str, Any]:
         return {"retrieved_results": []}
 
     import asyncio
+
     search_tasks = [
-        rag_service.search(query=q, workspace_id=state["workspace_id"])
-        for q in queries
+        rag_service.search(query=q, workspace_id=state["workspace_id"]) for q in queries
     ]
     all_results = await asyncio.gather(*search_tasks)
-    
+
     results = []
     for search_results in all_results:
         results.extend(search_results)
@@ -156,29 +162,34 @@ async def web_search(state: GraphState) -> Dict[str, Any]:
     """Execution of web search via Tavily MCP."""
     mode = state["settings"].execution_mode
     intent = state.get("intent_analysis", "").lower()
-    
+
     # Detect if query is news-like or temporal even if LLM missed it in intent
     import re
-    temporal_patterns = r"(latest|score|today|yesterday|news|recent|current|weather|results|game)"
+
+    temporal_patterns = (
+        r"(latest|score|today|yesterday|news|recent|current|weather|results|game)"
+    )
     looks_like_news = bool(re.search(temporal_patterns, state["query"].lower()))
 
     # Only skip if we are in a mode that doesn't want web or if AUTO/FAST decided against it
-    should_search = (mode in [ExecutionMode.DEEP, ExecutionMode.THINK]) or \
-                    ("web" in intent or "hybrid" in intent or "research" in intent) or \
-                    (mode == ExecutionMode.AUTO and looks_like_news)
-    
+    should_search = (
+        (mode in [ExecutionMode.DEEP, ExecutionMode.THINK])
+        or ("web" in intent or "hybrid" in intent or "research" in intent)
+        or (mode == ExecutionMode.AUTO and looks_like_news)
+    )
+
     if not should_search:
         return {"web_results": []}
 
     from backend.app.rag.tools.tavily_mcp import tavily_tool
-    
+
     # Use the primary query or a refined one
     query = state["query"]
     results = await tavily_tool.search(query)
-    
+
     metadata = state.get("execution_metadata", {})
     metadata["nodes_visited"].append("web_search")
-    
+
     return {"web_results": results, "execution_metadata": metadata}
 
 
@@ -186,24 +197,28 @@ async def blend_results(state: GraphState) -> Dict[str, Any]:
     """Consolidate internal and web results into a single candidate list."""
     internal = state.get("retrieved_results", [])
     web = state.get("web_results", [])
-    
+
     candidates = []
     # Normalize formats
     for res in internal:
-        candidates.append({
-            "text": res.get('text', ''),
-            "source": "internal",
-            "score": res.get('score', 0.0),
-            "payload": res.get('payload', {})
-        })
+        candidates.append(
+            {
+                "text": res.get("text", ""),
+                "source": "internal",
+                "score": res.get("score", 0.0),
+                "payload": res.get("payload", {}),
+            }
+        )
     for res in web:
         content = res.get("content") or res.get("snippet") or str(res)
-        candidates.append({
-            "text": content,
-            "source": "web",
-            "score": 1.0, # Web results often don't have scores from Tavily in this format
-            "payload": res
-        })
+        candidates.append(
+            {
+                "text": content,
+                "source": "web",
+                "score": 1.0,  # Web results often don't have scores from Tavily in this format
+                "payload": res,
+            }
+        )
 
     # Initial deduplication by text content
     seen = set()
@@ -214,7 +229,7 @@ async def blend_results(state: GraphState) -> Dict[str, Any]:
             seen.add(c["text"])
 
     return {
-        "retrieved_results": unique_candidates, # Use retrieved_results as the 'working' list
+        "retrieved_results": unique_candidates,  # Use retrieved_results as the 'working' list
         "execution_metadata": {
             **state["execution_metadata"],
             "nodes_visited": state["execution_metadata"]["nodes_visited"] + ["blend"],
@@ -225,33 +240,42 @@ async def blend_results(state: GraphState) -> Dict[str, Any]:
 async def rerank_results(state: GraphState) -> Dict[str, Any]:
     """Optional reranking of blended results."""
     from backend.app.providers.reranker import get_reranker
-    
+
     candidates = state.get("retrieved_results", [])
     if not candidates:
-        return {"blended_context": "", "execution_metadata": {**state["execution_metadata"], "nodes_visited": state["execution_metadata"]["nodes_visited"] + ["rerank"]}}
+        return {
+            "blended_context": "",
+            "execution_metadata": {
+                **state["execution_metadata"],
+                "nodes_visited": state["execution_metadata"]["nodes_visited"]
+                + ["rerank"],
+            },
+        }
 
     reranker = await get_reranker(state["workspace_id"])
-    
+
     if reranker:
         # Cross-encoder expects List[Dict] with 'payload': {'text': ...}
         # My candidates already have 'text' at top level, but reranker.py looks for payload['text']
         formatted_for_reranker = []
         for c in candidates:
-            formatted_for_reranker.append({
-                "payload": {"text": c["text"]},
-                "original_data": c
-            })
-        
-        top_n = 10 # Default fallback
+            formatted_for_reranker.append(
+                {"payload": {"text": c["text"]}, "original_data": c}
+            )
+
+        top_n = 10  # Default fallback
         try:
             from backend.app.core.settings_manager import settings_manager
+
             settings = await settings_manager.get_settings(state["workspace_id"])
             top_n = settings.retrieval.rerank.top_n
         except Exception:
             pass
 
-        reranked = await reranker.rerank(state["query"], formatted_for_reranker, top_k=top_n)
-        
+        reranked = await reranker.rerank(
+            state["query"], formatted_for_reranker, top_k=top_n
+        )
+
         final_candidates = []
         for r in reranked:
             c = r["original_data"]
@@ -269,7 +293,7 @@ async def rerank_results(state: GraphState) -> Dict[str, Any]:
         formatted_parts.append(f"{source_label} {c['text']}")
 
     blended = "\n\n---\n\n".join(formatted_parts)
-    
+
     return {
         "blended_context": blended,
         "execution_metadata": {
@@ -284,11 +308,11 @@ async def reflect_and_decide(
 ) -> Dict[str, Any]:
     """Review sufficiency of collected information."""
     mode = state["settings"].execution_mode
-    
+
     # FAST mode terminates after one loop
     if mode == ExecutionMode.FAST:
         return {"is_sufficient": True}
-        
+
     if state["loop_count"] >= state["settings"].max_loops:
         return {"is_sufficient": True}
 
@@ -298,7 +322,7 @@ async def reflect_and_decide(
         return {"is_sufficient": True}
 
     llm = await ProviderFactory.get_llm(state["workspace_id"])
-    
+
     # Persona-based reflection
     if mode == ExecutionMode.THINK:
         system_prompt = (
@@ -307,14 +331,14 @@ async def reflect_and_decide(
             "If it's perfect, respond 'YES'. If it needs more work, respond 'NO'."
         )
     else:
-        system_prompt = (
-            "Determine if the collected context is sufficient to answer the question. Respond YES/NO only."
-        )
+        system_prompt = "Determine if the collected context is sufficient to answer the question. Respond YES/NO only."
 
     context_preview = state.get("blended_context", "")[:6000]
     messages = [
         SystemMessage(content=system_prompt),
-        HumanMessage(content=f"Question: {state['query']}\n\nContext:\n{context_preview}"),
+        HumanMessage(
+            content=f"Question: {state['query']}\n\nContext:\n{context_preview}"
+        ),
     ]
     response = await llm.ainvoke(messages, config={**config, "tags": ["reasoning"]})
     sufficient = "yes" in response.content.lower()
@@ -342,7 +366,7 @@ async def generate_answer(state: GraphState, config: RunnableConfig) -> Dict[str
 
     today = time.strftime("%Y-%m-%d")
     context = state.get("final_context", "").strip()
-    
+
     if mode == ExecutionMode.DEEP:
         system_prompt = (
             f"Today is {today}. You are a Senior Research Analyst. Synthesize the context into a long, detailed, and professional report. "
@@ -368,17 +392,21 @@ async def generate_answer(state: GraphState, config: RunnableConfig) -> Dict[str
     history_context = ""
     if state.get("history"):
         history_parts = []
-        for m in state["history"][-6:]: # Last 6 messages
+        for m in state["history"][-6:]:  # Last 6 messages
             role = "User" if m["role"] == "user" else "Assistant"
             history_parts.append(f"{role}: {m['content']}")
-        history_context = "--- CONVERSATION HISTORY ---\n" + "\n".join(history_parts) + "\n\n"
+        history_context = (
+            "--- CONVERSATION HISTORY ---\n" + "\n".join(history_parts) + "\n\n"
+        )
 
     messages = [
         SystemMessage(content=system_prompt),
-        HumanMessage(content=f"{history_context}Context:\n{context}\n\nQuestion: {state['query']}"),
+        HumanMessage(
+            content=f"{history_context}Context:\n{context}\n\nQuestion: {state['query']}"
+        ),
     ]
     response = await llm.ainvoke(messages, config={**config, "tags": ["final_answer"]})
-    
+
     metadata = state.get("execution_metadata", {})
     metadata["generation_calls"] += 1
     metadata["nodes_visited"].append("generation")
@@ -386,7 +414,9 @@ async def generate_answer(state: GraphState, config: RunnableConfig) -> Dict[str
     return {"final_answer": response.content, "execution_metadata": metadata}
 
 
-async def synthesize_answer(state: GraphState, config: RunnableConfig) -> Dict[str, Any]:
+async def synthesize_answer(
+    state: GraphState, config: RunnableConfig
+) -> Dict[str, Any]:
     """Fallback/Synthesis node."""
     if state.get("final_answer"):
         return {"final_answer": state["final_answer"]}

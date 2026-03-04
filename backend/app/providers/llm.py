@@ -18,17 +18,17 @@ tracer = get_tracer(__name__)
 
 async def get_llm(workspace_id: Optional[str] = None) -> LLMProvider:
     """Get the configured LLM provider for a specific workspace.
-    
+
     This is the primary entry point for obtaining an LLM provider.
     It returns a provider-agnostic LLMProvider interface that can be
     used throughout the application.
-    
+
     Args:
         workspace_id: Optional workspace identifier for workspace-specific settings
-        
+
     Returns:
         LLMProvider: Configured provider implementing the LLMProvider interface
-        
+
     Example:
         >>> llm = await get_llm(workspace_id="workspace-123")
         >>> response = await llm.chat([
@@ -37,5 +37,5 @@ async def get_llm(workspace_id: Optional[str] = None) -> LLMProvider:
         >>> print(response.content)
     """
     from backend.app.core.factory import ProviderFactory
-    
+
     return await ProviderFactory.get_llm(workspace_id)

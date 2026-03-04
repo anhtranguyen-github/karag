@@ -142,9 +142,11 @@ class WorkspaceService:
             "runtime_mode",
             "runtime_stream_thoughts",
             "runtime_trace_level",
-            "chunking_strategy"
+            "chunking_strategy",
         ]
-        settings_to_apply = {k: data[k] for k in rag_fields if k in data and data[k] is not None}
+        settings_to_apply = {
+            k: data[k] for k in rag_fields if k in data and data[k] is not None
+        }
 
         # We bypass update_settings to avoid immutability check during initial creation
         await db["workspace_settings"].insert_one(

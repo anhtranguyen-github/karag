@@ -20,37 +20,40 @@ from backend.app.core.mongodb import mongodb_manager
 async def create_api_keys_collection():
     """Block 1: Create api_keys collection with validation."""
     db = mongodb_manager.get_async_database()
-    
+
     # Create collection with validator
     try:
-        await db.create_collection("api_keys", {
-            "validator": {
-                "$jsonSchema": {
-                    "bsonType": "object",
-                    "required": ["id", "workspace_id", "key_hash", "key_prefix"],
-                    "properties": {
-                        "id": {"bsonType": "string"},
-                        "workspace_id": {"bsonType": "string"},
-                        "key_hash": {"bsonType": "string"},
-                        "key_prefix": {"bsonType": "string"},
-                        "permissions": {
-                            "bsonType": "array",
-                            "items": {"bsonType": "string"}
+        await db.create_collection(
+            "api_keys",
+            {
+                "validator": {
+                    "$jsonSchema": {
+                        "bsonType": "object",
+                        "required": ["id", "workspace_id", "key_hash", "key_prefix"],
+                        "properties": {
+                            "id": {"bsonType": "string"},
+                            "workspace_id": {"bsonType": "string"},
+                            "key_hash": {"bsonType": "string"},
+                            "key_prefix": {"bsonType": "string"},
+                            "permissions": {
+                                "bsonType": "array",
+                                "items": {"bsonType": "string"},
+                            },
+                            "is_active": {"bsonType": "bool"},
+                            "created_at": {"bsonType": "date"},
+                            "expires_at": {"bsonType": ["date", "null"]},
                         },
-                        "is_active": {"bsonType": "bool"},
-                        "created_at": {"bsonType": "date"},
-                        "expires_at": {"bsonType": ["date", "null"]}
                     }
                 }
-            }
-        })
+            },
+        )
         print("✓ Created api_keys collection")
     except Exception as e:
         if "already exists" in str(e):
             print("✓ api_keys collection already exists")
         else:
             print(f"✗ Error creating api_keys: {e}")
-    
+
     # Create indexes
     await db.api_keys.create_index("key_prefix")
     await db.api_keys.create_index("workspace_id")
@@ -62,32 +65,35 @@ async def create_api_keys_collection():
 async def create_vaults_collection():
     """Block 2: Create vaults collection with validation."""
     db = mongodb_manager.get_async_database()
-    
+
     try:
-        await db.create_collection("vaults", {
-            "validator": {
-                "$jsonSchema": {
-                    "bsonType": "object",
-                    "required": ["id", "type", "name"],
-                    "properties": {
-                        "id": {"bsonType": "string"},
-                        "type": {"enum": ["global", "workspace"]},
-                        "owner_workspace_id": {"bsonType": ["string", "null"]},
-                        "name": {"bsonType": "string"},
-                        "is_active": {"bsonType": "bool"},
-                        "is_read_only": {"bsonType": "bool"},
-                        "created_at": {"bsonType": "date"}
+        await db.create_collection(
+            "vaults",
+            {
+                "validator": {
+                    "$jsonSchema": {
+                        "bsonType": "object",
+                        "required": ["id", "type", "name"],
+                        "properties": {
+                            "id": {"bsonType": "string"},
+                            "type": {"enum": ["global", "workspace"]},
+                            "owner_workspace_id": {"bsonType": ["string", "null"]},
+                            "name": {"bsonType": "string"},
+                            "is_active": {"bsonType": "bool"},
+                            "is_read_only": {"bsonType": "bool"},
+                            "created_at": {"bsonType": "date"},
+                        },
                     }
                 }
-            }
-        })
+            },
+        )
         print("✓ Created vaults collection")
     except Exception as e:
         if "already exists" in str(e):
             print("✓ vaults collection already exists")
         else:
             print(f"✗ Error creating vaults: {e}")
-    
+
     # Create indexes
     await db.vaults.create_index("id", unique=True)
     await db.vaults.create_index("owner_workspace_id")
@@ -99,11 +105,10 @@ async def create_vaults_collection():
 async def update_documents_collection():
     """Block 2: Add vault_id to existing documents collection."""
     db = mongodb_manager.get_async_database()
-    
+
     # Add vault_id field to existing documents without it
     result = await db.documents.update_many(
-        {"vault_id": {"$exists": False}},
-        {"$set": {"vault_id": "default"}}
+        {"vault_id": {"$exists": False}}, {"$set": {"vault_id": "default"}}
     )
     print(f"✓ Updated {result.modified_count} documents with vault_id")
 
@@ -111,7 +116,7 @@ async def update_documents_collection():
 async def create_system_config_collection():
     """Block 4: Create system_config collection."""
     db = mongodb_manager.get_async_database()
-    
+
     try:
         await db.create_collection("system_config")
         print("✓ Created system_config collection")
@@ -120,7 +125,7 @@ async def create_system_config_collection():
             print("✓ system_config collection already exists")
         else:
             print(f"✗ Error creating system_config: {e}")
-    
+
     # Create index
     await db.system_config.create_index("id", unique=True)
     print("✓ Created system_config indexes")
@@ -129,7 +134,7 @@ async def create_system_config_collection():
 async def create_workspace_configs_collection():
     """Block 4: Create workspace_configs collection."""
     db = mongodb_manager.get_async_database()
-    
+
     try:
         await db.create_collection("workspace_configs")
         print("✓ Created workspace_configs collection")
@@ -138,7 +143,7 @@ async def create_workspace_configs_collection():
             print("✓ workspace_configs collection already exists")
         else:
             print(f"✗ Error creating workspace_configs: {e}")
-    
+
     # Create index
     await db.workspace_configs.create_index("workspace_id", unique=True)
     print("✓ Created workspace_configs indexes")
@@ -147,7 +152,7 @@ async def create_workspace_configs_collection():
 async def create_usage_logs_collection():
     """Block 5: Create usage_logs collection with indexes."""
     db = mongodb_manager.get_async_database()
-    
+
     try:
         await db.create_collection("usage_logs")
         print("✓ Created usage_logs collection")
@@ -156,18 +161,18 @@ async def create_usage_logs_collection():
             print("✓ usage_logs collection already exists")
         else:
             print(f"✗ Error creating usage_logs: {e}")
-    
+
     # Create indexes
     await db.usage_logs.create_index("timestamp")
     await db.usage_logs.create_index([("workspace_id", 1), ("timestamp", -1)])
     await db.usage_logs.create_index("api_key_id")
     await db.usage_logs.create_index("correlation_id")
-    
+
     # TTL index for automatic cleanup (90 days)
     await db.usage_logs.create_index(
         "timestamp",
         expireAfterSeconds=7776000,
-        partialFilterExpression={"workspace_id": {"$exists": True}}
+        partialFilterExpression={"workspace_id": {"$exists": True}},
     )
     print("✓ Created usage_logs indexes (including TTL)")
 
@@ -175,62 +180,58 @@ async def create_usage_logs_collection():
 async def migrate_existing_workspaces():
     """Create default vaults for existing workspaces."""
     db = mongodb_manager.get_async_database()
-    
+
     from datetime import datetime
-    
+
     async for workspace in db.workspaces.find():
         workspace_id = workspace["id"]
-        
+
         # Check if default vault exists
-        existing = await db.vaults.find_one({
-            "owner_workspace_id": workspace_id,
-            "name": "default"
-        })
-        
+        existing = await db.vaults.find_one(
+            {"owner_workspace_id": workspace_id, "name": "default"}
+        )
+
         if existing:
             print(f"  Workspace {workspace_id}: default vault already exists")
             continue
-        
+
         # Create default vault
         vault_id = f"vault_{workspace_id.replace('ws_', '')}"
-        
-        await db.vaults.insert_one({
-            "id": vault_id,
-            "type": "workspace",
-            "owner_workspace_id": workspace_id,
-            "name": "default",
-            "description": "Default vault for workspace",
-            "is_active": True,
-            "is_read_only": False,
-            "allowed_workspace_ids": [workspace_id],
-            "vector_store_config": {
-                "collection_name": f"ws_{workspace_id}_kb",
-                "dimension": 1536,
-                "distance_metric": "cosine"
-            },
-            "file_store_config": {
-                "provider": "minio",
-                "bucket": "rag-docs",
-                "prefix": f"workspaces/{workspace_id}/"
-            },
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow(),
-            "document_count": 0,
-            "total_chunks": 0,
-            "total_size_bytes": 0
-        })
-        
+
+        await db.vaults.insert_one(
+            {
+                "id": vault_id,
+                "type": "workspace",
+                "owner_workspace_id": workspace_id,
+                "name": "default",
+                "description": "Default vault for workspace",
+                "is_active": True,
+                "is_read_only": False,
+                "allowed_workspace_ids": [workspace_id],
+                "vector_store_config": {
+                    "collection_name": f"ws_{workspace_id}_kb",
+                    "dimension": 1536,
+                    "distance_metric": "cosine",
+                },
+                "file_store_config": {
+                    "provider": "minio",
+                    "bucket": "rag-docs",
+                    "prefix": f"workspaces/{workspace_id}/",
+                },
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow(),
+                "document_count": 0,
+                "total_chunks": 0,
+                "total_size_bytes": 0,
+            }
+        )
+
         # Update workspace
         await db.workspaces.update_one(
             {"id": workspace_id},
-            {
-                "$set": {
-                    "vault_ids": [vault_id],
-                    "enabled_vaults": [vault_id]
-                }
-            }
+            {"$set": {"vault_ids": [vault_id], "enabled_vaults": [vault_id]}},
         )
-        
+
         print(f"  Workspace {workspace_id}: created default vault")
 
 
@@ -239,50 +240,51 @@ async def main():
     print("=" * 60)
     print("BaaS Core MongoDB Migration (Blocks 1-5)")
     print("=" * 60)
-    
+
     try:
         # Initialize connection
         print("\n[1/7] Connecting to MongoDB...")
         await mongodb_manager.connect()
         print("✓ Connected")
-        
+
         # Block 1: Identity
         print("\n[2/7] Block 1: Creating API keys collection...")
         await create_api_keys_collection()
-        
+
         # Block 2: Storage
         print("\n[3/7] Block 2: Creating vaults collection...")
         await create_vaults_collection()
-        
+
         print("\n[4/7] Block 2: Updating documents collection...")
         await update_documents_collection()
-        
+
         # Block 4: Control Plane
         print("\n[5/7] Block 4: Creating system config collections...")
         await create_system_config_collection()
         await create_workspace_configs_collection()
-        
+
         # Block 5: Observability
         print("\n[6/7] Block 5: Creating usage logs collection...")
         await create_usage_logs_collection()
-        
+
         # Migration
         print("\n[7/7] Migrating existing workspaces...")
         await migrate_existing_workspaces()
-        
+
         print("\n" + "=" * 60)
         print("Migration completed successfully!")
         print("=" * 60)
-        
+
     except Exception as e:
         print(f"\n✗ Migration failed: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
-    
+
     finally:
         await mongodb_manager.close()
-    
+
     return 0
 
 

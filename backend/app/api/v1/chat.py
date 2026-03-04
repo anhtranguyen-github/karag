@@ -43,11 +43,11 @@ async def get_chat_history(
 ) -> AppResponse:
     """
     Get chat history for a specific thread.
-    
+
     Args:
         thread_id: The unique identifier of the chat thread
         workspace: Current workspace context
-        
+
     Returns:
         AppResponse containing the chat history
     """
@@ -63,30 +63,30 @@ async def list_chat_threads(
 ) -> AppResponse:
     """
     List chat threads with pagination support.
-    
+
     Args:
         response: FastAPI response object for setting headers
         pagination: Pagination parameters
         workspace: Current workspace context
-        
+
     Returns:
         Paginated list of chat threads
-        
+
     Headers:
         Link: RFC 8288 compliant pagination links (HATEOAS)
     """
     all_threads = await chat_service.list_threads(workspace.id)
-    
+
     # Apply pagination
     total = len(all_threads)
     paginated = all_threads[pagination.offset : pagination.offset + pagination.limit]
-    
+
     # Generate link header for HATEOAS
     base_url = f"/api/v1/workspaces/{workspace.id}/chat/threads"
     link_header = generate_link_header(base_url, pagination, total)
     if link_header:
         response.headers["Link"] = link_header
-    
+
     return create_paginated_response(paginated, total, pagination)
 
 
@@ -98,12 +98,12 @@ async def update_thread_title(
 ) -> AppResponse:
     """
     Update the title of a chat thread.
-    
+
     Args:
         thread_id: The unique identifier of the chat thread
         payload: Contains the new title
         workspace: Current workspace context
-        
+
     Returns:
         AppResponse confirming the update
     """
@@ -121,11 +121,11 @@ async def get_thread(
 ) -> AppResponse:
     """
     Get a specific chat thread by ID.
-    
+
     Args:
         thread_id: The unique identifier of the chat thread
         workspace: Current workspace context
-        
+
     Returns:
         AppResponse containing the thread details
     """
@@ -140,11 +140,11 @@ async def delete_thread(
 ) -> AppResponse:
     """
     Delete a chat thread.
-    
+
     Args:
         thread_id: The unique identifier of the chat thread
         workspace: Current workspace context
-        
+
     Returns:
         AppResponse confirming the deletion
     """
@@ -162,17 +162,17 @@ async def chat_stream(
 ) -> StreamingResponse:
     """
     Stream chat updates using Server-Sent Events (SSE).
-    
+
     This endpoint streams chat responses in real-time and spawns
     background title generation for a consistent UX.
-    
+
     Args:
         payload: Chat stream request containing message and configuration
         workspace: Current workspace context
-        
+
     Returns:
         StreamingResponse with text/event-stream content type
-        
+
     Example:
         Client connects and receives SSE events:
         - data: {"type": "token", "content": "Hello"}

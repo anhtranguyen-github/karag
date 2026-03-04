@@ -36,7 +36,7 @@ logger = structlog.get_logger()
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """
     Add security headers to all responses.
-    
+
     Following OWASP and security best practices:
     - X-Content-Type-Options: nosniff
     - X-Frame-Options: DENY
@@ -52,19 +52,19 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         call_next: RequestResponseEndpoint,
     ) -> Response:
         response = await call_next(request)
-        
+
         # Prevent MIME type sniffing
         response.headers["X-Content-Type-Options"] = "nosniff"
-        
+
         # Prevent clickjacking
         response.headers["X-Frame-Options"] = "DENY"
-        
+
         # XSS protection for legacy browsers
         response.headers["X-XSS-Protection"] = "1; mode=block"
-        
+
         # Referrer policy
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        
+
         # Content Security Policy (basic)
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
@@ -74,31 +74,31 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "font-src 'self'; "
             "connect-src 'self';"
         )
-        
+
         # HSTS - only in production
         # response.headers["Strict-Transport-Security"] = (
         #     "max-age=31536000; includeSubDomains"
         # )
-        
+
         return response
 
 
 class ObservabilityMiddleware(BaseHTTPMiddleware):
     """
     Middleware that provides comprehensive request observability.
-    
+
     Features:
     1. Generates or inherits a correlation ID per request
     2. Binds workspace_id context from query params or body
     3. Logs request start/end with structured fields
     4. Records Prometheus metrics for the four golden signals
     5. Tracks active streams for graceful shutdown
-    
+
     The correlation ID is propagated:
     - From incoming X-Correlation-ID header (for cross-service tracing)
     - Or generated as a new UUID (for new requests)
     - Returned in response X-Correlation-ID header
-    
+
     Example log entry:
         {
             "event": "http_request",
@@ -112,14 +112,16 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
     """
 
     # Path segments that are followed by dynamic IDs
-    DYNAMIC_PATH_SEGMENTS: frozenset[str] = frozenset({
-        "history",
-        "threads",
-        "documents",
-        "tasks",
-        "workspaces",
-    })
-    
+    DYNAMIC_PATH_SEGMENTS: frozenset[str] = frozenset(
+        {
+            "history",
+            "threads",
+            "documents",
+            "tasks",
+            "workspaces",
+        }
+    )
+
     # Maximum correlation ID length for security
     MAX_CORRELATION_ID_LENGTH: int = 50
 
@@ -154,13 +156,13 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
                 query=str(request.query_params),
                 client_ip=request.client.host if request.client else None,
             )
-            
+
             response = await call_next(request)
             status_code = response.status_code
 
             # Propagate correlation ID back to caller
             response.headers["X-Correlation-ID"] = correlation_id
-            
+
             return response
 
         except Exception as exc:
@@ -179,48 +181,45 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
     def _get_correlation_id(self, request: Request) -> str:
         """
         Extract or generate correlation ID for request tracing.
-        
+
         Args:
             request: The incoming HTTP request
-            
+
         Returns:
             Sanitized correlation ID string
         """
         incoming_id = request.headers.get("X-Correlation-ID")
-        
+
         if incoming_id:
             # Validate and sanitize incoming ID
             if len(incoming_id) <= self.MAX_CORRELATION_ID_LENGTH:
                 # Alphanumeric, hyphens, and underscores only
-                sanitized = "".join(
-                    c for c in incoming_id 
-                    if c.isalnum() or c in "-_"
-                )
+                sanitized = "".join(c for c in incoming_id if c.isalnum() or c in "-_")
                 if sanitized:
                     return sanitized
-        
+
         # Generate new correlation ID
         return str(uuid.uuid4())[:12]
 
     def _extract_workspace_id(self, request: Request) -> str:
         """
         Extract workspace ID from query params or path.
-        
+
         Args:
             request: The incoming HTTP request
-            
+
         Returns:
             Workspace ID or empty string
         """
         # Priority: query param > path param
         workspace_id = request.query_params.get("workspace_id", "")
-        
+
         if not workspace_id:
             # Try to extract from path: /workspaces/{id}/...
             path_parts = request.url.path.strip("/").split("/")
             if len(path_parts) >= 2 and path_parts[0] == "workspaces":
                 workspace_id = path_parts[1] if len(path_parts) > 1 else ""
-        
+
         return workspace_id
 
     def _bind_logging_context(
@@ -231,7 +230,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
     ) -> None:
         """
         Bind structured logging context for the request.
-        
+
         Args:
             request: The incoming HTTP request
             correlation_id: Request correlation ID
@@ -248,17 +247,17 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
     def _normalize_path(self, path: str) -> str:
         """
         Replace dynamic path segments with placeholders for bounded cardinality.
-        
+
         This prevents Prometheus label explosion from IDs in URLs like:
         - /chat/history/abc123
         - /documents/my-file.pdf
-        
+
         Args:
             path: The URL path to normalize
-            
+
         Returns:
             Normalized path with placeholders
-            
+
         Examples:
             >>> _normalize_path("/chat/history/abc123")
             "/chat/history/{id}"
@@ -274,7 +273,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
                 normalized.append("{id}")
                 skip_next = False
                 continue
-                
+
             if part in self.DYNAMIC_PATH_SEGMENTS and i + 1 < len(parts):
                 normalized.append(part)
                 skip_next = True
@@ -291,7 +290,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
     ) -> None:
         """
         Record error metrics in Prometheus.
-        
+
         Args:
             request: The HTTP request
             endpoint: Normalized endpoint path
@@ -312,7 +311,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
     ) -> None:
         """
         Finalize request processing and record metrics.
-        
+
         Args:
             request: The HTTP request
             endpoint: Normalized endpoint path
@@ -341,7 +340,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
             "duration_ms": round(duration * 1000, 2),
             "endpoint": endpoint,
         }
-        
+
         # Log at appropriate level based on status
         if status_code >= 500:
             logger.error("http_request_error", **log_data)
@@ -357,7 +356,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
 class RequestTimingMiddleware(BaseHTTPMiddleware):
     """
     Additional middleware for detailed request timing breakdown.
-    
+
     Can be used for profiling specific endpoints or adding
     custom timing headers to responses.
     """
@@ -370,10 +369,10 @@ class RequestTimingMiddleware(BaseHTTPMiddleware):
         start = time.perf_counter()
         response = await call_next(request)
         duration = time.perf_counter() - start
-        
+
         # Add timing header for debugging (consider removing in production)
         response.headers["X-Response-Time"] = f"{duration:.3f}s"
-        
+
         return response
 
 
@@ -385,7 +384,7 @@ def setup_middleware(
 ) -> None:
     """
     Convenience function to set up all middleware.
-    
+
     Args:
         app: FastAPI application
         enable_security_headers: Whether to add security headers
@@ -394,9 +393,9 @@ def setup_middleware(
     """
     if enable_security_headers:
         app.add_middleware(SecurityHeadersMiddleware)
-    
+
     if enable_observability:
         app.add_middleware(ObservabilityMiddleware)
-    
+
     if enable_timing:
         app.add_middleware(RequestTimingMiddleware)

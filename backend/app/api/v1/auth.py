@@ -24,7 +24,9 @@ async def register(user_in: UserCreate) -> Any:
             detail="The user with this username already exists in the system.",
         )
     user = await user_service.create(user_in)
-    return AppResponse.success_response(data=user, message="User registered successfully")
+    return AppResponse.success_response(
+        data=user, message="User registered successfully"
+    )
 
 
 @router.post("/login", response_model=Token)
@@ -41,7 +43,7 @@ async def login_access_token(
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     elif not user.get("is_active"):
         raise HTTPException(status_code=400, detail="Inactive user")
-    
+
     access_token_expires = timedelta(minutes=60 * 24 * 7)
     return {
         "access_token": create_access_token(
@@ -49,7 +51,6 @@ async def login_access_token(
         ),
         "token_type": "bearer",
     }
-
 
 
 @router.get("/me", response_model=User)

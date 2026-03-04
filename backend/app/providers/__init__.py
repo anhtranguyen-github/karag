@@ -32,12 +32,10 @@ __all__ = [
     "LLMResponse",
     "LLMMessage",
     "EmbeddingProvider",
-    
     # Capability protocols
     "ToolCapable",
     "StructuredOutputCapable",
     "LangGraphCompatible",
-    
     # Entry points
     "get_llm",
 ]

@@ -77,9 +77,7 @@ class RAGService:
             )
             return result
 
-    async def get_query_embedding(
-        self, query: str, workspace_id: str
-    ) -> List[float]:
+    async def get_query_embedding(self, query: str, workspace_id: str) -> List[float]:
         """Generate embedding for a single query."""
         from backend.app.core.factory import ProviderFactory
 
@@ -134,6 +132,7 @@ class RAGService:
             # --- Optional Reranking Step ---
             if settings.retrieval.rerank.enabled:
                 from backend.app.providers.reranker import get_reranker
+
                 reranker = await get_reranker(workspace_id)
                 if reranker:
                     # Reranker expects Dict with 'payload': {'text': ...}
@@ -224,11 +223,11 @@ class RAGService:
         limit: Optional[int] = None,
         enable_multi_query: bool = False,
         enable_compression: bool = False,
-        llm_client = None,
+        llm_client=None,
     ) -> List[Dict[str, Any]]:
         """
         Advanced search with optional multi-query and compression.
-        
+
         Args:
             query: Search query
             workspace_id: Workspace ID
@@ -236,7 +235,7 @@ class RAGService:
             enable_multi_query: Use query variations for better recall
             enable_compression: Compress results to relevant parts
             llm_client: LLM client for multi-query and compression
-            
+
         Returns:
             List of search results
         """
@@ -249,7 +248,7 @@ class RAGService:
             },
         ):
             start = time.perf_counter()
-            
+
             # Base search function
             async def base_search(q: str, top_k: int) -> List[RetrievalResult]:
                 results = await self.search(q, workspace_id, limit=top_k)
@@ -262,7 +261,7 @@ class RAGService:
                     )
                     for r in results
                 ]
-            
+
             # Apply multi-query if enabled
             if enable_multi_query and llm_client:
                 retriever = MultiQueryRetriever(llm_client, num_variations=3)
@@ -273,12 +272,12 @@ class RAGService:
                 )
             else:
                 results = await base_search(query, limit or 5)
-            
+
             # Apply compression if enabled
             if enable_compression and llm_client and results:
                 compressor = ContextualCompressor(llm_client)
                 results = await compressor.compress(query, results)
-            
+
             # Convert back to dict format
             dict_results = [
                 {
@@ -288,7 +287,7 @@ class RAGService:
                 }
                 for r in results
             ]
-            
+
             duration = time.perf_counter() - start
             logger.info(
                 "rag_advanced_search_complete",
@@ -298,8 +297,8 @@ class RAGService:
                 duration_ms=round(duration * 1000, 2),
                 workspace_id=workspace_id,
             )
-            
+
             return dict_results
 
 
-rag_service = RAGService()  
+rag_service = RAGService()

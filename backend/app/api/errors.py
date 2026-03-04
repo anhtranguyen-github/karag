@@ -25,6 +25,7 @@ logger = structlog.get_logger(__name__)
 
 class ErrorSeverity(str, Enum):
     """Error severity levels."""
+
     WARNING = "warning"
     ERROR = "error"
     CRITICAL = "critical"
@@ -32,6 +33,7 @@ class ErrorSeverity(str, Enum):
 
 class ErrorDetail(BaseModel):
     """Detailed error information."""
+
     field: Optional[str] = Field(None, description="Field related to error")
     message: str = Field(..., description="Human-readable error message")
     code: str = Field(..., description="Machine-readable error code")
@@ -41,7 +43,7 @@ class ErrorDetail(BaseModel):
 class ErrorResponse(BaseModel):
     """
     Standardized error response format.
-    
+
     Example:
         {
             "success": false,
@@ -58,16 +60,21 @@ class ErrorResponse(BaseModel):
             "documentation_url": "https://api.example.com/docs/errors/VALIDATION_ERROR"
         }
     """
+
     success: bool = False
     error: Dict[str, Any] = Field(..., description="Main error information")
-    details: Optional[List[ErrorDetail]] = Field(None, description="Detailed error breakdown")
-    documentation_url: Optional[str] = Field(None, description="Link to error documentation")
+    details: Optional[List[ErrorDetail]] = Field(
+        None, description="Detailed error breakdown"
+    )
+    documentation_url: Optional[str] = Field(
+        None, description="Link to error documentation"
+    )
     help: Optional[str] = Field(None, description="Helpful suggestion for resolution")
 
 
 class ApiException(Exception):
     """Base API exception with structured error info."""
-    
+
     def __init__(
         self,
         message: str,
@@ -88,7 +95,7 @@ class ApiException(Exception):
         self.documentation_url = documentation_url
         self.help_text = help_text
         self.extra = extra or {}
-    
+
     def to_response(self, request_id: str = None) -> ErrorResponse:
         """Convert to error response."""
         return ErrorResponse(
@@ -108,14 +115,15 @@ class ApiException(Exception):
 
 # Specific exception types
 
+
 class ValidationException(ApiException):
     """Request validation failed."""
-    
+
     def __init__(
         self,
         message: str = "Request validation failed",
         details: List[ErrorDetail] = None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(
             message=message,
@@ -124,13 +132,13 @@ class ValidationException(ApiException):
             severity=ErrorSeverity.WARNING,
             details=details,
             help_text="Check the request parameters and try again",
-            **kwargs
+            **kwargs,
         )
 
 
 class AuthenticationException(ApiException):
     """Authentication required or failed."""
-    
+
     def __init__(self, message: str = "Authentication required", **kwargs):
         super().__init__(
             message=message,
@@ -138,13 +146,13 @@ class AuthenticationException(ApiException):
             status_code=401,
             severity=ErrorSeverity.WARNING,
             help_text="Provide valid authentication credentials",
-            **kwargs
+            **kwargs,
         )
 
 
 class AuthorizationException(ApiException):
     """Permission denied."""
-    
+
     def __init__(self, message: str = "Permission denied", **kwargs):
         super().__init__(
             message=message,
@@ -152,36 +160,33 @@ class AuthorizationException(ApiException):
             status_code=403,
             severity=ErrorSeverity.WARNING,
             help_text="Check your permissions or contact an administrator",
-            **kwargs
+            **kwargs,
         )
 
 
 class NotFoundException(ApiException):
     """Resource not found."""
-    
+
     def __init__(
-        self,
-        resource_type: str = "Resource",
-        resource_id: str = None,
-        **kwargs
+        self, resource_type: str = "Resource", resource_id: str = None, **kwargs
     ):
         message = f"{resource_type} not found"
         if resource_id:
             message = f"{resource_type} '{resource_id}' not found"
-        
+
         super().__init__(
             message=message,
             code="NOT_FOUND",
             status_code=404,
             severity=ErrorSeverity.WARNING,
             help_text="Verify the resource identifier and try again",
-            **kwargs
+            **kwargs,
         )
 
 
 class ConflictException(ApiException):
     """Resource conflict (e.g., duplicate)."""
-    
+
     def __init__(self, message: str = "Resource conflict", **kwargs):
         super().__init__(
             message=message,
@@ -189,23 +194,20 @@ class ConflictException(ApiException):
             status_code=409,
             severity=ErrorSeverity.WARNING,
             help_text="The resource may already exist or be in an incompatible state",
-            **kwargs
+            **kwargs,
         )
 
 
 class RateLimitException(ApiException):
     """Rate limit exceeded."""
-    
+
     def __init__(
-        self,
-        message: str = "Rate limit exceeded",
-        retry_after: int = None,
-        **kwargs
+        self, message: str = "Rate limit exceeded", retry_after: int = None, **kwargs
     ):
         extra = {}
         if retry_after:
             extra["retry_after"] = retry_after
-        
+
         super().__init__(
             message=message,
             code="RATE_LIMIT_EXCEEDED",
@@ -213,23 +215,23 @@ class RateLimitException(ApiException):
             severity=ErrorSeverity.WARNING,
             help_text="Reduce request frequency or wait before retrying",
             extra=extra,
-            **kwargs
+            **kwargs,
         )
 
 
 class ServiceUnavailableException(ApiException):
     """Service temporarily unavailable."""
-    
+
     def __init__(
         self,
         message: str = "Service temporarily unavailable",
         retry_after: int = None,
-        **kwargs
+        **kwargs,
     ):
         extra = {}
         if retry_after:
             extra["retry_after"] = retry_after
-        
+
         super().__init__(
             message=message,
             code="SERVICE_UNAVAILABLE",
@@ -237,45 +239,47 @@ class ServiceUnavailableException(ApiException):
             severity=ErrorSeverity.ERROR,
             help_text="Please try again later",
             extra=extra,
-            **kwargs
+            **kwargs,
         )
 
 
 class LLMProviderException(ApiException):
     """LLM provider error."""
-    
+
     def __init__(
         self,
         message: str = "LLM provider error",
         provider: str = None,
         fallback_used: bool = False,
-        **kwargs
+        **kwargs,
     ):
         extra = {}
         if provider:
             extra["provider"] = provider
         if fallback_used:
             extra["fallback_used"] = True
-        
+
         super().__init__(
             message=message,
             code="LLM_PROVIDER_ERROR",
             status_code=502,
             severity=ErrorSeverity.ERROR,
-            help_text="The AI service encountered an issue. Please retry." if not fallback_used else "Service recovered using fallback.",
+            help_text="The AI service encountered an issue. Please retry."
+            if not fallback_used
+            else "Service recovered using fallback.",
             extra=extra,
-            **kwargs
+            **kwargs,
         )
 
 
 # Error handler middleware
 class ErrorHandlerMiddleware(BaseHTTPMiddleware):
     """Middleware to catch and format exceptions."""
-    
+
     def __init__(self, app, debug: bool = False):
         super().__init__(app)
         self.debug = debug
-    
+
     async def dispatch(self, request: Request, call_next):
         try:
             response = await call_next(request)
@@ -286,11 +290,13 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
             return self._handle_http_exception(exc, request)
         except Exception as exc:
             return self._handle_generic_exception(exc, request)
-    
-    def _handle_api_exception(self, exc: ApiException, request: Request) -> JSONResponse:
+
+    def _handle_api_exception(
+        self, exc: ApiException, request: Request
+    ) -> JSONResponse:
         """Handle structured API exceptions."""
         request_id = getattr(request.state, "request_id", None)
-        
+
         logger.error(
             "api_exception",
             code=exc.code,
@@ -299,32 +305,35 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
             request_id=request_id,
             severity=exc.severity.value,
         )
-        
+
         response = exc.to_response(request_id)
         content = response.model_dump(exclude_none=True)
-        
+
         # Add debug info in development
         if self.debug:
             import traceback
+
             content["debug"] = {
                 "exception_type": type(exc).__name__,
                 "traceback": traceback.format_exc(),
             }
-        
+
         headers = {}
         if exc.code == "RATE_LIMIT_EXCEEDED" and "retry_after" in exc.extra:
             headers["Retry-After"] = str(exc.extra["retry_after"])
-        
+
         return JSONResponse(
             status_code=exc.status_code,
             content=content,
             headers=headers,
         )
-    
-    def _handle_http_exception(self, exc: HTTPException, request: Request) -> JSONResponse:
+
+    def _handle_http_exception(
+        self, exc: HTTPException, request: Request
+    ) -> JSONResponse:
         """Handle FastAPI HTTP exceptions."""
         request_id = getattr(request.state, "request_id", None)
-        
+
         error_response = ErrorResponse(
             error={
                 "code": f"HTTP_{exc.status_code}",
@@ -334,23 +343,25 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
                 "timestamp": datetime.utcnow().isoformat() + "Z",
             }
         )
-        
+
         return JSONResponse(
             status_code=exc.status_code,
             content=error_response.model_dump(exclude_none=True),
             headers=dict(exc.headers) if exc.headers else {},
         )
-    
-    def _handle_generic_exception(self, exc: Exception, request: Request) -> JSONResponse:
+
+    def _handle_generic_exception(
+        self, exc: Exception, request: Request
+    ) -> JSONResponse:
         """Handle unexpected exceptions."""
         request_id = getattr(request.state, "request_id", None)
-        
+
         logger.exception(
             "unhandled_exception",
             exception_type=type(exc).__name__,
             request_id=request_id,
         )
-        
+
         error_response = ErrorResponse(
             error={
                 "code": "INTERNAL_ERROR",
@@ -361,18 +372,19 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
             },
             help="Please contact support if this error persists",
         )
-        
+
         content = error_response.model_dump(exclude_none=True)
-        
+
         # Add debug info in development
         if self.debug:
             import traceback
+
             content["debug"] = {
                 "exception_type": type(exc).__name__,
                 "message": str(exc),
                 "traceback": traceback.format_exc(),
             }
-        
+
         return JSONResponse(
             status_code=500,
             content=content,
