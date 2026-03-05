@@ -6,6 +6,32 @@ node_modules/
 .yarn/
 .npm/
 package-lock.json
+yarn.lock
+
+# ===================
+# Python
+# ===================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.pytest_cache/
+.mypy_cache/
+.pytype/
+.coverage
+htmlcov/
+.tox/
+.venv/
+venv/
+ENV/
+env/
+
+# ===================
+# Generated API Client (Regenerated in CI)
+# ===================
+frontend/src/generated/
+frontend/src/client/
 
 # ===================
 # Environment
@@ -16,8 +42,7 @@ package-lock.json
 .env.test.local
 .env.production.local
 .env*.local
-env/
-ENV/
+!.env.example
 
 # ===================
 # Build Output
@@ -57,6 +82,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pip-log.txt
+tmp/
+temp/
+*.tmp
 
 # ===================
 # Testing
@@ -74,6 +102,20 @@ coverage.xml
 .pytest_cache/
 nosetests.xml
 screenshots/
+stryker-tmp/
+.stryker/
+mutmut-report/
+mutmut_html/
+
+# ===================
+# Source of Truth - DO NOT IGNORE
+# ===================
+# The following files define contracts and must remain tracked:
+# - openapi/schema.json (API contract)
+# - heyapi.config.ts (SDK generation config)
+# - package.json (dependencies)
+# - pnpm-lock.yaml (lockfile for reproducibility)
+# - .env.example (template for environment setup)
 
 # ===================
 # Data & Storage (Project Specific)

@@ -2,16 +2,22 @@
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.24.0",
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
-    "build": "next build",
+    "build": "pnpm generate:api && next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest",
     "test:unit": "vitest run",
-    "generate-client": "openapi-generator-cli generate -i ./src/lib/api/openapi.json -g typescript-fetch -o ./src/lib/api --additional-properties=typescriptThreePlus=true"
+    "test:integration": "vitest run tests/integration",
+    "test:contract": "vitest run tests/contract",
+    "generate:api": "openapi-ts -i ../openapi/schema.json -o src/client -c legacy/fetch -p @hey-api/typescript @hey-api/sdk",
+    "generate-client": "openapi-ts -i ../openapi/schema.json -o src/client -c legacy/fetch -p @hey-api/typescript @hey-api/sdk",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@hey-api/client-fetch": "^0.3.0",
     "@hookform/resolvers": "^5.2.2",
     "@microsoft/fetch-event-source": "^2.0.1",
     "@radix-ui/react-label": "^2.1.2",
@@ -35,6 +41,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@hey-api/openapi-ts": "^0.57.0",
     "@mswjs/data": "^0.16.2",
     "@openapitools/openapi-generator-cli": "^2.28.3",
     "@tailwindcss/postcss": "^4",

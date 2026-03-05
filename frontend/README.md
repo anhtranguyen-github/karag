@@ -1,19 +1,19 @@
 # Frontend
 
-This is a [Next.js](https://nextjs.org) project using [Bun](https://bun.sh) as the package manager.
+This is a [Next.js](https://nextjs.org) project using [pnpm](https://pnpm.io) as the package manager.
 
 ## Getting Started
 
 First, install dependencies:
 
 ```bash
-bun install
+pnpm install
 ```
 
 Then, run the development server:
 
 ```bash
-bun run dev
+pnpm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
@@ -23,7 +23,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 Run unit tests:
 
 ```bash
-bun run test:unit
+pnpm run test:unit
 ```
 
 ## Project Structure
@@ -39,7 +39,7 @@ bun run test:unit
 ## Learn More
 
 - [Next.js Documentation](https://nextjs.org/docs)
-- [Bun Documentation](https://bun.sh/docs)
+- [pnpm Documentation](https://pnpm.io/motivation)
 - [Vitest Documentation](https://vitest.dev/)
  
  

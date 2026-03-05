@@ -430,3 +430,17 @@ export class TextApiResponse {
         return await this.raw.text();
     };
 }
+
+/**
+ * Identity functions for handling empty schema types in OpenAPI.
+ * The OpenAPI generator incorrectly generates FromJSON/ToJSON calls for
+ * schemas with empty {} (any type), which don't exist.
+ * These functions provide the missing implementations.
+ */
+export function FromJSON<T>(value: any): T {
+    return value as T;
+}
+
+export function ToJSON<T>(value: T): any {
+    return value;
+}
