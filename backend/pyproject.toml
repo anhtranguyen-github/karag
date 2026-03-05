@@ -80,4 +80,30 @@ dev = [
     "bandit>=1.8.0",
     "checkov>=3.2.0",
     "ruff>=0.15.1",
+    "importlinter>=2.0.0",
 ]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+select = [
+    "E",      # pycodestyle errors
+    "F",      # pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "UP",     # pyupgrade
+    "TID",    # tidy imports
+]
+
+ignore = []
+
+[tool.ruff.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.bandit]
+skips = []
+target = "."
+exclude = ["tests/", "test_fixtures/", "examples/", ".git/", "node_modules/"]
+
+[tool.bandit.assert_used]

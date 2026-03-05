@@ -20,6 +20,36 @@ repos:
       - id: ruff-format
 
   # =============================================================================
+  # Custom Quality Scanners
+  # =============================================================================
+  
+  - repo: local
+    hooks:
+      # Hardcoded URL/Route Scanner
+      - id: hardcoded-strings
+        name: Hardcoded URLs and Routes
+        entry: python tools/check_hardcoded_strings.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+        
+      # Mock/Placeholder Data Scanner
+      - id: mock-data
+        name: Mock and Placeholder Data
+        entry: python tools/check_mock_data.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+        
+      # Debug Artifact Scanner
+      - id: debug-artifacts
+        name: Debug Artifacts
+        entry: python tools/check_debug_artifacts.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+  # =============================================================================
   # Architecture Drift Detection
   # =============================================================================
   
