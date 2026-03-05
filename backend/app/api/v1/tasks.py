@@ -3,7 +3,7 @@ from backend.app.services.task.task_service import task_service
 from backend.app.core.exceptions import NotFoundError
 from backend.app.schemas.base import AppResponse
 
-from backend.app.api.deps import get_current_workspace
+from backend.app.api.deps import get_current_workspace, CurrentWorkspace
 
 router = APIRouter(tags=["tasks"])
 
@@ -12,11 +12,11 @@ router = APIRouter(tags=["tasks"])
 async def list_tasks(
     type: str = None,
     limit: int = 50,
-    current_workspace: dict = Depends(get_current_workspace),
+    current_workspace: CurrentWorkspace = Depends(get_current_workspace),
 ):
     """List tasks for the current workspace."""
     tasks = await task_service.list_tasks(
-        task_type=type, workspace_id=current_workspace["id"], limit=limit
+        task_type=type, workspace_id=current_workspace.id, limit=limit
     )
     return AppResponse.success_response(data=tasks)
 

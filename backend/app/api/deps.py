@@ -79,30 +79,13 @@ async def get_current_workspace(
     1. Checks query params for workspace_id
     2. Falls back to extracting from URL path
     3. Validates workspace exists and is accessible
-
-    Args:
-        request: The incoming HTTP request
-        workspace_id: Optional workspace ID from query params
-
-    Returns:
-        CurrentWorkspace with validated workspace info
-
-    Raises:
-        HTTPException: If workspace is not found or not accessible
-
-    Example:
-        @router.get("/documents")
-        async def list_docs(
-            workspace: Annotated[CurrentWorkspace, Depends(get_current_workspace)]
-        ):
-            return {"workspace_id": workspace.id}
     """
-    # Priority 1: Query parameter
-    if workspace_id:
-        ws_id = workspace_id
-    else:
+    # Priority 1: Query parameter (explicitly passed or from request)
+    ws_id = workspace_id or request.query_params.get("workspace_id")
+    
+    if not ws_id:
         # Priority 2: Extract from URL path
-        # Pattern: /api/v1/workspaces/{id}/...
+        # Pattern: /api/v1/workspaces/{id}/... or /workspaces/{id}/...
         path_parts = request.url.path.strip("/").split("/")
         ws_id = None
 

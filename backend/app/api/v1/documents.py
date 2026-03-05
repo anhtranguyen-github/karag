@@ -14,7 +14,7 @@ from backend.app.schemas.documents import (
     DocumentWorkspaceUpdate,
 )
 
-from backend.app.api.deps import get_current_workspace
+from backend.app.api.deps import get_current_workspace, CurrentWorkspace
 
 router = APIRouter(tags=["documents"])
 
@@ -23,10 +23,10 @@ router = APIRouter(tags=["documents"])
 async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    current_workspace: dict = Depends(get_current_workspace),
+    current_workspace: CurrentWorkspace = Depends(get_current_workspace),
     strategy: Optional[str] = None,
 ):
-    workspace_id = current_workspace["id"]
+    workspace_id = current_workspace.id
     result = await document_service.upload(file, workspace_id, strategy=strategy)
 
     if result["status"] == "success":
@@ -48,9 +48,9 @@ async def upload_document(
 async def import_url_document(
     background_tasks: BackgroundTasks,
     payload: UrlImportRequest,
-    current_workspace: dict = Depends(get_current_workspace),
+    current_workspace: CurrentWorkspace = Depends(get_current_workspace),
 ):
-    workspace_id = current_workspace["id"]
+    workspace_id = current_workspace.id
     url_str = str(payload.url)
     result = await document_service.import_url(
         url_str, workspace_id, strategy=payload.strategy
@@ -75,9 +75,9 @@ async def import_url_document(
 async def import_sitemap_document(
     background_tasks: BackgroundTasks,
     payload: SitemapImportRequest,
-    current_workspace: dict = Depends(get_current_workspace),
+    current_workspace: CurrentWorkspace = Depends(get_current_workspace),
 ):
-    workspace_id = current_workspace["id"]
+    workspace_id = current_workspace.id
     url_str = str(payload.url)
     result = await document_service.import_sitemap(url_str, workspace_id)
     if result["status"] == "success":
@@ -94,9 +94,9 @@ async def import_sitemap_document(
 async def import_github_document(
     background_tasks: BackgroundTasks,
     payload: GitHubImportRequest,
-    current_workspace: dict = Depends(get_current_workspace),
+    current_workspace: CurrentWorkspace = Depends(get_current_workspace),
 ):
-    workspace_id = current_workspace["id"]
+    workspace_id = current_workspace.id
     url_str = str(payload.url)
     result = await document_service.import_github(url_str, workspace_id, payload.branch)
     if result["status"] == "success":
@@ -114,9 +114,9 @@ async def import_github_document(
 async def import_audio_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    current_workspace: dict = Depends(get_current_workspace),
+    current_workspace: CurrentWorkspace = Depends(get_current_workspace),
 ):
-    workspace_id = current_workspace["id"]
+    workspace_id = current_workspace.id
     result = await document_service.import_audio(file, workspace_id)
     if result["status"] == "success":
         background_tasks.add_task(
@@ -134,8 +134,8 @@ async def import_audio_document(
 
 
 @router.get("/documents")
-async def list_documents(current_workspace: dict = Depends(get_current_workspace)):
-    docs = await document_service.list_by_workspace(current_workspace["id"])
+async def list_documents(current_workspace: CurrentWorkspace = Depends(get_current_workspace)):
+    docs = await document_service.list_by_workspace(current_workspace.id)
     return AppResponse.success_response(data=docs)
 
 
@@ -300,10 +300,10 @@ async def get_document(
 async def delete_document(
     document_id: str,
     vault_delete: bool = False,
-    current_workspace: dict = Depends(get_current_workspace),
+    current_workspace: CurrentWorkspace = Depends(get_current_workspace),
 ):
     await document_service.delete(
-        document_id, current_workspace["id"], vault_delete=vault_delete
+        document_id, current_workspace.id, vault_delete=vault_delete
     )
     return AppResponse.success_response(
         data={"id": document_id},
