@@ -12,6 +12,7 @@ When OTEL_ENABLED=false, tracing degrades to a no-op with zero overhead.
 
 import logging
 import functools
+import time
 from pathlib import Path
 from logging.handlers import RotatingFileHandler
 from typing import Optional, Callable, Any
@@ -33,6 +34,11 @@ from prometheus_client import Counter, Histogram, Gauge
 # ---------------------------------------------------------------------------
 correlation_id_var: ContextVar[str] = ContextVar("correlation_id", default="")
 workspace_id_var: ContextVar[str] = ContextVar("workspace_id", default="")
+
+# Domain-specific context variables
+user_id_var: ContextVar[str] = ContextVar("user_id", default="")
+session_id_var: ContextVar[str] = ContextVar("session_id", default="")
+domain_action_var: ContextVar[str] = ContextVar("domain_action", default="")
 
 
 # ---------------------------------------------------------------------------
@@ -145,6 +151,65 @@ LLM_RETRY_COUNT = Counter(
     "llm_retries_total",
     "Total LLM request retries",
     ["provider", "status"],
+)
+
+# ---------------------------------------------------------------------------
+# Domain-specific metrics — Session, Review, Lesson, Deck operations
+# ---------------------------------------------------------------------------
+
+# Session metrics
+SESSION_DURATION = Histogram(
+    "session_duration_seconds",
+    "Duration of review/lesson sessions in seconds",
+    ["session_type"],  # session_type = review | lesson
+    buckets=[1, 5, 10, 30, 60, 120, 300, 600, 1800, 3600],
+)
+
+SESSION_COUNT = Counter(
+    "session_total",
+    "Total sessions started or completed",
+    ["session_type", "status"],  # status = started | completed | abandoned
+)
+
+# FSRS rating metrics
+FSRS_REVIEW_COUNT = Counter(
+    "fsrs_review_total",
+    "Total reviews submitted per FSRS rating",
+    ["rating"],  # rating = again | hard | good | easy
+)
+
+FSRS_REVIEW_LATENCY = Histogram(
+    "fsrs_review_duration_seconds",
+    "Time to process a review submission in seconds",
+    ["rating"],
+    buckets=[0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5],
+)
+
+# Deck metrics
+DECK_COUNT = Counter(
+    "deck_total",
+    "Total deck operations",
+    ["operation", "status"],  # operation = created | updated | deleted
+)
+
+# Card metrics
+CARD_COUNT = Counter(
+    "card_total",
+    "Total card operations",
+    ["operation", "status"],  # operation = created | updated | scheduled | lapsed
+)
+
+# Orphan prevention - cards without scheduled state (should be zero)
+ORPHAN_CARDS = Gauge(
+    "orphan_cards_total",
+    "Number of cards without a valid scheduled state (orphan detection)",
+)
+
+# Domain error types
+DOMAIN_ERROR_COUNT = Counter(
+    "domain_errors_total",
+    "Total domain operation errors",
+    ["error_type", "domain"],  # error_type = ValueError | RuntimeError | etc., domain = review | lesson | deck
 )
 
 
@@ -305,6 +370,14 @@ def init_telemetry() -> None:
 # ---------------------------------------------------------------------------
 # Decorator: @traced — adds an OTEL span + timing to any async function
 # ---------------------------------------------------------------------------
+
+# Domain operation span names
+DOMAIN_SPAN_REVIEW_START = "review.start"
+DOMAIN_SPAN_REVIEW_SUBMIT = "review.submit"
+DOMAIN_SPAN_LESSON_COMPLETE = "lesson.complete"
+DOMAIN_SPAN_DECK_CREATE = "deck.create"
+
+
 def traced(
     span_name: Optional[str] = None,
     attributes: Optional[dict] = None,
@@ -346,6 +419,245 @@ def traced(
                     span.set_status(StatusCode.ERROR, str(exc))
                     span.record_exception(exc)
                     raise
+
+        return wrapper
+
+    return decorator
+
+
+# ---------------------------------------------------------------------------
+# Domain-specific logging helpers
+# ---------------------------------------------------------------------------
+
+def get_domain_logger(name: str = "domain"):
+    """
+    Get a logger configured for domain operations with structured context.
+
+    The logger automatically includes:
+    - correlation_id
+    - user_id
+    - session_id
+    - workspace_id
+    - domain_action
+
+    Usage:
+        logger = get_domain_logger()
+        logger.info("review_started", domain_action="review.start", session_id=session_id)
+    """
+    logger = structlog.get_logger(name)
+
+    # Bind common context variables
+    bound = logger.bind(
+        correlation_id=correlation_id_var.get(""),
+        user_id=user_id_var.get(""),
+        session_id=session_id_var.get(""),
+        workspace_id=workspace_id_var.get(""),
+    )
+    return bound
+
+
+def set_domain_context(
+    user_id: Optional[str] = None,
+    session_id: Optional[str] = None,
+    domain_action: Optional[str] = None,
+    **kwargs,
+) -> None:
+    """
+    Set domain context variables for the current async context.
+
+    This should be called at the start of domain operations to establish
+    the tracing context that propagates through all downstream calls.
+
+    Args:
+        user_id: The user performing the action
+        session_id: The session ID (for review/lesson sessions)
+        domain_action: The domain action (e.g., "review.start", "lesson.complete")
+        **kwargs: Additional context to bind
+    """
+    if user_id:
+        user_id_var.set(user_id)
+    if session_id:
+        session_id_var.set(session_id)
+    if domain_action:
+        domain_action_var.set(domain_action)
+
+    # Also bind to structlog context for structured logging
+    structlog.contextvars.bind_contextvars(
+        user_id=user_id or "",
+        session_id=session_id or "",
+        domain_action=domain_action or "",
+        **kwargs,
+    )
+
+
+def log_domain_event(
+    event: str,
+    level: str = "info",
+    **kwargs,
+) -> None:
+    """
+    Log a domain event with structured context.
+
+    Log levels:
+    - DEBUG: Flow details (entering/exiting functions)
+    - INFO: Decisions and normal operations
+    - ERROR: Failures and exceptions
+
+    Args:
+        event: The event name (e.g., "review_started", "card_scheduled")
+        level: Log level (debug, info, warning, error)
+        **kwargs: Additional fields to log
+    """
+    logger = get_domain_logger()
+
+    log_data = {
+        "event": event,
+        "correlation_id": correlation_id_var.get(""),
+        "user_id": user_id_var.get(""),
+        "session_id": session_id_var.get(""),
+        "workspace_id": workspace_id_var.get(""),
+        "domain_action": domain_action_var.get(""),
+        **kwargs,
+    }
+
+    log_func = getattr(logger, level.lower(), logger.info)
+    log_func(**log_data)
+
+
+def record_domain_metrics(
+    session_type: Optional[str] = None,
+    rating: Optional[str] = None,
+    operation: Optional[str] = None,
+    error_type: Optional[str] = None,
+    domain: Optional[str] = None,
+    duration: Optional[float] = None,
+) -> None:
+    """
+    Record domain-specific metrics.
+
+    This function automatically selects the appropriate metric based on
+    the provided parameters.
+
+    Args:
+        session_type: "review" or "lesson" (for session metrics)
+        rating: FSRS rating - "again", "hard", "good", or "easy"
+        operation: Deck/card operation - "created", "updated", "deleted", etc.
+        error_type: Domain error type for error counting
+        domain: Domain for error tracking - "review", "lesson", "deck"
+        duration: Duration in seconds (for latency metrics)
+    """
+    # Session duration
+    if session_type and duration is not None:
+        SESSION_DURATION.labels(session_type=session_type).observe(duration)
+
+    # FSRS rating metrics
+    if rating:
+        FSRS_REVIEW_COUNT.labels(rating=rating).inc()
+        if duration is not None:
+            FSRS_REVIEW_LATENCY.labels(rating=rating).observe(duration)
+
+    # Deck/card operations
+    if operation:
+        if "deck" in str(kwargs):
+            DECK_COUNT.labels(operation=operation, status="success").inc()
+        else:
+            CARD_COUNT.labels(operation=operation, status="success").inc()
+
+    # Domain errors
+    if error_type and domain:
+        DOMAIN_ERROR_COUNT.labels(error_type=error_type, domain=domain).inc()
+
+
+# ---------------------------------------------------------------------------
+# Convenience decorators for domain operations
+# ---------------------------------------------------------------------------
+
+def traced_domain(
+    span_name: str,
+    domain_action: Optional[str] = None,
+    attributes: Optional[dict] = None,
+) -> Callable:
+    """
+    Decorator for domain operations that adds tracing, logging, and metrics.
+
+    This is a higher-level decorator that combines:
+    - @traced for OpenTelemetry spans
+    - Automatic logging at appropriate levels
+    - Metrics recording
+
+    Usage:
+        @traced_domain("review.submit", domain_action="review.submit")
+        async def submit_review(review_data: ReviewData):
+            ...
+
+    Args:
+        span_name: The OpenTelemetry span name
+        domain_action: The domain action for logging context
+        attributes: Additional span attributes
+    """
+    def decorator(func: Callable) -> Callable:
+        # Apply the base traced decorator
+        traced_func = traced(span_name, attributes)
+
+        @functools.wraps(func)
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
+            # Set domain context
+            if domain_action:
+                set_domain_context(domain_action=domain_action)
+
+            # Log start
+            log_domain_event(f"{domain_action or span_name}.started", level="debug")
+
+            start_time = time.perf_counter()
+
+            try:
+                result = await traced_func(func)(*args, **kwargs)
+                duration = time.perf_counter() - start_time
+
+                # Log success
+                log_domain_event(
+                    f"{domain_action or span_name}.completed",
+                    level="info",
+                    duration_ms=round(duration * 1000, 2),
+                )
+
+                # Record metrics
+                if domain_action == DOMAIN_SPAN_REVIEW_SUBMIT and len(args) > 0:
+                    # Try to extract rating from args if available
+                    pass  # Rating-specific metrics handled in the function
+
+                return result
+
+            except Exception as exc:
+                duration = time.perf_counter() - start_time
+
+                # Log error
+                log_domain_event(
+                    f"{domain_action or span_name}.failed",
+                    level="error",
+                    error=str(exc),
+                    error_type=type(exc).__name__,
+                    duration_ms=round(duration * 1000, 2),
+                )
+
+                # Record error metric
+                if domain_action and domain_action.startswith("review."):
+                    DOMAIN_ERROR_COUNT.labels(
+                        error_type=type(exc).__name__,
+                        domain="review",
+                    ).inc()
+                elif domain_action and domain_action.startswith("lesson."):
+                    DOMAIN_ERROR_COUNT.labels(
+                        error_type=type(exc).__name__,
+                        domain="lesson",
+                    ).inc()
+                elif domain_action and domain_action.startswith("deck."):
+                    DOMAIN_ERROR_COUNT.labels(
+                        error_type=type(exc).__name__,
+                        domain="deck",
+                    ).inc()
+
+                raise
 
         return wrapper
 

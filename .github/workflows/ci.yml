@@ -9,6 +9,30 @@ on:
     branches: [ main, dev ]
 
 jobs:
+  # --- Stage 0: Architecture Drift Detection ---
+  architecture-check:
+    name: "Architecture: Drift Detection"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install pytest
+      
+      - name: Run Architecture Tests
+        run: |
+          python -m pytest tests/architecture/ -v --tb=short
+        
+      - name: Run Drift Detector
+        run: |
+          python scripts/drift_detector.py --strict
+
   # --- Stage 1: Backend Baseline ---
   backend-ci:
     name: "Backend: Lint & Test"
@@ -57,7 +81,7 @@ jobs:
   # --- Stage 3: Multi-Domain Security ---
   security-audit:
     name: "Security: SAST, IaC & Deep Scan"
-    needs: [backend-ci, frontend-ci]
+    needs: [backend-ci, frontend-ci, architecture-check]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

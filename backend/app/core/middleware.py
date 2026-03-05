@@ -28,6 +28,7 @@ from backend.app.core.telemetry import (
     REQUEST_LATENCY,
     correlation_id_var,
     workspace_id_var,
+    user_id_var,
 )
 
 logger = structlog.get_logger()
@@ -138,8 +139,12 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
         workspace_id = self._extract_workspace_id(request)
         workspace_id_var.set(workspace_id)
 
+        # --- 2a. User Context Extraction ---
+        user_id = self._extract_user_id(request)
+        user_id_var.set(user_id)
+
         # --- 3. Bind structlog context for all downstream log calls ---
-        self._bind_logging_context(request, correlation_id, workspace_id)
+        self._bind_logging_context(request, correlation_id, workspace_id, user_id)
 
         # --- 4. Normalize endpoint label for Prometheus (bounded cardinality) ---
         endpoint = self._normalize_path(request.url.path)
@@ -222,11 +227,35 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
 
         return workspace_id
 
+    def _extract_user_id(self, request: Request) -> str:
+        """
+        Extract user ID from request headers or authentication.
+
+        Args:
+            request: The incoming HTTP request
+
+        Returns:
+            User ID or empty string
+        """
+        # Try to get from header (set by auth middleware)
+        user_id = request.headers.get("X-User-ID", "")
+
+        if not user_id:
+            # Try to get from the "Authorization" header if JWT contains user ID
+            # This is a fallback - ideally auth middleware sets X-User-ID
+            auth_header = request.headers.get("Authorization", "")
+            if auth_header.startswith("Bearer "):
+                # Could decode JWT here if needed, but auth middleware should handle it
+                pass
+
+        return user_id
+
     def _bind_logging_context(
         self,
         request: Request,
         correlation_id: str,
         workspace_id: str,
+        user_id: str = "",
     ) -> None:
         """
         Bind structured logging context for the request.
@@ -235,11 +264,13 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
             request: The incoming HTTP request
             correlation_id: Request correlation ID
             workspace_id: Workspace ID
+            user_id: User ID (from auth)
         """
         structlog.contextvars.clear_contextvars()
         structlog.contextvars.bind_contextvars(
             correlation_id=correlation_id,
             workspace_id=workspace_id,
+            user_id=user_id,
             method=request.method,
             path=request.url.path,
         )
