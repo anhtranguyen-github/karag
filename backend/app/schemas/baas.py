@@ -59,12 +59,12 @@ class Workspace(BaseModel):
     )
 
     # Isolation configuration
-    vault_ids: List[str] = Field(
-        default_factory=list, description="Associated vault IDs"
+    dataset_ids: List[str] = Field(
+        default_factory=list, description="Associated dataset IDs"
     )
-    enabled_vaults: List[str] = Field(
+    enabled_datasets: List[str] = Field(
         default_factory=lambda: ["default"],
-        description="Vaults this workspace can access",
+        description="Datasets this workspace can access",
     )
 
     # Operational flags
@@ -186,22 +186,9 @@ class Vault(BaseModel):
     """
 
     id: str = Field(..., description="Vault identifier (vault_xxx)")
-    type: Literal["global", "workspace"] = Field(..., description="Vault type")
-
-    # Ownership
-    owner_workspace_id: Optional[str] = Field(
-        None, description="None for global vaults, workspace_id for workspace vaults"
-    )
 
     # Storage configuration
-    vector_store_config: VectorStoreConfig = Field(default_factory=VectorStoreConfig)
     file_store_config: FileStoreConfig = Field(default_factory=FileStoreConfig)
-
-    # Access control (for global vaults)
-    allowed_workspace_ids: List[str] = Field(
-        default_factory=list,
-        description="For global: which workspaces can read (empty = all)",
-    )
 
     # Metadata
     name: str = Field(..., min_length=1, max_length=100)
@@ -209,7 +196,6 @@ class Vault(BaseModel):
 
     # Status
     is_active: bool = Field(True)
-    is_read_only: bool = Field(False, description="True for global vaults")
 
     # Timestamps
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -217,7 +203,6 @@ class Vault(BaseModel):
 
     # Statistics
     document_count: int = Field(0, ge=0)
-    total_chunks: int = Field(0, ge=0)
     total_size_bytes: int = Field(0, ge=0)
 
 
@@ -234,7 +219,8 @@ class Document(BaseModel):
     """
 
     id: str = Field(..., description="Document identifier (doc_xxx)")
-    vault_id: str = Field(..., description="Parent vault")
+    vault_id: Optional[str] = Field(None, description="Parent global vault (if stored globally)")
+    dataset_id: Optional[str] = Field(None, description="Parent dataset (if indexed in workspace)")
     workspace_id: str = Field(..., description="Owning workspace - ISOLATION")
 
     # File metadata
@@ -289,7 +275,7 @@ class Chunk(BaseModel):
 
     id: str = Field(..., description="Chunk identifier (chunk_xxx)")
     document_id: str = Field(..., description="Parent document")
-    vault_id: str = Field(..., description="Parent vault")
+    dataset_id: str = Field(..., description="Parent dataset")
     workspace_id: str = Field(..., description="For isolation validation")
 
     # Content (stored in vector store, not MongoDB)
@@ -421,9 +407,9 @@ class WorkspaceConfig(BaseModel):
 
     workspace_id: str
 
-    # Vault access
-    enabled_vaults: List[str] = Field(default_factory=lambda: ["default"])
-    default_vault_id: str = "default"
+    # Dataset access
+    enabled_datasets: List[str] = Field(default_factory=lambda: ["default"])
+    default_dataset_id: str = "default"
 
     # RAG settings (clamped by system limits)
     rag_config: RAGConfig = Field(default_factory=RAGConfig)
@@ -452,7 +438,7 @@ class RequestConfig(BaseModel):
 
     # RAG overrides
     use_rag: Optional[bool] = None
-    vault_id: Optional[str] = None
+    dataset_id: Optional[str] = None
     top_k: Optional[int] = Field(None, ge=1, le=50)
 
     @field_validator("max_tokens")
@@ -474,13 +460,13 @@ class RetrievedSource(BaseModel):
     chunk_index: int
     similarity_score: float = Field(..., ge=0.0, le=1.0)
     text_preview: str = Field(..., max_length=100)
-    vault_id: str
+    dataset_id: str
 
 
 class RAGTrace(BaseModel):
     """Detailed RAG operation trace for observability."""
 
-    vault_id: str
+    dataset_id: str
     query: str = Field(..., max_length=500, description="Original query (truncated)")
 
     # Retrieval results
@@ -588,18 +574,18 @@ class IsolationContext(BaseModel):
     workspace_id: str
     api_key_id: str
     permissions: List[str]
-    vault_ids: List[str]
+    dataset_ids: List[str]
 
     def has_permission(self, permission: str) -> bool:
         """Check if context has specific permission."""
         return permission in self.permissions or "admin" in self.permissions
 
 
-class VaultAccessError(BaseModel):
-    """Error response for vault access violations."""
+class DatasetAccessError(BaseModel):
+    """Error response for dataset access violations."""
 
-    error: str = "VAULT_ACCESS_DENIED"
+    error: str = "DATASET_ACCESS_DENIED"
     message: str
     workspace_id: str
-    vault_id: str
+    dataset_id: str
     required_permission: str

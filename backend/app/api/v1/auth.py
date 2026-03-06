@@ -55,9 +55,12 @@ async def login_access_token(
 
 @router.get("/me", response_model=User)
 async def read_user_me(
-    current_user: dict = Depends(get_current_user),
+    current_user: Any = Depends(get_current_user),
 ) -> Any:
     """
     Get current user.
     """
-    return current_user
+    user = await user_service.get_by_id(current_user.id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user

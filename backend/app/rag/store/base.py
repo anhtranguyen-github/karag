@@ -39,6 +39,7 @@ class VectorStore(ABC):
         query_vector: List[float],
         query_text: str,
         workspace_id: str,
+        collection_name: Optional[str] = None,
     ) -> List[SearchResult]:
         """Perform a hybrid search using both dense vector and keyword/sparse strategies."""
         pass

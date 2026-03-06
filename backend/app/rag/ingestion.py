@@ -1,7 +1,7 @@
 import time
 import uuid
 import os
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 import structlog
 from backend.app.rag.rag_service import rag_service
@@ -30,10 +30,29 @@ class IngestionPipeline:
         pass
 
     async def get_ingestion_config(
-        self, workspace_id: str
+        self, workspace_id: str, dataset_id: Optional[str] = None
     ) -> tuple[IngestionConfig, Any]:
-        """Get the ingestion config and the store instance for the workspace."""
+        """Get the ingestion config and the store instance for the workspace or dataset."""
         from backend.app.core.settings_manager import settings_manager
+        from backend.app.services.dataset_service import dataset_service
+        from backend.app.services.pipeline_service import pipeline_service
+
+        if dataset_id:
+            try:
+                dataset = await dataset_service.get_dataset(dataset_id, workspace_id)
+                pipeline = await pipeline_service.get_pipeline(dataset.pipeline_id, workspace_id)
+                
+                config = IngestionConfig(
+                    workspace_id=workspace_id,
+                    vector_size=pipeline.embedding.dimension,
+                    chunking=pipeline.chunking,
+                    collection_name_override=dataset.vector_store_config.collection_name
+                )
+                store = await ProviderFactory.get_vector_store(workspace_id) # Should eventually be connector-aware
+                return config, store
+            except Exception as e:
+                logger.warning("dataset_config_fetch_failed", error=str(e), workspace_id=workspace_id, dataset_id=dataset_id)
+                # Fallback to workspace defaults
 
         settings = await settings_manager.get_settings(workspace_id)
         config = IngestionConfig(
@@ -50,7 +69,7 @@ class IngestionPipeline:
         await store.create_collection_if_not_exists(config)
         return config.collection_name_override or f"knowledge_base_{config.vector_size}"
 
-    async def process_file(self, file_path_str: str, metadata: Dict = None):
+    async def process_file(self, file_path_str: str, metadata: Dict = None, dataset_id: Optional[str] = None):
         """
         Process various file types: PDF, TXT, MD, DOCX, HTML.
         Automatically selects the appropriate loader based on extension.
@@ -78,7 +97,7 @@ class IngestionPipeline:
         ) as span:
             pipeline_start = time.perf_counter()
 
-            config, store = await self.get_ingestion_config(workspace_id)
+            config, store = await self.get_ingestion_config(workspace_id, dataset_id=dataset_id)
 
             doc_id = (metadata or {}).get("doc_id")
             task_id = (metadata or {}).get("task_id")
@@ -212,6 +231,7 @@ class IngestionPipeline:
                     "extension": ext,
                     "index": i,
                     "workspace_id": workspace_id,
+                    "dataset_id": dataset_id,
                     "shared_with": (metadata or {}).get("shared_with", []),
                     "doc_id": (metadata or {}).get("doc_id"),
                     "version": (metadata or {}).get("version"),
@@ -268,7 +288,7 @@ class IngestionPipeline:
 
             return len(all_chunks)
 
-    async def process_text(self, text: str, metadata: Dict = None):
+    async def process_text(self, text: str, metadata: Dict = None, dataset_id: Optional[str] = None):
         """Process raw text: chunk, embed, and store."""
         workspace_id = (metadata or {}).get("workspace_id", "default")
 
@@ -279,7 +299,7 @@ class IngestionPipeline:
                 "workspace_id": workspace_id,
             },
         ):
-            config, store = await self.get_ingestion_config(workspace_id)
+            config, store = await self.get_ingestion_config(workspace_id, dataset_id=dataset_id)
 
             chunks = await rag_service.chunk_text(text, workspace_id=workspace_id)
             embeddings = await rag_service.get_embeddings(
@@ -293,6 +313,7 @@ class IngestionPipeline:
                     "text": chunk,
                     "index": i,
                     "workspace_id": workspace_id,
+                    "dataset_id": dataset_id,
                     "shared_with": (metadata or {}).get("shared_with", []),
                 }
                 points.append(
@@ -314,7 +335,7 @@ class IngestionPipeline:
 
             return len(chunks)
 
-    async def process_url(self, url: str, metadata: Dict = None):
+    async def process_url(self, url: str, metadata: Dict = None, dataset_id: Optional[str] = None):
         """
         Process a web URL using WebBaseLoader.
         """
@@ -330,7 +351,7 @@ class IngestionPipeline:
             },
         ) as span:
             pipeline_start = time.perf_counter()
-            config, store = await self.get_ingestion_config(workspace_id)
+            config, store = await self.get_ingestion_config(workspace_id, dataset_id=dataset_id)
 
             # --- Component 1: Load ---
             loader = WebBaseLoader(url)
@@ -364,6 +385,7 @@ class IngestionPipeline:
                     "extension": ".html",
                     "index": i,
                     "workspace_id": workspace_id,
+                    "dataset_id": dataset_id,
                 }
                 points.append(
                     DocumentPoint(

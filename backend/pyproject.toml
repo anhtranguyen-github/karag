@@ -1,50 +1,108 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [project]
-name = "karag-backend"
-version = "2.0.0"
-description = "Modular RAG & Agentic Chatbot API"
+name = "backend"
+version = "0.1.0"
+description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12"
-
-[tool.mutmut]
-paths_to_mutate = [
-    "app/services/",
-    "app/core/",
-    "app/schemas/",
+authors = [
+    { name = "anhtranguyen-github", email = "tranguyen.contact@gmail.com" }
 ]
-tests_dir = "tests/"
-excluded_files = [
-    "app/main.py",
-    "app/core/config.py",
-    "app/core/telemetry.py",
+requires-python = "==3.11.*"
+dependencies = [
+    "bert-score>=0.3.13",
+    "datasets>=3.0.0",
+    "docx2txt>=0.9",
+    "duckduckgo-search",
+    "fastapi>=0.128.7",
+    "nltk>=3.9",
+    "ragas>=0.2.0",
+    "sacrebleu>=2.4.0",
+    "httpx>=0.28.1",
+    "langchain>=1.2.10",
+    "langchain-anthropic>=1.3.2",
+    "langchain-cohere>=0.5.0",
+    "langchain-community>=0.4.1",
+    "langchain-experimental>=0.4.1",
+    "langchain-ollama>=1.0.1",
+    "langchain-openai>=1.1.8",
+    "langchain-qdrant>=1.1.0",
+    "langchain-voyageai>=0.3.2",
+    "langgraph>=1.0.8",
+    "langgraph-checkpoint-mongodb>=0.3.1",
+    "markdown>=3.10.2",
+    "mcp>=1.26.0",
+    "minio>=7.2.20",
+    "motor>=3.7.1",
+    "neo4j>=5.28.1",
+    "ollama>=0.6.1",
+    "opentelemetry-api>=1.39.1",
+    "opentelemetry-exporter-otlp>=1.39.1",
+    "opentelemetry-instrumentation-fastapi>=0.60b1",
+    "opentelemetry-instrumentation-httpx>=0.60b1",
+    "opentelemetry-sdk>=1.39.1",
+    "playwright>=1.58.0",
+    "prometheus-client>=0.24.1",
+    "pydantic>=2.12.5",
+    "pydantic-settings>=2.12.0",
+    "pypdf>=6.7.0",
+    "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
+    "python-docx>=1.2.0",
+    "python-dotenv>=1.2.1",
+    "python-multipart>=0.0.9",
+    "passlib[bcrypt]>=1.7.4",
+    "python-jose[cryptography]>=3.3.0",
+    "email-validator>=2.1.0.post1",
+    "qdrant-client>=1.12.0",
+    "structlog>=24.4.0",
+    "uvicorn>=0.34.0",
+    "voyageai>=0.3.0",
 ]
-runner = "pytest"
 
-[tool.pytest.ini_options]
-minversion = "7.0"
-testpaths = ["tests"]
-python_files = "test_*.py"
-python_classes = "Test*"
-python_functions = "test_*"
-addopts = "-v --tb=short --strict-markers"
-markers = [
-    "unit: Unit tests",
-    "integration: Integration tests",
-    "slow: Slow tests",
-    "mutation: Mutation testing targets",
+[project.optional-dependencies]
+local = [
+    "sentence-transformers>=3.4.1",
+    "torch>=2.5.1",
+    "transformers>=4.48.0",
 ]
 
-[tool.coverage.run]
-source = ["app"]
-omit = [
-    "*/tests/*",
-    "*/test_*",
-    "app/main.py",
+[tool.uv]
+package = false
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[dependency-groups]
+dev = [
+    "pytest-mock>=3.15.1",
+    "pytest-cov>=6.0.0",
+    "bandit>=1.8.0",
+    "checkov>=3.2.0",
+    "ruff>=0.15.1",
 ]
 
-[tool.coverage.report]
-precision = 2
-fail_under = 70
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+select = [
+    "E",      # pycodestyle errors
+    "F",      # pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "UP",     # pyupgrade
+    "TID",    # tidy imports
+]
+
+ignore = []
+
+[tool.ruff.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.bandit]
+skips = []
+target = "."
+exclude = ["tests/", "test_fixtures/", "examples/", ".git/", "node_modules/"]
+
+[tool.bandit.assert_used]

@@ -64,13 +64,7 @@ class CurrentUser(BaseModel):
 
 async def get_current_workspace(
     request: Request,
-    workspace_id: Annotated[
-        Optional[str],
-        Query(
-            description="Workspace ID for workspace-scoped operations",
-            examples=["ws_123abc"],
-        ),
-    ] = None,
+    workspace_id: Optional[str] = None,
 ) -> CurrentWorkspace:
     """
     Extract and validate workspace context from request.

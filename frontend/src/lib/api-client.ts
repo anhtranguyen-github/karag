@@ -13,7 +13,7 @@ import {
 } from "./api";
 
 const config = new Configuration({
-    basePath: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000",
+    basePath: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1",
     middleware: [
         {
             pre: async (context) => {

@@ -1,119 +1,90 @@
 'use client';
 
-import React from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useWorkspaceContext } from '@/context/workspace-context';
-import { cn } from '@/lib/utils';
-import { useAuth } from '@/context/auth-context';
+import React, { useState } from "react";
 import {
-    MessageSquare, FileText, Settings,
-    ChevronDown, Database, Zap, ShieldCheck,
-    User as UserIcon
-} from 'lucide-react';
+    ChevronDown,
+    Terminal,
+    ShieldCheck,
+    User as UserIcon,
+    Bell,
+    Command,
+    Search,
+    Check
+} from "lucide-react";
+import { useAuth } from "@/context/auth-context";
+import { cn } from "@/lib/utils";
+import { useWorkspaces } from "@/hooks/use-workspaces";
+import { WorkspaceSwitcher } from "@/components/workspace-switcher";
+import { motion, AnimatePresence } from "framer-motion";
 
-interface WorkspaceHeaderProps {
-    onWorkspaceClick?: () => void;
-}
-
-export function WorkspaceHeader({ onWorkspaceClick }: WorkspaceHeaderProps) {
-    const { currentWorkspace, workspaceId, isDefault, ragEngine, documentCount } = useWorkspaceContext();
+export function WorkspaceHeader() {
     const { user } = useAuth();
-    const pathname = usePathname();
-
-    const navItems = [
-        { href: `/workspaces/${workspaceId}/chat`, label: 'Chat', icon: MessageSquare },
-        { href: `/workspaces/${workspaceId}/documents`, label: 'Documents', icon: FileText },
-        { href: `/workspaces/${workspaceId}/settings`, label: 'Settings', icon: Settings },
-    ];
-
-
-    const isActive = (href: string) => {
-        if (href === `/workspaces/${workspaceId}`) {
-            return pathname === href;
-        }
-        return pathname.startsWith(href);
-    };
+    const { workspaces, currentWorkspace, selectWorkspace, createWorkspace } = useWorkspaces();
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
 
     return (
-        <header className="h-14 bg-[#0f0f10] border-b border-white/10 flex items-center px-4 justify-between sticky top-0 z-50">
-            {/* Left: Workspace Context */}
-            <div className="flex items-center gap-4">
-                {/* Workspace Selector Button */}
-                <button
-                    onClick={onWorkspaceClick}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
-                    title="Switch Workspace"
-                >
-                    <div className={cn(
-                        "w-6 h-6 rounded-md flex items-center justify-center text-tiny font-bold",
-                        isDefault ? "bg-gray-600 text-white" : "bg-blue-600 text-white"
-                    )}>
-                        {currentWorkspace?.name?.[0] || 'w'}
-                    </div>
-                    <div className="flex flex-col items-start">
-                        <span className="text-caption font-semibold text-white">
-                            {currentWorkspace?.name || 'Loading...'}
-                        </span>
-                        <span className="text-tiny text-gray-500 ">
-                            {isDefault ? 'Default' : `ID: ${workspaceId}`}
-                        </span>
-                    </div>
-                    <ChevronDown size={14} className="text-gray-500 ml-1" />
-                </button>
+        <header className="h-16 border-b border-border bg-background/50 backdrop-blur-xl flex items-center justify-between px-6 shrink-0 z-30 sticky top-0">
 
-                {/* Workspace Meta */}
-                <div className="hidden md:flex items-center gap-3 text-tiny text-gray-500">
-                    <div className="flex items-center gap-1 px-2 py-1 rounded bg-white/5">
-                        <Database size={12} />
-                        <span>{documentCount} docs</span>
-                    </div>
-                    <div className="flex items-center gap-1 px-2 py-1 rounded bg-white/5">
-                        <Zap size={12} />
-                        <span className="">{ragEngine}</span>
+            {/* Left: Workspace Selector */}
+            <div className="flex items-center gap-6">
+                <div className="w-48">
+                    <WorkspaceSwitcher
+                        workspaces={workspaces}
+                        currentWorkspace={currentWorkspace || null}
+                        onSelect={(ws) => selectWorkspace(ws)}
+                        onCreate={async (name) => {
+                            try {
+                                await createWorkspace({ name });
+                                return { success: true };
+                            } catch (e) {
+                                return { success: false, error: "Failed to create" };
+                            }
+                        }}
+                    />
+                </div>
+
+                {/* Global Pipeline Status */}
+                <div className="hidden lg:flex items-center gap-4 border-l border-border pl-6">
+                    <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">System Operational</span>
                     </div>
                 </div>
             </div>
 
-            {/* Center: Navigation */}
-            <nav className="flex items-center gap-1">
-                {navItems.map((item) => (
-                    <Link
-                        key={item.href}
-                        href={item.href}
-                        className={cn(
-                            "flex items-center gap-2 px-4 py-2 rounded-lg text-caption font-medium transition-all",
-                            isActive(item.href)
-                                ? "bg-white text-black"
-                                : "text-gray-400 hover:text-white hover:bg-white/5"
-                        )}
-                    >
-                        <item.icon size={16} />
-                        <span className="hidden sm:inline">{item.label}</span>
-                    </Link>
-                ))}
-            </nav>
+            {/* Right: Search, Notifications, User */}
+            <div className="flex items-center gap-4">
 
-            {/* Right: Actions */}
-            <div className="flex items-center gap-2">
-                <Link
-                    href="/admin"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-tiny font-bold  hover:bg-indigo-500/20 transition-all"
-                >
-                    <ShieldCheck size={14} />
-                    Admin
-                </Link>
-                <Link
-                    href="/profile"
-                    className="flex items-center gap-2 h-9 px-3 rounded-lg hover:bg-white/5 transition-all group"
-                >
-                    <div className="w-6 h-6 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center group-hover:bg-indigo-500/20 transition-all">
-                        <UserIcon size={12} className="text-indigo-400" />
+                {/* Command Search Bar */}
+                <div className="hidden md:flex items-center gap-2 px-3 h-9 rounded-xl bg-secondary/50 border border-border text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer transition-all group w-64">
+                    <Search size={14} />
+                    <span className="text-xs font-medium flex-1">Search or jump to...</span>
+                    <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-background border border-border text-[9px] font-bold opacity-60 group-hover:opacity-100">
+                        <Command size={8} />
+                        K
                     </div>
-                    <span className="text-tiny font-bold text-gray-400 group-hover:text-white transition-all">
-                        {user?.fullName || "User"}
-                    </span>
-                </Link>
+                </div>
+
+                <div className="flex items-center gap-1">
+                    <button className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
+                        <Bell size={18} />
+                    </button>
+                    <button className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
+                        <Terminal size={18} />
+                    </button>
+                </div>
+
+                <div className="h-8 w-[1px] bg-border mx-2" />
+
+                <div className="flex items-center gap-3 pl-2">
+                    <div className="flex flex-col items-end hidden sm:flex">
+                        <span className="text-xs font-bold leading-none">{user?.fullName || "User"}</span>
+                        <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest mt-1">Admin</span>
+                    </div>
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20 border border-white/10 active:scale-95 transition-all cursor-pointer">
+                        <UserIcon size={18} />
+                    </div>
+                </div>
             </div>
         </header>
     );

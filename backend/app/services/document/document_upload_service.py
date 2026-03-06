@@ -29,7 +29,7 @@ class DocumentUploadService:
         return clean_name
 
     async def upload(
-        self, file: UploadFile, workspace_id: str, strategy: Optional[str] = None
+        self, file: UploadFile, workspace_id: str, dataset_id: Optional[str] = None, strategy: Optional[str] = None
     ) -> Dict:
         """Process and prepare a new document for ingestion."""
         with tracer.start_as_current_span(
@@ -134,13 +134,13 @@ class DocumentUploadService:
                 target_filename = f"{name} ({max_count + 1}){ext}"
             elif strategy == "overwrite" and existing_local_name:
                 await self.delete(
-                    existing_local_name["id"], workspace_id, vault_delete=True
+                    existing_local_name["id"], workspace_id, dataset_delete=True
                 )
 
             task_type = "upload" if workspace_id == "vault" else "ingestion"
             task_id = await task_service.create_task(
                 task_type,
-                {"filename": target_filename, "workspace_id": workspace_id},
+                {"filename": target_filename, "workspace_id": workspace_id, "dataset_id": dataset_id},
                 workspace_id=workspace_id,
             )
 
@@ -222,6 +222,7 @@ class DocumentUploadService:
         url: str,
         filename: str,
         workspace_id: str,
+        dataset_id: Optional[str] = None,
         strategy: Optional[str] = None,
     ):
         """Background runner that fetches the URL and then ingests it."""
@@ -231,7 +232,7 @@ class DocumentUploadService:
         await strat.run(
             task_id,
             workspace_id,
-            {"url": url, "filename": filename, "strategy": strategy},
+            {"url": url, "filename": filename, "strategy": strategy, "dataset_id": dataset_id},
         )
 
     async def import_github(
@@ -286,10 +287,10 @@ class DocumentUploadService:
     async def run_ingestion(
         self,
         task_id: str,
-        safe_filename: str,
         content: bytes,
         content_type: str,
         workspace_id: str,
+        dataset_id: Optional[str] = None,
     ):
         """Phase 1: Storage and metadata."""
         try:
@@ -386,9 +387,9 @@ class DocumentUploadService:
                     task_id, progress=60, message="Indexing..."
                 )
                 from .document_ingestion_service import document_ingestion_service
-
+                
                 num_chunks = await document_ingestion_service.index_document(
-                    doc_id, workspace_id, task_id=task_id
+                    doc_id, workspace_id, dataset_id=dataset_id, task_id=task_id
                 )
 
             await task_service.update_task(

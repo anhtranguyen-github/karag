@@ -11,6 +11,7 @@ from backend.app.api.v1 import (
     auth,
     completions,
     baas_admin,
+    workspace_resources,
 )
 
 api_v1_router = APIRouter()
@@ -25,6 +26,7 @@ api_v1_router.include_router(baas_admin.router)
 # Workspace-scoped routes
 ws_router = APIRouter(prefix="/workspaces/{workspace_id}")
 ws_router.include_router(chat.router, prefix="/chat")
+ws_router.include_router(workspace_resources.router)
 ws_router.include_router(documents.router)
 ws_router.include_router(search.router, prefix="/search")
 ws_router.include_router(tasks.router, prefix="/tasks")

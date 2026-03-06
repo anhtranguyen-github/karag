@@ -14,7 +14,7 @@ from backend.app.schemas.generation import (
     LlamaGenerationConfig,
 )
 from backend.app.schemas.retrieval import RetrievalConfig
-from backend.app.schemas.execution import RuntimeSettings
+from backend.app.schemas.execution import RuntimeSettings, ExecutionMode
 
 
 class AppSettings(BaseModel):
@@ -260,7 +260,7 @@ class AppSettings(BaseModel):
         self.generation.temperature = self.temperature
 
         # Sync Runtime fields
-        self.runtime.mode = self.runtime_mode
+        self.runtime.mode = ExecutionMode(self.runtime_mode)
         self.runtime.stream_thoughts = self.runtime_stream_thoughts
         self.runtime.tracing.trace_level = self.runtime_trace_level
         self.show_reasoning = self.runtime_stream_thoughts
@@ -336,7 +336,7 @@ class AppSettings(BaseModel):
         description="Number of documents to keep after reranking.",
         json_schema_extra={"mutable": True, "category": "Retrieval Component"},
     )
-    reranker_provider: Literal["cohere", "openai", "local"] = Field(
+    reranker_provider: Literal["cohere", "openai", "local", "none"] = Field(
         default="local",
         description="The service used for reranking results.",
         json_schema_extra={"mutable": True, "category": "Retrieval Component"},

@@ -179,8 +179,8 @@ class ConfigService:
 
         return WorkspaceConfig(
             workspace_id=workspace_id,
-            enabled_vaults=["default"],
-            default_vault_id="default",
+            enabled_datasets=["default"],
+            default_dataset_id="default",
             rag_config=system_config.default_rag_config,
             default_temperature=0.7,
             default_max_tokens=1024,
@@ -279,7 +279,7 @@ class ConfigService:
             clamped["default_model"] = model
 
         # Pass through other updates (RAG config, vault settings)
-        for key in ["enabled_vaults", "default_vault_id", "rag_config", "rate_limits"]:
+        for key in ["enabled_datasets", "default_dataset_id", "rag_config", "rate_limits"]:
             if key in updates:
                 clamped[key] = updates[key]
 
@@ -328,8 +328,8 @@ class ConfigService:
                     system_config.max_tokens_per_request,
                 ),
                 "rag_config": workspace_config.rag_config,
-                "enabled_vaults": workspace_config.enabled_vaults,
-                "default_vault_id": workspace_config.default_vault_id,
+                "enabled_datasets": workspace_config.enabled_datasets,
+                "default_dataset_id": workspace_config.default_dataset_id,
             }
         )
 
@@ -351,8 +351,8 @@ class ConfigService:
             # RAG overrides
             if request_config.use_rag is not None:
                 resolved["use_rag"] = request_config.use_rag
-            if request_config.vault_id is not None:
-                resolved["vault_id"] = request_config.vault_id
+            if request_config.dataset_id is not None:
+                resolved["dataset_id"] = request_config.dataset_id
             if request_config.top_k is not None:
                 resolved["rag_config"].top_k = min(50, max(1, request_config.top_k))
 

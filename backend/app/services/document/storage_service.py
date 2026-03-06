@@ -20,12 +20,12 @@ class StorageService:
 
         return minio_manager.get_file(minio_path)
 
-    async def delete(self, doc_id: str, workspace_id: str, vault_delete: bool = False):
+    async def delete(self, doc_id: str, workspace_id: str, dataset_delete: bool = False):
         """Securely delete a document by its internal ID."""
         db = mongodb_manager.get_async_database()
 
         query = {"id": doc_id}
-        if not vault_delete:
+        if not dataset_delete:
             query["$or"] = [
                 {"workspace_id": workspace_id},
                 {"shared_with": workspace_id},
@@ -39,7 +39,7 @@ class StorageService:
 
         store = await ProviderFactory.get_vector_store()
 
-        if vault_delete:
+        if dataset_delete:
             content_hash = doc.get("content_hash")
             minio_path = doc.get("minio_path")
 
@@ -112,7 +112,7 @@ class StorageService:
             cursor = db.documents.find({"workspace_id": workspace_id})
             docs = await cursor.to_list(1000)
             for doc in docs:
-                await self.delete(doc["id"], workspace_id, vault_delete=True)
+                await self.delete(doc["id"], workspace_id, dataset_delete=True)
 
             await db.documents.update_many(
                 {"shared_with": workspace_id}, {"$pull": {"shared_with": workspace_id}}

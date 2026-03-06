@@ -212,14 +212,14 @@ class WorkspaceService:
         return result
 
     @staticmethod
-    async def delete(workspace_id: str, vault_delete: bool = False):
+    async def delete(workspace_id: str, dataset_delete: bool = False):
         db = mongodb_manager.get_async_database()
 
         # 1. Handle associated documents
         # Batch delete using StorageService optimized method
         from backend.app.services.document_service import document_service
 
-        await document_service.delete_many(workspace_id, delete_content=vault_delete)
+        await document_service.delete_many(workspace_id, delete_content=dataset_delete)
 
         # 2. Cleanup workspace meta
         await db.workspaces.delete_one({"id": workspace_id})

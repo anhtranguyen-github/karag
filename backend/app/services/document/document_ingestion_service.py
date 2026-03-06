@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 from backend.app.core.mongodb import mongodb_manager
 from backend.app.core.minio import minio_manager
 from backend.app.core.exceptions import NotFoundError
@@ -9,7 +10,7 @@ from .base import logger
 
 class DocumentIngestionService:
     async def index_document(
-        self, doc_id: str, workspace_id: str, force: bool = False, task_id: str = None
+        self, doc_id: str, workspace_id: str, dataset_id: Optional[str] = None, force: bool = False, task_id: str = None
     ):
         """Phase 2: On-Demand Indexing."""
         if task_id and await task_service.is_cancelled(task_id):
@@ -59,7 +60,7 @@ class DocumentIngestionService:
                 )
                 return 0
 
-            config, store = await ingestion_pipeline.get_ingestion_config(workspace_id)
+            config, store = await ingestion_pipeline.get_ingestion_config(workspace_id, dataset_id=dataset_id)
 
             # Phase 2a: Ensure collection and indices exist BEFORE operating on it
             # This prevents 400 errors from Qdrant when filtering on unindexed fields
@@ -108,12 +109,14 @@ class DocumentIngestionService:
                         metadata={
                             "filename": doc["filename"],
                             "workspace_id": workspace_id,
+                            "dataset_id": dataset_id,
                             "doc_id": doc["id"],
                             "version": doc.get("current_version", 1),
                             "minio_path": doc["minio_path"],
                             "content_hash": doc["content_hash"],
                             "task_id": task_id,
                         },
+                        dataset_id=dataset_id
                     )
 
                     await db.documents.update_one(
@@ -162,7 +165,7 @@ class DocumentIngestionService:
             raise e
 
     async def run_index_background(
-        self, task_id: str, doc_id: str, workspace_id: str, force: bool = False
+        self, task_id: str, doc_id: str, workspace_id: str, dataset_id: Optional[str] = None, force: bool = False
     ):
         """Background wrapper for index_document."""
         try:
@@ -176,7 +179,7 @@ class DocumentIngestionService:
                 message="Starting indexing...",
             )
             num_chunks = await self.index_document(
-                doc_id, workspace_id, force=force, task_id=task_id
+                doc_id, workspace_id, dataset_id=dataset_id, force=force, task_id=task_id
             )
 
             if await task_service.is_cancelled(task_id):

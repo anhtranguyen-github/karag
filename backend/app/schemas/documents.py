@@ -4,15 +4,18 @@ from typing import Optional, List
 
 class UrlImportRequest(BaseModel):
     url: HttpUrl = Field(..., description="URL to import from")
+    dataset_id: Optional[str] = Field(None, description="Target dataset ID")
     strategy: Optional[str] = Field(None, description="Ingestion strategy")
 
 
 class SitemapImportRequest(BaseModel):
     url: HttpUrl = Field(..., description="Sitemap URL")
+    dataset_id: Optional[str] = Field(None, description="Target dataset ID")
 
 
 class GitHubImportRequest(BaseModel):
     url: HttpUrl = Field(..., description="GitHub repository URL")
+    dataset_id: Optional[str] = Field(None, description="Target dataset ID")
     branch: str = Field("main", description="Branch name")
 
 

@@ -308,7 +308,11 @@ boot_infra() {
     if check_cloud_qdrant; then
         log_info "Using Qdrant Cloud"
     else
-        log_info "Using local Qdrant"
+        if [[ -n "${QDRANT_URL:-}" ]] && [[ "$QDRANT_URL" != *"localhost"* ]] && [[ "$QDRANT_URL" != *"127.0.0.1"* ]]; then
+            log_warn "Qdrant Cloud unreachable, falling back to local Qdrant"
+        else
+            log_info "Using local Qdrant"
+        fi
         services="qdrant $services"
         export QDRANT_URL="http://localhost:6333"
         export QDRANT_API_KEY="local-dev-key"
@@ -317,15 +321,27 @@ boot_infra() {
     if check_cloud_mongo; then
         log_info "Using MongoDB Atlas"
     else
-        log_info "Using local MongoDB"
+        if [[ -n "${MONGO_URI:-}" ]] && [[ "$MONGO_URI" != *"localhost"* ]] && [[ "$MONGO_URI" != *"127.0.0.1"* ]]; then
+            log_warn "MongoDB Atlas unreachable, falling back to local MongoDB"
+        else
+            log_info "Using local MongoDB"
+        fi
         services="mongodb $services"
+        export MONGO_URI="mongodb://localhost:27017"
     fi
 
     if check_cloud_neo4j; then
         log_info "Using Neo4j Aura"
     else
-        log_info "Using local Neo4j"
+        if [[ -n "${NEO4J_URI:-}" ]] && [[ "$NEO4J_URI" != *"localhost"* ]] && [[ "$NEO4J_URI" != *"127.0.0.1"* ]]; then
+            log_warn "Neo4j Cloud unreachable, falling back to local Neo4j"
+        else
+            log_info "Using local Neo4j"
+        fi
         services="neo4j $services"
+        export NEO4J_URI="bolt://localhost:7687"
+        export NEO4J_USER="neo4j"
+        export NEO4J_PASSWORD="neo4j_password"
     fi
 
     # Add DevSecOps services unless in turbo mode

@@ -366,7 +366,6 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
 
         # Structured log entry
         log_data = {
-            "event": "http_request",
             "status": status_code,
             "duration_ms": round(duration * 1000, 2),
             "endpoint": endpoint,

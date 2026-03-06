@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import APIRouter, Query, Depends
 from backend.app.services.search_service import search_service
 
@@ -23,6 +24,7 @@ async def global_search(
 @router.get("/vector", response_model=AppResponse)
 async def vector_search(
     q: str = Query(..., min_length=2, description="Search query"),
+    dataset_id: Optional[str] = Query(None, description="Specific dataset ID to search within"),
     current_workspace: CurrentWorkspace = Depends(get_current_workspace),
 ):
     """
@@ -30,5 +32,5 @@ async def vector_search(
     """
     from backend.app.rag.rag_service import rag_service
 
-    results = await rag_service.search(q, current_workspace.id)
+    results = await rag_service.search(q, current_workspace.id, dataset_id=dataset_id)
     return AppResponse.success_response(data=results)

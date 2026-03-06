@@ -4,6 +4,10 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api-client";
 import { User, Token, UserCreate } from "@/lib/api";
+import { initApi } from "@/lib/api-init";
+
+// Initialize API client
+initApi();
 
 interface AuthContextType {
     user: User | null;

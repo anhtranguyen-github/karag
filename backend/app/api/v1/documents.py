@@ -24,10 +24,11 @@ async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     current_workspace: CurrentWorkspace = Depends(get_current_workspace),
+    dataset_id: Optional[str] = None,
     strategy: Optional[str] = None,
 ):
     workspace_id = current_workspace.id
-    result = await document_service.upload(file, workspace_id, strategy=strategy)
+    result = await document_service.upload(file, workspace_id, dataset_id=dataset_id, strategy=strategy)
 
     if result["status"] == "success":
         background_tasks.add_task(
@@ -37,6 +38,7 @@ async def upload_document(
             result["content"],
             result["content_type"],
             workspace_id,
+            dataset_id
         )
         if "content" in result:
             del result["content"]
@@ -63,6 +65,7 @@ async def import_url_document(
             url_str,
             result["filename"],
             workspace_id,
+            payload.dataset_id if hasattr(payload, 'dataset_id') else None,
             payload.strategy,
         )
         if "content" in result:
@@ -169,6 +172,7 @@ async def get_document_chunks(
 async def index_document(
     background_tasks: BackgroundTasks,
     document_id: str,
+    dataset_id: Optional[str] = None,
     current_workspace: dict = Depends(get_current_workspace),
 ):
     workspace_id = current_workspace["id"]
@@ -184,7 +188,7 @@ async def index_document(
     )
 
     background_tasks.add_task(
-        document_service.run_index_background, task_id, document_id, workspace_id, False
+        document_service.run_index_background, task_id, document_id, workspace_id, dataset_id, False
     )
 
     return AppResponse.success_response(
@@ -299,11 +303,11 @@ async def get_document(
 @router.delete("/documents/{document_id}")
 async def delete_document(
     document_id: str,
-    vault_delete: bool = False,
+    dataset_delete: bool = False,
     current_workspace: CurrentWorkspace = Depends(get_current_workspace),
 ):
     await document_service.delete(
-        document_id, current_workspace.id, vault_delete=vault_delete
+        document_id, current_workspace.id, dataset_delete=dataset_delete
     )
     return AppResponse.success_response(
         data={"id": document_id},

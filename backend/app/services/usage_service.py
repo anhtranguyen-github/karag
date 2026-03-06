@@ -86,7 +86,7 @@ class UsageService:
     FEATURES:
     - Structured request logging with workspace attribution
     - Token usage tracking (prompt, completion, embedding)
-    - RAG tracing (retrieved chunks, scores, vault sources)
+    - RAG tracing (retrieved chunks, scores, dataset sources)
     - Aggregated usage statistics
 
     REDACTION:
@@ -199,7 +199,7 @@ class UsageService:
     @classmethod
     async def create_rag_trace(
         cls,
-        vault_id: str,
+        dataset_id: str,
         query: str,
         chunks_retrieved: int,
         retrieval_latency_ms: float,
@@ -212,7 +212,7 @@ class UsageService:
         Create a RAG trace for logging.
 
         Args:
-            vault_id: The vault used for retrieval
+            dataset_id: The dataset used for retrieval
             query: The original query
             chunks_retrieved: Number of chunks retrieved
             retrieval_latency_ms: Retrieval operation duration
@@ -228,7 +228,7 @@ class UsageService:
         query_preview = query[:500] if len(query) > 500 else query
 
         return RAGTrace(
-            vault_id=vault_id,
+            dataset_id=dataset_id,
             query=query_preview,
             chunks_retrieved=chunks_retrieved,
             retrieval_latency_ms=round(retrieval_latency_ms, 2),

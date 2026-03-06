@@ -63,7 +63,7 @@ class RAGService:
         ):
             start = time.perf_counter()
             provider = await ProviderFactory.get_embeddings(workspace_id)
-            result = await provider.aembed_documents(texts)
+            result = await provider.embed_documents(texts)
             duration = time.perf_counter() - start
 
             provider_name = type(provider).__name__
@@ -82,13 +82,14 @@ class RAGService:
         from backend.app.core.factory import ProviderFactory
 
         provider = await ProviderFactory.get_embeddings(workspace_id)
-        return await provider.aembed_query(query)
+        return await provider.embed_query(query)
 
     async def search(
         self,
         query: str,
         workspace_id: str,
         limit: Optional[int] = None,
+        dataset_id: Optional[str] = None,
     ) -> list:
         """
         Modular retrieval using LangChain Retrievers.
@@ -108,15 +109,28 @@ class RAGService:
 
             # Execute retrieval via adapter pattern
             store = await ProviderFactory.get_vector_store(workspace_id)
+            
+            from backend.app.services.dataset_service import dataset_service
+            from backend.app.services.pipeline_service import pipeline_service
+            
             settings = await settings_manager.get_settings(workspace_id)
+            if dataset_id:
+                dataset = await dataset_service.get_dataset(dataset_id, workspace_id)
+                pipeline = await pipeline_service.get_pipeline(dataset.pipeline_id, workspace_id)
+                retrieval_config = pipeline.retrieval
+                collection_name = dataset.vector_store_config.collection_name
+            else:
+                retrieval_config = settings.retrieval
+                collection_name = None # use store default
 
             query_vector = await self.get_query_embedding(query, workspace_id)
 
             search_results = await store.search(
-                config=settings.retrieval,
+                config=retrieval_config,
                 query_vector=query_vector,
                 query_text=query,
                 workspace_id=workspace_id,
+                collection_name=collection_name
             )
 
             results = []
@@ -221,6 +235,7 @@ class RAGService:
         query: str,
         workspace_id: str,
         limit: Optional[int] = None,
+        dataset_id: Optional[str] = None,
         enable_multi_query: bool = False,
         enable_compression: bool = False,
         llm_client=None,
@@ -251,7 +266,7 @@ class RAGService:
 
             # Base search function
             async def base_search(q: str, top_k: int) -> List[RetrievalResult]:
-                results = await self.search(q, workspace_id, limit=top_k)
+                results = await self.search(q, workspace_id, limit=top_k, dataset_id=dataset_id)
                 return [
                     RetrievalResult(
                         text=r["text"],

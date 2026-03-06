@@ -205,7 +205,7 @@ class APIKeyService:
                     workspace_id=key_doc["workspace_id"],
                     api_key_id=key_doc["id"],
                     permissions=key_doc.get("permissions", ["read"]),
-                    vault_ids=key_doc.get("vault_ids", ["default"]),
+                    dataset_ids=key_doc.get("dataset_ids", ["default"]),
                 )
 
         # No matching key found

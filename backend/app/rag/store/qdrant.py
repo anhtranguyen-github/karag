@@ -289,12 +289,14 @@ class QdrantStore(VectorStore):
         query_vector: List[float],
         query_text: str,
         workspace_id: str,
+        collection_name: Optional[str] = None,
     ) -> List[SearchResult]:
-        # Determine collection name based on vector dimension
-        dim = len(query_vector)
-        collection_name = await self._get_effective_collection(
-            f"knowledge_base_{dim}", workspace_id
-        )
+        # Determine collection name based on vector dimension if not provided
+        if not collection_name:
+            dim = len(query_vector)
+            collection_name = await self._get_effective_collection(
+                f"knowledge_base_{dim}", workspace_id
+            )
 
         limit = config.hybrid.top_k if config.hybrid.enabled else config.vector.top_k
 
