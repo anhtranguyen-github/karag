@@ -4,8 +4,8 @@ Dataset definitions and registration for RAG evaluation.
 This module registers all supported datasets with the dataset registry.
 """
 
-from backend.app.eval.datasets.huggingface_loader import HuggingFaceDatasetLoader
 from backend.app.eval.datasets.base import DatasetInfo
+from backend.app.eval.datasets.huggingface_loader import HuggingFaceDatasetLoader
 from backend.app.eval.datasets.registry import dataset_registry
 
 

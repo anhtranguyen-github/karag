@@ -5,10 +5,9 @@ a LangChain-based adapter implementation.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional
+from typing import Any
 
 import structlog
-
 from backend.app.core.telemetry import get_tracer
 
 logger = structlog.get_logger(__name__)
@@ -41,7 +40,7 @@ class EmbeddingProvider(ABC):
         pass
 
     @abstractmethod
-    async def embed_documents(self, texts: List[str]) -> List[List[float]]:
+    async def embed_documents(self, texts: list[str]) -> list[list[float]]:
         """Embed a list of documents.
 
         Args:
@@ -53,7 +52,7 @@ class EmbeddingProvider(ABC):
         pass
 
     @abstractmethod
-    async def embed_query(self, text: str) -> List[float]:
+    async def embed_query(self, text: str) -> list[float]:
         """Embed a query text.
 
         Args:
@@ -75,8 +74,8 @@ class LangChainEmbeddingAdapter(EmbeddingProvider):
         self,
         embeddings: Any,  # LangChain Embeddings instance
         provider_name: str,
-        model_name: Optional[str] = None,
-        dimensions: Optional[int] = None,
+        model_name: str | None = None,
+        dimensions: int | None = None,
     ):
         """Initialize the adapter.
 
@@ -151,7 +150,7 @@ class LangChainEmbeddingAdapter(EmbeddingProvider):
         """Return the embedding vector dimensions."""
         return self._dimensions
 
-    async def embed_documents(self, texts: List[str]) -> List[List[float]]:
+    async def embed_documents(self, texts: list[str]) -> list[list[float]]:
         """Embed a list of documents."""
         if not texts:
             return []
@@ -177,7 +176,7 @@ class LangChainEmbeddingAdapter(EmbeddingProvider):
             )
             raise
 
-    async def embed_query(self, text: str) -> List[float]:
+    async def embed_query(self, text: str) -> list[float]:
         """Embed a query text."""
         if not text:
             return [0.0] * self._dimensions
@@ -204,7 +203,7 @@ class LangChainEmbeddingAdapter(EmbeddingProvider):
 
 
 # Legacy compatibility - factory function
-async def get_embeddings(workspace_id: Optional[str] = None) -> EmbeddingProvider:
+async def get_embeddings(workspace_id: str | None = None) -> EmbeddingProvider:
     """Factory function to get the configured embedding provider.
 
     This is the legacy entry point that now returns the new abstraction.

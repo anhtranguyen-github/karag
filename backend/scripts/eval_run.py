@@ -18,16 +18,16 @@ from pathlib import Path
 # Add backend to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import structlog
+from backend.app.eval.config.loader import get_config_loader
+from backend.app.eval.datasets.base import DatasetInfo, DatasetSplit
 from backend.app.eval.datasets.definitions import register_all_datasets
 from backend.app.eval.datasets.huggingface_loader import HuggingFaceDatasetLoader
-from backend.app.eval.datasets.base import DatasetInfo, DatasetSplit
-from backend.app.eval.runners.standard_runner import StandardQARunner
-from backend.app.eval.runners.retrieval_runner import RetrievalRunner
-from backend.app.eval.runners.end_to_end_runner import EndToEndRunner
-from backend.app.eval.runners.robustness_runner import RobustnessRunner
 from backend.app.eval.runners.base import RunnerConfig
-from backend.app.eval.config.loader import get_config_loader
-import structlog
+from backend.app.eval.runners.end_to_end_runner import EndToEndRunner
+from backend.app.eval.runners.retrieval_runner import RetrievalRunner
+from backend.app.eval.runners.robustness_runner import RobustnessRunner
+from backend.app.eval.runners.standard_runner import StandardQARunner
 
 # Register datasets explicitly (removed from import-time side effects)
 register_all_datasets()
@@ -83,9 +83,7 @@ def create_dataset_loader(dataset_name: str):
 
     hf_path = config.get("hf_path")
     if not hf_path or "ambiguous" in hf_path:
-        raise ValueError(
-            f"Dataset {dataset_name} does not have a HuggingFace path configured"
-        )
+        raise ValueError(f"Dataset {dataset_name} does not have a HuggingFace path configured")
 
     # Create dataset info
     info = DatasetInfo(
@@ -150,17 +148,13 @@ async def run_benchmark(benchmark_name: str, output_file: str = None):
             loader = create_dataset_loader(dataset_name)
 
             result = await runner.run(
-                dataset=loader.load(
-                    split=DatasetSplit.TEST, max_samples=runner_config.max_samples
-                ),
+                dataset=loader.load(split=DatasetSplit.TEST, max_samples=runner_config.max_samples),
                 rag_pipeline=mock_rag_pipeline,
                 config=runner_config,
             )
 
             all_results.append(result)
-            print(
-                f"  ✓ Completed: {result.successful_samples}/{result.total_samples} successful"
-            )
+            print(f"  ✓ Completed: {result.successful_samples}/{result.total_samples} successful")
 
         except Exception as e:
             print(f"  ✗ Failed: {e}")
@@ -183,12 +177,8 @@ async def run_benchmark(benchmark_name: str, output_file: str = None):
 async def main():
     parser = argparse.ArgumentParser(description="Run RAG evaluations")
     parser.add_argument("--benchmark", type=str, help="Name of benchmark to run")
-    parser.add_argument(
-        "--list-benchmarks", action="store_true", help="List available benchmarks"
-    )
-    parser.add_argument(
-        "--list-runners", action="store_true", help="List available runners"
-    )
+    parser.add_argument("--list-benchmarks", action="store_true", help="List available benchmarks")
+    parser.add_argument("--list-runners", action="store_true", help="List available runners")
     parser.add_argument("--dataset", type=str, help="Dataset to evaluate on")
     parser.add_argument("--runner", type=str, help="Runner to use")
     parser.add_argument(

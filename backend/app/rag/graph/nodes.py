@@ -1,14 +1,15 @@
 import time
-from typing import Dict, Any
-from backend.app.rag.graph.state import GraphState
-from backend.app.schemas.execution import ExecutionMode
-from backend.app.rag.rag_service import rag_service
+from typing import Any
+
 from backend.app.core.factory import ProviderFactory
+from backend.app.rag.graph.state import GraphState
+from backend.app.rag.rag_service import rag_service
+from backend.app.schemas.execution import ExecutionMode
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 
 
-async def init_execution(state: GraphState) -> Dict[str, Any]:
+async def init_execution(state: GraphState) -> dict[str, Any]:
     """Initialize execution parameters, tools, and metadata."""
     mode = state["settings"].execution_mode
     return {
@@ -30,7 +31,7 @@ async def init_execution(state: GraphState) -> Dict[str, Any]:
     }
 
 
-async def analyze_intent(state: GraphState, config: RunnableConfig) -> Dict[str, Any]:
+async def analyze_intent(state: GraphState, config: RunnableConfig) -> dict[str, Any]:
     """Analyze query intent and plan the execution path."""
     mode = state["settings"].execution_mode
 
@@ -95,9 +96,7 @@ async def analyze_intent(state: GraphState, config: RunnableConfig) -> Dict[str,
     return {"intent_analysis": intent, "execution_metadata": metadata}
 
 
-async def build_query_context(
-    state: GraphState, config: RunnableConfig
-) -> Dict[str, Any]:
+async def build_query_context(state: GraphState, config: RunnableConfig) -> dict[str, Any]:
     """Generate search queries optimized for the current mode."""
     mode = state["settings"].execution_mode
     query = state["query"]
@@ -125,7 +124,9 @@ async def build_query_context(
         "Break complex questions into atomic search components."
     )
     if state["loop_count"] > 0:
-        system_prompt += "\nPrevious results were insufficient. Analyze current context gaps and refine queries."
+        system_prompt += (
+            "\nPrevious results were insufficient. Analyze current context gaps and refine queries."
+        )
 
     messages = [SystemMessage(content=system_prompt), HumanMessage(content=query)]
     response = await llm.ainvoke(messages, config={**config, "tags": ["reasoning"]})
@@ -134,7 +135,7 @@ async def build_query_context(
     return {"generated_queries": queries or [query]}
 
 
-async def retrieve_context(state: GraphState) -> Dict[str, Any]:
+async def retrieve_context(state: GraphState) -> dict[str, Any]:
     """Search the internal vector database."""
     queries = state["generated_queries"]
     if not queries:
@@ -158,7 +159,7 @@ async def retrieve_context(state: GraphState) -> Dict[str, Any]:
     return {"retrieved_results": results, "execution_metadata": metadata}
 
 
-async def web_search(state: GraphState) -> Dict[str, Any]:
+async def web_search(state: GraphState) -> dict[str, Any]:
     """Execution of web search via Tavily MCP."""
     mode = state["settings"].execution_mode
     intent = state.get("intent_analysis", "").lower()
@@ -166,9 +167,7 @@ async def web_search(state: GraphState) -> Dict[str, Any]:
     # Detect if query is news-like or temporal even if LLM missed it in intent
     import re
 
-    temporal_patterns = (
-        r"(latest|score|today|yesterday|news|recent|current|weather|results|game)"
-    )
+    temporal_patterns = r"(latest|score|today|yesterday|news|recent|current|weather|results|game)"
     looks_like_news = bool(re.search(temporal_patterns, state["query"].lower()))
 
     # Only skip if we are in a mode that doesn't want web or if AUTO/FAST decided against it
@@ -193,7 +192,7 @@ async def web_search(state: GraphState) -> Dict[str, Any]:
     return {"web_results": results, "execution_metadata": metadata}
 
 
-async def blend_results(state: GraphState) -> Dict[str, Any]:
+async def blend_results(state: GraphState) -> dict[str, Any]:
     """Consolidate internal and web results into a single candidate list."""
     internal = state.get("retrieved_results", [])
     web = state.get("web_results", [])
@@ -237,7 +236,7 @@ async def blend_results(state: GraphState) -> Dict[str, Any]:
     }
 
 
-async def rerank_results(state: GraphState) -> Dict[str, Any]:
+async def rerank_results(state: GraphState) -> dict[str, Any]:
     """Optional reranking of blended results."""
     from backend.app.providers.reranker import get_reranker
 
@@ -247,8 +246,7 @@ async def rerank_results(state: GraphState) -> Dict[str, Any]:
             "blended_context": "",
             "execution_metadata": {
                 **state["execution_metadata"],
-                "nodes_visited": state["execution_metadata"]["nodes_visited"]
-                + ["rerank"],
+                "nodes_visited": state["execution_metadata"]["nodes_visited"] + ["rerank"],
             },
         }
 
@@ -259,9 +257,7 @@ async def rerank_results(state: GraphState) -> Dict[str, Any]:
         # My candidates already have 'text' at top level, but reranker.py looks for payload['text']
         formatted_for_reranker = []
         for c in candidates:
-            formatted_for_reranker.append(
-                {"payload": {"text": c["text"]}, "original_data": c}
-            )
+            formatted_for_reranker.append({"payload": {"text": c["text"]}, "original_data": c})
 
         top_n = 10  # Default fallback
         try:
@@ -272,9 +268,7 @@ async def rerank_results(state: GraphState) -> Dict[str, Any]:
         except Exception:
             pass
 
-        reranked = await reranker.rerank(
-            state["query"], formatted_for_reranker, top_k=top_n
-        )
+        reranked = await reranker.rerank(state["query"], formatted_for_reranker, top_k=top_n)
 
         final_candidates = []
         for r in reranked:
@@ -303,9 +297,7 @@ async def rerank_results(state: GraphState) -> Dict[str, Any]:
     }
 
 
-async def reflect_and_decide(
-    state: GraphState, config: RunnableConfig
-) -> Dict[str, Any]:
+async def reflect_and_decide(state: GraphState, config: RunnableConfig) -> dict[str, Any]:
     """Review sufficiency of collected information."""
     mode = state["settings"].execution_mode
 
@@ -336,9 +328,7 @@ async def reflect_and_decide(
     context_preview = state.get("blended_context", "")[:6000]
     messages = [
         SystemMessage(content=system_prompt),
-        HumanMessage(
-            content=f"Question: {state['query']}\n\nContext:\n{context_preview}"
-        ),
+        HumanMessage(content=f"Question: {state['query']}\n\nContext:\n{context_preview}"),
     ]
     response = await llm.ainvoke(messages, config={**config, "tags": ["reasoning"]})
     sufficient = "yes" in response.content.lower()
@@ -354,12 +344,12 @@ async def reflect_and_decide(
     }
 
 
-async def assemble_context(state: GraphState) -> Dict[str, Any]:
+async def assemble_context(state: GraphState) -> dict[str, Any]:
     """Final preparation."""
     return {"final_context": state.get("blended_context", "")}
 
 
-async def generate_answer(state: GraphState, config: RunnableConfig) -> Dict[str, Any]:
+async def generate_answer(state: GraphState, config: RunnableConfig) -> dict[str, Any]:
     """Produce final response with mode-specific structure."""
     llm = await ProviderFactory.get_llm(state["workspace_id"])
     mode = state["settings"].execution_mode
@@ -395,15 +385,11 @@ async def generate_answer(state: GraphState, config: RunnableConfig) -> Dict[str
         for m in state["history"][-6:]:  # Last 6 messages
             role = "User" if m["role"] == "user" else "Assistant"
             history_parts.append(f"{role}: {m['content']}")
-        history_context = (
-            "--- CONVERSATION HISTORY ---\n" + "\n".join(history_parts) + "\n\n"
-        )
+        history_context = "--- CONVERSATION HISTORY ---\n" + "\n".join(history_parts) + "\n\n"
 
     messages = [
         SystemMessage(content=system_prompt),
-        HumanMessage(
-            content=f"{history_context}Context:\n{context}\n\nQuestion: {state['query']}"
-        ),
+        HumanMessage(content=f"{history_context}Context:\n{context}\n\nQuestion: {state['query']}"),
     ]
     response = await llm.ainvoke(messages, config={**config, "tags": ["final_answer"]})
 
@@ -414,9 +400,7 @@ async def generate_answer(state: GraphState, config: RunnableConfig) -> Dict[str
     return {"final_answer": response.content, "execution_metadata": metadata}
 
 
-async def synthesize_answer(
-    state: GraphState, config: RunnableConfig
-) -> Dict[str, Any]:
+async def synthesize_answer(state: GraphState, config: RunnableConfig) -> dict[str, Any]:
     """Fallback/Synthesis node."""
     if state.get("final_answer"):
         return {"final_answer": state["final_answer"]}

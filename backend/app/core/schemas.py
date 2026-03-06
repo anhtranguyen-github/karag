@@ -1,25 +1,26 @@
-from pydantic import BaseModel, Field, model_validator, computed_field
-from typing import Optional, Literal, Any, Dict
+from typing import Any, Literal
+
 from backend.app.schemas.chunking import ChunkingConfig, RecursiveChunkingConfig
 from backend.app.schemas.embedding import (
     EmbeddingConfig,
-    OpenAIEmbeddingConfig,
     HuggingFaceEmbeddingConfig,
     OllamaEmbeddingConfig,
+    OpenAIEmbeddingConfig,
     SparseEmbeddingConfig,
 )
+from backend.app.schemas.execution import ExecutionMode, RuntimeSettings
 from backend.app.schemas.generation import (
     GenerationConfig,
-    OpenAIGenerationConfig,
     LlamaGenerationConfig,
+    OpenAIGenerationConfig,
 )
 from backend.app.schemas.retrieval import RetrievalConfig
-from backend.app.schemas.execution import RuntimeSettings, ExecutionMode
+from pydantic import BaseModel, Field, computed_field, model_validator
 
 
 class AppSettings(BaseModel):
     @classmethod
-    def _expand_flat_dict(cls, flat_dict: Dict[str, Any]) -> Dict[str, Any]:
+    def _expand_flat_dict(cls, flat_dict: dict[str, Any]) -> dict[str, Any]:
         """Convert a flat dict with dot-notation keys to a nested dict."""
         nested = {}
         for key, value in flat_dict.items():
@@ -42,11 +43,7 @@ class AppSettings(BaseModel):
         data = cls._expand_flat_dict(data)
 
         # 1. Embedding mapping
-        if (
-            "embedding_provider" in data
-            or "embedding_model" in data
-            or "embedding_dim" in data
-        ):
+        if "embedding_provider" in data or "embedding_model" in data or "embedding_dim" in data:
             # If embedding exists as a dict, we update it; if it's an object, we start fresh from flat fields
             provider = data.get("embedding_provider", "openai")
             model = data.get("embedding_model")
@@ -100,11 +97,7 @@ class AppSettings(BaseModel):
                 data["generation"] = LlamaGenerationConfig(**gen_payload)
 
         # 4. Chunking
-        if (
-            "chunk_size" in data
-            or "chunk_overlap" in data
-            or "chunking_strategy" in data
-        ):
+        if "chunk_size" in data or "chunk_overlap" in data or "chunking_strategy" in data:
             strategy = data.get("chunking_strategy", "recursive")
             size = data.get("chunk_size")
             overlap = data.get("chunk_overlap")
@@ -137,11 +130,7 @@ class AppSettings(BaseModel):
 
             if "reranker_provider" in data:
                 prov = data["reranker_provider"]
-                if (
-                    prov
-                    and prov.lower() != "none"
-                    and prov in ["cohere", "openai", "local"]
-                ):
+                if prov and prov.lower() != "none" and prov in ["cohere", "openai", "local"]:
                     retrieval.setdefault("rerank", {})["provider"] = prov
                 else:
                     if retrieval.get("rerank", {}).get("enabled"):
@@ -154,12 +143,8 @@ class AppSettings(BaseModel):
             if "recall_k" in data:
                 retrieval.setdefault("vector", {})["top_k"] = data["recall_k"]
             if "hybrid_alpha" in data:
-                retrieval.setdefault("hybrid", {})["dense_weight"] = data[
-                    "hybrid_alpha"
-                ]
-                retrieval.setdefault("hybrid", {})["sparse_weight"] = (
-                    1.0 - data["hybrid_alpha"]
-                )
+                retrieval.setdefault("hybrid", {})["dense_weight"] = data["hybrid_alpha"]
+                retrieval.setdefault("hybrid", {})["sparse_weight"] = 1.0 - data["hybrid_alpha"]
                 retrieval.setdefault("hybrid", {})["enabled"] = True
                 # Automatically enable sparse if hybrid is used with a weight
                 if data["hybrid_alpha"] < 1.0:
@@ -270,10 +255,7 @@ class AppSettings(BaseModel):
         self.embedding.dense.model = self.embedding_model
 
         # Sync Chunking Strategy
-        if (
-            hasattr(self.chunking, "strategy")
-            and self.chunking.strategy != self.chunking_strategy
-        ):
+        if hasattr(self.chunking, "strategy") and self.chunking.strategy != self.chunking_strategy:
             # We need to re-initialize chunking based on strategy if it changed
             # This is handled mostly during initial creation via map_flat_fields
             pass
@@ -295,9 +277,9 @@ class AppSettings(BaseModel):
     )
 
     # Neo4j Graph Settings (Backend managed)
-    neo4j_uri: Optional[str] = Field(default=None)
-    neo4j_user: Optional[str] = Field(default=None)
-    neo4j_password: Optional[str] = Field(default=None)
+    neo4j_uri: str | None = Field(default=None)
+    neo4j_user: str | None = Field(default=None)
+    neo4j_password: str | None = Field(default=None)
 
     # --- 7. Compatibility Fields (Promoted to real fields for metadata discovery) ---
     llm_provider: str = Field(
@@ -388,20 +370,12 @@ class AppSettings(BaseModel):
     @computed_field
     @property
     def chunk_size(self) -> int:
-        return (
-            self.chunking.max_chunk_size
-            if hasattr(self.chunking, "max_chunk_size")
-            else 800
-        )
+        return self.chunking.max_chunk_size if hasattr(self.chunking, "max_chunk_size") else 800
 
     @computed_field
     @property
     def chunk_overlap(self) -> int:
-        return (
-            self.chunking.chunk_overlap
-            if hasattr(self.chunking, "chunk_overlap")
-            else 150
-        )
+        return self.chunking.chunk_overlap if hasattr(self.chunking, "chunk_overlap") else 150
 
 
 class DocumentMetadata(BaseModel):
@@ -420,7 +394,7 @@ class DocumentMetadata(BaseModel):
         "ingested",
         "failed",
     ] = "uploaded"
-    workspace_statuses: Dict[str, str] = Field(default_factory=dict)
+    workspace_statuses: dict[str, str] = Field(default_factory=dict)
     current_version: int = 1
     content_hash: str
     chunks: int = 0

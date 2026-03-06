@@ -1,6 +1,7 @@
-from typing import List, Dict, Any, Optional
-import structlog
+from typing import Any
+
 import httpx
+import structlog
 from backend.app.core.config import karag_settings
 from backend.app.core.telemetry import get_tracer
 
@@ -10,8 +11,8 @@ tracer = get_tracer(__name__)
 
 class RerankerProvider:
     async def rerank(
-        self, query: str, documents: List[Dict[str, Any]], top_k: int
-    ) -> List[Dict[str, Any]]:
+        self, query: str, documents: list[dict[str, Any]], top_k: int
+    ) -> list[dict[str, Any]]:
         raise NotImplementedError
 
 
@@ -21,8 +22,8 @@ class CohereReranker(RerankerProvider):
         self.model = model
 
     async def rerank(
-        self, query: str, documents: List[Dict[str, Any]], top_k: int
-    ) -> List[Dict[str, Any]]:
+        self, query: str, documents: list[dict[str, Any]], top_k: int
+    ) -> list[dict[str, Any]]:
         if not documents:
             return []
 
@@ -70,8 +71,8 @@ class JinaReranker(RerankerProvider):
         self.model = model
 
     async def rerank(
-        self, query: str, documents: List[Dict[str, Any]], top_k: int
-    ) -> List[Dict[str, Any]]:
+        self, query: str, documents: list[dict[str, Any]], top_k: int
+    ) -> list[dict[str, Any]]:
         if not documents:
             return []
 
@@ -118,8 +119,8 @@ class LocalReranker(RerankerProvider):
         self.model = CrossEncoder(model_name)
 
     async def rerank(
-        self, query: str, documents: List[Dict[str, Any]], top_k: int
-    ) -> List[Dict[str, Any]]:
+        self, query: str, documents: list[dict[str, Any]], top_k: int
+    ) -> list[dict[str, Any]]:
         if not documents:
             return []
 
@@ -139,8 +140,8 @@ class LocalReranker(RerankerProvider):
 
 
 async def get_reranker(
-    workspace_id: Optional[str] = None,
-) -> Optional[RerankerProvider]:
+    workspace_id: str | None = None,
+) -> RerankerProvider | None:
     from backend.app.core.settings_manager import settings_manager
 
     settings = await settings_manager.get_settings(workspace_id)
@@ -161,9 +162,7 @@ async def get_reranker(
         return CohereReranker(karag_settings.COHERE_API_KEY, model=config.model)
     elif provider == "jina":
         if not karag_settings.JINA_API_KEY:
-            logger.warning(
-                "jina_api_key_missing", msg="Jina Reranker requested but no key found."
-            )
+            logger.warning("jina_api_key_missing", msg="Jina Reranker requested but no key found.")
             return None
         return JinaReranker(karag_settings.JINA_API_KEY, model=config.model)
     elif provider == "local":

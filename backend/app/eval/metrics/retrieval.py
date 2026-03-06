@@ -5,9 +5,9 @@ Implements traditional IR metrics used to evaluate the quality of
 document retrieval in RAG systems.
 """
 
-from typing import List, Dict, Any, Optional
-from dataclasses import dataclass
 import math
+from dataclasses import dataclass
+from typing import Any
 
 import structlog
 
@@ -20,8 +20,8 @@ class RetrievalResult:
 
     metric_name: str
     score: float
-    k: Optional[int] = None
-    details: Dict[str, Any] = None
+    k: int | None = None
+    details: dict[str, Any] = None
 
     def __post_init__(self):
         if self.details is None:
@@ -59,8 +59,8 @@ class RetrievalMetrics:
 
     def recall_at_k(
         self,
-        retrieved_doc_ids: List[str],
-        relevant_doc_ids: List[str],
+        retrieved_doc_ids: list[str],
+        relevant_doc_ids: list[str],
         k: int,
     ) -> RetrievalResult:
         """
@@ -103,8 +103,8 @@ class RetrievalMetrics:
 
     def precision_at_k(
         self,
-        retrieved_doc_ids: List[str],
-        relevant_doc_ids: List[str],
+        retrieved_doc_ids: list[str],
+        relevant_doc_ids: list[str],
         k: int,
     ) -> RetrievalResult:
         """
@@ -143,10 +143,10 @@ class RetrievalMetrics:
 
     def ndcg_at_k(
         self,
-        retrieved_doc_ids: List[str],
-        relevant_doc_ids: List[str],
+        retrieved_doc_ids: list[str],
+        relevant_doc_ids: list[str],
         k: int,
-        relevance_scores: Optional[Dict[str, float]] = None,
+        relevance_scores: dict[str, float] | None = None,
     ) -> RetrievalResult:
         """
         Calculate Normalized Discounted Cumulative Gain (nDCG)@k.
@@ -209,8 +209,8 @@ class RetrievalMetrics:
 
     def mrr(
         self,
-        retrieved_doc_ids: List[str],
-        relevant_doc_ids: List[str],
+        retrieved_doc_ids: list[str],
+        relevant_doc_ids: list[str],
     ) -> RetrievalResult:
         """
         Calculate Mean Reciprocal Rank (MRR).
@@ -240,14 +240,12 @@ class RetrievalMetrics:
                     },
                 )
 
-        return RetrievalResult(
-            metric_name="mrr", score=0.0, details={"first_relevant_rank": None}
-        )
+        return RetrievalResult(metric_name="mrr", score=0.0, details={"first_relevant_rank": None})
 
     def hit_rate(
         self,
-        retrieved_doc_ids: List[str],
-        relevant_doc_ids: List[str],
+        retrieved_doc_ids: list[str],
+        relevant_doc_ids: list[str],
         k: int,
     ) -> RetrievalResult:
         """
@@ -275,8 +273,8 @@ class RetrievalMetrics:
 
     def map_score(
         self,
-        retrieved_doc_ids: List[str],
-        relevant_doc_ids: List[str],
+        retrieved_doc_ids: list[str],
+        relevant_doc_ids: list[str],
     ) -> RetrievalResult:
         """
         Calculate Mean Average Precision (MAP).
@@ -319,10 +317,10 @@ class RetrievalMetrics:
 
     def compute_all(
         self,
-        retrieved_doc_ids: List[str],
-        relevant_doc_ids: List[str],
-        k_values: List[int] = None,
-    ) -> Dict[str, RetrievalResult]:
+        retrieved_doc_ids: list[str],
+        relevant_doc_ids: list[str],
+        k_values: list[int] = None,
+    ) -> dict[str, RetrievalResult]:
         """
         Compute all retrieval metrics at once.
 
@@ -341,18 +339,10 @@ class RetrievalMetrics:
 
         # Compute metrics at different k values
         for k in k_values:
-            results[f"recall@{k}"] = self.recall_at_k(
-                retrieved_doc_ids, relevant_doc_ids, k
-            )
-            results[f"precision@{k}"] = self.precision_at_k(
-                retrieved_doc_ids, relevant_doc_ids, k
-            )
-            results[f"ndcg@{k}"] = self.ndcg_at_k(
-                retrieved_doc_ids, relevant_doc_ids, k
-            )
-            results[f"hit_rate@{k}"] = self.hit_rate(
-                retrieved_doc_ids, relevant_doc_ids, k
-            )
+            results[f"recall@{k}"] = self.recall_at_k(retrieved_doc_ids, relevant_doc_ids, k)
+            results[f"precision@{k}"] = self.precision_at_k(retrieved_doc_ids, relevant_doc_ids, k)
+            results[f"ndcg@{k}"] = self.ndcg_at_k(retrieved_doc_ids, relevant_doc_ids, k)
+            results[f"hit_rate@{k}"] = self.hit_rate(retrieved_doc_ids, relevant_doc_ids, k)
 
         # Compute non-k metrics
         results["mrr"] = self.mrr(retrieved_doc_ids, relevant_doc_ids)
@@ -362,8 +352,8 @@ class RetrievalMetrics:
 
     @staticmethod
     def aggregate_results(
-        results_list: List[Dict[str, RetrievalResult]],
-    ) -> Dict[str, Dict[str, float]]:
+        results_list: list[dict[str, RetrievalResult]],
+    ) -> dict[str, dict[str, float]]:
         """
         Aggregate results across multiple queries.
 
@@ -377,7 +367,7 @@ class RetrievalMetrics:
             return {}
 
         # Collect scores for each metric
-        metric_scores: Dict[str, List[float]] = {}
+        metric_scores: dict[str, list[float]] = {}
         for results in results_list:
             for metric_name, result in results.items():
                 if metric_name not in metric_scores:

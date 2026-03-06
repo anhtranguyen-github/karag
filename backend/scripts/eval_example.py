@@ -14,19 +14,19 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from backend.app.eval import (
-    StandardQARunner,
     EndToEndRunner,
     RetrievalRunner,
     RobustnessRunner,
     RunnerConfig,
+    StandardQARunner,
     register_all_datasets,
 )
-from backend.app.eval.datasets.huggingface_loader import HuggingFaceDatasetLoader
 from backend.app.eval.datasets.base import DatasetInfo, DatasetSplit
+from backend.app.eval.datasets.huggingface_loader import HuggingFaceDatasetLoader
 from backend.app.eval.metrics import (
-    RetrievalMetrics,
     GenerationMetrics,
     MetricsAggregator,
+    RetrievalMetrics,
 )
 
 # Register datasets explicitly (removed from import-time side effects)
@@ -209,9 +209,7 @@ async def example_3_end_to_end():
 
     if "bottleneck" in analysis:
         bottleneck = analysis["bottleneck"]
-        print(
-            f"\n  Bottleneck: {bottleneck['stage']} ({bottleneck['percentage']:.1f}%)"
-        )
+        print(f"\n  Bottleneck: {bottleneck['stage']} ({bottleneck['percentage']:.1f}%)")
 
 
 async def example_4_robustness():
@@ -259,9 +257,7 @@ async def example_4_robustness():
                         print(f"      {metric}: {values['mean']:.4f}")
 
         if "overall_robustness" in robustness:
-            print(
-                f"\n  Overall Robustness: {robustness['overall_robustness']['mean']:.4f}"
-            )
+            print(f"\n  Overall Robustness: {robustness['overall_robustness']['mean']:.4f}")
 
 
 async def example_5_metrics_only():
@@ -301,10 +297,10 @@ async def example_5_metrics_only():
 
     query = "What is RAG?"
     answer = "RAG stands for Retrieval-Augmented Generation, combining retrieval with generation."
-    contexts = [
-        "RAG is a technique that retrieves documents before generating answers."
-    ]
-    reference = "Retrieval-Augmented Generation (RAG) combines retrieval systems with generative models."
+    contexts = ["RAG is a technique that retrieves documents before generating answers."]
+    reference = (
+        "Retrieval-Augmented Generation (RAG) combines retrieval systems with generative models."
+    )
 
     print("\nGeneration Metrics:")
     print(f"  Query: {query}")

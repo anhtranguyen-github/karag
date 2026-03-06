@@ -1,6 +1,7 @@
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
 from backend.app.services.document_service import document_service
-from unittest.mock import AsyncMock, MagicMock
 
 
 def get_mock_db():
@@ -63,9 +64,7 @@ async def test_run_ingestion_auto_indexing_triggered_by_workspace(mocker):
     content_type = "application/pdf"
     workspace_id = "test-workspace-123"
 
-    await document_service.run_ingestion(
-        task_id, filename, content, content_type, workspace_id
-    )
+    await document_service.run_ingestion(task_id, filename, content, content_type, workspace_id)
 
     # Verify indexing was called
     mock_indexing.assert_awaited_once()
@@ -112,9 +111,7 @@ async def test_run_ingestion_vault_indexing(mocker):
     content_type = "application/pdf"
     workspace_id = "vault"
 
-    await document_service.run_ingestion(
-        task_id, filename, content, content_type, workspace_id
-    )
+    await document_service.run_ingestion(task_id, filename, content, content_type, workspace_id)
 
     # Verify indexing WAS called
     mock_indexing.assert_awaited_once()

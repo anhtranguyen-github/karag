@@ -1,13 +1,14 @@
+from pathlib import Path
+
 import pytest
 import yaml
-from pathlib import Path
-from jsonschema import validate
 from backend.app.providers.base import LLMResponse
+from jsonschema import validate
 
 
 def load_schema():
     schema_path = Path(__file__).parent / "llm_provider_schema.yaml"
-    with open(schema_path, "r") as f:
+    with open(schema_path) as f:
         return yaml.safe_load(f)
 
 

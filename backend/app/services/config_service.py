@@ -9,18 +9,18 @@ Provides layered configuration management:
 PRECEDENCE: Request (clamped) > Workspace > System
 """
 
-import structlog
-from typing import Optional, Any, Dict
 from datetime import datetime
+from typing import Any
 
-from backend.app.core.mongodb import mongodb_manager
+import structlog
 from backend.app.core.exceptions import ValidationError
+from backend.app.core.mongodb import mongodb_manager
 from backend.app.schemas.baas import (
-    SystemConfig,
-    WorkspaceConfig,
-    RequestConfig,
     RAGConfig,
     RateLimitConfig,
+    RequestConfig,
+    SystemConfig,
+    WorkspaceConfig,
 )
 
 logger = structlog.get_logger(__name__)
@@ -100,7 +100,7 @@ class ConfigService:
         return await cls.initialize_system_config()
 
     @classmethod
-    async def update_system_config(cls, updates: Dict[str, Any]) -> SystemConfig:
+    async def update_system_config(cls, updates: dict[str, Any]) -> SystemConfig:
         """
         Update system configuration (operator-only).
 
@@ -192,7 +192,7 @@ class ConfigService:
 
     @classmethod
     async def update_workspace_config(
-        cls, workspace_id: str, updates: Dict[str, Any]
+        cls, workspace_id: str, updates: dict[str, Any]
     ) -> WorkspaceConfig:
         """
         Update workspace configuration.
@@ -238,8 +238,8 @@ class ConfigService:
 
     @classmethod
     def _clamp_workspace_updates(
-        cls, updates: Dict[str, Any], system_config: SystemConfig
-    ) -> Dict[str, Any]:
+        cls, updates: dict[str, Any], system_config: SystemConfig
+    ) -> dict[str, Any]:
         """
         Clamp workspace config updates to system limits.
 
@@ -287,8 +287,8 @@ class ConfigService:
 
     @classmethod
     async def resolve_request_config(
-        cls, workspace_id: str, request_config: Optional[RequestConfig] = None
-    ) -> Dict[str, Any]:
+        cls, workspace_id: str, request_config: RequestConfig | None = None
+    ) -> dict[str, Any]:
         """
         Resolve final configuration for a request.
 
@@ -307,9 +307,7 @@ class ConfigService:
         # Start with system defaults
         system_config = await cls.get_system_config()
         resolved = {
-            "model": system_config.allowed_models[0]
-            if system_config.allowed_models
-            else "gpt-4o",
+            "model": system_config.allowed_models[0] if system_config.allowed_models else "gpt-4o",
             "temperature": 0.7,
             "top_p": 1.0,
             "max_tokens": min(1024, system_config.max_tokens_per_request),
@@ -374,7 +372,7 @@ class ConfigService:
         return model in system_config.allowed_models
 
     @classmethod
-    def get_allowed_models(cls, system_config: Optional[SystemConfig] = None) -> list:
+    def get_allowed_models(cls, system_config: SystemConfig | None = None) -> list:
         """
         Get list of allowed models.
 

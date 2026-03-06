@@ -1,20 +1,16 @@
-from typing import Optional
-from fastapi import APIRouter, UploadFile, File, BackgroundTasks, Depends
-from fastapi.encoders import jsonable_encoder
+from backend.app.api.deps import CurrentWorkspace, get_current_workspace
+from backend.app.core.exceptions import NotFoundError, ValidationError
+from backend.app.schemas.base import AppResponse
+from backend.app.schemas.documents import (
+    DocumentWorkspaceUpdate,
+    GitHubImportRequest,
+    SitemapImportRequest,
+    UrlImportRequest,
+)
 from backend.app.services.document_service import document_service
 from backend.app.services.task.task_service import task_service
-
-from backend.app.core.exceptions import ValidationError, NotFoundError
-from backend.app.schemas.base import AppResponse
-
-from backend.app.schemas.documents import (
-    UrlImportRequest,
-    SitemapImportRequest,
-    GitHubImportRequest,
-    DocumentWorkspaceUpdate,
-)
-
-from backend.app.api.deps import get_current_workspace, CurrentWorkspace
+from fastapi import APIRouter, BackgroundTasks, Depends, File, UploadFile
+from fastapi.encoders import jsonable_encoder
 
 router = APIRouter(tags=["documents"])
 
@@ -24,11 +20,13 @@ async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     current_workspace: CurrentWorkspace = Depends(get_current_workspace),
-    dataset_id: Optional[str] = None,
-    strategy: Optional[str] = None,
+    dataset_id: str | None = None,
+    strategy: str | None = None,
 ):
     workspace_id = current_workspace.id
-    result = await document_service.upload(file, workspace_id, dataset_id=dataset_id, strategy=strategy)
+    result = await document_service.upload(
+        file, workspace_id, dataset_id=dataset_id, strategy=strategy
+    )
 
     if result["status"] == "success":
         background_tasks.add_task(
@@ -38,7 +36,7 @@ async def upload_document(
             result["content"],
             result["content_type"],
             workspace_id,
-            dataset_id
+            dataset_id,
         )
         if "content" in result:
             del result["content"]
@@ -54,9 +52,7 @@ async def import_url_document(
 ):
     workspace_id = current_workspace.id
     url_str = str(payload.url)
-    result = await document_service.import_url(
-        url_str, workspace_id, strategy=payload.strategy
-    )
+    result = await document_service.import_url(url_str, workspace_id, strategy=payload.strategy)
 
     if result["status"] == "success":
         background_tasks.add_task(
@@ -65,7 +61,7 @@ async def import_url_document(
             url_str,
             result["filename"],
             workspace_id,
-            payload.dataset_id if hasattr(payload, 'dataset_id') else None,
+            payload.dataset_id if hasattr(payload, "dataset_id") else None,
             payload.strategy,
         )
         if "content" in result:
@@ -172,7 +168,7 @@ async def get_document_chunks(
 async def index_document(
     background_tasks: BackgroundTasks,
     document_id: str,
-    dataset_id: Optional[str] = None,
+    dataset_id: str | None = None,
     current_workspace: dict = Depends(get_current_workspace),
 ):
     workspace_id = current_workspace["id"]
@@ -256,11 +252,9 @@ async def sync_document_workspaces(
 
 
 @router.get("/documents/{document_id}")
-async def get_document(
-    document_id: str, current_workspace: dict = Depends(get_current_workspace)
-):
-    from backend.app.core.minio import minio_manager
+async def get_document(document_id: str, current_workspace: dict = Depends(get_current_workspace)):
     from backend.app.core.config import karag_settings
+    from backend.app.core.minio import minio_manager
 
     doc = await document_service.get_by_id(document_id)
     if not doc:
@@ -306,9 +300,7 @@ async def delete_document(
     dataset_delete: bool = False,
     current_workspace: CurrentWorkspace = Depends(get_current_workspace),
 ):
-    await document_service.delete(
-        document_id, current_workspace.id, dataset_delete=dataset_delete
-    )
+    await document_service.delete(document_id, current_workspace.id, dataset_delete=dataset_delete)
     return AppResponse.success_response(
         data={"id": document_id},
         message=f"Document '{document_id}' deleted successfully.",

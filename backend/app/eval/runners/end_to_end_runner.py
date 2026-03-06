@@ -6,14 +6,14 @@ including all intermediate steps.
 """
 
 import time
+from collections.abc import Callable, Iterator
 from datetime import datetime
-from typing import Any, Callable, Dict, Iterator, List
+from typing import Any
 
 import structlog
-
 from backend.app.eval.datasets.base import DatasetEntry
-from backend.app.eval.metrics.retrieval import RetrievalMetrics
 from backend.app.eval.metrics.generation import GenerationMetrics
+from backend.app.eval.metrics.retrieval import RetrievalMetrics
 from backend.app.eval.runners.base import (
     BaseRunner,
     RunnerConfig,
@@ -72,8 +72,8 @@ class EndToEndRunner(BaseRunner):
         """
         result = self._create_result("dataset", config, RunnerStatus.RUNNING)
 
-        sample_results: List[SampleResult] = []
-        intermediate_results: List[Dict] = []
+        sample_results: list[SampleResult] = []
+        intermediate_results: list[dict] = []
         count = 0
 
         try:
@@ -131,23 +131,17 @@ class EndToEndRunner(BaseRunner):
         try:
             # Step 1: Query preprocessing (if exposed by pipeline)
             step_start = time.time()
-            intermediate["steps"].append(
-                {"name": "query_preprocessing", "status": "started"}
-            )
+            intermediate["steps"].append({"name": "query_preprocessing", "status": "started"})
 
             # Run full pipeline
             rag_output = await rag_pipeline(entry.query)
 
-            intermediate["timings"]["query_preprocessing_ms"] = (
-                time.time() - step_start
-            ) * 1000
+            intermediate["timings"]["query_preprocessing_ms"] = (time.time() - step_start) * 1000
             intermediate["steps"][0]["status"] = "completed"
 
             # Step 2: Document retrieval
             step_start = time.time()
-            intermediate["steps"].append(
-                {"name": "document_retrieval", "status": "started"}
-            )
+            intermediate["steps"].append({"name": "document_retrieval", "status": "started"})
 
             sample_result.retrieved_documents = rag_output.get("documents", [])
             contexts = rag_output.get("contexts", [])
@@ -163,24 +157,18 @@ class EndToEndRunner(BaseRunner):
                     relevant_doc_ids=entry.ground_truth_documents,
                     k_values=config.k_values,
                 )
-                sample_result.retrieval_metrics = {
-                    k: v.score for k, v in retrieval_results.items()
-                }
+                sample_result.retrieval_metrics = {k: v.score for k, v in retrieval_results.items()}
 
             # Step 3: Answer generation
             step_start = time.time()
-            intermediate["steps"].append(
-                {"name": "answer_generation", "status": "started"}
-            )
+            intermediate["steps"].append({"name": "answer_generation", "status": "started"})
 
             sample_result.predicted_answer = rag_output.get("answer")
 
             intermediate["timings"]["generation_ms"] = (time.time() - step_start) * 1000
             intermediate["steps"][2]["status"] = "completed"
             intermediate["answer_length"] = (
-                len(sample_result.predicted_answer)
-                if sample_result.predicted_answer
-                else 0
+                len(sample_result.predicted_answer) if sample_result.predicted_answer else 0
             )
 
             # Compute generation metrics

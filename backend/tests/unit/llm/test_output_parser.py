@@ -1,8 +1,8 @@
 import json
-from typing import Dict, Any
+from typing import Any
 
 
-def parse_json_response(content: str) -> Dict[str, Any]:
+def parse_json_response(content: str) -> dict[str, Any]:
     """Simple parser with cleaning."""
     content = content.strip()
     if content.startswith("```json"):

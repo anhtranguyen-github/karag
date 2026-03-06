@@ -12,8 +12,8 @@ Output:
 
 import asyncio
 import sys
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 # Add parent to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -44,9 +44,7 @@ async def generate_keys_for_all_workspaces():
         workspace_name = workspace.get("name", "Unnamed")
 
         # Check if keys already exist
-        existing = await db.api_keys.find_one(
-            {"workspace_id": workspace_id, "is_active": True}
-        )
+        existing = await db.api_keys.find_one({"workspace_id": workspace_id, "is_active": True})
 
         if existing:
             print(f"[{workspace_name}] Already has API keys, skipping")
@@ -89,18 +87,12 @@ async def generate_keys_for_all_workspaces():
         print("| Workspace | Key ID | API Key |")
         print("|-----------|--------|---------|")
         for item in generated_keys:
-            print(
-                f"| {item['workspace_name']} | {item['key_id']} | {item['api_key']} |"
-            )
+            print(f"| {item['workspace_name']} | {item['key_id']} | {item['api_key']} |")
 
         # Save to file
         output_file = Path("workspace_api_keys.txt")
         with open(output_file, "w") as f:
-            f.write(
-                "# Workspace API Keys - Generated {}\n".format(
-                    datetime.utcnow().isoformat()
-                )
-            )
+            f.write(f"# Workspace API Keys - Generated {datetime.utcnow().isoformat()}\n")
             f.write("# WARNING: Keep this file secure!\n\n")
             for item in generated_keys:
                 f.write(f"[{item['workspace_name']}]\n")
@@ -150,9 +142,7 @@ async def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="Generate API keys for workspaces")
-    parser.add_argument(
-        "--workspace", help="Generate key for specific workspace ID (omit for all)"
-    )
+    parser.add_argument("--workspace", help="Generate key for specific workspace ID (omit for all)")
 
     args = parser.parse_args()
 

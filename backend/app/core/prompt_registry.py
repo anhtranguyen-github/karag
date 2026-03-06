@@ -9,10 +9,10 @@ Manages prompt templates with:
 """
 
 import hashlib
-from typing import Dict, List, Optional, Any
+from dataclasses import asdict, dataclass
 from datetime import datetime
-from dataclasses import dataclass, asdict
 from enum import Enum
+from typing import Any
 
 import structlog
 from backend.app.core.telemetry import get_tracer
@@ -37,13 +37,13 @@ class PromptVersion:
     name: str
     version: str
     template: str
-    variables: List[str]
+    variables: list[str]
     description: str = ""
     status: PromptStatus = PromptStatus.DRAFT
     created_at: datetime = None
     created_by: str = ""
-    metrics: Dict[str, Any] = None
-    tags: Dict[str, str] = None
+    metrics: dict[str, Any] = None
+    tags: dict[str, str] = None
 
     def __post_init__(self):
         if self.created_at is None:
@@ -84,18 +84,16 @@ class PromptRegistry:
     - Dynamic promotion/demotion
     """
 
-    def __init__(self, storage_backend: Optional[Any] = None):
+    def __init__(self, storage_backend: Any | None = None):
         """
         Args:
             storage_backend: Optional storage (MongoDB, Redis, etc.)
                              If None, uses in-memory storage
         """
         self.storage = storage_backend
-        self._memory: Dict[str, List[PromptVersion]] = {}
-        self._active_versions: Dict[str, str] = {}  # name -> version
-        logger.info(
-            "prompt_registry_initialized", persistent=storage_backend is not None
-        )
+        self._memory: dict[str, list[PromptVersion]] = {}
+        self._active_versions: dict[str, str] = {}  # name -> version
+        logger.info("prompt_registry_initialized", persistent=storage_backend is not None)
 
     async def register(self, prompt: PromptVersion) -> None:
         """
@@ -123,8 +121,8 @@ class PromptRegistry:
         self,
         name: str,
         version: str = "latest",
-        user_id: Optional[str] = None,
-    ) -> Optional[PromptVersion]:
+        user_id: str | None = None,
+    ) -> PromptVersion | None:
         """
         Retrieve a prompt version.
 
@@ -150,8 +148,8 @@ class PromptRegistry:
     async def _get_active(
         self,
         name: str,
-        user_id: Optional[str] = None,
-    ) -> Optional[PromptVersion]:
+        user_id: str | None = None,
+    ) -> PromptVersion | None:
         """Get active version, optionally with A/B testing."""
         versions = await self._get_all_versions(name)
         active = [v for v in versions if v.status == PromptStatus.ACTIVE]
@@ -177,7 +175,7 @@ class PromptRegistry:
         hash_val = int(hashlib.md5(user_id.encode()).hexdigest(), 16)
         return hash_val % num_buckets
 
-    async def _get_specific(self, name: str, version: str) -> Optional[PromptVersion]:
+    async def _get_specific(self, name: str, version: str) -> PromptVersion | None:
         """Get specific version."""
         versions = await self._get_all_versions(name)
         for v in versions:
@@ -185,7 +183,7 @@ class PromptRegistry:
                 return v
         return None
 
-    async def _get_all_versions(self, name: str) -> List[PromptVersion]:
+    async def _get_all_versions(self, name: str) -> list[PromptVersion]:
         """Get all versions of a prompt."""
         if self.storage:
             data = await self.storage.get_prompt_versions(name)
@@ -233,7 +231,7 @@ class PromptRegistry:
         self,
         name: str,
         version: str,
-        outcome: Dict[str, Any],
+        outcome: dict[str, Any],
     ) -> None:
         """
         Record performance metrics for a prompt version.
@@ -253,15 +251,13 @@ class PromptRegistry:
 
         # Exponential moving average for latency
         new_latency = outcome.get("latency_ms", 0)
-        metrics["avg_latency_ms"] = (metrics["avg_latency_ms"] * uses + new_latency) / (
-            uses + 1
-        )
+        metrics["avg_latency_ms"] = (metrics["avg_latency_ms"] * uses + new_latency) / (uses + 1)
 
         # Success rate
         success = outcome.get("success", True)
-        metrics["success_rate"] = (
-            metrics["success_rate"] * uses + (1.0 if success else 0.0)
-        ) / (uses + 1)
+        metrics["success_rate"] = (metrics["success_rate"] * uses + (1.0 if success else 0.0)) / (
+            uses + 1
+        )
 
         metrics["uses"] = uses + 1
 
@@ -270,9 +266,9 @@ class PromptRegistry:
             if "avg_rating" not in metrics:
                 metrics["avg_rating"] = outcome["user_rating"]
             else:
-                metrics["avg_rating"] = (
-                    metrics["avg_rating"] * uses + outcome["user_rating"]
-                ) / (uses + 1)
+                metrics["avg_rating"] = (metrics["avg_rating"] * uses + outcome["user_rating"]) / (
+                    uses + 1
+                )
 
         await self.register(prompt)
 
@@ -283,7 +279,7 @@ class PromptRegistry:
             metrics=metrics,
         )
 
-    def list_prompts(self) -> List[str]:
+    def list_prompts(self) -> list[str]:
         """List all prompt names."""
         if self.storage:
             # Would need async method
@@ -294,7 +290,7 @@ class PromptRegistry:
         self,
         name: str,
         metric: str = "success_rate",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Compare metrics across versions of a prompt.
 
@@ -322,7 +318,7 @@ class PromptRegistry:
             "recommendation": self._generate_recommendation(comparison),
         }
 
-    def _generate_recommendation(self, comparison: Dict) -> str:
+    def _generate_recommendation(self, comparison: dict) -> str:
         """Generate a recommendation based on comparison."""
         active = [(v, d) for v, d in comparison.items() if d["status"] == "active"]
 
@@ -354,9 +350,9 @@ class PromptTemplate:
         self.registry = registry
         self.name = name
         self.version = version
-        self._prompt: Optional[PromptVersion] = None
+        self._prompt: PromptVersion | None = None
 
-    async def load(self, user_id: Optional[str] = None) -> "PromptTemplate":
+    async def load(self, user_id: str | None = None) -> "PromptTemplate":
         """Load the prompt from registry."""
         self._prompt = await self.registry.get(self.name, self.version, user_id)
         if not self._prompt:
@@ -375,7 +371,7 @@ class PromptTemplate:
 
         return self._prompt.template.format(**kwargs)
 
-    def with_examples(self, examples: List[Dict[str, str]]) -> str:
+    def with_examples(self, examples: list[dict[str, str]]) -> str:
         """Add few-shot examples to the prompt."""
         if not self._prompt:
             raise RuntimeError("Prompt not loaded")

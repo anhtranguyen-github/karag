@@ -9,9 +9,10 @@ Supports multiple versioning strategies:
 Follows API design principles for versioning.
 """
 
-from typing import Optional, Callable, Dict, Any
+from collections.abc import Callable
 from enum import Enum
 from functools import wraps
+from typing import Any
 
 from fastapi import Header, Query
 from pydantic import BaseModel
@@ -78,7 +79,7 @@ class VersionedResponse(BaseModel):
     api_version: str
     data: Any
     deprecated: bool = False
-    sunset_date: Optional[str] = None
+    sunset_date: str | None = None
 
 
 class VersionRouter:
@@ -106,7 +107,7 @@ class VersionRouter:
         self.default_version = default_version or ApiVersion(1)
         self.supported_versions = supported_versions or [ApiVersion(1)]
         self.deprecated_versions = deprecated_versions or []
-        self.routes: Dict[str, Dict[ApiVersion, Callable]] = {}
+        self.routes: dict[str, dict[ApiVersion, Callable]] = {}
 
     def route(
         self,
@@ -131,7 +132,7 @@ class VersionRouter:
         method: str,
         path: str,
         version: ApiVersion,
-    ) -> Optional[Callable]:
+    ) -> Callable | None:
         """Get the appropriate handler for a request."""
         key = f"{method}:{path}"
 
@@ -146,9 +147,7 @@ class VersionRouter:
 
         # Find best compatible version (same major, highest minor/patch)
         compatible = [
-            v
-            for v in version_handlers.keys()
-            if v.is_compatible_with(version) and v <= version
+            v for v in version_handlers.keys() if v.is_compatible_with(version) and v <= version
         ]
 
         if compatible:
@@ -163,8 +162,8 @@ class VersionRouter:
 
 
 def get_api_version_from_header(
-    accept: Optional[str] = Header(None),
-) -> Optional[ApiVersion]:
+    accept: str | None = Header(None),
+) -> ApiVersion | None:
     """
     Extract API version from Accept header.
 
@@ -187,8 +186,8 @@ def get_api_version_from_header(
 
 
 def get_api_version_from_query(
-    api_version: Optional[str] = Query(None, alias="api-version"),
-) -> Optional[ApiVersion]:
+    api_version: str | None = Query(None, alias="api-version"),
+) -> ApiVersion | None:
     """Extract API version from query parameter."""
     if not api_version:
         return None
@@ -218,9 +217,7 @@ def versioned(
     def decorator(func: Callable):
         func._min_version = ApiVersion.from_string(min_version) if min_version else None
         func._max_version = ApiVersion.from_string(max_version) if max_version else None
-        func._deprecated_in = (
-            ApiVersion.from_string(deprecated_in) if deprecated_in else None
-        )
+        func._deprecated_in = ApiVersion.from_string(deprecated_in) if deprecated_in else None
         func._removed_in = ApiVersion.from_string(removed_in) if removed_in else None
 
         @wraps(func)
@@ -236,7 +233,7 @@ def versioned(
 def check_version_compatibility(
     request_version: ApiVersion,
     handler: Callable,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Check if request version is compatible with handler.
 
@@ -273,9 +270,7 @@ def check_version_compatibility(
     if hasattr(handler, "_removed_in") and handler._removed_in:
         if request_version >= handler._removed_in:
             result["compatible"] = False
-            result["warnings"].append(
-                f"This endpoint was removed in version {handler._removed_in}"
-            )
+            result["warnings"].append(f"This endpoint was removed in version {handler._removed_in}")
 
     return result
 
@@ -285,7 +280,7 @@ class DeprecationSchedule:
     """Manage deprecation and sunset schedule for API versions."""
 
     def __init__(self):
-        self.schedule: Dict[ApiVersion, Dict[str, Any]] = {}
+        self.schedule: dict[ApiVersion, dict[str, Any]] = {}
 
     def deprecate(
         self,
@@ -300,7 +295,7 @@ class DeprecationSchedule:
             "migration_guide": migration_guide_url,
         }
 
-    def get_deprecation_info(self, version: ApiVersion) -> Optional[Dict]:
+    def get_deprecation_info(self, version: ApiVersion) -> dict | None:
         """Get deprecation info for a version."""
         return self.schedule.get(version)
 

@@ -1,30 +1,30 @@
 import json
+import re
 import time
 import uuid
-import re
-from typing import Annotated, AsyncGenerator, List, Dict, Any, Optional
+from collections.abc import AsyncGenerator
+from typing import Annotated, Any
 
 import structlog
-from fastapi import APIRouter, Response, Request, Depends, HTTPException, status
-from fastapi.responses import StreamingResponse
-
-from backend.app.api.deps import get_current_user, CurrentUser
+from backend.app.api.deps import CurrentUser, get_current_user
 from backend.app.core.mongodb import mongodb_manager
 from backend.app.providers.base import LLMMessage
 from backend.app.providers.llm import get_llm
 from backend.app.rag.rag_service import rag_service
+from backend.app.schemas.documents import DocumentCitationResponse
 from backend.app.schemas.openai import (
     ChatCompletionRequest,
     ChatCompletionResponse,
     ChatCompletionResponseChoice,
     ChatCompletionUsage,
-    OpenAIMessage,
+    ModelInfo,
+    ModelsResponse,
     OpenAIError,
     OpenAIErrorResponse,
-    ModelsResponse,
-    ModelInfo,
+    OpenAIMessage,
 )
-from backend.app.schemas.documents import DocumentCitationResponse
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.responses import StreamingResponse
 
 logger = structlog.get_logger(__name__)
 
@@ -78,7 +78,7 @@ def create_openai_error_response(
     )
 
 
-def parse_model_name(model_name: str) -> tuple[str, str, Optional[str]]:
+def parse_model_name(model_name: str) -> tuple[str, str, str | None]:
     """
     Parse model name to extract provider, workspace, and mode.
 
@@ -101,7 +101,7 @@ def parse_model_name(model_name: str) -> tuple[str, str, Optional[str]]:
     return (provider, workspace_name, mode)
 
 
-def extract_mode_from_messages(messages: List[OpenAIMessage]) -> Optional[str]:
+def extract_mode_from_messages(messages: list[OpenAIMessage]) -> str | None:
     """
     Extract mode from system message if present.
 
@@ -120,7 +120,7 @@ def extract_mode_from_messages(messages: List[OpenAIMessage]) -> Optional[str]:
 
 
 def build_rag_context_with_citations(
-    search_results: List[Dict[str, Any]], max_context_chars: int = 10000
+    search_results: list[dict[str, Any]], max_context_chars: int = 10000
 ) -> str:
     """
     Build RAG context from search results with direct document ID citations.
@@ -165,7 +165,7 @@ def build_rag_context_with_citations(
     return "\n\n".join(context_parts)
 
 
-def build_citation_prompt(context: str, mode: Optional[str] = None) -> str:
+def build_citation_prompt(context: str, mode: str | None = None) -> str:
     """
     Build system prompt that instructs LLM to cite sources.
 
@@ -218,7 +218,7 @@ Context:
 Answer based on the context above."""
 
 
-def extract_citations_from_content(content: str) -> tuple[str, List[str]]:
+def extract_citations_from_content(content: str) -> tuple[str, list[str]]:
     """
     Extract citations from content and return cleaned content with citation list.
 
@@ -248,7 +248,7 @@ class CitationBuffer:
         self.buffer = ""
         self.max_citation_len = 150  # Max expected citation length
 
-    def add(self, text: str) -> Optional[str]:
+    def add(self, text: str) -> str | None:
         """
         Add text to buffer and return any complete, safe content.
 
@@ -671,12 +671,8 @@ Do not use general knowledge."""
             completion_id = f"chatcmpl-{uuid.uuid4().hex[:24]}"
             created = int(time.time())
 
-            prompt_tokens = (
-                response.usage.get("input_tokens", 0) if response.usage else 0
-            )
-            completion_tokens = (
-                response.usage.get("output_tokens", 0) if response.usage else 0
-            )
+            prompt_tokens = response.usage.get("input_tokens", 0) if response.usage else 0
+            completion_tokens = response.usage.get("output_tokens", 0) if response.usage else 0
             total_tokens = (
                 response.usage.get("total_tokens", prompt_tokens + completion_tokens)
                 if response.usage
@@ -690,9 +686,7 @@ Do not use general knowledge."""
                 choices=[
                     ChatCompletionResponseChoice(
                         index=0,
-                        message=OpenAIMessage(
-                            role="assistant", content=content_with_citations
-                        ),
+                        message=OpenAIMessage(role="assistant", content=content_with_citations),
                         finish_reason=response.finish_reason or "stop",
                     )
                 ],
@@ -853,9 +847,7 @@ async def get_model(model_id: str, user: UserDep):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(
-            "get_model_failed", model_id=model_id, error=str(e), user_id=user.id
-        )
+        logger.error("get_model_failed", model_id=model_id, error=str(e), user_id=user.id)
         return create_openai_error_response(
             "Failed to retrieve model",
             "server_error",

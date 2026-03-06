@@ -1,9 +1,8 @@
-from typing import List, Dict, Optional
 from backend.app.core.mongodb import mongodb_manager
 
 
 class DocumentInspectionService:
-    async def list_by_workspace(self, workspace_id: str) -> List[Dict]:
+    async def list_by_workspace(self, workspace_id: str) -> list[dict]:
         db = mongodb_manager.get_async_database()
         cursor = db.documents.find(
             {"$or": [{"workspace_id": workspace_id}, {"shared_with": workspace_id}]}
@@ -17,29 +16,23 @@ class DocumentInspectionService:
             d["name"] = d.get("filename")
         return all_docs
 
-    async def list_all(self) -> List[Dict]:
+    async def list_all(self) -> list[dict]:
         db = mongodb_manager.get_async_database()
         cursor = db.documents.find()
         docs = await cursor.to_list(length=1000)
 
         ws_cursor = db.workspaces.find({}, {"id": 1, "name": 1})
         workspaces = await ws_cursor.to_list(length=1000)
-        ws_map = {
-            ws.get("id", ""): ws.get("name", "Unknown")
-            for ws in workspaces
-            if ws.get("id")
-        }
+        ws_map = {ws.get("id", ""): ws.get("name", "Unknown") for ws in workspaces if ws.get("id")}
 
         for d in docs:
             if "_id" in d:
                 d["_id"] = str(d["_id"])
             d["name"] = d.get("filename")
-            d["workspace_name"] = ws_map.get(
-                d.get("workspace_id", ""), "Unknown Workspace"
-            )
+            d["workspace_name"] = ws_map.get(d.get("workspace_id", ""), "Unknown Workspace")
         return docs
 
-    async def list_vault(self) -> List[Dict]:
+    async def list_vault(self) -> list[dict]:
         db = mongodb_manager.get_async_database()
         pipeline = [
             {"$sort": {"updated_at": -1}},
@@ -56,22 +49,16 @@ class DocumentInspectionService:
 
         ws_cursor = db.workspaces.find({}, {"id": 1, "name": 1})
         workspaces = await ws_cursor.to_list(length=1000)
-        ws_map = {
-            ws.get("id", ""): ws.get("name", "Unknown")
-            for ws in workspaces
-            if ws.get("id")
-        }
+        ws_map = {ws.get("id", ""): ws.get("name", "Unknown") for ws in workspaces if ws.get("id")}
 
         for d in docs:
             if "_id" in d:
                 d["_id"] = str(d["_id"])
             d["name"] = d.get("filename")
-            d["workspace_name"] = ws_map.get(
-                d.get("workspace_id", ""), "Unknown Workspace"
-            )
+            d["workspace_name"] = ws_map.get(d.get("workspace_id", ""), "Unknown Workspace")
         return docs
 
-    async def get_by_id(self, doc_id: str) -> Optional[Dict]:
+    async def get_by_id(self, doc_id: str) -> dict | None:
         """Find a document by its unique internal ID."""
         db = mongodb_manager.get_async_database()
         doc = await db.documents.find_one({"id": doc_id})
@@ -79,7 +66,7 @@ class DocumentInspectionService:
             doc["_id"] = str(doc["_id"])
         return doc
 
-    async def get_chunks(self, doc_id: str, limit: int = 100) -> List[Dict]:
+    async def get_chunks(self, doc_id: str, limit: int = 100) -> list[dict]:
         """Retrieve vector chunks associated with a specific document ID."""
         doc = await self.get_by_id(doc_id)
         if not doc:
@@ -91,7 +78,7 @@ class DocumentInspectionService:
         config, store = await ingestion_pipeline.get_ingestion_config(ws_id)
         return await store.get_document_chunks(config, doc_id, limit)
 
-    async def inspect(self, doc_id: str) -> Dict:
+    async def inspect(self, doc_id: str) -> dict:
         """Inspect document state and relationships using its internal ID."""
         db = mongodb_manager.get_async_database()
         doc = await self.get_by_id(doc_id)
@@ -105,11 +92,7 @@ class DocumentInspectionService:
 
         ws_cursor = db.workspaces.find({}, {"id": 1, "name": 1})
         workspaces = await ws_cursor.to_list(1000)
-        ws_map = {
-            ws.get("id", ""): ws.get("name", "Unknown")
-            for ws in workspaces
-            if ws.get("id")
-        }
+        ws_map = {ws.get("id", ""): ws.get("name", "Unknown") for ws in workspaces if ws.get("id")}
         ws_map["vault"] = "Global Vault"
 
         relationships = []

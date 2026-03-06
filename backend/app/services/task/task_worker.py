@@ -1,7 +1,8 @@
 import asyncio
-import structlog
 from datetime import datetime
-from .task_service import task_service
+
+import structlog
+from backend.app.services.task.task_service import task_service
 
 logger = structlog.get_logger(__name__)
 
@@ -32,6 +33,7 @@ class TaskWorker:
 
     async def _loop(self):
         import time
+
         from backend.app.services.document_service import document_service
 
         while self._running:

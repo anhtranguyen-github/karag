@@ -5,10 +5,9 @@ Provides a centralized registry for all supported datasets with
 easy access to loaders for both English and Vietnamese datasets.
 """
 
-from typing import Callable, Dict, List, Optional, Type
+from collections.abc import Callable
 
 import structlog
-
 from backend.app.eval.datasets.base import BaseDatasetLoader, DatasetInfo
 
 logger = structlog.get_logger(__name__)
@@ -33,16 +32,16 @@ class DatasetRegistry:
     """
 
     def __init__(self):
-        self._loaders: Dict[str, Type[BaseDatasetLoader]] = {}
-        self._infos: Dict[str, DatasetInfo] = {}
-        self._loader_instances: Dict[str, BaseDatasetLoader] = {}
+        self._loaders: dict[str, type[BaseDatasetLoader]] = {}
+        self._infos: dict[str, DatasetInfo] = {}
+        self._loader_instances: dict[str, BaseDatasetLoader] = {}
         self.logger = logger
 
     def register(
         self,
         name: str,
-        loader_class: Type[BaseDatasetLoader],
-        info: Optional[DatasetInfo] = None,
+        loader_class: type[BaseDatasetLoader],
+        info: DatasetInfo | None = None,
     ) -> None:
         """
         Register a dataset loader.
@@ -92,7 +91,7 @@ class DatasetRegistry:
 
         return instance
 
-    def list_datasets(self, language: Optional[str] = None) -> List[str]:
+    def list_datasets(self, language: str | None = None) -> list[str]:
         """
         List all registered datasets.
 
@@ -114,7 +113,7 @@ class DatasetRegistry:
 
         return datasets
 
-    def get_info(self, name: str) -> Optional[DatasetInfo]:
+    def get_info(self, name: str) -> DatasetInfo | None:
         """
         Get metadata for a dataset.
 
@@ -147,7 +146,7 @@ class DatasetRegistry:
         for key in keys_to_remove:
             del self._loader_instances[key]
 
-    def get_by_domain(self, domain: str) -> List[str]:
+    def get_by_domain(self, domain: str) -> list[str]:
         """
         Get datasets by domain.
 
@@ -170,7 +169,7 @@ dataset_registry = DatasetRegistry()
 
 # Convenience functions for registration
 def register_dataset(
-    name: str, loader_class: Type[BaseDatasetLoader], info: Optional[DatasetInfo] = None
+    name: str, loader_class: type[BaseDatasetLoader], info: DatasetInfo | None = None
 ) -> Callable:
     """Decorator to register a dataset loader."""
     dataset_registry.register(name, loader_class, info)

@@ -1,11 +1,12 @@
-from typing import Annotated, TypedDict, List
+from typing import Annotated, TypedDict
+
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
 
 
 class AgentState(TypedDict):
     # The messages in the conversation
-    messages: Annotated[List[BaseMessage], add_messages]
+    messages: Annotated[list[BaseMessage], add_messages]
 
     # Current workspace ID
     workspace_id: str
@@ -14,10 +15,10 @@ class AgentState(TypedDict):
     summary: str
 
     # Retrieved context from RAG
-    context: List[str]
+    context: list[str]
 
     # Internal reasoning steps (for visibility)
-    reasoning_steps: List[str]
+    reasoning_steps: list[str]
 
     # Verification result (if the answer is sufficient)
     is_sufficient: bool
@@ -26,7 +27,7 @@ class AgentState(TypedDict):
     metadata: dict
 
     # Structured sources for citations
-    sources: List[dict]
+    sources: list[dict]
 
     # Flags for dynamic routing
     agentic_enabled: bool

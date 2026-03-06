@@ -8,20 +8,19 @@ import argparse
 import asyncio
 import json
 import sys
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 # Add backend to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from backend.app.eval.datasets.download_manager import DownloadManager
-from backend.app.eval.datasets.definitions import register_all_datasets
-from backend.app.eval.config.loader import get_config_loader
-from backend.app.eval.metrics.retrieval import RetrievalMetrics
-from backend.app.eval.metrics.generation import GenerationMetrics
-from backend.app.eval.runners.standard_runner import StandardQARunner
-
 import structlog
+from backend.app.eval.config.loader import get_config_loader
+from backend.app.eval.datasets.definitions import register_all_datasets
+from backend.app.eval.datasets.download_manager import DownloadManager
+from backend.app.eval.metrics.generation import GenerationMetrics
+from backend.app.eval.metrics.retrieval import RetrievalMetrics
+from backend.app.eval.runners.standard_runner import StandardQARunner
 
 # Register datasets explicitly (removed from import-time side effects)
 register_all_datasets()
@@ -207,9 +206,7 @@ async def test_with_mock_rag():
             relevant_ids = tc.get("ground_truth_contexts", [])
 
             recall_result = retrieval.recall_at_k(retrieved_ids, relevant_ids, k=5)
-            precision_result = retrieval.precision_at_k(
-                retrieved_ids, relevant_ids, k=5
-            )
+            precision_result = retrieval.precision_at_k(retrieved_ids, relevant_ids, k=5)
 
             # Calculate generation metrics
             gen = GenerationMetrics()
@@ -218,9 +215,7 @@ async def test_with_mock_rag():
 
             results.append(
                 {
-                    "query": tc["query"][:50] + "..."
-                    if len(tc["query"]) > 50
-                    else tc["query"],
+                    "query": tc["query"][:50] + "..." if len(tc["query"]) > 50 else tc["query"],
                     "answer": output["answer"],
                     "ground_truth": tc["ground_truth"],
                     "recall@5": round(recall_result.score, 2),
@@ -343,9 +338,7 @@ async def run_full_test(output_file: str = None):
 
     total_tests = len(report["tests"])
     passed_tests = sum(
-        1
-        for t in report["tests"].values()
-        if t.get("status") in ["completed", "passed"]
+        1 for t in report["tests"].values() if t.get("status") in ["completed", "passed"]
     )
 
     print(f"\nTotal Test Suites: {total_tests}")
@@ -371,9 +364,7 @@ async def run_full_test(output_file: str = None):
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Download datasets and test RAG evaluation system"
-    )
+    parser = argparse.ArgumentParser(description="Download datasets and test RAG evaluation system")
     parser.add_argument(
         "--skip-download",
         action="store_true",
@@ -385,9 +376,7 @@ def main():
         default="eval_test_report.json",
         help="Output file for test report",
     )
-    parser.add_argument(
-        "--test-only", action="store_true", help="Run tests only, don't download"
-    )
+    parser.add_argument("--test-only", action="store_true", help="Run tests only, don't download")
 
     args = parser.parse_args()
 

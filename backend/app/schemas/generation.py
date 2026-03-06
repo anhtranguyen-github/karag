@@ -1,5 +1,6 @@
+from typing import Annotated, Literal
+
 from pydantic import BaseModel, Field, computed_field
-from typing import List, Literal, Union, Annotated, Optional
 
 
 class BaseGenerationConfig(BaseModel):
@@ -7,7 +8,7 @@ class BaseGenerationConfig(BaseModel):
     top_p: float = Field(default=1.0, ge=0.0, le=1.0)
     max_output_tokens: int = Field(default=2048, ge=1, le=128000)
     streaming: bool = True
-    stop_sequences: List[str] = Field(default_factory=list)
+    stop_sequences: list[str] = Field(default_factory=list)
 
 
 class OpenAIGenerationConfig(BaseGenerationConfig):
@@ -28,9 +29,7 @@ class AzureOpenAIGenerationConfig(BaseGenerationConfig):
 
 class LlamaGenerationConfig(BaseGenerationConfig):
     provider: Literal["llama"] = "llama"
-    model: Literal["llama-3-8b-instruct", "llama-3-70b-instruct"] = (
-        "llama-3-8b-instruct"
-    )
+    model: Literal["llama-3-8b-instruct", "llama-3-70b-instruct"] = "llama-3-8b-instruct"
     top_k: int = Field(default=40, ge=1, le=100)
     repeat_penalty: float = Field(default=1.1, ge=0.0, le=2.0)
     device: Literal["cpu", "cuda", "mps"] = "cpu"
@@ -47,7 +46,7 @@ class CDP2GenerationConfig(BaseGenerationConfig):
     model: Literal["cdp2-llm-base", "cdp2-llm-large"] = "cdp2-llm-base"
     top_k: int = Field(default=40, ge=1, le=100)
     repeat_penalty: float = Field(default=1.1, ge=0.0, le=2.0)
-    checkpoint_path: Optional[str] = None
+    checkpoint_path: str | None = None
 
 
 class VLMGenerationConfig(BaseGenerationConfig):
@@ -58,12 +57,10 @@ class VLMGenerationConfig(BaseGenerationConfig):
 
 
 GenerationConfig = Annotated[
-    Union[
-        OpenAIGenerationConfig,
-        AzureOpenAIGenerationConfig,
-        LlamaGenerationConfig,
-        CDP2GenerationConfig,
-        VLMGenerationConfig,
-    ],
+    OpenAIGenerationConfig
+    | AzureOpenAIGenerationConfig
+    | LlamaGenerationConfig
+    | CDP2GenerationConfig
+    | VLMGenerationConfig,
     Field(discriminator="provider"),
 ]

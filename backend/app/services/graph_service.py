@@ -1,6 +1,6 @@
 import json
+
 import structlog
-from typing import List, Dict
 from backend.app.providers.llm import get_llm
 from backend.app.rag.graph_provider import graph_provider
 
@@ -17,9 +17,7 @@ class GraphService:
         # We split the text into chunks of ~4000 characters to avoid LLM context limits
         # and ensure detailed extraction.
         chunk_size = 4000
-        text_chunks = [
-            text[i : i + chunk_size] for i in range(0, len(text), chunk_size)
-        ]
+        text_chunks = [text[i : i + chunk_size] for i in range(0, len(text), chunk_size)]
 
         import asyncio
 
@@ -56,11 +54,9 @@ class GraphService:
                 chunks_processed=len(text_chunks),
             )
         except Exception as e:
-            logger.error(
-                "graph_storage_failed", error=str(e), workspace_id=workspace_id
-            )
+            logger.error("graph_storage_failed", error=str(e), workspace_id=workspace_id)
 
-    async def _extract_chunk(self, text: str, workspace_id: str) -> List[Dict]:
+    async def _extract_chunk(self, text: str, workspace_id: str) -> list[dict]:
         llm = await get_llm(workspace_id)
 
         prompt = f"""
@@ -105,12 +101,10 @@ class GraphService:
                 return []
             return data
         except Exception as e:
-            logger.warning(
-                "chunk_extraction_failed", error=str(e), workspace_id=workspace_id
-            )
+            logger.warning("chunk_extraction_failed", error=str(e), workspace_id=workspace_id)
             return []
 
-    def _merge_entities(self, entities: List[Dict]) -> List[Dict]:
+    def _merge_entities(self, entities: list[dict]) -> list[dict]:
         """Merge entities with the same name to avoid duplicates and consolidate relationships."""
         registry = {}
         for ent in entities:
@@ -133,9 +127,7 @@ class GraphService:
                 target = rel.get("target")
                 rel_type = rel.get("type", "RelatedTo")
                 if target and (target, rel_type) not in existing_rels:
-                    registry[name]["relationships"].append(
-                        {"target": target, "type": rel_type}
-                    )
+                    registry[name]["relationships"].append({"target": target, "type": rel_type})
                     existing_rels.add((target, rel_type))
 
         return list(registry.values())

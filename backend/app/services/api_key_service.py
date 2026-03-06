@@ -8,14 +8,13 @@ SECURITY: Keys are hashed with Argon2, only shown once on creation.
 """
 
 import secrets
-import structlog
 from datetime import datetime, timedelta
-from typing import Optional, List
-from passlib.context import CryptContext
 
-from backend.app.core.mongodb import mongodb_manager
+import structlog
 from backend.app.core.exceptions import AuthenticationError, NotFoundError
+from backend.app.core.mongodb import mongodb_manager
 from backend.app.schemas.baas import APIKey, APIKeyCreateResponse, IsolationContext
+from passlib.context import CryptContext
 
 logger = structlog.get_logger(__name__)
 
@@ -63,9 +62,9 @@ class APIKeyService:
     async def create_key(
         cls,
         workspace_id: str,
-        permissions: Optional[List[str]] = None,
-        expires_days: Optional[int] = None,
-        description: Optional[str] = None,
+        permissions: list[str] | None = None,
+        expires_days: int | None = None,
+        description: str | None = None,
     ) -> APIKeyCreateResponse:
         """
         Create a new API key for a workspace.
@@ -215,8 +214,8 @@ class APIKeyService:
     async def revoke_key(
         cls,
         key_id: str,
-        reason: Optional[str] = None,
-        admin_workspace_id: Optional[str] = None,
+        reason: str | None = None,
+        admin_workspace_id: str | None = None,
     ) -> bool:
         """
         Revoke an API key.
@@ -272,7 +271,7 @@ class APIKeyService:
     @classmethod
     async def list_workspace_keys(
         cls, workspace_id: str, include_inactive: bool = False
-    ) -> List[APIKey]:
+    ) -> list[APIKey]:
         """
         List all API keys for a workspace.
 
@@ -302,7 +301,7 @@ class APIKeyService:
         return keys
 
     @classmethod
-    async def get_key_metadata(cls, key_id: str) -> Optional[APIKey]:
+    async def get_key_metadata(cls, key_id: str) -> APIKey | None:
         """
         Get metadata for a key (no hash).
 

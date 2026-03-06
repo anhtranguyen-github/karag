@@ -8,8 +8,6 @@ small code changes and verifying tests fail.
 Minimum mutation score: 80%
 """
 
-import os
-
 # Paths to mutate
 paths_to_mutate = [
     "app/services/",

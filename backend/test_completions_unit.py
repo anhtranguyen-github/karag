@@ -4,11 +4,12 @@ Unit tests for OpenAI-compatible completions endpoint.
 Tests core functions without requiring full server startup.
 """
 
-import pytest
+import os
 
 # Test the functions directly
 import sys
-import os
+
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -123,9 +124,7 @@ class TestBuildRagContextWithCitations:
             {"text": "Short text.", "payload": {"doc_id": "doc_456"}},
         ]
 
-        context = build_rag_context_with_citations(
-            search_results, max_context_chars=1000
-        )
+        context = build_rag_context_with_citations(search_results, max_context_chars=1000)
 
         # Should be truncated but still have citation
         assert "[[doc:doc_123]]" in context

@@ -1,8 +1,9 @@
-from fastapi import APIRouter
-from typing import Dict, Any
+from typing import Any
+
 from backend.app.core.prompt_manager import prompt_manager
 from backend.app.core.settings_manager import settings_manager
 from backend.app.schemas.base import AppResponse
+from fastapi import APIRouter
 
 router = APIRouter(prefix="/admin", tags=["AdminOps"])
 
@@ -54,7 +55,7 @@ async def get_global_settings_metadata():
 
 
 @router.patch("/settings")
-async def update_global_settings(updates: Dict[str, Any]):
+async def update_global_settings(updates: dict[str, Any]):
     """Update global system settings (workspace_id='default')."""
     settings = await settings_manager.update_settings(updates, workspace_id="default")
     return AppResponse.success_response(data=settings.model_dump())

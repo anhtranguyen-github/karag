@@ -1,5 +1,6 @@
+from typing import Any
+
 import structlog
-from typing import List, Dict, Any
 from backend.app.core.settings_manager import settings_manager
 from backend.app.providers.llm import get_llm
 
@@ -12,8 +13,8 @@ class GraphProvider:
     """
 
     async def search(
-        self, query: str, query_vector: List[float], workspace_id: str, limit: int = 5
-    ) -> List[Dict]:
+        self, query: str, query_vector: list[float], workspace_id: str, limit: int = 5
+    ) -> list[dict]:
         """
         Executes Graph-Aware RAG pipeline:
         1. Query Neo4j for entities related to the query keywords.
@@ -31,11 +32,7 @@ class GraphProvider:
         """
         try:
             extraction_res = await llm.ainvoke(extraction_prompt)
-            keywords = [
-                k.strip()
-                for k in extraction_res.content.split(",")
-                if len(k.strip()) > 2
-            ]
+            keywords = [k.strip() for k in extraction_res.content.split(",") if len(k.strip()) > 2]
         except Exception:
             # Fallback to simple split
             keywords = [word.strip(",.?!") for word in query.split() if len(word) > 3]
@@ -91,8 +88,7 @@ class GraphProvider:
             )
 
             results = [
-                {"id": res.id, "score": res.score, "payload": res.payload}
-                for res in search_results
+                {"id": res.id, "score": res.score, "payload": res.payload} for res in search_results
             ]
 
             # Annotate results with graph metadata
@@ -104,9 +100,7 @@ class GraphProvider:
             return results
 
         except Exception as e:
-            logger.error(
-                "graph_retrieval_failed", error=str(e), workspace_id=workspace_id
-            )
+            logger.error("graph_retrieval_failed", error=str(e), workspace_id=workspace_id)
             # Fallback to basic search if Neo4j is down or fails
             from backend.app.core.factory import ProviderFactory
 
@@ -119,11 +113,10 @@ class GraphProvider:
                 workspace_id=workspace_id,
             )
             return [
-                {"id": res.id, "score": res.score, "payload": res.payload}
-                for res in search_results
+                {"id": res.id, "score": res.score, "payload": res.payload} for res in search_results
             ]
 
-    async def upsert_entities(self, entities: List[Dict[str, Any]], workspace_id: str):
+    async def upsert_entities(self, entities: list[dict[str, Any]], workspace_id: str):
         """Insert or update entities and relationships using the injected GraphStore."""
         from backend.app.core.factory import ProviderFactory
 

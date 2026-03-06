@@ -5,11 +5,11 @@ Supports loading datasets from HuggingFace Hub with standardized
 column mapping for different dataset formats.
 """
 
+from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import Any, AsyncIterator, Dict, List, Optional, Union
+from typing import Any
 
 import structlog
-
 from backend.app.eval.datasets.base import (
     BaseDatasetLoader,
     DatasetEntry,
@@ -48,12 +48,12 @@ class HuggingFaceDatasetLoader(BaseDatasetLoader):
         self,
         name: str,
         dataset_path: str,
-        cache_dir: Optional[Union[str, Path]] = None,
-        config_name: Optional[str] = None,
-        column_mapping: Optional[Dict[str, str]] = None,
-        split_mapping: Optional[Dict[DatasetSplit, str]] = None,
-        dataset_info: Optional[DatasetInfo] = None,
-        preprocess_fn: Optional[callable] = None,
+        cache_dir: str | Path | None = None,
+        config_name: str | None = None,
+        column_mapping: dict[str, str] | None = None,
+        split_mapping: dict[DatasetSplit, str] | None = None,
+        dataset_info: DatasetInfo | None = None,
+        preprocess_fn: callable | None = None,
     ):
         """
         Initialize HuggingFace dataset loader.
@@ -95,9 +95,7 @@ class HuggingFaceDatasetLoader(BaseDatasetLoader):
 
                 self._datasets_lib = datasets
             except ImportError:
-                raise ImportError(
-                    "datasets library required. Install with: pip install datasets"
-                )
+                raise ImportError("datasets library required. Install with: pip install datasets")
         return self._datasets_lib
 
     def info(self) -> DatasetInfo:
@@ -108,18 +106,14 @@ class HuggingFaceDatasetLoader(BaseDatasetLoader):
         # Try to load from HuggingFace
         try:
             datasets = self._get_datasets_lib()
-            info = datasets.load_dataset_builder(
-                self.dataset_path, self.config_name
-            ).info
+            info = datasets.load_dataset_builder(self.dataset_path, self.config_name).info
 
             return DatasetInfo(
                 name=self.name,
                 description=info.description or "",
                 language="en",  # Default assumption
                 task_type="qa",
-                num_samples=info.splits.get(
-                    "test", info.splits.get("train", {})
-                ).num_examples
+                num_samples=info.splits.get("test", info.splits.get("train", {})).num_examples
                 if info.splits
                 else None,
                 citation=info.citation,
@@ -163,9 +157,7 @@ class HuggingFaceDatasetLoader(BaseDatasetLoader):
                 cache_dir=str(dataset_cache_dir),
                 download_mode="force_redownload" if force else "reuse_cache_if_exists",
             )
-            self.logger.info(
-                "dataset_downloaded", dataset=self.name, path=str(dataset_cache_dir)
-            )
+            self.logger.info("dataset_downloaded", dataset=self.name, path=str(dataset_cache_dir))
             return dataset_cache_dir
         except Exception as e:
             self.logger.error("download_failed", dataset=self.name, error=str(e))
@@ -174,7 +166,7 @@ class HuggingFaceDatasetLoader(BaseDatasetLoader):
     async def load(
         self,
         split: DatasetSplit = DatasetSplit.TEST,
-        max_samples: Optional[int] = None,
+        max_samples: int | None = None,
         streaming: bool = False,
         **kwargs,
     ) -> AsyncIterator[DatasetEntry]:
@@ -217,9 +209,7 @@ class HuggingFaceDatasetLoader(BaseDatasetLoader):
             # Handle combined splits
             if split == DatasetSplit.ALL and not streaming:
                 if hasattr(dataset, "keys"):
-                    dataset = datasets.concatenate_datasets(
-                        [dataset[s] for s in dataset.keys()]
-                    )
+                    dataset = datasets.concatenate_datasets([dataset[s] for s in dataset.keys()])
                 else:
                     raise ValueError(
                         "Cannot combine splits: dataset is not a dictionary-like object. "
@@ -237,9 +227,7 @@ class HuggingFaceDatasetLoader(BaseDatasetLoader):
                         yield entry
                         count += 1
                 except Exception as e:
-                    self.logger.warning(
-                        "failed_to_convert_example", index=idx, error=str(e)
-                    )
+                    self.logger.warning("failed_to_convert_example", index=idx, error=str(e))
                     continue
 
             self.logger.info("dataset_loaded", count=count)
@@ -248,9 +236,7 @@ class HuggingFaceDatasetLoader(BaseDatasetLoader):
             self.logger.error("failed_to_load_dataset", error=str(e))
             raise
 
-    def _convert_example(
-        self, example: Dict[str, Any], idx: int
-    ) -> Optional[DatasetEntry]:
+    def _convert_example(self, example: dict[str, Any], idx: int) -> DatasetEntry | None:
         """Convert a dataset example to DatasetEntry."""
         # Apply preprocessing if provided
         if self.preprocess_fn:
@@ -260,9 +246,7 @@ class HuggingFaceDatasetLoader(BaseDatasetLoader):
         query_col = self.column_mapping.get("query", "question")
         answer_col = self.column_mapping.get("answer", "answer")
         contexts_col = self.column_mapping.get("contexts", "context")
-        docs_col = self.column_mapping.get(
-            "ground_truth_documents", "positive_passages"
-        )
+        docs_col = self.column_mapping.get("ground_truth_documents", "positive_passages")
 
         # Get query
         query = self._extract_field(example, query_col)
@@ -298,7 +282,7 @@ class HuggingFaceDatasetLoader(BaseDatasetLoader):
             language=self._dataset_info.language if self._dataset_info else None,
         )
 
-    def _extract_field(self, example: Dict, column: str) -> Optional[str]:
+    def _extract_field(self, example: dict, column: str) -> str | None:
         """Extract a string field from example."""
         value = example.get(column)
         if isinstance(value, str):
@@ -308,7 +292,7 @@ class HuggingFaceDatasetLoader(BaseDatasetLoader):
                 return value[0]
         return None
 
-    def _extract_answer(self, example: Dict, column: str) -> Optional[str]:
+    def _extract_answer(self, example: dict, column: str) -> str | None:
         """Extract answer handling various formats."""
         value = example.get(column)
         if isinstance(value, str):
@@ -324,7 +308,7 @@ class HuggingFaceDatasetLoader(BaseDatasetLoader):
             return value.get("text", [None])[0] if "text" in value else str(value)
         return None
 
-    def _extract_contexts(self, example: Dict, column: str) -> List[str]:
+    def _extract_contexts(self, example: dict, column: str) -> list[str]:
         """Extract contexts handling various formats."""
         value = example.get(column)
         if isinstance(value, str):
@@ -343,7 +327,7 @@ class HuggingFaceDatasetLoader(BaseDatasetLoader):
                 return contexts
         return []
 
-    def _extract_documents(self, example: Dict, column: str) -> List[str]:
+    def _extract_documents(self, example: dict, column: str) -> list[str]:
         """Extract ground truth documents handling various formats."""
         value = example.get(column)
         if isinstance(value, str):

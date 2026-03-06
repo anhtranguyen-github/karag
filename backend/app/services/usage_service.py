@@ -9,15 +9,15 @@ WORKSPACE ATTRIBUTION: Every log entry includes workspace_id.
 
 import hashlib
 import secrets
-import structlog
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any, List
+from typing import Any
 
+import structlog
 from backend.app.core.mongodb import mongodb_manager
 from backend.app.schemas.baas import (
-    UsageLog,
     RAGTrace,
     RetrievedSource,
+    UsageLog,
     WorkspaceUsageStats,
 )
 
@@ -41,7 +41,7 @@ SENSITIVE_FIELDS = {
 }
 
 
-def redact_sensitive_data(data: Dict[str, Any]) -> Dict[str, Any]:
+def redact_sensitive_data(data: dict[str, Any]) -> dict[str, Any]:
     """
     Recursively redact sensitive fields from data.
 
@@ -65,8 +65,7 @@ def redact_sensitive_data(data: Dict[str, Any]) -> Dict[str, Any]:
             redacted[key] = redact_sensitive_data(value)
         elif isinstance(value, list):
             redacted[key] = [
-                redact_sensitive_data(item) if isinstance(item, dict) else item
-                for item in value
+                redact_sensitive_data(item) if isinstance(item, dict) else item for item in value
             ]
         else:
             redacted[key] = value
@@ -106,14 +105,14 @@ class UsageService:
         endpoint: str,
         status_code: int,
         duration_ms: float,
-        prompt_tokens: Optional[int] = None,
-        completion_tokens: Optional[int] = None,
-        embedding_tokens: Optional[int] = None,
-        rag_trace: Optional[RAGTrace] = None,
-        error_code: Optional[str] = None,
-        error_message: Optional[str] = None,
-        client_ip: Optional[str] = None,
-        user_agent: Optional[str] = None,
+        prompt_tokens: int | None = None,
+        completion_tokens: int | None = None,
+        embedding_tokens: int | None = None,
+        rag_trace: RAGTrace | None = None,
+        error_code: str | None = None,
+        error_message: str | None = None,
+        client_ip: str | None = None,
+        user_agent: str | None = None,
     ) -> UsageLog:
         """
         Log a request with full context.
@@ -203,10 +202,10 @@ class UsageService:
         query: str,
         chunks_retrieved: int,
         retrieval_latency_ms: float,
-        sources: List[RetrievedSource],
+        sources: list[RetrievedSource],
         context_tokens: int = 0,
         context_documents: int = 0,
-        rerank_latency_ms: Optional[float] = None,
+        rerank_latency_ms: float | None = None,
     ) -> RAGTrace:
         """
         Create a RAG trace for logging.
@@ -235,17 +234,15 @@ class UsageService:
             sources=sources,
             context_tokens=context_tokens,
             context_documents=context_documents,
-            rerank_latency_ms=round(rerank_latency_ms, 2)
-            if rerank_latency_ms
-            else None,
+            rerank_latency_ms=round(rerank_latency_ms, 2) if rerank_latency_ms else None,
         )
 
     @classmethod
     async def get_workspace_usage_stats(
         cls,
         workspace_id: str,
-        period_start: Optional[datetime] = None,
-        period_end: Optional[datetime] = None,
+        period_start: datetime | None = None,
+        period_end: datetime | None = None,
     ) -> WorkspaceUsageStats:
         """
         Get aggregated usage statistics for a workspace.
@@ -280,15 +277,11 @@ class UsageService:
                     "successful_requests": {
                         "$sum": {"$cond": [{"$lt": ["$status_code", 400]}, 1, 0]}
                     },
-                    "failed_requests": {
-                        "$sum": {"$cond": [{"$gte": ["$status_code", 400]}, 1, 0]}
-                    },
+                    "failed_requests": {"$sum": {"$cond": [{"$gte": ["$status_code", 400]}, 1, 0]}},
                     "total_prompt_tokens": {"$sum": "$prompt_tokens"},
                     "total_completion_tokens": {"$sum": "$completion_tokens"},
                     "total_embedding_tokens": {"$sum": "$embedding_tokens"},
-                    "rag_queries": {
-                        "$sum": {"$cond": [{"$ifNull": ["$rag_trace", False]}, 1, 0]}
-                    },
+                    "rag_queries": {"$sum": {"$cond": [{"$ifNull": ["$rag_trace", False]}, 1, 0]}},
                     "total_chunks_retrieved": {"$sum": "$rag_trace.chunks_retrieved"},
                     "avg_latency": {"$avg": "$duration_ms"},
                     "latencies": {"$push": "$duration_ms"},
@@ -343,14 +336,14 @@ class UsageService:
     @classmethod
     async def query_usage_logs(
         cls,
-        workspace_id: Optional[str] = None,
-        endpoint: Optional[str] = None,
-        status_code: Optional[int] = None,
-        period_start: Optional[datetime] = None,
-        period_end: Optional[datetime] = None,
+        workspace_id: str | None = None,
+        endpoint: str | None = None,
+        status_code: int | None = None,
+        period_start: datetime | None = None,
+        period_end: datetime | None = None,
         limit: int = 100,
         offset: int = 0,
-    ) -> List[UsageLog]:
+    ) -> list[UsageLog]:
         """
         Query usage logs with filters.
 
@@ -387,9 +380,7 @@ class UsageService:
             query["timestamp"] = time_query
 
         # Execute query
-        cursor = (
-            db.usage_logs.find(query).sort("timestamp", -1).skip(offset).limit(limit)
-        )
+        cursor = db.usage_logs.find(query).sort("timestamp", -1).skip(offset).limit(limit)
 
         logs = []
         async for doc in cursor:

@@ -15,9 +15,6 @@ from __future__ import annotations
 from typing import Annotated
 
 import structlog
-from fastapi import APIRouter, Depends, Response
-from fastapi.responses import StreamingResponse
-
 from backend.app.api.deps import CurrentWorkspace, get_current_workspace
 from backend.app.api.pagination import (
     PaginationParams,
@@ -27,6 +24,8 @@ from backend.app.api.pagination import (
 from backend.app.schemas.base import AppResponse
 from backend.app.schemas.chat import ChatStreamRequest, ThreadTitleUpdate
 from backend.app.services.chat_service import chat_service
+from fastapi import APIRouter, Depends, Response
+from fastapi.responses import StreamingResponse
 
 logger = structlog.get_logger(__name__)
 

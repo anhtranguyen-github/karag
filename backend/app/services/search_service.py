@@ -1,5 +1,6 @@
+from typing import Any
+
 import structlog
-from typing import List, Dict, Any
 from backend.app.core.mongodb import mongodb_manager
 
 logger = structlog.get_logger(__name__)
@@ -7,9 +8,7 @@ logger = structlog.get_logger(__name__)
 
 class SearchService:
     @staticmethod
-    async def global_search(
-        query: str, workspace_id: str
-    ) -> Dict[str, List[Dict[str, Any]]]:
+    async def global_search(query: str, workspace_id: str) -> dict[str, list[dict[str, Any]]]:
         """
         Global search across workspaces, threads, and documents.
         """

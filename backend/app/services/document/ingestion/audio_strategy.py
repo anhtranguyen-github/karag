@@ -1,8 +1,9 @@
 import os
-from typing import Dict, Any
+from typing import Any
+
+from backend.app.core.error_codes import AppErrorCode
 from backend.app.services.document.ingestion.base import BaseIngestionStrategy, logger
 from backend.app.services.task.task_service import task_service
-from backend.app.core.error_codes import AppErrorCode
 
 
 class AudioIngestionStrategy(BaseIngestionStrategy):
@@ -11,8 +12,8 @@ class AudioIngestionStrategy(BaseIngestionStrategy):
         return "audio_ingestion"
 
     async def run(
-        self, task_id: str, workspace_id: str, metadata: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, task_id: str, workspace_id: str, metadata: dict[str, Any]
+    ) -> dict[str, Any]:
         from backend.app.rag.ingestion import ingestion_pipeline
 
         filename = metadata.get("filename")
@@ -41,9 +42,7 @@ class AudioIngestionStrategy(BaseIngestionStrategy):
             await task_service.update_task(
                 task_id, progress=30, message="Transcribing audio (Mock mode)..."
             )
-            transcribed_text = (
-                f"Sample transcription for {filename}. Audio converted to text."
-            )
+            transcribed_text = f"Sample transcription for {filename}. Audio converted to text."
 
             await task_service.update_task(
                 task_id, progress=70, message="Indexing transcribed text..."
@@ -67,9 +66,7 @@ class AudioIngestionStrategy(BaseIngestionStrategy):
             )
             return {"chunks": num_chunks}
         except Exception as e:
-            logger.error(
-                "audio_ingestion_failed", task_id=task_id, error=str(e), exc_info=True
-            )
+            logger.error("audio_ingestion_failed", task_id=task_id, error=str(e), exc_info=True)
             await task_service.fail_with_retry(
                 task_id,
                 error_message=str(e),

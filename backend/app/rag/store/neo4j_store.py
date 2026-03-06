@@ -1,8 +1,9 @@
+from typing import Any
+
 import structlog
-from typing import List, Dict, Any
-from neo4j import AsyncGraphDatabase
 from backend.app.core.config import karag_settings
 from backend.app.rag.store.graph_base import GraphStore
+from neo4j import AsyncGraphDatabase
 
 logger = structlog.get_logger(__name__)
 
@@ -40,8 +41,8 @@ class Neo4jStore(GraphStore):
             return await session.execute_write(_work)
 
     async def get_related_entities(
-        self, keywords: List[str], workspace_id: str, limit: int = 30
-    ) -> List[Dict[str, Any]]:
+        self, keywords: list[str], workspace_id: str, limit: int = 30
+    ) -> list[dict[str, Any]]:
         cypher = """
         UNWIND $keywords as word
         MATCH (n:Entity)
@@ -58,9 +59,7 @@ class Neo4jStore(GraphStore):
             workspace_id=workspace_id,
         )
 
-    async def upsert_entities(
-        self, entities: List[Dict[str, Any]], workspace_id: str
-    ) -> None:
+    async def upsert_entities(self, entities: list[dict[str, Any]], workspace_id: str) -> None:
         cypher = """
         UNWIND $entities as ent
         MERGE (n:Entity {name: ent.name, workspace_id: $workspace_id})
@@ -71,22 +70,18 @@ class Neo4jStore(GraphStore):
         MERGE (n)-[r:RELATED {type: rel.type}]->(other)
         SET r.workspace_id = $workspace_id
         """
-        await self.execute_query(
-            cypher, {"entities": entities}, workspace_id=workspace_id
-        )
+        await self.execute_query(cypher, {"entities": entities}, workspace_id=workspace_id)
 
     async def get_workspace_graph(
         self, workspace_id: str, limit: int = 100
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         cypher = """
         MATCH (n:Entity {workspace_id: $workspace_id})
         OPTIONAL MATCH (n)-[r]->(m:Entity {workspace_id: $workspace_id})
         RETURN n.name as name, n.type as type, m.name as target, type(r) as rel_type
         LIMIT toInteger($limit)
         """
-        return await self.execute_query(
-            cypher, {"limit": limit}, workspace_id=workspace_id
-        )
+        return await self.execute_query(cypher, {"limit": limit}, workspace_id=workspace_id)
 
     async def close(self) -> None:
         if self.driver:

@@ -1,6 +1,7 @@
-from fastapi.testclient import TestClient
-from backend.app.main import app
 from contextlib import asynccontextmanager
+
+from backend.app.main import app
+from fastapi.testclient import TestClient
 
 
 # Mock lifespan to avoid DB connections during contract tests

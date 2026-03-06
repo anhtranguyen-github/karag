@@ -9,21 +9,20 @@ Following API design principles:
 - Request tracking IDs
 """
 
-from typing import Optional, Dict, Any, List
-from enum import Enum
 from datetime import datetime
+from enum import StrEnum
+from typing import Any
 
-from fastapi import Request, HTTPException
+import structlog
+from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from starlette.middleware.base import BaseHTTPMiddleware
 
-import structlog
-
 logger = structlog.get_logger(__name__)
 
 
-class ErrorSeverity(str, Enum):
+class ErrorSeverity(StrEnum):
     """Error severity levels."""
 
     WARNING = "warning"
@@ -34,10 +33,10 @@ class ErrorSeverity(str, Enum):
 class ErrorDetail(BaseModel):
     """Detailed error information."""
 
-    field: Optional[str] = Field(None, description="Field related to error")
+    field: str | None = Field(None, description="Field related to error")
     message: str = Field(..., description="Human-readable error message")
     code: str = Field(..., description="Machine-readable error code")
-    value: Optional[Any] = Field(None, description="Invalid value if applicable")
+    value: Any | None = Field(None, description="Invalid value if applicable")
 
 
 class ErrorResponse(BaseModel):
@@ -62,14 +61,10 @@ class ErrorResponse(BaseModel):
     """
 
     success: bool = False
-    error: Dict[str, Any] = Field(..., description="Main error information")
-    details: Optional[List[ErrorDetail]] = Field(
-        None, description="Detailed error breakdown"
-    )
-    documentation_url: Optional[str] = Field(
-        None, description="Link to error documentation"
-    )
-    help: Optional[str] = Field(None, description="Helpful suggestion for resolution")
+    error: dict[str, Any] = Field(..., description="Main error information")
+    details: list[ErrorDetail] | None = Field(None, description="Detailed error breakdown")
+    documentation_url: str | None = Field(None, description="Link to error documentation")
+    help: str | None = Field(None, description="Helpful suggestion for resolution")
 
 
 class ApiException(Exception):
@@ -81,10 +76,10 @@ class ApiException(Exception):
         code: str,
         status_code: int = 500,
         severity: ErrorSeverity = ErrorSeverity.ERROR,
-        details: List[ErrorDetail] = None,
+        details: list[ErrorDetail] = None,
         documentation_url: str = None,
         help_text: str = None,
-        extra: Dict[str, Any] = None,
+        extra: dict[str, Any] = None,
     ):
         super().__init__(message)
         self.message = message
@@ -122,7 +117,7 @@ class ValidationException(ApiException):
     def __init__(
         self,
         message: str = "Request validation failed",
-        details: List[ErrorDetail] = None,
+        details: list[ErrorDetail] = None,
         **kwargs,
     ):
         super().__init__(
@@ -167,9 +162,7 @@ class AuthorizationException(ApiException):
 class NotFoundException(ApiException):
     """Resource not found."""
 
-    def __init__(
-        self, resource_type: str = "Resource", resource_id: str = None, **kwargs
-    ):
+    def __init__(self, resource_type: str = "Resource", resource_id: str = None, **kwargs):
         message = f"{resource_type} not found"
         if resource_id:
             message = f"{resource_type} '{resource_id}' not found"
@@ -201,9 +194,7 @@ class ConflictException(ApiException):
 class RateLimitException(ApiException):
     """Rate limit exceeded."""
 
-    def __init__(
-        self, message: str = "Rate limit exceeded", retry_after: int = None, **kwargs
-    ):
+    def __init__(self, message: str = "Rate limit exceeded", retry_after: int = None, **kwargs):
         extra = {}
         if retry_after:
             extra["retry_after"] = retry_after
@@ -291,9 +282,7 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
         except Exception as exc:
             return self._handle_generic_exception(exc, request)
 
-    def _handle_api_exception(
-        self, exc: ApiException, request: Request
-    ) -> JSONResponse:
+    def _handle_api_exception(self, exc: ApiException, request: Request) -> JSONResponse:
         """Handle structured API exceptions."""
         request_id = getattr(request.state, "request_id", None)
 
@@ -328,9 +317,7 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
             headers=headers,
         )
 
-    def _handle_http_exception(
-        self, exc: HTTPException, request: Request
-    ) -> JSONResponse:
+    def _handle_http_exception(self, exc: HTTPException, request: Request) -> JSONResponse:
         """Handle FastAPI HTTP exceptions."""
         request_id = getattr(request.state, "request_id", None)
 
@@ -350,9 +337,7 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
             headers=dict(exc.headers) if exc.headers else {},
         )
 
-    def _handle_generic_exception(
-        self, exc: Exception, request: Request
-    ) -> JSONResponse:
+    def _handle_generic_exception(self, exc: Exception, request: Request) -> JSONResponse:
         """Handle unexpected exceptions."""
         request_id = getattr(request.state, "request_id", None)
 
@@ -409,7 +394,7 @@ def create_validation_error(
 
 def raise_validation_error(
     message: str,
-    details: List[ErrorDetail] = None,
+    details: list[ErrorDetail] = None,
 ):
     """Helper to raise validation exception."""
     raise ValidationException(message=message, details=details)

@@ -6,8 +6,8 @@ create a Task record that persists across server restarts.
 """
 
 import uuid
-from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
+from typing import Any
 
 import structlog
 from backend.app.core.mongodb import mongodb_manager
@@ -24,8 +24,8 @@ class TaskService:
     async def create_task(
         self,
         task_type: str,
-        metadata: Optional[Dict] = None,
-        workspace_id: Optional[str] = None,
+        metadata: dict | None = None,
+        workspace_id: str | None = None,
     ) -> str:
         db = mongodb_manager.get_async_database()
         task_id = str(uuid.uuid4())
@@ -34,15 +34,12 @@ class TaskService:
             "id": task_id,
             "type": task_type,
             "status": "pending",
-            "priority": metadata.get("priority", 1)
-            if metadata
-            else 1,  # Default priority 1
+            "priority": metadata.get("priority", 1) if metadata else 1,  # Default priority 1
             "progress": 0,
             "message": "Initializing...",
             "error_code": None,
             "metadata": metadata or {},
-            "workspace_id": workspace_id
-            or (metadata or {}).get("workspace_id", "default"),
+            "workspace_id": workspace_id or (metadata or {}).get("workspace_id", "default"),
             "result": None,
             "created_at": now,
             "updated_at": now,
@@ -58,15 +55,15 @@ class TaskService:
     async def update_task(
         self,
         task_id: str,
-        status: Optional[str] = None,
-        progress: Optional[int] = None,
-        message: Optional[str] = None,
-        error_code: Optional[str] = None,
-        metadata: Optional[Dict] = None,
-        result: Optional[Dict] = None,
+        status: str | None = None,
+        progress: int | None = None,
+        message: str | None = None,
+        error_code: str | None = None,
+        metadata: dict | None = None,
+        result: dict | None = None,
     ):
         db = mongodb_manager.get_async_database()
-        update: Dict[str, Any] = {"updated_at": datetime.utcnow().isoformat()}
+        update: dict[str, Any] = {"updated_at": datetime.utcnow().isoformat()}
         if status is not None:
             update["status"] = status
         if progress is not None:
@@ -78,7 +75,7 @@ class TaskService:
         if result is not None:
             update["result"] = result
 
-        set_op: Dict[str, Any] = {"$set": update}
+        set_op: dict[str, Any] = {"$set": update}
         if metadata:
             for k, v in metadata.items():
                 set_op["$set"][f"metadata.{k}"] = v
@@ -86,7 +83,7 @@ class TaskService:
         await db[self.COLLECTION].update_one({"id": task_id}, set_op)
 
     # ── Read ────────────────────────────────────────────────
-    async def get_task(self, task_id: str) -> Optional[Dict[str, Any]]:
+    async def get_task(self, task_id: str) -> dict[str, Any] | None:
         db = mongodb_manager.get_async_database()
         doc = await db[self.COLLECTION].find_one({"id": task_id})
         if doc and "_id" in doc:
@@ -95,13 +92,13 @@ class TaskService:
 
     async def list_tasks(
         self,
-        task_type: Optional[str] = None,
-        workspace_id: Optional[str] = None,
+        task_type: str | None = None,
+        workspace_id: str | None = None,
         include_completed: bool = True,
         limit: int = 50,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         db = mongodb_manager.get_async_database()
-        query: Dict[str, Any] = {}
+        query: dict[str, Any] = {}
         if task_type:
             query["type"] = task_type
         if workspace_id:
@@ -142,15 +139,11 @@ class TaskService:
     # ── Retry & Cancel ──────────────────────────────────────
     async def mark_retryable(self, task_id: str):
         """Reset a failed task to pending for retry."""
-        await self.update_task(
-            task_id, status="pending", progress=0, message="Retrying..."
-        )
+        await self.update_task(task_id, status="pending", progress=0, message="Retrying...")
 
     async def cancel_task(self, task_id: str):
         """Mark task as canceled."""
-        await self.update_task(
-            task_id, status="canceled", message="Task canceled by user."
-        )
+        await self.update_task(task_id, status="canceled", message="Task canceled by user.")
 
     async def is_cancelled(self, task_id: str) -> bool:
         """Check if task has been canceled."""
@@ -171,9 +164,7 @@ class TaskService:
             next_count = retry_count + 1
             # Exponential backoff: 30s, 2m, 10m
             backoff_seconds = (2**next_count) * 30
-            next_retry = (
-                datetime.utcnow() + timedelta(seconds=backoff_seconds)
-            ).isoformat()
+            next_retry = (datetime.utcnow() + timedelta(seconds=backoff_seconds)).isoformat()
 
             await self.update_task(
                 task_id,
@@ -194,9 +185,7 @@ class TaskService:
                 error_code=error_code,
                 message=f"Failed after {max_retries} retries: {error_message}",
             )
-            logger.error(
-                "task_failed_permanently", task_id=task_id, error=error_message
-            )
+            logger.error("task_failed_permanently", task_id=task_id, error=error_message)
 
     # ── Resilience ──────────────────────────────────────────
     async def reset_running_tasks_on_startup(self):

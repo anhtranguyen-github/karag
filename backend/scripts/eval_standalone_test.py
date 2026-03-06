@@ -5,12 +5,12 @@ Tests the core logic without external dependencies.
 """
 
 import json
-import sys
-from pathlib import Path
-from datetime import datetime
-from typing import List, Dict, Any, Optional
-from dataclasses import dataclass
 import math
+import sys
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 # Test Report
 report = {"timestamp": datetime.now().isoformat(), "tests": {}, "summary": {}}
@@ -22,8 +22,8 @@ class RetrievalResult:
 
     metric_name: str
     score: float
-    k: Optional[int] = None
-    details: Dict[str, Any] = None
+    k: int | None = None
+    details: dict[str, Any] = None
 
     def __post_init__(self):
         if self.details is None:
@@ -34,7 +34,7 @@ class RetrievalMetrics:
     """Traditional Information Retrieval metrics."""
 
     def recall_at_k(
-        self, retrieved_doc_ids: List[str], relevant_doc_ids: List[str], k: int
+        self, retrieved_doc_ids: list[str], relevant_doc_ids: list[str], k: int
     ) -> RetrievalResult:
         """Calculate Recall@k."""
         if not relevant_doc_ids:
@@ -56,7 +56,7 @@ class RetrievalMetrics:
         )
 
     def precision_at_k(
-        self, retrieved_doc_ids: List[str], relevant_doc_ids: List[str], k: int
+        self, retrieved_doc_ids: list[str], relevant_doc_ids: list[str], k: int
     ) -> RetrievalResult:
         """Calculate Precision@k."""
         if k == 0:
@@ -76,9 +76,7 @@ class RetrievalMetrics:
             },
         )
 
-    def mrr(
-        self, retrieved_doc_ids: List[str], relevant_doc_ids: List[str]
-    ) -> RetrievalResult:
+    def mrr(self, retrieved_doc_ids: list[str], relevant_doc_ids: list[str]) -> RetrievalResult:
         """Calculate Mean Reciprocal Rank."""
         relevant = set(relevant_doc_ids)
 
@@ -91,7 +89,7 @@ class RetrievalMetrics:
         return RetrievalResult(metric_name="mrr", score=0.0, details={"rank": None})
 
     def hit_rate(
-        self, retrieved_doc_ids: List[str], relevant_doc_ids: List[str], k: int
+        self, retrieved_doc_ids: list[str], relevant_doc_ids: list[str], k: int
     ) -> RetrievalResult:
         """Calculate Hit Rate@k."""
         retrieved_at_k = set(retrieved_doc_ids[:k])
@@ -101,7 +99,7 @@ class RetrievalMetrics:
         return RetrievalResult(metric_name="hit_rate", score=score, k=k)
 
     def dcg_at_k(
-        self, retrieved_doc_ids: List[str], relevance_scores: Dict[str, float], k: int
+        self, retrieved_doc_ids: list[str], relevance_scores: dict[str, float], k: int
     ) -> float:
         """Calculate DCG@k."""
         dcg = 0.0
@@ -111,16 +109,14 @@ class RetrievalMetrics:
         return dcg
 
     def ndcg_at_k(
-        self, retrieved_doc_ids: List[str], relevance_scores: Dict[str, float], k: int
+        self, retrieved_doc_ids: list[str], relevance_scores: dict[str, float], k: int
     ) -> RetrievalResult:
         """Calculate nDCG@k."""
         dcg = self.dcg_at_k(retrieved_doc_ids, relevance_scores, k)
 
         # Ideal DCG
         sorted_rels = sorted(relevance_scores.values(), reverse=True)[:k]
-        ideal_dcg = sum(
-            (2**rel - 1) / math.log2(i + 2) for i, rel in enumerate(sorted_rels)
-        )
+        ideal_dcg = sum((2**rel - 1) / math.log2(i + 2) for i, rel in enumerate(sorted_rels))
 
         score = dcg / ideal_dcg if ideal_dcg > 0 else 0.0
 
@@ -137,9 +133,7 @@ class GenerationMetrics:
 
     def exact_match(self, prediction: str, ground_truth: str) -> float:
         """Calculate exact match."""
-        return (
-            1.0 if prediction.strip().lower() == ground_truth.strip().lower() else 0.0
-        )
+        return 1.0 if prediction.strip().lower() == ground_truth.strip().lower() else 0.0
 
     def f1_score(self, prediction: str, ground_truth: str) -> float:
         """Calculate token-level F1 score."""
@@ -256,9 +250,7 @@ def test_generation_metrics():
 
     score = metrics.exact_match("Paris", "paris")
     status = "✓" if score == 1.0 else "✗"
-    print(
-        f"   {status} EM('Paris', 'paris') = {score} (expected 1.0, case-insensitive)"
-    )
+    print(f"   {status} EM('Paris', 'paris') = {score} (expected 1.0, case-insensitive)")
     if score == 1.0:
         tests_passed += 1
     else:
@@ -322,12 +314,8 @@ def test_mock_rag_evaluation():
 
     for tc in test_cases:
         # Calculate retrieval metrics
-        recall = retrieval.recall_at_k(
-            tc["retrieved_docs"], tc["ground_truth_contexts"], k=5
-        )
-        precision = retrieval.precision_at_k(
-            tc["retrieved_docs"], tc["ground_truth_contexts"], k=5
-        )
+        recall = retrieval.recall_at_k(tc["retrieved_docs"], tc["ground_truth_contexts"], k=5)
+        precision = retrieval.precision_at_k(tc["retrieved_docs"], tc["ground_truth_contexts"], k=5)
         mrr_result = retrieval.mrr(tc["retrieved_docs"], tc["ground_truth_contexts"])
 
         # Calculate generation metrics
@@ -360,9 +348,7 @@ def test_mock_rag_evaluation():
     avg_f1 = sum(r["f1"] for r in results) / len(results)
 
     print("-" * 80)
-    print(
-        f"{'AVERAGE':<45} {avg_recall:<8.2f} {avg_mrr:<6.2f} {avg_em:<6.2f} {avg_f1:<6.2f}"
-    )
+    print(f"{'AVERAGE':<45} {avg_recall:<8.2f} {avg_mrr:<6.2f} {avg_em:<6.2f} {avg_f1:<6.2f}")
     print("=" * 60)
 
     report["tests"]["mock_rag_evaluation"] = {
@@ -517,9 +503,7 @@ def main():
     print("=" * 60)
 
     total_tests = len(report["tests"])
-    passed_tests = sum(
-        1 for t in report["tests"].values() if t.get("status") == "passed"
-    )
+    passed_tests = sum(1 for t in report["tests"].values() if t.get("status") == "passed")
 
     print(f"\nTotal Test Suites: {total_tests}")
     print(f"Passed: {passed_tests}")

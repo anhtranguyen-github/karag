@@ -7,13 +7,12 @@ VAULT TYPE:
 - Documents here can be imported to workspace datasets.
 """
 
-import structlog
-from typing import List, Optional, Literal
 from datetime import datetime
 
+import structlog
+from backend.app.core.exceptions import NotFoundError
 from backend.app.core.mongodb import mongodb_manager
-from backend.app.core.exceptions import NotFoundError, AuthorizationError
-from backend.app.schemas.baas import Vault, VectorStoreConfig, FileStoreConfig
+from backend.app.schemas.baas import FileStoreConfig, Vault
 
 logger = structlog.get_logger(__name__)
 
@@ -52,10 +51,7 @@ class VaultService:
         return global_vault
 
     @classmethod
-    async def get_vault(
-        cls,
-        vault_id: str = "global"
-    ) -> Vault:
+    async def get_vault(cls, vault_id: str = "global") -> Vault:
         """Get the global vault."""
         db = mongodb_manager.get_async_database()
 

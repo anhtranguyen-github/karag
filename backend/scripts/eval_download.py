@@ -17,10 +17,10 @@ from pathlib import Path
 # Add backend to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import structlog
+from backend.app.eval.config.loader import get_config_loader
 from backend.app.eval.datasets.definitions import register_all_datasets
 from backend.app.eval.datasets.download_manager import DownloadManager
-from backend.app.eval.config.loader import get_config_loader
-import structlog
 
 # Register datasets explicitly (removed from import-time side effects)
 register_all_datasets()
@@ -89,14 +89,10 @@ async def download_datasets(dataset_names: list, force: bool = False):
 async def main():
     parser = argparse.ArgumentParser(description="Download RAG evaluation datasets")
     parser.add_argument("--dataset", type=str, help="Name of dataset to download")
-    parser.add_argument(
-        "--dataset-group", type=str, help="Name of dataset group to download"
-    )
+    parser.add_argument("--dataset-group", type=str, help="Name of dataset group to download")
     parser.add_argument("--all", action="store_true", help="Download all datasets")
     parser.add_argument("--list", action="store_true", help="List available datasets")
-    parser.add_argument(
-        "--force", action="store_true", help="Force re-download even if cached"
-    )
+    parser.add_argument("--force", action="store_true", help="Force re-download even if cached")
 
     args = parser.parse_args()
 
@@ -117,9 +113,7 @@ async def main():
             print(f"Unknown dataset group: {args.dataset_group}")
             return 1
         datasets = config["groups"][args.dataset_group]
-        print(
-            f"Downloading dataset group '{args.dataset_group}': {', '.join(datasets)}"
-        )
+        print(f"Downloading dataset group '{args.dataset_group}': {', '.join(datasets)}")
         success = await download_datasets(datasets, force=args.force)
         return 0 if success else 1
 

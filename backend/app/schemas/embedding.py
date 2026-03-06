@@ -1,16 +1,15 @@
+from typing import Annotated, Literal
+
 from pydantic import BaseModel, Field, computed_field
-from typing import Literal, Union, Annotated, Optional
 
 
 class OpenAIEmbeddingConfig(BaseModel):
     provider: Literal["openai"] = "openai"
-    model: Literal["text-embedding-3-small", "text-embedding-3-large"] = (
-        "text-embedding-3-small"
-    )
+    model: Literal["text-embedding-3-small", "text-embedding-3-large"] = "text-embedding-3-small"
     batch_size: int = Field(default=32, ge=1, le=512)
     timeout_ms: int = Field(default=30000, ge=1000, le=120000)
     retry_limit: int = Field(default=3, ge=0, le=10)
-    api_key_ref: Optional[str] = None
+    api_key_ref: str | None = None
 
     @computed_field
     @property
@@ -20,9 +19,7 @@ class OpenAIEmbeddingConfig(BaseModel):
 
 class AzureOpenAIEmbeddingConfig(BaseModel):
     provider: Literal["azure"] = "azure"
-    model: Literal["text-embedding-ada-002", "text-embedding-3-large"] = (
-        "text-embedding-ada-002"
-    )
+    model: Literal["text-embedding-ada-002", "text-embedding-3-large"] = "text-embedding-ada-002"
     deployment_name: str
     api_version: str = "2023-05-15"
     batch_size: int = Field(default=32, ge=1, le=512)
@@ -47,12 +44,10 @@ class VoyageEmbeddingConfig(BaseModel):
 
 class CohereEmbeddingConfig(BaseModel):
     provider: Literal["cohere"] = "cohere"
-    model: Literal["embed-english-v3.0", "embed-multilingual-v3.0"] = (
-        "embed-english-v3.0"
+    model: Literal["embed-english-v3.0", "embed-multilingual-v3.0"] = "embed-english-v3.0"
+    input_type: Literal["search_query", "search_document", "classification", "clustering"] = (
+        "search_query"
     )
-    input_type: Literal[
-        "search_query", "search_document", "classification", "clustering"
-    ] = "search_query"
     truncate: Literal["NONE", "START", "END"] = "END"
     batch_size: int = Field(default=32, ge=1, le=512)
 
@@ -99,7 +94,7 @@ class OllamaEmbeddingConfig(BaseModel):
 class LlamaEmbeddingConfig(BaseModel):
     provider: Literal["llama"] = "llama"
     model: Literal["llama-embedding-7b", "llama-embedding-13b"] = "llama-embedding-7b"
-    model_path: Optional[str] = None
+    model_path: str | None = None
     quantization: Literal["fp16", "int8", "int4"] = "fp16"
     device_map: str = "auto"
     batch_size: int = Field(default=32, ge=1, le=512)
@@ -112,10 +107,8 @@ class LlamaEmbeddingConfig(BaseModel):
 
 class CDP2EmbeddingConfig(BaseModel):
     provider: Literal["cdp2"] = "cdp2"
-    model: Literal["cdp2-embedding-base", "cdp2-embedding-large"] = (
-        "cdp2-embedding-base"
-    )
-    checkpoint_path: Optional[str] = None
+    model: Literal["cdp2-embedding-base", "cdp2-embedding-large"] = "cdp2-embedding-base"
+    checkpoint_path: str | None = None
     enable_finetune: bool = False
     embedding_cache: bool = True
     batch_size: int = Field(default=32, ge=1, le=512)
@@ -147,26 +140,22 @@ class SparseEmbeddingConfig(BaseModel):
 
 
 DenseEmbeddingConfig = Annotated[
-    Union[
-        OpenAIEmbeddingConfig,
-        AzureOpenAIEmbeddingConfig,
-        VoyageEmbeddingConfig,
-        CohereEmbeddingConfig,
-        HuggingFaceEmbeddingConfig,
-        OllamaEmbeddingConfig,
-        LlamaEmbeddingConfig,
-        CDP2EmbeddingConfig,
-        VLMEmbeddingConfig,
-    ],
+    OpenAIEmbeddingConfig
+    | AzureOpenAIEmbeddingConfig
+    | VoyageEmbeddingConfig
+    | CohereEmbeddingConfig
+    | HuggingFaceEmbeddingConfig
+    | OllamaEmbeddingConfig
+    | LlamaEmbeddingConfig
+    | CDP2EmbeddingConfig
+    | VLMEmbeddingConfig,
     Field(discriminator="provider"),
 ]
 
 
 class EmbeddingConfig(BaseModel):
     dense: DenseEmbeddingConfig = Field(default_factory=lambda: OpenAIEmbeddingConfig())
-    sparse: SparseEmbeddingConfig = Field(
-        default_factory=lambda: SparseEmbeddingConfig()
-    )
+    sparse: SparseEmbeddingConfig = Field(default_factory=lambda: SparseEmbeddingConfig())
 
     @property
     def provider(self) -> str:

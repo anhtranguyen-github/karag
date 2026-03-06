@@ -1,13 +1,12 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import Optional
 
 
 class KaragSettings(BaseSettings):
     # LLM Configuration
     LLM_PROVIDER: str = "openai"  # openai, anthropic, ollama, vllm, llama-cpp
     LLM_MODEL: str = "gpt-4o"
-    OPENAI_API_KEY: Optional[str] = None
-    ANTHROPIC_API_KEY: Optional[str] = None
+    OPENAI_API_KEY: str | None = None
+    ANTHROPIC_API_KEY: str | None = None
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     VLLM_BASE_URL: str = "http://localhost:8008/v1"
     LLAMACPP_BASE_URL: str = "http://localhost:8081/v1"
@@ -17,14 +16,14 @@ class KaragSettings(BaseSettings):
     # Embedding Configuration
     EMBEDDING_PROVIDER: str = "openai"  # openai, voyage, local, ollama, vllm, llama-cpp
     EMBEDDING_MODEL: str = "text-embedding-3-small"
-    VOYAGE_API_KEY: Optional[str] = None
-    COHERE_API_KEY: Optional[str] = None
-    JINA_API_KEY: Optional[str] = None
+    VOYAGE_API_KEY: str | None = None
+    COHERE_API_KEY: str | None = None
+    JINA_API_KEY: str | None = None
     LOCAL_EMBEDDING_MODEL: str = "BAAI/bge-large-en-v1.5"
 
     # RAG Configuration
     QDRANT_URL: str = "http://localhost:6333"
-    QDRANT_API_KEY: Optional[str] = None
+    QDRANT_API_KEY: str | None = None
     HYBRID_SEARCH_ALPHA: float = 0.5  # Balance between vector and keyword
 
     # MongoDB Configuration
@@ -51,7 +50,7 @@ class KaragSettings(BaseSettings):
     METRICS_ENABLED: bool = True  # Prometheus metrics at /metrics
     LOG_FORMAT: str = "json"  # "json" for production, "console" for dev
     LOG_LEVEL: str = "INFO"
-    LOG_FILE: Optional[str] = "logs/app.log"
+    LOG_FILE: str | None = "logs/app.log"
 
     # API Configuration
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]

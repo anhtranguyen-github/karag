@@ -1,14 +1,14 @@
 import time
-from typing import List, Optional, Any, Dict
+from typing import Any
 
 import structlog
 from backend.app.core.telemetry import (
-    get_tracer,
     EMBEDDING_REQUEST_LATENCY,
+    get_tracer,
 )
 from backend.app.rag.advanced_retrieval import (
-    MultiQueryRetriever,
     ContextualCompressor,
+    MultiQueryRetriever,
     RetrievalResult,
 )
 
@@ -17,7 +17,7 @@ tracer = get_tracer(__name__)
 
 
 class RAGService:
-    async def chunk_text(self, text: str, workspace_id: str) -> List[str]:
+    async def chunk_text(self, text: str, workspace_id: str) -> list[str]:
         """Split text into chunks using selected strategy."""
         from backend.app.core.settings_manager import settings_manager
         from backend.app.rag.chunking.registry import chunking_registry
@@ -32,9 +32,7 @@ class RAGService:
                 "workspace_id": workspace_id or "default",
             },
         ) as span:
-            chunks = await chunking_registry.chunk_text(
-                text, config, workspace_id=workspace_id
-            )
+            chunks = await chunking_registry.chunk_text(text, config, workspace_id=workspace_id)
 
             span.set_attribute("rag.num_chunks", len(chunks))
             span.set_attribute("rag.text_length", len(text))
@@ -48,9 +46,7 @@ class RAGService:
             )
             return chunks
 
-    async def get_embeddings(
-        self, texts: List[str], workspace_id: str
-    ) -> List[List[float]]:
+    async def get_embeddings(self, texts: list[str], workspace_id: str) -> list[list[float]]:
         """Generate embeddings using the flexible provider via ProviderFactory."""
         from backend.app.core.factory import ProviderFactory
 
@@ -77,7 +73,7 @@ class RAGService:
             )
             return result
 
-    async def get_query_embedding(self, query: str, workspace_id: str) -> List[float]:
+    async def get_query_embedding(self, query: str, workspace_id: str) -> list[float]:
         """Generate embedding for a single query."""
         from backend.app.core.factory import ProviderFactory
 
@@ -88,8 +84,8 @@ class RAGService:
         self,
         query: str,
         workspace_id: str,
-        limit: Optional[int] = None,
-        dataset_id: Optional[str] = None,
+        limit: int | None = None,
+        dataset_id: str | None = None,
     ) -> list:
         """
         Modular retrieval using LangChain Retrievers.
@@ -109,10 +105,10 @@ class RAGService:
 
             # Execute retrieval via adapter pattern
             store = await ProviderFactory.get_vector_store(workspace_id)
-            
+
             from backend.app.services.dataset_service import dataset_service
             from backend.app.services.pipeline_service import pipeline_service
-            
+
             settings = await settings_manager.get_settings(workspace_id)
             if dataset_id:
                 dataset = await dataset_service.get_dataset(dataset_id, workspace_id)
@@ -121,7 +117,7 @@ class RAGService:
                 collection_name = dataset.vector_store_config.collection_name
             else:
                 retrieval_config = settings.retrieval
-                collection_name = None # use store default
+                collection_name = None  # use store default
 
             query_vector = await self.get_query_embedding(query, workspace_id)
 
@@ -130,7 +126,7 @@ class RAGService:
                 query_vector=query_vector,
                 query_text=query,
                 workspace_id=workspace_id,
-                collection_name=collection_name
+                collection_name=collection_name,
             )
 
             results = []
@@ -170,8 +166,8 @@ class RAGService:
         self,
         query: str,
         workspace_id: str,
-        settings: Optional[Any] = None,  # RuntimeSettings
-    ) -> Dict[str, Any]:
+        settings: Any | None = None,  # RuntimeSettings
+    ) -> dict[str, Any]:
         """
         Execute the RAG flow via the LangGraph orchestrator.
         """
@@ -234,12 +230,12 @@ class RAGService:
         self,
         query: str,
         workspace_id: str,
-        limit: Optional[int] = None,
-        dataset_id: Optional[str] = None,
+        limit: int | None = None,
+        dataset_id: str | None = None,
         enable_multi_query: bool = False,
         enable_compression: bool = False,
         llm_client=None,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Advanced search with optional multi-query and compression.
 
@@ -265,7 +261,7 @@ class RAGService:
             start = time.perf_counter()
 
             # Base search function
-            async def base_search(q: str, top_k: int) -> List[RetrievalResult]:
+            async def base_search(q: str, top_k: int) -> list[RetrievalResult]:
                 results = await self.search(q, workspace_id, limit=top_k, dataset_id=dataset_id)
                 return [
                     RetrievalResult(

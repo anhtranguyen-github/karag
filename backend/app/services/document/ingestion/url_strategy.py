@@ -1,7 +1,8 @@
-from typing import Dict, Any
+from typing import Any
+
+from backend.app.core.error_codes import AppErrorCode
 from backend.app.services.document.ingestion.base import BaseIngestionStrategy, logger
 from backend.app.services.task.task_service import task_service
-from backend.app.core.error_codes import AppErrorCode
 
 
 class URLIngestionStrategy(BaseIngestionStrategy):
@@ -10,8 +11,8 @@ class URLIngestionStrategy(BaseIngestionStrategy):
         return "url_ingestion"
 
     async def run(
-        self, task_id: str, workspace_id: str, metadata: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, task_id: str, workspace_id: str, metadata: dict[str, Any]
+    ) -> dict[str, Any]:
         from backend.app.services.document.document_upload_service import (
             document_upload_service,
         )
@@ -26,21 +27,18 @@ class URLIngestionStrategy(BaseIngestionStrategy):
                 task_id, status="processing", progress=10, message=f"Fetching {url}..."
             )
 
-            import httpx
             from urllib.parse import urlparse
+
+            import httpx
 
             headers = {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
             }
-            async with httpx.AsyncClient(
-                follow_redirects=True, headers=headers
-            ) as client:
+            async with httpx.AsyncClient(follow_redirects=True, headers=headers) as client:
                 response = await client.get(url)
                 response.raise_for_status()
                 content = response.content
-                content_type = response.headers.get("content-type", "text/html").split(
-                    ";"
-                )[0]
+                content_type = response.headers.get("content-type", "text/html").split(";")[0]
 
             parsed = urlparse(url)
             actual_filename = parsed.path.split("/")[-1] or "index.html"
@@ -52,9 +50,7 @@ class URLIngestionStrategy(BaseIngestionStrategy):
             )
             return {"url": url}
         except Exception as e:
-            logger.error(
-                "url_ingestion_failed", task_id=task_id, error=str(e), exc_info=True
-            )
+            logger.error("url_ingestion_failed", task_id=task_id, error=str(e), exc_info=True)
             await task_service.fail_with_retry(
                 task_id, error_message=str(e), error_code=AppErrorCode.URL_FETCH_FAILED
             )

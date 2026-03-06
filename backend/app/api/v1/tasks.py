@@ -1,9 +1,8 @@
-from fastapi import APIRouter, BackgroundTasks, Depends
-from backend.app.services.task.task_service import task_service
+from backend.app.api.deps import CurrentWorkspace, get_current_workspace
 from backend.app.core.exceptions import NotFoundError
 from backend.app.schemas.base import AppResponse
-
-from backend.app.api.deps import get_current_workspace, CurrentWorkspace
+from backend.app.services.task.task_service import task_service
+from fastapi import APIRouter, BackgroundTasks, Depends
 
 router = APIRouter(tags=["tasks"])
 
@@ -22,9 +21,7 @@ async def list_tasks(
 
 
 @router.get("/{task_id}")
-async def get_task_status(
-    task_id: str, current_workspace: dict = Depends(get_current_workspace)
-):
+async def get_task_status(task_id: str, current_workspace: dict = Depends(get_current_workspace)):
     """Get the current status of a specific task."""
     task = await task_service.get_task(task_id)
     if not task:
@@ -103,15 +100,11 @@ async def retry_task(
             code="UNKNOWN_TASK_TYPE", message=f"Unknown task type: {task_type}"
         )
 
-    return AppResponse.success_response(
-        data={"task_id": task_id}, message="Task retry initialized"
-    )
+    return AppResponse.success_response(data={"task_id": task_id}, message="Task retry initialized")
 
 
 @router.post("/{task_id}/cancel")
-async def cancel_task(
-    task_id: str, current_workspace: dict = Depends(get_current_workspace)
-):
+async def cancel_task(task_id: str, current_workspace: dict = Depends(get_current_workspace)):
     """Cancel a pending or processing task."""
     task = await task_service.get_task(task_id)
     if not task:

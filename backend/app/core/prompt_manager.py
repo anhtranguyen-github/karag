@@ -1,7 +1,8 @@
-import yaml
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any
+
 import structlog
+import yaml
 
 logger = structlog.get_logger(__name__)
 
@@ -12,14 +13,14 @@ class PromptManager:
     Supports versioning and hot-reloading (in dev).
     """
 
-    def __init__(self, registry_path: Optional[Path] = None):
+    def __init__(self, registry_path: Path | None = None):
         self.registry_path = registry_path or Path(__file__).parent / "prompts.yaml"
-        self._registry: Dict[str, Any] = {}
+        self._registry: dict[str, Any] = {}
         self.load_registry()
 
     def load_registry(self):
         try:
-            with open(self.registry_path, "r") as f:
+            with open(self.registry_path) as f:
                 self._registry = yaml.safe_load(f)
             logger.info("prompt_registry_loaded", path=str(self.registry_path))
         except Exception as e:
@@ -44,7 +45,7 @@ class PromptManager:
             logger.warning("prompt_not_found", key=key, version=version)
             return None
 
-    def get_all_prompts(self) -> Dict[str, Any]:
+    def get_all_prompts(self) -> dict[str, Any]:
         """Return the entire registry for admin inspection."""
         return self._registry
 

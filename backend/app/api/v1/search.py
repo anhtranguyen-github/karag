@@ -1,10 +1,7 @@
-from typing import Optional
-from fastapi import APIRouter, Query, Depends
-from backend.app.services.search_service import search_service
-
+from backend.app.api.deps import CurrentWorkspace, get_current_workspace
 from backend.app.schemas.base import AppResponse
-
-from backend.app.api.deps import get_current_workspace, CurrentWorkspace
+from backend.app.services.search_service import search_service
+from fastapi import APIRouter, Depends, Query
 
 router = APIRouter(tags=["search"])
 
@@ -24,7 +21,7 @@ async def global_search(
 @router.get("/vector", response_model=AppResponse)
 async def vector_search(
     q: str = Query(..., min_length=2, description="Search query"),
-    dataset_id: Optional[str] = Query(None, description="Specific dataset ID to search within"),
+    dataset_id: str | None = Query(None, description="Specific dataset ID to search within"),
     current_workspace: CurrentWorkspace = Depends(get_current_workspace),
 ):
     """

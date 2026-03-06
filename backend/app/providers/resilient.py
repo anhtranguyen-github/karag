@@ -8,21 +8,22 @@ Wraps the standard provider factory with resilience patterns:
 - Enhanced error handling
 """
 
-from typing import Dict, List, Optional, Any, AsyncIterator
-import structlog
+from collections.abc import AsyncIterator
+from typing import Any
 
+import structlog
+from backend.app.core.factory import ProviderFactory
+from backend.app.core.llm_resilience import (
+    LLMWithFallback,
+    create_anthropic_with_fallback,
+    create_openai_with_fallback,
+)
 from backend.app.providers.base import (
-    LLMProvider,
     LLMMessage,
+    LLMProvider,
     LLMResponse,
     ToolCapable,
 )
-from backend.app.core.llm_resilience import (
-    LLMWithFallback,
-    create_openai_with_fallback,
-    create_anthropic_with_fallback,
-)
-from backend.app.core.factory import ProviderFactory
 
 logger = structlog.get_logger(__name__)
 
@@ -41,9 +42,9 @@ class ResilientProvider(LLMProvider, ToolCapable):
     def __init__(
         self,
         primary_model: str,
-        fallback_models: List[str],
-        workspace_id: Optional[str] = None,
-        fallback_client: Optional[LLMWithFallback] = None,
+        fallback_models: list[str],
+        workspace_id: str | None = None,
+        fallback_client: LLMWithFallback | None = None,
     ):
         self._workspace_id = workspace_id
         self._fallback_client = fallback_client or LLMWithFallback(
@@ -61,7 +62,7 @@ class ResilientProvider(LLMProvider, ToolCapable):
     def model_name(self) -> str:
         return self._current_model
 
-    async def chat(self, messages: List[LLMMessage], **kwargs) -> LLMResponse:
+    async def chat(self, messages: list[LLMMessage], **kwargs) -> LLMResponse:
         """Execute chat with fallback and retry."""
 
         async def generate(model: str) -> LLMResponse:
@@ -71,7 +72,7 @@ class ResilientProvider(LLMProvider, ToolCapable):
 
         return await self._fallback_client.generate(generate)
 
-    async def stream(self, messages: List[LLMMessage], **kwargs) -> AsyncIterator[str]:
+    async def stream(self, messages: list[LLMMessage], **kwargs) -> AsyncIterator[str]:
         """Stream with fallback support."""
         # For streaming, we try primary first without complex fallback
         # to maintain streaming experience
@@ -88,7 +89,7 @@ class ResilientProvider(LLMProvider, ToolCapable):
             raise
 
     async def chat_with_tools(
-        self, messages: List[LLMMessage], tools: List[Dict[str, Any]], **kwargs
+        self, messages: list[LLMMessage], tools: list[dict[str, Any]], **kwargs
     ) -> LLMResponse:
         """Execute chat with tools and fallback."""
 
@@ -101,7 +102,7 @@ class ResilientProvider(LLMProvider, ToolCapable):
 
         return await self._fallback_client.generate(generate)
 
-    def bind_tools(self, tools: List[Dict[str, Any]]) -> "ResilientProvider":
+    def bind_tools(self, tools: list[dict[str, Any]]) -> "ResilientProvider":
         """Bind tools for future calls."""
         # Return self as tools are handled per-call
         return self
@@ -112,7 +113,7 @@ class ResilientProviderFactory:
 
     @staticmethod
     async def get_llm(
-        workspace_id: Optional[str] = None,
+        workspace_id: str | None = None,
         enable_fallback: bool = True,
     ) -> LLMProvider:
         """

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any
+from typing import Any
 
 
 class GraphStore(ABC):
@@ -10,8 +10,8 @@ class GraphStore(ABC):
 
     @abstractmethod
     async def get_related_entities(
-        self, keywords: List[str], workspace_id: str, limit: int = 30
-    ) -> List[Dict[str, Any]]:
+        self, keywords: list[str], workspace_id: str, limit: int = 30
+    ) -> list[dict[str, Any]]:
         """
         Returns related entities based on a list of keywords.
         Expected output list of dicts:
@@ -20,9 +20,7 @@ class GraphStore(ABC):
         pass
 
     @abstractmethod
-    async def upsert_entities(
-        self, entities: List[Dict[str, Any]], workspace_id: str
-    ) -> None:
+    async def upsert_entities(self, entities: list[dict[str, Any]], workspace_id: str) -> None:
         """
         Inserts or updates entities and their relationships.
         Input entities format:
@@ -33,7 +31,7 @@ class GraphStore(ABC):
     @abstractmethod
     async def get_workspace_graph(
         self, workspace_id: str, limit: int = 100
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Retrieves the general entity relationships for displaying the Knowledge Graph representation of a workspace.
         Expected output list of dicts:

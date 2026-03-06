@@ -1,17 +1,18 @@
 import json
+from collections.abc import AsyncGenerator
 from datetime import datetime
-from typing import AsyncGenerator, List, Dict, Optional, Any
+from typing import Any
 
 import structlog
-from langchain_core.messages import HumanMessage, SystemMessage
-from backend.app.graph.builder import app as graph_app
 from backend.app.core.mongodb import mongodb_manager
-from backend.app.providers.llm import get_llm
 from backend.app.core.settings_manager import settings_manager
 from backend.app.core.telemetry import (
-    get_tracer,
     ACTIVE_STREAMS,
+    get_tracer,
 )
+from backend.app.graph.builder import app as graph_app
+from backend.app.providers.llm import get_llm
+from langchain_core.messages import HumanMessage, SystemMessage
 
 logger = structlog.get_logger(__name__)
 tracer = get_tracer(__name__)
@@ -19,7 +20,7 @@ tracer = get_tracer(__name__)
 
 class ChatService:
     @staticmethod
-    async def get_history(thread_id: str) -> List[Dict]:
+    async def get_history(thread_id: str) -> list[dict]:
         """Fetch the chat history for a specific thread."""
         with tracer.start_as_current_span(
             "chat.get_history",
@@ -39,9 +40,7 @@ class ChatService:
                     }
                     if hasattr(msg, "additional_kwargs"):
                         if "reasoning_steps" in msg.additional_kwargs:
-                            msg_data["reasoning_steps"] = msg.additional_kwargs[
-                                "reasoning_steps"
-                            ]
+                            msg_data["reasoning_steps"] = msg.additional_kwargs["reasoning_steps"]
                         if "sources" in msg.additional_kwargs:
                             msg_data["sources"] = msg.additional_kwargs["sources"]
                     history.append(msg_data)
@@ -74,7 +73,7 @@ class ChatService:
             return []
 
     @staticmethod
-    async def list_threads(workspace_id: str = "vault") -> List[Dict]:
+    async def list_threads(workspace_id: str = "vault") -> list[dict]:
         """List all available chat threads for a workspace."""
         with tracer.start_as_current_span(
             "chat.list_threads",
@@ -102,7 +101,7 @@ class ChatService:
             ]
 
     @staticmethod
-    async def get_thread(thread_id: str) -> Dict:
+    async def get_thread(thread_id: str) -> dict:
         """Fetch metadata for a specific thread."""
         db = mongodb_manager.get_async_database()
         meta = await db["thread_metadata"].find_one({"thread_id": thread_id})
@@ -206,9 +205,7 @@ class ChatService:
 
                 from backend.app.core.prompt_manager import prompt_manager
 
-                sys_tem = prompt_manager.get_prompt(
-                    "title_generator.system", version="v1"
-                )
+                sys_tem = prompt_manager.get_prompt("title_generator.system", version="v1")
                 user_msg = prompt_manager.format_prompt(
                     prompt_manager.get_prompt("title_generator.user", version="v1"),
                     message=message,
@@ -226,9 +223,7 @@ class ChatService:
 
                     record_llm_usage(
                         provider=type(llm).__name__,
-                        model=getattr(
-                            llm, "model_name", getattr(llm, "model", "unknown")
-                        ),
+                        model=getattr(llm, "model_name", getattr(llm, "model", "unknown")),
                         prompt_tokens=usage.get("input_tokens", 0),
                         completion_tokens=usage.get("output_tokens", 0),
                         workspace_id=workspace_id,
@@ -278,7 +273,7 @@ class ChatService:
         message: str,
         thread_id: str,
         workspace_id: str,
-        execution: Optional[Dict[str, Any]] = None,
+        execution: dict[str, Any] | None = None,
     ) -> AsyncGenerator[str, None]:
         """Stream event updates from the LangGraph execution with robust error handling."""
         logger.info(
@@ -385,9 +380,7 @@ class ChatService:
                                 if content:
                                     # Truncate very long internal logic for better UI readability
                                     reason_msg = (
-                                        content[:400] + "..."
-                                        if len(content) > 400
-                                        else content
+                                        content[:400] + "..." if len(content) > 400 else content
                                     )
                                     collected_reasoning.append(reason_msg)
                                     yield f"data: {json.dumps({'type': 'reasoning', 'steps': [reason_msg]})}\n\n"
@@ -425,9 +418,7 @@ class ChatService:
                                             "id": i + 1,
                                             "name": r.get(
                                                 "source",
-                                                r.get("payload", {}).get(
-                                                    "source", "Unknown"
-                                                ),
+                                                r.get("payload", {}).get("source", "Unknown"),
                                             ),
                                             "content": r.get(
                                                 "text",
@@ -450,12 +441,8 @@ class ChatService:
                                     web_sources = [
                                         {
                                             "id": len(collected_sources) + i + 1,
-                                            "name": r.get(
-                                                "url", r.get("source", "Web")
-                                            ),
-                                            "content": r.get(
-                                                "content", r.get("snippet", "")
-                                            ),
+                                            "name": r.get("url", r.get("source", "Web")),
+                                            "content": r.get("content", r.get("snippet", "")),
                                         }
                                         for i, r in enumerate(results)
                                     ]
@@ -474,10 +461,7 @@ class ChatService:
                                 yield f"data: {json.dumps({'type': 'reasoning', 'steps': [msg]})}\n\n"
 
                             # Fallback harvesting for the final generation node if streaming didn't happen
-                            if (
-                                node_name in ["generate", "synthesize"]
-                                and not collected_content
-                            ):
+                            if node_name in ["generate", "synthesize"] and not collected_content:
                                 final = (
                                     output.get("final_answer")
                                     or (output.get("draft_answers", [""])[0])
@@ -486,23 +470,16 @@ class ChatService:
                                     collected_content.append(final)
                                     yield f"data: {json.dumps({'type': 'content', 'delta': final})}\n\n"
 
-                            if (
-                                isinstance(output, dict)
-                                and "execution_metadata" in output
-                            ):
+                            if isinstance(output, dict) and "execution_metadata" in output:
                                 yield f"data: {json.dumps({'type': 'tracing', 'data': output['execution_metadata']})}\n\n"
                 except Exception as stream_exc:
                     stream_error = stream_exc
-                    logger.error(
-                        "rag_stream_error", thread_id=thread_id, error=str(stream_exc)
-                    )
+                    logger.error("rag_stream_error", thread_id=thread_id, error=str(stream_exc))
                     yield f"data: {json.dumps({'type': 'error', 'message': str(stream_exc)})}\n\n"
                 finally:
                     # Always persist history (even partial) to MongoDB
                     ai_content = "".join(collected_content) or (
-                        "Error during processing."
-                        if stream_error
-                        else "No answer generated."
+                        "Error during processing." if stream_error else "No answer generated."
                     )
                     try:
                         db = mongodb_manager.get_async_database()
@@ -524,13 +501,9 @@ class ChatService:
                         if collected_sources:
                             ai_doc["sources"] = collected_sources
                         await msg_col.insert_many([user_doc, ai_doc])
-                        logger.info(
-                            "history_persisted", thread_id=thread_id, msg_count=2
-                        )
+                        logger.info("history_persisted", thread_id=thread_id, msg_count=2)
                         # Generate title after history is persisted
-                        await ChatService.generate_title(
-                            message, thread_id, workspace_id
-                        )
+                        await ChatService.generate_title(message, thread_id, workspace_id)
                     except Exception as e:
                         logger.error("history_sync_failed", error=str(e))
 
@@ -542,9 +515,7 @@ class ChatService:
                 }
                 config = {"configurable": {"thread_id": thread_id}}
 
-                async for event in graph_app.astream_events(
-                    inputs, config=config, version="v2"
-                ):
+                async for event in graph_app.astream_events(inputs, config=config, version="v2"):
                     kind = event["event"]
                     name = event.get("name", "")
 
@@ -556,13 +527,8 @@ class ChatService:
                         ]:
                             output = event["data"].get("output", {})
                             if isinstance(output, dict):
-                                settings = await settings_manager.get_settings(
-                                    workspace_id
-                                )
-                                if (
-                                    settings.show_reasoning
-                                    and "reasoning_steps" in output
-                                ):
+                                settings = await settings_manager.get_settings(workspace_id)
+                                if settings.show_reasoning and "reasoning_steps" in output:
                                     db = mongodb_manager.get_async_database()
                                     await db["thread_metadata"].update_one(
                                         {"thread_id": thread_id},

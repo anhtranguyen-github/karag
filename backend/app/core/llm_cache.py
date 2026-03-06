@@ -7,12 +7,11 @@ Only caches when temperature=0 for reproducible outputs.
 
 import hashlib
 import json
-from typing import Optional
 from datetime import datetime, timedelta
 
 import structlog
 from backend.app.core.config import karag_settings
-from backend.app.core.telemetry import get_tracer, LLM_CACHE_HIT, LLM_CACHE_MISS
+from backend.app.core.telemetry import LLM_CACHE_HIT, LLM_CACHE_MISS, get_tracer
 
 logger = structlog.get_logger(__name__)
 tracer = get_tracer(__name__)
@@ -57,7 +56,7 @@ class LLMCache:
         content = json.dumps(cache_params, sort_keys=True)
         return hashlib.sha256(content.encode()).hexdigest()
 
-    async def get(self, key: str) -> Optional[dict]:
+    async def get(self, key: str) -> dict | None:
         """Retrieve cached response if available and not expired."""
         with tracer.start_as_current_span("llm_cache.get"):
             if self._redis:
@@ -95,9 +94,7 @@ class LLMCache:
 
             if self._redis:
                 try:
-                    await self._redis.setex(
-                        f"llm:{key}", self.ttl, json.dumps(cache_entry)
-                    )
+                    await self._redis.setex(f"llm:{key}", self.ttl, json.dumps(cache_entry))
                     return
                 except Exception as e:
                     logger.warning("llm_cache_redis_set_error", error=str(e))

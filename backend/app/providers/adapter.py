@@ -8,20 +8,21 @@ should import LangChain directly.
 from __future__ import annotations
 
 import os
-from typing import Any, AsyncIterator, Dict, List, Optional
+from collections.abc import AsyncIterator
+from typing import Any
 
 import structlog
+from backend.app.core.llm_cache import llm_cache
+from backend.app.core.llm_resilience import APIError, RateLimitError
 
 # Import only what we need from base module (no LangChain)
 from backend.app.providers.base import (
+    LangGraphCompatible,
     LLMMessage,
     LLMProvider,
     LLMResponse,
     ToolCapable,
-    LangGraphCompatible,
 )
-from backend.app.core.llm_cache import llm_cache
-from backend.app.core.llm_resilience import RateLimitError, APIError
 
 logger = structlog.get_logger(__name__)
 
@@ -35,7 +36,7 @@ class LangChainAdapter(LLMProvider, ToolCapable, LangGraphCompatible):
     All LangChain-specific logic is contained within this class.
     """
 
-    def __init__(self, llm: Any, provider_name: str, model_name: Optional[str] = None):
+    def __init__(self, llm: Any, provider_name: str, model_name: str | None = None):
         """Initialize the adapter.
 
         Args:
@@ -46,7 +47,7 @@ class LangChainAdapter(LLMProvider, ToolCapable, LangGraphCompatible):
         self._llm = llm  # The underlying LangChain model
         self._provider_name = provider_name
         self._model_name = model_name or self._extract_model_name(llm)
-        self._bound_tools: Optional[List[Dict[str, Any]]] = None
+        self._bound_tools: list[dict[str, Any]] | None = None
 
         # Security check: if in test mode, ensure we are not calling real APIs
         # unless explicitly allowed.
@@ -81,18 +82,18 @@ class LangChainAdapter(LLMProvider, ToolCapable, LangGraphCompatible):
                 "Use deterministic mocks for unit tests or ALLOW_REAL_LLM=true for canary tests."
             )
 
-    def _convert_to_lc_messages(self, messages: List[LLMMessage]) -> List[Any]:
+    def _convert_to_lc_messages(self, messages: list[LLMMessage]) -> list[Any]:
         """Convert provider-agnostic messages to LangChain messages.
 
         This is an internal method that isolates LangChain message types.
         """
         # Import LangChain types internally
         from langchain_core.messages import (
-            HumanMessage,
             AIMessage,
+            FunctionMessage,
+            HumanMessage,
             SystemMessage,
             ToolMessage,
-            FunctionMessage,
         )
 
         lc_messages = []
@@ -118,9 +119,7 @@ class LangChainAdapter(LLMProvider, ToolCapable, LangGraphCompatible):
                 lc_messages.append(tool_msg)
             elif role == "function":
                 # Legacy function message support
-                lc_messages.append(
-                    FunctionMessage(content=content, name=msg.name or "")
-                )
+                lc_messages.append(FunctionMessage(content=content, name=msg.name or ""))
             else:  # user is default
                 lc_messages.append(HumanMessage(content=content))
 
@@ -167,7 +166,7 @@ class LangChainAdapter(LLMProvider, ToolCapable, LangGraphCompatible):
             finish_reason=finish_reason,
         )
 
-    async def chat(self, messages: List[LLMMessage], **kwargs) -> LLMResponse:
+    async def chat(self, messages: list[LLMMessage], **kwargs) -> LLMResponse:
         """Execute a chat completion request.
 
         Args:
@@ -186,9 +185,7 @@ class LangChainAdapter(LLMProvider, ToolCapable, LangGraphCompatible):
         # Check cache for deterministic requests
         if temperature == 0:
             cached = await llm_cache.get(
-                llm_cache._cache_key(
-                    prompt, self._model_name, self._provider_name, **kwargs
-                )
+                llm_cache._cache_key(prompt, self._model_name, self._provider_name, **kwargs)
             )
             if cached:
                 logger.debug("llm_cache_hit", provider=self._provider_name)
@@ -205,9 +202,7 @@ class LangChainAdapter(LLMProvider, ToolCapable, LangGraphCompatible):
             # Cache deterministic responses
             if temperature == 0:
                 await llm_cache.set(
-                    llm_cache._cache_key(
-                        prompt, self._model_name, self._provider_name, **kwargs
-                    ),
+                    llm_cache._cache_key(prompt, self._model_name, self._provider_name, **kwargs),
                     {"response": result.model_dump()},
                     temperature=temperature,
                 )
@@ -227,7 +222,7 @@ class LangChainAdapter(LLMProvider, ToolCapable, LangGraphCompatible):
                 raise APIError(str(e), status_code=500)
             raise
 
-    def _messages_to_prompt(self, messages: List[LLMMessage]) -> str:
+    def _messages_to_prompt(self, messages: list[LLMMessage]) -> str:
         """Convert messages to a string prompt for caching."""
         parts = []
         for msg in messages:
@@ -235,7 +230,7 @@ class LangChainAdapter(LLMProvider, ToolCapable, LangGraphCompatible):
             parts.append(f"{role}: {msg.content}")
         return "\n".join(parts)
 
-    async def stream(self, messages: List[LLMMessage], **kwargs) -> AsyncIterator[str]:
+    async def stream(self, messages: list[LLMMessage], **kwargs) -> AsyncIterator[str]:
         """Execute a streaming chat completion request.
 
         Args:
@@ -268,7 +263,7 @@ class LangChainAdapter(LLMProvider, ToolCapable, LangGraphCompatible):
     # =========================================================================
 
     async def chat_with_tools(
-        self, messages: List[LLMMessage], tools: List[Dict[str, Any]], **kwargs
+        self, messages: list[LLMMessage], tools: list[dict[str, Any]], **kwargs
     ) -> LLMResponse:
         """Execute chat with tool calling support.
 
@@ -298,7 +293,7 @@ class LangChainAdapter(LLMProvider, ToolCapable, LangGraphCompatible):
             )
             raise
 
-    def bind_tools(self, tools: List[Dict[str, Any]]) -> "LangChainAdapter":
+    def bind_tools(self, tools: list[dict[str, Any]]) -> LangChainAdapter:
         """Bind tools to the provider for subsequent calls.
 
         Returns a new adapter instance with tools bound to the underlying LLM.
@@ -319,7 +314,7 @@ class LangChainAdapter(LLMProvider, ToolCapable, LangGraphCompatible):
     # LangGraphCompatible Implementation
     # =========================================================================
 
-    async def ainvoke(self, input: Any, config: Optional[Any] = None, **kwargs) -> Any:
+    async def ainvoke(self, input: Any, config: Any | None = None, **kwargs) -> Any:
         """LangGraph-compatible invocation method.
 
         This method accepts and returns LangChain message types for compatibility
@@ -336,9 +331,7 @@ class LangChainAdapter(LLMProvider, ToolCapable, LangGraphCompatible):
         self._check_test_mode()
         return await self._llm.ainvoke(input, config=config, **kwargs)
 
-    async def astream(
-        self, input: Any, config: Optional[Any] = None, **kwargs
-    ) -> AsyncIterator[Any]:
+    async def astream(self, input: Any, config: Any | None = None, **kwargs) -> AsyncIterator[Any]:
         """LangGraph-compatible streaming method.
 
         This method yields LangChain message chunks for compatibility with

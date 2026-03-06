@@ -9,23 +9,22 @@ Provides admin endpoints for:
 ACCESS: Operator/Admin only
 """
 
-from typing import List, Optional
 from datetime import datetime
-from fastapi import APIRouter, Query, HTTPException, status
 
 from backend.app.api.baas_deps import AdminPermDep
-from backend.app.services.api_key_service import api_key_service
-from backend.app.services.config_service import config_service
-from backend.app.services.usage_service import usage_service
 from backend.app.schemas.baas import (
     APIKey,
     APIKeyCreateResponse,
     SystemConfig,
-    WorkspaceConfig,
     UsageLog,
+    WorkspaceConfig,
     WorkspaceUsageStats,
 )
 from backend.app.schemas.base import AppResponse
+from backend.app.services.api_key_service import api_key_service
+from backend.app.services.config_service import config_service
+from backend.app.services.usage_service import usage_service
+from fastapi import APIRouter, HTTPException, Query, status
 
 router = APIRouter(prefix="/admin/baas", tags=["BaaS Admin"])
 
@@ -41,8 +40,8 @@ router = APIRouter(prefix="/admin/baas", tags=["BaaS Admin"])
 )
 async def create_api_key(
     workspace_id: str,
-    permissions: List[str] = Query(default=["read", "write"]),
-    expires_days: Optional[int] = Query(default=None, ge=1, le=365),
+    permissions: list[str] = Query(default=["read", "write"]),
+    expires_days: int | None = Query(default=None, ge=1, le=365),
     context: AdminPermDep = None,  # Requires admin permission
 ):
     """
@@ -74,9 +73,7 @@ async def create_api_key(
         )
 
 
-@router.get(
-    "/workspaces/{workspace_id}/api-keys", response_model=AppResponse[List[APIKey]]
-)
+@router.get("/workspaces/{workspace_id}/api-keys", response_model=AppResponse[list[APIKey]])
 async def list_workspace_api_keys(
     workspace_id: str,
     include_inactive: bool = Query(default=False),
@@ -98,7 +95,7 @@ async def list_workspace_api_keys(
 @router.delete("/api-keys/{key_id}", response_model=AppResponse)
 async def revoke_api_key(
     key_id: str,
-    reason: Optional[str] = Query(default=None),
+    reason: str | None = Query(default=None),
     context: AdminPermDep = None,
 ):
     """
@@ -118,9 +115,7 @@ async def revoke_api_key(
             },
         )
 
-    return AppResponse.success_response(
-        message=f"API key '{key_id}' revoked successfully"
-    )
+    return AppResponse.success_response(message=f"API key '{key_id}' revoked successfully")
 
 
 # =============================================================================
@@ -150,9 +145,7 @@ async def update_system_config(updates: dict, context: AdminPermDep = None):
     """
     try:
         config = await config_service.update_system_config(updates)
-        return AppResponse.success_response(
-            data=config, message="System configuration updated"
-        )
+        return AppResponse.success_response(data=config, message="System configuration updated")
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -169,9 +162,7 @@ async def update_system_config(updates: dict, context: AdminPermDep = None):
 # =============================================================================
 
 
-@router.get(
-    "/workspaces/{workspace_id}/config", response_model=AppResponse[WorkspaceConfig]
-)
+@router.get("/workspaces/{workspace_id}/config", response_model=AppResponse[WorkspaceConfig])
 async def get_workspace_config(workspace_id: str, context: AdminPermDep = None):
     """
     Get workspace configuration.
@@ -182,12 +173,8 @@ async def get_workspace_config(workspace_id: str, context: AdminPermDep = None):
     return AppResponse.success_response(data=config)
 
 
-@router.put(
-    "/workspaces/{workspace_id}/config", response_model=AppResponse[WorkspaceConfig]
-)
-async def update_workspace_config(
-    workspace_id: str, updates: dict, context: AdminPermDep = None
-):
+@router.put("/workspaces/{workspace_id}/config", response_model=AppResponse[WorkspaceConfig])
+async def update_workspace_config(workspace_id: str, updates: dict, context: AdminPermDep = None):
     """
     Update workspace configuration.
 
@@ -197,9 +184,7 @@ async def update_workspace_config(
     """
     try:
         config = await config_service.update_workspace_config(workspace_id, updates)
-        return AppResponse.success_response(
-            data=config, message="Workspace configuration updated"
-        )
+        return AppResponse.success_response(data=config, message="Workspace configuration updated")
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -216,11 +201,11 @@ async def update_workspace_config(
 # =============================================================================
 
 
-@router.get("/usage/logs", response_model=AppResponse[List[UsageLog]])
+@router.get("/usage/logs", response_model=AppResponse[list[UsageLog]])
 async def query_usage_logs(
-    workspace_id: Optional[str] = Query(default=None),
-    endpoint: Optional[str] = Query(default=None),
-    status_code: Optional[int] = Query(default=None),
+    workspace_id: str | None = Query(default=None),
+    endpoint: str | None = Query(default=None),
+    status_code: int | None = Query(default=None),
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     context: AdminPermDep = None,

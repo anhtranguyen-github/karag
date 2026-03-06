@@ -10,14 +10,14 @@ Provides FastAPI dependencies for:
 ISOLATION: Every request resolves to exactly one workspace.
 """
 
-from typing import Annotated, Optional
-from fastapi import Depends, HTTPException, Request, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-import structlog
+from typing import Annotated
 
-from backend.app.services.api_key_service import api_key_service
-from backend.app.schemas.baas import IsolationContext
+import structlog
 from backend.app.core.exceptions import AuthenticationError
+from backend.app.schemas.baas import IsolationContext
+from backend.app.services.api_key_service import api_key_service
+from fastapi import Depends, HTTPException, Request, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 logger = structlog.get_logger(__name__)
 
@@ -31,9 +31,7 @@ ISOLATION_CONTEXT_KEY = "isolation_context"
 
 async def get_api_key_from_request(
     request: Request,
-    credentials: Annotated[
-        Optional[HTTPAuthorizationCredentials], Depends(api_key_scheme)
-    ],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(api_key_scheme)],
 ) -> str:
     """
     Extract API key from request.
@@ -208,7 +206,7 @@ DeletePermDep = Annotated[IsolationContext, Depends(require_delete_permission)]
 AdminPermDep = Annotated[IsolationContext, Depends(require_admin_permission)]
 
 
-def get_isolation_context_from_state(request: Request) -> Optional[IsolationContext]:
+def get_isolation_context_from_state(request: Request) -> IsolationContext | None:
     """
     Get isolation context from request state.
 

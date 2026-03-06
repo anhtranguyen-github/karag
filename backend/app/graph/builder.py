@@ -1,12 +1,12 @@
-from langgraph.graph import StateGraph, START, END
-from backend.app.graph.state import AgentState
 from backend.app.graph.nodes import (
-    retrieval_node,
-    rerank_node,
-    reason_node,
     generate_node,
+    reason_node,
+    rerank_node,
+    retrieval_node,
     summarize_node,
 )
+from backend.app.graph.state import AgentState
+from langgraph.graph import END, START, StateGraph
 
 # 1. Initialize Graph
 workflow = StateGraph(AgentState)
@@ -51,9 +51,7 @@ def should_summarize(state: AgentState):
     return END
 
 
-workflow.add_conditional_edges(
-    "generate", should_summarize, {"summarize": "summarize", END: END}
-)
+workflow.add_conditional_edges("generate", should_summarize, {"summarize": "summarize", END: END})
 
 workflow.add_edge("summarize", END)
 
@@ -64,14 +62,12 @@ _app = None
 def get_graph_app():
     global _app
     if _app is None:
-        from langgraph.checkpoint.mongodb import MongoDBSaver
         from backend.app.core.config import karag_settings
         from backend.app.core.mongodb import mongodb_manager
+        from langgraph.checkpoint.mongodb import MongoDBSaver
 
         # Compile with Persistence
-        checkpointer = MongoDBSaver(
-            mongodb_manager.client, db_name=karag_settings.MONGO_DB
-        )
+        checkpointer = MongoDBSaver(mongodb_manager.client, db_name=karag_settings.MONGO_DB)
         _app = workflow.compile(checkpointer=checkpointer)
     return _app
 

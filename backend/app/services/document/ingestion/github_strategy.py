@@ -1,10 +1,11 @@
 import os
 import shutil
 import subprocess  # nosec B404
-from typing import Dict, Any
+from typing import Any
+
+from backend.app.core.error_codes import AppErrorCode
 from backend.app.services.document.ingestion.base import BaseIngestionStrategy, logger
 from backend.app.services.task.task_service import task_service
-from backend.app.core.error_codes import AppErrorCode
 
 
 class GitHubIngestionStrategy(BaseIngestionStrategy):
@@ -13,8 +14,8 @@ class GitHubIngestionStrategy(BaseIngestionStrategy):
         return "github_ingestion"
 
     async def run(
-        self, task_id: str, workspace_id: str, metadata: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, task_id: str, workspace_id: str, metadata: dict[str, Any]
+    ) -> dict[str, Any]:
         from backend.app.rag.ingestion import ingestion_pipeline
 
         repo_url = metadata.get("repo_url")
@@ -98,9 +99,7 @@ class GitHubIngestionStrategy(BaseIngestionStrategy):
             )
             return {"chunks": num_chunks}
         except Exception as e:
-            logger.error(
-                "github_ingestion_failed", task_id=task_id, error=str(e), exc_info=True
-            )
+            logger.error("github_ingestion_failed", task_id=task_id, error=str(e), exc_info=True)
             await task_service.fail_with_retry(
                 task_id,
                 error_message=str(e),

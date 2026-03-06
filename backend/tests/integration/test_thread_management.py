@@ -1,11 +1,12 @@
-import pytest
-import httpx
 import uuid
-from langchain_core.messages import HumanMessage, AIMessage
+from unittest.mock import AsyncMock, MagicMock
+
+import httpx
+import pytest
 from backend.app.graph.builder import app as graph_app
 from backend.app.main import app as fastapi_app
-from unittest.mock import MagicMock, AsyncMock
 from httpx import AsyncClient
+from langchain_core.messages import AIMessage, HumanMessage
 
 
 @pytest.mark.asyncio
@@ -13,29 +14,21 @@ async def test_summarization_flow(mocker):
     """Test that conversations are summarized after exceeding 6 messages."""
     # Mock LLM
     mock_llm = MagicMock()
-    mock_llm.ainvoke = AsyncMock(
-        return_value=AIMessage(content="Summary of conversation")
-    )
+    mock_llm.ainvoke = AsyncMock(return_value=AIMessage(content="Summary of conversation"))
 
     # Mock bind_tools to return itself (mock_llm) so we can await its ainvoke
     mock_llm.bind_tools = MagicMock(return_value=mock_llm)
 
     # Mock get_llm in nodes
-    mocker.patch(
-        "backend.app.graph.nodes.get_llm", new=AsyncMock(return_value=mock_llm)
-    )
+    mocker.patch("backend.app.graph.nodes.get_llm", new=AsyncMock(return_value=mock_llm))
 
     # Send enough messages to trigger summarization (> 6)
-    messages = [
-        HumanMessage(content=f"msg {i}", id=str(uuid.uuid4())) for i in range(7)
-    ]
+    messages = [HumanMessage(content=f"msg {i}", id=str(uuid.uuid4())) for i in range(7)]
 
     config = {"configurable": {"thread_id": f"test_summary_{uuid.uuid4().hex[:6]}"}}
 
     # To avoid real RAG/Tools, we can mock the entire node execution
-    mocker.patch(
-        "backend.app.graph.nodes.rag_service.search", new=AsyncMock(return_value=[])
-    )
+    mocker.patch("backend.app.graph.nodes.rag_service.search", new=AsyncMock(return_value=[]))
 
     # Run the graph
     await graph_app.ainvoke({"messages": messages}, config=config)
@@ -81,9 +74,7 @@ async def test_thread_api_endpoints(mocker):
 
     transport = httpx.ASGITransport(app=fastapi_app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        res = await ac.patch(
-            f"/chat/threads/{thread_id}/title", json={"title": "Updated Title"}
-        )
+        res = await ac.patch(f"/chat/threads/{thread_id}/title", json={"title": "Updated Title"})
         assert res.status_code == 200
 
         res = await ac.get("/chat/threads", params={"workspace_id": "default"})

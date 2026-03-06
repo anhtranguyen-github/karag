@@ -7,9 +7,9 @@ Implements production patterns from llm-app-patterns skill:
 3. Hybrid search fusion - Reciprocal Rank Fusion for combining results
 """
 
-from typing import List, Dict, Any, Optional
-from dataclasses import dataclass
 import asyncio
+from dataclasses import dataclass
+from typing import Any
 
 import structlog
 from backend.app.core.telemetry import get_tracer
@@ -24,7 +24,7 @@ class RetrievalResult:
 
     text: str
     score: float
-    metadata: Dict[str, Any]
+    metadata: dict[str, Any]
     source: str = "unknown"
 
 
@@ -55,12 +55,10 @@ Provide exactly {n} variations, one per line:
         self.llm = llm_client
         self.num_variations = num_variations
 
-    async def generate_variations(self, query: str) -> List[str]:
+    async def generate_variations(self, query: str) -> list[str]:
         """Generate query variations using LLM."""
         with tracer.start_as_current_span("rag.multi_query.generate"):
-            prompt = self.QUERY_VARIATION_PROMPT.format(
-                n=self.num_variations, query=query
-            )
+            prompt = self.QUERY_VARIATION_PROMPT.format(n=self.num_variations, query=query)
 
             try:
                 response = await self.llm.generate(prompt)
@@ -80,7 +78,7 @@ Provide exactly {n} variations, one per line:
                 logger.warning("multi_query_generation_failed", error=str(e))
                 return [query]  # Fallback to original
 
-    def _parse_variations(self, response: str) -> List[str]:
+    def _parse_variations(self, response: str) -> list[str]:
         """Parse numbered variations from LLM output."""
         variations = []
         for line in response.strip().split("\n"):
@@ -101,7 +99,7 @@ Provide exactly {n} variations, one per line:
         query: str,
         retriever_fn: callable,
         top_k_per_query: int = 5,
-    ) -> List[RetrievalResult]:
+    ) -> list[RetrievalResult]:
         """
         Retrieve using multiple query variations and merge results.
 
@@ -140,17 +138,17 @@ Provide exactly {n} variations, one per line:
 
     def _reciprocal_rank_fusion(
         self,
-        results: List[RetrievalResult],
+        results: list[RetrievalResult],
         k: int = 60,
-    ) -> List[RetrievalResult]:
+    ) -> list[RetrievalResult]:
         """
         Merge results using Reciprocal Rank Fusion.
 
         Formula: score = sum(1 / (k + rank)) for each document
         """
         # Group by document text (or use hash)
-        scores: Dict[str, float] = {}
-        doc_map: Dict[str, RetrievalResult] = {}
+        scores: dict[str, float] = {}
+        doc_map: dict[str, RetrievalResult] = {}
 
         for i, result in enumerate(results):
             # Use text content as key (simplified)
@@ -200,9 +198,9 @@ Relevant excerpt:"""
     async def compress(
         self,
         query: str,
-        documents: List[RetrievalResult],
+        documents: list[RetrievalResult],
         compress_ratio: float = 0.5,
-    ) -> List[RetrievalResult]:
+    ) -> list[RetrievalResult]:
         """
         Compress documents to relevant parts.
 
@@ -296,7 +294,7 @@ class HybridRetriever:
         self,
         query: str,
         top_k: int = 10,
-    ) -> List[RetrievalResult]:
+    ) -> list[RetrievalResult]:
         """
         Perform hybrid retrieval.
 
@@ -337,13 +335,13 @@ class HybridRetriever:
 
     def _weighted_fusion(
         self,
-        semantic: List[RetrievalResult],
-        keyword: List[RetrievalResult],
+        semantic: list[RetrievalResult],
+        keyword: list[RetrievalResult],
         alpha: float,
-    ) -> List[RetrievalResult]:
+    ) -> list[RetrievalResult]:
         """Fuse results with weighting."""
-        scores: Dict[str, float] = {}
-        doc_map: Dict[str, RetrievalResult] = {}
+        scores: dict[str, float] = {}
+        doc_map: dict[str, RetrievalResult] = {}
 
         # Score semantic results
         for rank, result in enumerate(semantic):
@@ -368,7 +366,7 @@ class HybridRetriever:
 def create_advanced_retriever(
     llm_client,
     semantic_retriever: callable,
-    keyword_retriever: Optional[callable] = None,
+    keyword_retriever: callable | None = None,
     enable_multi_query: bool = True,
     enable_compression: bool = True,
 ) -> Any:

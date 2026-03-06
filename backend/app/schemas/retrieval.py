@@ -1,13 +1,14 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
-from typing import Optional, Literal, List
 
 
 class VectorSearchConfig(BaseModel):
     enabled: bool = True
-    embedding_model_ref: Optional[str] = None
+    embedding_model_ref: str | None = None
     top_k: int = Field(default=5, ge=1, le=100)
     similarity_metric: Literal["cosine", "dot", "l2"] = "cosine"
-    score_threshold: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    score_threshold: float | None = Field(default=None, ge=0.0, le=1.0)
     enable_score_normalization: bool = True
 
 
@@ -42,7 +43,7 @@ class GraphRetrievalConfig(BaseModel):
     enabled: bool = False
     graph_type: Literal["knowledge", "document_relationship"] = "knowledge"
     max_hops: int = Field(default=2, ge=1, le=5)
-    edge_types: List[str] = Field(default_factory=list)
+    edge_types: list[str] = Field(default_factory=list)
     node_score_decay: float = Field(default=0.5, ge=0.0, le=1.0)
     merge_graph_with_vector: bool = True
     graph_confidence_threshold: float = Field(default=0.3, ge=0.0, le=1.0)

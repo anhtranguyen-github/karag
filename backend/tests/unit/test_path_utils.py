@@ -1,8 +1,9 @@
-import pytest
 import os
 from pathlib import Path
-from backend.app.core.path_utils import validate_safe_path, BASE_DIR
+
+import pytest
 from backend.app.core.exceptions import ValidationError
+from backend.app.core.path_utils import BASE_DIR, validate_safe_path
 
 
 def test_validate_safe_path_valid_relative():
@@ -66,5 +67,5 @@ def test_validate_safe_path_symlink_jailbreak(tmp_path):
 def test_validate_safe_path_null_byte():
     # Null byte injection attempt
     path = "test.txt\0.pdf"
-    with pytest.raises(Exception):  # Pathlib or OS will likely complain
+    with pytest.raises(ValueError):  # Pathlib or OS will likely complain
         validate_safe_path(path)

@@ -1,9 +1,10 @@
-from enum import Enum
-from typing import Optional, List, Literal
+from enum import StrEnum
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
-class ExecutionMode(str, Enum):
+class ExecutionMode(StrEnum):
     AUTO = "auto"
     FAST = "fast"
     THINK = "think"
@@ -81,8 +82,8 @@ class RuntimeSettings(BaseModel):
 class ChasingData(BaseModel):
     execution_mode: ExecutionMode
     loops: int = 0
-    queries: List[str] = []
+    queries: list[str] = []
     retrieval_calls: int = 0
     generation_calls: int = 0
-    final_confidence: Optional[float] = None
+    final_confidence: float | None = None
     duration_ms: float = 0.0

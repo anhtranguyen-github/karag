@@ -1,16 +1,15 @@
-import os
 import hashlib
+import os
 import uuid
 from datetime import datetime
-from typing import Dict, Optional
-from fastapi import UploadFile
 
-from backend.app.core.mongodb import mongodb_manager
-from backend.app.core.minio import minio_manager
-from backend.app.services.task.task_service import task_service
-from backend.app.core.exceptions import ValidationError
 from backend.app.core.error_codes import AppErrorCode
-from .base import logger, tracer
+from backend.app.core.exceptions import ValidationError
+from backend.app.core.minio import minio_manager
+from backend.app.core.mongodb import mongodb_manager
+from backend.app.services.document.base import logger, tracer
+from backend.app.services.task.task_service import task_service
+from fastapi import UploadFile
 
 MAX_FILE_SIZE = 50_000_000  # 50MB
 ALLOWED_EXTENSIONS = {".pdf", ".txt", ".md", ".docx", ".html", ".csv", ".json"}
@@ -29,8 +28,12 @@ class DocumentUploadService:
         return clean_name
 
     async def upload(
-        self, file: UploadFile, workspace_id: str, dataset_id: Optional[str] = None, strategy: Optional[str] = None
-    ) -> Dict:
+        self,
+        file: UploadFile,
+        workspace_id: str,
+        dataset_id: str | None = None,
+        strategy: str | None = None,
+    ) -> dict:
         """Process and prepare a new document for ingestion."""
         with tracer.start_as_current_span(
             "document.upload",
@@ -57,9 +60,7 @@ class DocumentUploadService:
             existing_local_name = await db.documents.find_one(
                 {"workspace_id": workspace_id, "filename": original_filename}
             )
-            existing_vault_doc = await db.documents.find_one(
-                {"content_hash": file_hash}
-            )
+            existing_vault_doc = await db.documents.find_one({"content_hash": file_hash})
 
             conflict_type = None
             if (
@@ -116,9 +117,7 @@ class DocumentUploadService:
                 cursor = db.documents.find(
                     {
                         "workspace_id": workspace_id,
-                        "filename": {
-                            "$regex": f"^{re.escape(name)} \\(\\d+\\){re.escape(ext)}$"
-                        },
+                        "filename": {"$regex": f"^{re.escape(name)} \\(\\d+\\){re.escape(ext)}$"},
                     }
                 )
                 existing = await cursor.to_list(1000)
@@ -133,14 +132,16 @@ class DocumentUploadService:
 
                 target_filename = f"{name} ({max_count + 1}){ext}"
             elif strategy == "overwrite" and existing_local_name:
-                await self.delete(
-                    existing_local_name["id"], workspace_id, dataset_delete=True
-                )
+                await self.delete(existing_local_name["id"], workspace_id, dataset_delete=True)
 
             task_type = "upload" if workspace_id == "vault" else "ingestion"
             task_id = await task_service.create_task(
                 task_type,
-                {"filename": target_filename, "workspace_id": workspace_id, "dataset_id": dataset_id},
+                {
+                    "filename": target_filename,
+                    "workspace_id": workspace_id,
+                    "dataset_id": dataset_id,
+                },
                 workspace_id=workspace_id,
             )
 
@@ -153,9 +154,7 @@ class DocumentUploadService:
                 "duplicate_info": duplicate_info,
             }
 
-    async def import_url(
-        self, url: str, workspace_id: str, strategy: Optional[str] = None
-    ) -> Dict:
+    async def import_url(self, url: str, workspace_id: str, strategy: str | None = None) -> dict:
         """Fetch content from a URL and prepare for ingestion."""
         with tracer.start_as_current_span(
             "document.import_url",
@@ -166,9 +165,7 @@ class DocumentUploadService:
             # Generate filename from URL for initial task creation
             parsed = urlparse(url)
             if parsed.scheme not in ("http", "https"):
-                raise ValidationError(
-                    "Invalid URL scheme. Only HTTP and HTTPS are supported."
-                )
+                raise ValidationError("Invalid URL scheme. Only HTTP and HTTPS are supported.")
 
             path = parsed.path.strip("/")
             if not path:
@@ -198,7 +195,7 @@ class DocumentUploadService:
 
             return {"status": "success", "task_id": task_id, "filename": filename}
 
-    async def import_sitemap(self, sitemap_url: str, workspace_id: str) -> Dict:
+    async def import_sitemap(self, sitemap_url: str, workspace_id: str) -> dict:
         """Start a background task to process a sitemap."""
         with tracer.start_as_current_span(
             "document.import_sitemap",
@@ -222,11 +219,11 @@ class DocumentUploadService:
         url: str,
         filename: str,
         workspace_id: str,
-        dataset_id: Optional[str] = None,
-        strategy: Optional[str] = None,
+        dataset_id: str | None = None,
+        strategy: str | None = None,
     ):
         """Background runner that fetches the URL and then ingests it."""
-        from .ingestion.url_strategy import URLIngestionStrategy
+        from backend.app.services.document.ingestion.url_strategy import URLIngestionStrategy
 
         strat = URLIngestionStrategy()
         await strat.run(
@@ -235,9 +232,7 @@ class DocumentUploadService:
             {"url": url, "filename": filename, "strategy": strategy, "dataset_id": dataset_id},
         )
 
-    async def import_github(
-        self, repo_url: str, workspace_id: str, branch: str = "main"
-    ) -> Dict:
+    async def import_github(self, repo_url: str, workspace_id: str, branch: str = "main") -> dict:
         """Start a background task to process a GitHub repository."""
         with tracer.start_as_current_span(
             "document.import_github",
@@ -270,16 +265,16 @@ class DocumentUploadService:
         self, task_id: str, repo_url: str, branch: str, workspace_id: str
     ):
         """Background runner for GitHub processing."""
-        from .ingestion.github_strategy import GitHubIngestionStrategy
+        from backend.app.services.document.ingestion.github_strategy import GitHubIngestionStrategy
 
         strat = GitHubIngestionStrategy()
         await strat.run(task_id, workspace_id, {"repo_url": repo_url, "branch": branch})
 
-    async def run_sitemap_background(
-        self, task_id: str, sitemap_url: str, workspace_id: str
-    ):
+    async def run_sitemap_background(self, task_id: str, sitemap_url: str, workspace_id: str):
         """Background runner for sitemap processing."""
-        from .ingestion.sitemap_strategy import SitemapIngestionStrategy
+        from backend.app.services.document.ingestion.sitemap_strategy import (
+            SitemapIngestionStrategy,
+        )
 
         strat = SitemapIngestionStrategy()
         await strat.run(task_id, workspace_id, {"sitemap_url": sitemap_url})
@@ -287,12 +282,14 @@ class DocumentUploadService:
     async def run_ingestion(
         self,
         task_id: str,
+        filename: str,
         content: bytes,
         content_type: str,
         workspace_id: str,
-        dataset_id: Optional[str] = None,
+        dataset_id: str | None = None,
     ):
         """Phase 1: Storage and metadata."""
+        safe_filename = filename
         try:
             if await task_service.is_cancelled(task_id):
                 return
@@ -305,12 +302,8 @@ class DocumentUploadService:
 
             doc_id = str(uuid.uuid4())[:8]
             file_hash = hashlib.sha256(content).hexdigest()
-            extension = (
-                os.path.splitext(safe_filename)[1].lower() if safe_filename else ".tmp"
-            )
-            minio_path = (
-                f"workspaces/{workspace_id}/documents/{doc_id}/v1/{safe_filename}"
-            )
+            extension = os.path.splitext(safe_filename)[1].lower() if safe_filename else ".tmp"
+            minio_path = f"workspaces/{workspace_id}/documents/{doc_id}/v1/{safe_filename}"
 
             db = mongodb_manager.get_async_database()
             document_data = {
@@ -357,9 +350,7 @@ class DocumentUploadService:
                 minio_manager.delete_file(minio_path)
                 return
 
-            await task_service.update_task(
-                task_id, progress=50, message="Recording metadata..."
-            )
+            await task_service.update_task(task_id, progress=50, message="Recording metadata...")
 
             update_reading = {"status": "reading"}
             if workspace_id != "vault":
@@ -383,11 +374,11 @@ class DocumentUploadService:
                 num_chunks = 0
             else:
                 # AUTO-INDEX: Proceed to Phase 2 immediately for real workspaces
-                await task_service.update_task(
-                    task_id, progress=60, message="Indexing..."
+                await task_service.update_task(task_id, progress=60, message="Indexing...")
+                from backend.app.services.document.document_ingestion_service import (
+                    document_ingestion_service,
                 )
-                from .document_ingestion_service import document_ingestion_service
-                
+
                 num_chunks = await document_ingestion_service.index_document(
                     doc_id, workspace_id, dataset_id=dataset_id, task_id=task_id
                 )
@@ -411,14 +402,12 @@ class DocumentUploadService:
             DOCUMENT_INGESTION_COUNT.labels(extension=extension, status="success").inc()
 
         except Exception as e:
-            logger.error(
-                "ingestion_failed", task_id=task_id, error=str(e), exc_info=True
-            )
+            logger.error("ingestion_failed", task_id=task_id, error=str(e), exc_info=True)
             await task_service.fail_with_retry(
                 task_id, error_message=str(e), error_code=AppErrorCode.INGEST_FAILED
             )
 
-    async def import_audio(self, file: UploadFile, workspace_id: str) -> Dict:
+    async def import_audio(self, file: UploadFile, workspace_id: str) -> dict:
         """Process an audio file for speech-to-text ingestion."""
         with tracer.start_as_current_span(
             "document.import_audio",
@@ -444,12 +433,10 @@ class DocumentUploadService:
         self, task_id: str, filename: str, content: bytes, workspace_id: str
     ):
         """Background runner for Audio (Speech-to-Text) processing."""
-        from .ingestion.audio_strategy import AudioIngestionStrategy
+        from backend.app.services.document.ingestion.audio_strategy import AudioIngestionStrategy
 
         strat = AudioIngestionStrategy()
-        await strat.run(
-            task_id, workspace_id, {"filename": filename, "content": content}
-        )
+        await strat.run(task_id, workspace_id, {"filename": filename, "content": content})
 
 
 document_upload_service = DocumentUploadService()

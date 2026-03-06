@@ -1,4 +1,5 @@
-from typing import Any, Dict, Optional
+from typing import Any
+
 from fastapi import status
 
 
@@ -10,7 +11,7 @@ class BaseAppException(Exception):
         message: str,
         code: str = "INTERNAL_ERROR",
         status_code: int = status.HTTP_500_INTERNAL_SERVER_ERROR,
-        params: Optional[Dict[str, Any]] = None,
+        params: dict[str, Any] | None = None,
     ):
         self.message = message
         self.code = code
@@ -22,7 +23,7 @@ class BaseAppException(Exception):
 class ValidationError(BaseAppException):
     """Raised when client input fails domain rules."""
 
-    def __init__(self, message: str, params: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str, params: dict[str, Any] | None = None):
         super().__init__(
             message=message,
             code="VALIDATION_ERROR",
@@ -34,7 +35,7 @@ class ValidationError(BaseAppException):
 class ConflictError(BaseAppException):
     """Raised when an operation conflicts with current system state (e.g. duplicates)."""
 
-    def __init__(self, message: str, params: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str, params: dict[str, Any] | None = None):
         super().__init__(
             message=message,
             code="CONFLICT_ERROR",
@@ -46,7 +47,7 @@ class ConflictError(BaseAppException):
 class NotFoundError(BaseAppException):
     """Raised when a requested resource is missing."""
 
-    def __init__(self, message: str, params: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str, params: dict[str, Any] | None = None):
         super().__init__(
             message=message,
             code="NOT_FOUND",
@@ -61,7 +62,7 @@ class AuthenticationError(BaseAppException):
     def __init__(
         self,
         message: str = "Authentication required",
-        params: Optional[Dict[str, Any]] = None,
+        params: dict[str, Any] | None = None,
     ):
         super().__init__(
             message=message,
@@ -74,9 +75,7 @@ class AuthenticationError(BaseAppException):
 class AuthorizationError(BaseAppException):
     """Raised when user lacks permission for an action."""
 
-    def __init__(
-        self, message: str = "Access denied", params: Optional[Dict[str, Any]] = None
-    ):
+    def __init__(self, message: str = "Access denied", params: dict[str, Any] | None = None):
         super().__init__(
             message=message,
             code="AUTHORIZATION_ERROR",

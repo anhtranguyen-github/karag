@@ -10,7 +10,7 @@ Provides standardized response models following API design best practices:
 
 from __future__ import annotations
 
-from typing import Any, Generic, Optional, TypeVar
+from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -20,7 +20,7 @@ T = TypeVar("T")
 class ErrorDetail(BaseModel):
     """Detailed error information for validation or processing errors."""
 
-    field: Optional[str] = Field(
+    field: str | None = Field(
         None,
         description="Field related to the error (if applicable)",
     )
@@ -86,7 +86,7 @@ class AppResponse(BaseModel, Generic[T]):
         default="Operation completed successfully",
         description="Human-readable status message",
     )
-    data: Optional[T] = Field(
+    data: T | None = Field(
         default=None,
         description="Response payload (type varies by endpoint)",
     )
@@ -103,8 +103,8 @@ class AppResponse(BaseModel, Generic[T]):
         *,
         code: str = "ERROR",
         message: str = "Error occurred",
-        data: Optional[Any] = None,
-        details: Optional[list[ErrorDetail]] = None,
+        data: Any | None = None,
+        details: list[ErrorDetail] | None = None,
     ) -> AppResponse[Any]:
         """
         Create a failure response.
@@ -129,10 +129,10 @@ class AppResponse(BaseModel, Generic[T]):
     def success_response(
         cls,
         *,
-        data: Optional[T] = None,
+        data: T | None = None,
         message: str = "Operation completed successfully",
         code: str = "SUCCESS",
-        pagination: Optional[PaginationInfo] = None,
+        pagination: PaginationInfo | None = None,
     ) -> AppResponse[T]:
         """
         Create a success response.

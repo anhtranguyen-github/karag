@@ -1,12 +1,11 @@
-from typing import Optional
-from backend.app.core.mongodb import mongodb_manager
-from backend.app.core.minio import minio_manager
 from backend.app.core.exceptions import NotFoundError
-from .base import logger
+from backend.app.core.minio import minio_manager
+from backend.app.core.mongodb import mongodb_manager
+from backend.app.services.document.base import logger
 
 
 class StorageService:
-    async def get_content(self, doc_id: str) -> Optional[bytes]:
+    async def get_content(self, doc_id: str) -> bytes | None:
         """Retrieve file content from MinIO using internal document ID."""
         db = mongodb_manager.get_async_database()
         doc = await db.documents.find_one({"id": doc_id})
@@ -66,9 +65,7 @@ class StorageService:
                 # We can only delete THIS specific instantiation of the document, not globally
                 from backend.app.rag.ingestion import ingestion_pipeline
 
-                config, store = await ingestion_pipeline.get_ingestion_config(
-                    workspace_id
-                )
+                config, store = await ingestion_pipeline.get_ingestion_config(workspace_id)
                 await store.delete_document(config, doc_id)
                 await db.documents.delete_one({"id": doc_id})
             else:
@@ -91,9 +88,7 @@ class StorageService:
             # Soft delete logic
             doc_workspace = doc.get("workspace_id")
             if doc_workspace == workspace_id:
-                await db.documents.update_one(
-                    {"id": doc_id}, {"$set": {"workspace_id": "vault"}}
-                )
+                await db.documents.update_one({"id": doc_id}, {"$set": {"workspace_id": "vault"}})
             else:
                 await db.documents.update_one(
                     {"id": doc_id}, {"$pull": {"shared_with": workspace_id}}

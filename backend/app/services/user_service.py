@@ -1,26 +1,26 @@
 import uuid
 from datetime import datetime
-from typing import Optional, Dict
-from backend.app.core.mongodb import mongodb_manager
+
 from backend.app.core.auth import get_password_hash, verify_password
+from backend.app.core.mongodb import mongodb_manager
 from backend.app.schemas.users import UserCreate
 
 
 class UserService:
     @staticmethod
-    async def get_by_email(email: str) -> Optional[Dict]:
+    async def get_by_email(email: str) -> dict | None:
         db = mongodb_manager.get_async_database()
         user = await db.users.find_one({"email": email})
         return user
 
     @staticmethod
-    async def get_by_id(user_id: str) -> Optional[Dict]:
+    async def get_by_id(user_id: str) -> dict | None:
         db = mongodb_manager.get_async_database()
         user = await db.users.find_one({"id": user_id})
         return user
 
     @staticmethod
-    async def create(obj_in: UserCreate) -> Dict:
+    async def create(obj_in: UserCreate) -> dict:
         db = mongodb_manager.get_async_database()
 
         user_id = str(uuid.uuid4())
@@ -41,7 +41,7 @@ class UserService:
         return user_in_db
 
     @staticmethod
-    async def authenticate(email: str, password: str) -> Optional[Dict]:
+    async def authenticate(email: str, password: str) -> dict | None:
         user = await UserService.get_by_email(email)
         if not user:
             return None

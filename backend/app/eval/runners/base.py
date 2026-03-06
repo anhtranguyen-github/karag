@@ -5,13 +5,13 @@ Provides abstract base class and common functionality for all evaluation runners
 """
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Callable, Dict, Iterator, List, Optional
 from enum import Enum
+from typing import Any
 
 import structlog
-
 from backend.app.eval.datasets.base import DatasetEntry
 
 logger = structlog.get_logger(__name__)
@@ -32,20 +32,20 @@ class RunnerConfig:
     """Configuration for an evaluation run."""
 
     # Dataset settings
-    max_samples: Optional[int] = None
+    max_samples: int | None = None
     shuffle: bool = False
-    seed: Optional[int] = None
+    seed: int | None = None
 
     # Execution settings
     batch_size: int = 1
     max_concurrent: int = 1
-    timeout_per_sample: Optional[float] = None
+    timeout_per_sample: float | None = None
     retry_attempts: int = 3
 
     # Metric settings
     compute_retrieval_metrics: bool = True
     compute_generation_metrics: bool = True
-    k_values: List[int] = field(default_factory=lambda: [1, 5, 10])
+    k_values: list[int] = field(default_factory=lambda: [1, 5, 10])
 
     # Output settings
     save_intermediate: bool = True
@@ -63,14 +63,14 @@ class SampleResult:
 
     sample_id: str
     query: str
-    ground_truth_answer: Optional[str]
-    predicted_answer: Optional[str]
-    retrieved_documents: List[str] = field(default_factory=list)
-    retrieval_metrics: Dict[str, float] = field(default_factory=dict)
-    generation_metrics: Dict[str, float] = field(default_factory=dict)
-    latency_ms: Optional[float] = None
-    error: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    ground_truth_answer: str | None
+    predicted_answer: str | None
+    retrieved_documents: list[str] = field(default_factory=list)
+    retrieval_metrics: dict[str, float] = field(default_factory=dict)
+    generation_metrics: dict[str, float] = field(default_factory=dict)
+    latency_ms: float | None = None
+    error: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         if self.retrieved_documents is None:
@@ -94,17 +94,17 @@ class RunnerResult:
 
     # Timing
     started_at: datetime = field(default_factory=datetime.utcnow)
-    completed_at: Optional[datetime] = None
+    completed_at: datetime | None = None
 
     # Results
-    sample_results: List[SampleResult] = field(default_factory=list)
-    aggregated_metrics: Dict[str, Dict[str, float]] = field(default_factory=dict)
+    sample_results: list[SampleResult] = field(default_factory=list)
+    aggregated_metrics: dict[str, dict[str, float]] = field(default_factory=dict)
 
     # Metadata
     total_samples: int = 0
     successful_samples: int = 0
     failed_samples: int = 0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         if self.sample_results is None:
@@ -122,13 +122,13 @@ class RunnerResult:
         return self.successful_samples / self.total_samples
 
     @property
-    def duration_seconds(self) -> Optional[float]:
+    def duration_seconds(self) -> float | None:
         """Calculate total duration."""
         if self.completed_at:
             return (self.completed_at - self.started_at).total_seconds()
         return None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert result to dictionary."""
         return {
             "runner_name": self.runner_name,
@@ -141,9 +141,7 @@ class RunnerResult:
             },
             "timing": {
                 "started_at": self.started_at.isoformat(),
-                "completed_at": self.completed_at.isoformat()
-                if self.completed_at
-                else None,
+                "completed_at": self.completed_at.isoformat() if self.completed_at else None,
                 "duration_seconds": self.duration_seconds,
             },
             "summary": {
@@ -258,8 +256,8 @@ class BaseRunner(ABC):
 
     def _aggregate_metrics(
         self,
-        sample_results: List[SampleResult],
-    ) -> Dict[str, Dict[str, float]]:
+        sample_results: list[SampleResult],
+    ) -> dict[str, dict[str, float]]:
         """
         Aggregate metrics across all samples.
 

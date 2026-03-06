@@ -1,5 +1,6 @@
+from typing import Annotated, Literal
+
 from pydantic import BaseModel, Field
-from typing import List, Literal, Union, Annotated
 
 
 class RecursiveChunkingConfig(BaseModel):
@@ -7,7 +8,7 @@ class RecursiveChunkingConfig(BaseModel):
     max_chunk_size: int = Field(default=800, ge=10, le=4000)
     min_chunk_size: int = Field(default=100, ge=5, le=500)
     chunk_overlap: int = Field(default=150, ge=0, le=1000)
-    separators: List[str] = Field(default=["\n\n", "\n", ". ", " "])
+    separators: list[str] = Field(default=["\n\n", "\n", ". ", " "])
     keep_separator: bool = True
     trim_whitespace: bool = True
     fallback_to_sentence: bool = False
@@ -61,13 +62,11 @@ class DocumentStructureChunkingConfig(BaseModel):
 
 
 ChunkingConfig = Annotated[
-    Union[
-        RecursiveChunkingConfig,
-        SentenceChunkingConfig,
-        TokenChunkingConfig,
-        SemanticChunkingConfig,
-        FixedLengthChunkingConfig,
-        DocumentStructureChunkingConfig,
-    ],
+    RecursiveChunkingConfig
+    | SentenceChunkingConfig
+    | TokenChunkingConfig
+    | SemanticChunkingConfig
+    | FixedLengthChunkingConfig
+    | DocumentStructureChunkingConfig,
     Field(discriminator="strategy"),
 ]

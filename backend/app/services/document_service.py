@@ -1,8 +1,8 @@
-from .document.document_upload_service import DocumentUploadService
-from .document.document_ingestion_service import DocumentIngestionService
-from .document.cross_workspace_service import CrossWorkspaceDocumentService
-from .document.document_inspection_service import DocumentInspectionService
-from .document.storage_service import StorageService
+from backend.app.services.document.cross_workspace_service import CrossWorkspaceDocumentService
+from backend.app.services.document.document_ingestion_service import DocumentIngestionService
+from backend.app.services.document.document_inspection_service import DocumentInspectionService
+from backend.app.services.document.document_upload_service import DocumentUploadService
+from backend.app.services.document.storage_service import StorageService
 
 
 class DocumentService(

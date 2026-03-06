@@ -8,24 +8,24 @@ Implements production patterns for handling LLM failures gracefully:
 4. Rate limiting per provider
 """
 
-import time
 import asyncio
-from typing import List, Optional, Callable, TypeVar, Any
+import time
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any, TypeVar
 
 import structlog
-from tenacity import (
-    retry,
-    stop_after_attempt,
-    wait_exponential,
-    retry_if_exception_type,
-    before_sleep_log,
-)
-
 from backend.app.core.telemetry import (
-    get_tracer,
     LLM_FALLBACK_USED,
     LLM_RETRY_COUNT,
+    get_tracer,
+)
+from tenacity import (
+    before_sleep_log,
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
 )
 
 logger = structlog.get_logger(__name__)
@@ -75,7 +75,7 @@ class FallbackConfig:
     """Configuration for fallback chain."""
 
     primary: str
-    fallbacks: List[str]
+    fallbacks: list[str]
     retry_config: RetryConfig = None
 
     def __post_init__(self):
@@ -128,9 +128,9 @@ class LLMWithFallback:
     def __init__(
         self,
         primary: str,
-        fallbacks: List[str],
-        retry_config: Optional[RetryConfig] = None,
-        rate_limits: Optional[dict] = None,
+        fallbacks: list[str],
+        retry_config: RetryConfig | None = None,
+        rate_limits: dict | None = None,
     ):
         self.primary = primary
         self.fallbacks = fallbacks
@@ -188,8 +188,7 @@ class LLMWithFallback:
                 # Calculate backoff
                 wait_time = min(
                     self.retry_config.max_wait,
-                    self.retry_config.min_wait
-                    * (self.retry_config.exponential_base**attempt),
+                    self.retry_config.min_wait * (self.retry_config.exponential_base**attempt),
                 )
 
                 LLM_RETRY_COUNT.labels(
@@ -212,7 +211,7 @@ class LLMWithFallback:
     async def generate(
         self,
         generate_fn: Callable[[str], Any],
-        model_override: Optional[str] = None,
+        model_override: str | None = None,
     ) -> Any:
         """
         Generate with automatic fallback on failure.

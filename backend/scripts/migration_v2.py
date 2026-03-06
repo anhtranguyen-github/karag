@@ -1,11 +1,12 @@
-import os
 import asyncio
+import os
 import uuid
 from datetime import datetime
-from motor.motor_asyncio import AsyncIOMotorClient
-from qdrant_client import AsyncQdrantClient
-from passlib.context import CryptContext
+
 from dotenv import load_dotenv
+from motor.motor_asyncio import AsyncIOMotorClient
+from passlib.context import CryptContext
+from qdrant_client import AsyncQdrantClient
 
 load_dotenv()
 

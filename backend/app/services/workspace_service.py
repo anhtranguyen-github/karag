@@ -1,17 +1,17 @@
 import uuid
-import structlog
 from datetime import datetime
-from typing import List, Optional, Dict, Any
-from backend.app.core.mongodb import mongodb_manager
+from typing import Any
 
-from backend.app.core.exceptions import ValidationError, ConflictError, NotFoundError
+import structlog
+from backend.app.core.exceptions import ConflictError, NotFoundError, ValidationError
+from backend.app.core.mongodb import mongodb_manager
 
 logger = structlog.get_logger(__name__)
 
 
 class WorkspaceService:
     @staticmethod
-    async def list_all(user_id: str) -> List[Dict]:
+    async def list_all(user_id: str) -> list[dict]:
         db = mongodb_manager.get_async_database()
 
         # Optimized Aggregation Pipeline to avoid N+1 queries
@@ -63,7 +63,7 @@ class WorkspaceService:
         return await db.workspaces.aggregate(pipeline).to_list(1000)
 
     @staticmethod
-    async def create(data: Dict[str, Any], user_id: str) -> Dict[str, Any]:
+    async def create(data: dict[str, Any], user_id: str) -> dict[str, Any]:
         """Create a new workspace with specified RAG settings."""
         db = mongodb_manager.get_async_database()
         name = data.get("name", "").strip()
@@ -144,9 +144,7 @@ class WorkspaceService:
             "runtime_trace_level",
             "chunking_strategy",
         ]
-        settings_to_apply = {
-            k: data[k] for k in rag_fields if k in data and data[k] is not None
-        }
+        settings_to_apply = {k: data[k] for k in rag_fields if k in data and data[k] is not None}
 
         # We bypass update_settings to avoid immutability check during initial creation
         await db["workspace_settings"].insert_one(
@@ -164,9 +162,7 @@ class WorkspaceService:
         }
 
     @staticmethod
-    async def update(
-        workspace_id: str, data: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+    async def update(workspace_id: str, data: dict[str, Any]) -> dict[str, Any] | None:
         db = mongodb_manager.get_async_database()
 
         # Enforce Immutability of RAG Engine
@@ -180,22 +176,16 @@ class WorkspaceService:
 
             from backend.app.core.constants import WORKSPACE_NAME_FORBIDDEN
 
-            found_chars = [
-                char for char in WORKSPACE_NAME_FORBIDDEN if char in new_name
-            ]
+            found_chars = [char for char in WORKSPACE_NAME_FORBIDDEN if char in new_name]
             if found_chars:
                 raise ValidationError(
                     message=f"Workspace name contains invalid characters: {' '.join(found_chars)}. These are reserved for system safety.",
                     params={"found": found_chars},
                 )
 
-            existing = await db.workspaces.find_one(
-                {"name": new_name, "id": {"$ne": workspace_id}}
-            )
+            existing = await db.workspaces.find_one({"name": new_name, "id": {"$ne": workspace_id}})
             if existing:
-                raise ConflictError(
-                    f"A workspace with the name '{new_name}' already exists."
-                )
+                raise ConflictError(f"A workspace with the name '{new_name}' already exists.")
             data["name"] = new_name
 
         data["updated_at"] = datetime.utcnow().isoformat()
@@ -230,7 +220,7 @@ class WorkspaceService:
         await document_service.sync_workspaces()
 
     @staticmethod
-    async def get_details(workspace_id: str) -> Optional[Dict]:
+    async def get_details(workspace_id: str) -> dict | None:
         db = mongodb_manager.get_async_database()
         ws = await db.workspaces.find_one({"id": workspace_id})
         if not ws:
@@ -268,7 +258,7 @@ class WorkspaceService:
         return ws
 
     @staticmethod
-    async def get_graph_data(workspace_id: str) -> Dict:
+    async def get_graph_data(workspace_id: str) -> dict:
         """Generate a semantic graph of documents and entities within a workspace."""
         from backend.app.core.settings_manager import settings_manager
 
@@ -354,9 +344,7 @@ class WorkspaceService:
                             }
                         )
             except Exception as e:
-                logger.warning(
-                    "neo4j_graph_fetch_failed", error=str(e), workspace_id=workspace_id
-                )
+                logger.warning("neo4j_graph_fetch_failed", error=str(e), workspace_id=workspace_id)
                 pass  # Fail gracefully if Neo4j is down
         return {"nodes": nodes, "edges": edges}
 

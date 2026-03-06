@@ -5,10 +5,7 @@ provider-agnostic adapters. It serves as the bridge between configuration
 schemas and runtime provider instances.
 """
 
-from typing import Optional
-
 import structlog
-
 from backend.app.core.config import karag_settings
 from backend.app.core.settings_manager import settings_manager
 from backend.app.providers.adapter import LangChainAdapter
@@ -28,7 +25,7 @@ class ProviderFactory:
     """
 
     @staticmethod
-    async def get_llm(workspace_id: Optional[str] = None) -> LLMProvider:
+    async def get_llm(workspace_id: str | None = None) -> LLMProvider:
         """Get LLM provider for workspace.
 
         Creates a LangChain model internally based on workspace settings,
@@ -96,7 +93,7 @@ class ProviderFactory:
         )
 
     @staticmethod
-    async def get_embeddings(workspace_id: Optional[str] = None) -> EmbeddingProvider:
+    async def get_embeddings(workspace_id: str | None = None) -> EmbeddingProvider:
         """Get embedding provider for workspace.
 
         Creates a LangChain embeddings model internally based on workspace settings,
@@ -144,9 +141,7 @@ class ProviderFactory:
             embeddings = HuggingFaceEmbeddings(
                 model_name=impl.model,
                 model_kwargs={"device": getattr(impl, "device", "cpu")},
-                encode_kwargs={
-                    "normalize_embeddings": getattr(impl, "normalize_embeddings", True)
-                },
+                encode_kwargs={"normalize_embeddings": getattr(impl, "normalize_embeddings", True)},
             )
         elif provider == "ollama":
             from langchain_ollama import OllamaEmbeddings
@@ -178,7 +173,7 @@ class ProviderFactory:
         )
 
     @staticmethod
-    async def get_vector_store(workspace_id: Optional[str] = None):
+    async def get_vector_store(workspace_id: str | None = None):
         """Returns the appropriate VectorStore implementation.
 
         Currently defaults to QdrantStore.
@@ -189,7 +184,7 @@ class ProviderFactory:
         return QdrantStore()
 
     @staticmethod
-    async def get_graph_store(workspace_id: Optional[str] = None):
+    async def get_graph_store(workspace_id: str | None = None):
         """Returns the appropriate GraphStore implementation.
 
         Currently defaults to Neo4jStore.

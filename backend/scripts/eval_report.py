@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 def load_results(filepath: str) -> dict:
     """Load results from JSON file."""
-    with open(filepath, "r") as f:
+    with open(filepath) as f:
         return json.load(f)
 
 
@@ -86,7 +86,7 @@ def compare_results(baseline_path: str, new_path: str) -> str:
         lines.append("*Warning: Different number of datasets evaluated*")
         lines.append("")
 
-    for i, (base, new_res) in enumerate(zip(baseline_results, new_results)):
+    for i, (base, new_res) in enumerate(zip(baseline_results, new_results, strict=False)):
         dataset = base.get("dataset_name", f"Dataset {i + 1}")
         lines.extend(
             [

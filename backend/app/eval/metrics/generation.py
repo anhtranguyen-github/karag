@@ -6,9 +6,9 @@ faithfulness, and relevance in RAG systems.
 """
 
 import re
-from typing import List, Dict, Any, Optional
-from dataclasses import dataclass
 from collections import Counter
+from dataclasses import dataclass
+from typing import Any
 
 import structlog
 
@@ -21,7 +21,7 @@ class GenerationResult:
 
     metric_name: str
     score: float
-    details: Dict[str, Any] = None
+    details: dict[str, Any] = None
 
     def __post_init__(self):
         if self.details is None:
@@ -69,7 +69,7 @@ class GenerationMetrics:
         except ImportError:
             return False
 
-    def _tokenize(self, text: str) -> List[str]:
+    def _tokenize(self, text: str) -> list[str]:
         """Simple tokenization fallback."""
         if self._nltk_available:
             try:
@@ -136,9 +136,7 @@ class GenerationMetrics:
         ref_tokens = self._tokenize(reference)
 
         if not pred_tokens and not ref_tokens:
-            return GenerationResult(
-                metric_name="f1", score=1.0, details={"note": "both_empty"}
-            )
+            return GenerationResult(metric_name="f1", score=1.0, details={"note": "both_empty"})
 
         if not pred_tokens or not ref_tokens:
             return GenerationResult(
@@ -159,11 +157,7 @@ class GenerationMetrics:
         precision = overlap / len(pred_tokens) if pred_tokens else 0
         recall = overlap / len(ref_tokens) if ref_tokens else 0
 
-        f1 = (
-            2 * (precision * recall) / (precision + recall)
-            if (precision + recall) > 0
-            else 0
-        )
+        f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
 
         return GenerationResult(
             metric_name="f1",
@@ -178,7 +172,7 @@ class GenerationMetrics:
     def faithfulness(
         self,
         answer: str,
-        contexts: List[str],
+        contexts: list[str],
         method: str = "claim_verification",
     ) -> GenerationResult:
         """
@@ -213,7 +207,7 @@ class GenerationMetrics:
     def _faithfulness_claim_verification(
         self,
         answer: str,
-        contexts: List[str],
+        contexts: list[str],
     ) -> GenerationResult:
         """
         Simple claim verification based on n-gram overlap.
@@ -274,7 +268,7 @@ class GenerationMetrics:
     def _faithfulness_entailment(
         self,
         answer: str,
-        contexts: List[str],
+        contexts: list[str],
     ) -> GenerationResult:
         """Placeholder for entailment-based faithfulness (requires NLI model)."""
         # This would use an NLI model in a full implementation
@@ -283,7 +277,7 @@ class GenerationMetrics:
     def _faithfulness_llm(
         self,
         answer: str,
-        contexts: List[str],
+        contexts: list[str],
     ) -> GenerationResult:
         """LLM-based faithfulness evaluation."""
         # Would use LLM to verify each claim
@@ -293,7 +287,7 @@ class GenerationMetrics:
     def _faithfulness_overlap(
         self,
         answer: str,
-        contexts: List[str],
+        contexts: list[str],
     ) -> GenerationResult:
         """Simple token overlap-based faithfulness."""
         answer_tokens = set(self._tokenize(answer))
@@ -323,7 +317,7 @@ class GenerationMetrics:
         self,
         query: str,
         answer: str,
-        contexts: Optional[List[str]] = None,
+        contexts: list[str] | None = None,
     ) -> GenerationResult:
         """
         Calculate answer relevancy.
@@ -374,8 +368,8 @@ class GenerationMetrics:
 
     def context_precision(
         self,
-        contexts: List[str],
-        query: Optional[str] = None,
+        contexts: list[str],
+        query: str | None = None,
     ) -> GenerationResult:
         """
         Calculate context precision.
@@ -437,7 +431,7 @@ class GenerationMetrics:
 
     def context_recall(
         self,
-        contexts: List[str],
+        contexts: list[str],
         ground_truth_answer: str,
     ) -> GenerationResult:
         """
@@ -529,11 +523,7 @@ class GenerationMetrics:
         else:
             precision = lcs_length / len(pred_tokens)
             recall = lcs_length / len(ref_tokens)
-            f1 = (
-                2 * precision * recall / (precision + recall)
-                if (precision + recall) > 0
-                else 0
-            )
+            f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
 
         return GenerationResult(
             metric_name="answer_similarity",
@@ -546,7 +536,7 @@ class GenerationMetrics:
             },
         )
 
-    def _lcs_length(self, seq1: List[str], seq2: List[str]) -> int:
+    def _lcs_length(self, seq1: list[str], seq2: list[str]) -> int:
         """Calculate length of longest common subsequence."""
         m, n = len(seq1), len(seq2)
         dp = [[0] * (n + 1) for _ in range(m + 1)]
@@ -573,7 +563,7 @@ class GenerationMetrics:
         result.details["note"] = "install_bert_score_for_better_similarity"
         return result
 
-    def _extract_key_terms(self, text: str) -> List[str]:
+    def _extract_key_terms(self, text: str) -> list[str]:
         """Extract key terms from text for verification."""
         # Simple extraction: numbers, capitalized words, quoted terms
         terms = []
@@ -593,9 +583,9 @@ class GenerationMetrics:
         self,
         query: str,
         answer: str,
-        contexts: List[str],
-        reference_answer: Optional[str] = None,
-    ) -> Dict[str, GenerationResult]:
+        contexts: list[str],
+        reference_answer: str | None = None,
+    ) -> dict[str, GenerationResult]:
         """
         Compute all generation metrics at once.
 
@@ -623,16 +613,14 @@ class GenerationMetrics:
             results["context_recall"] = self.context_recall(contexts, reference_answer)
             results["exact_match"] = self.exact_match(answer, reference_answer)
             results["f1"] = self.f1_score(answer, reference_answer)
-            results["answer_similarity"] = self.answer_similarity(
-                answer, reference_answer
-            )
+            results["answer_similarity"] = self.answer_similarity(answer, reference_answer)
 
         return results
 
     @staticmethod
     def aggregate_results(
-        results_list: List[Dict[str, GenerationResult]],
-    ) -> Dict[str, Dict[str, float]]:
+        results_list: list[dict[str, GenerationResult]],
+    ) -> dict[str, dict[str, float]]:
         """
         Aggregate results across multiple queries.
 
@@ -646,7 +634,7 @@ class GenerationMetrics:
             return {}
 
         # Collect scores for each metric
-        metric_scores: Dict[str, List[float]] = {}
+        metric_scores: dict[str, list[float]] = {}
         for results in results_list:
             for metric_name, result in results.items():
                 if metric_name not in metric_scores:

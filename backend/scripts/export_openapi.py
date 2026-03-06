@@ -15,7 +15,6 @@ The schema is used for:
 """
 
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -23,18 +22,17 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from fastapi.openapi.utils import get_openapi
-
 from backend.app.main import app
+from fastapi.openapi.utils import get_openapi
 
 
 def export_openapi_schema(output_path: str | None = None) -> str:
     """
     Export the FastAPI OpenAPI schema to a JSON file.
-    
+
     Args:
         output_path: Path to write the schema to. Defaults to openapi/schema.json
-        
+
     Returns:
         The path where the schema was written
     """
@@ -42,12 +40,12 @@ def export_openapi_schema(output_path: str | None = None) -> str:
         output_path = project_root / "openapi" / "schema.json"
     else:
         output_path = Path(output_path)
-    
+
     # Ensure directory exists
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     print(f"Exporting OpenAPI schema to {output_path}...")
-    
+
     # Generate the OpenAPI schema
     schema = get_openapi(
         title=app.title,
@@ -56,18 +54,18 @@ def export_openapi_schema(output_path: str | None = None) -> str:
         description=app.description,
         routes=app.routes,
     )
-    
+
     # Write schema to file
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(schema, f, indent=2, ensure_ascii=False)
-    
+
     # Print schema info
     paths = list(schema.get("paths", {}).keys())
     print(f"✓ Exported OpenAPI schema v{schema.get('openapi', 'unknown')}")
     print(f"  Title: {schema.get('info', {}).get('title', 'N/A')}")
     print(f"  Version: {schema.get('info', {}).get('version', 'N/A')}")
     print(f"  Paths: {len(paths)} endpoints")
-    
+
     return str(output_path)
 
 

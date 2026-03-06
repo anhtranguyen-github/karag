@@ -11,9 +11,9 @@ ISOLATION PRINCIPLE: Every model includes workspace_id for tenant isolation.
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional
-from pydantic import BaseModel, Field, field_validator
+from typing import Any, Literal
 
+from pydantic import BaseModel, Field, field_validator
 
 # =============================================================================
 # BLOCK 1: IDENTITY & ACCESS
@@ -30,9 +30,7 @@ class RateLimitConfig(BaseModel):
     requests_per_minute: int = Field(60, ge=1, description="Max requests per minute")
     requests_per_hour: int = Field(1000, ge=1, description="Max requests per hour")
     tokens_per_minute: int = Field(100000, ge=1000, description="Max tokens per minute")
-    concurrent_requests: int = Field(
-        10, ge=1, le=100, description="Max concurrent requests"
-    )
+    concurrent_requests: int = Field(10, ge=1, le=100, description="Max concurrent requests")
 
 
 class Workspace(BaseModel):
@@ -48,21 +46,13 @@ class Workspace(BaseModel):
     """
 
     id: str = Field(..., description="Unique workspace identifier (ws_xxx)")
-    name: str = Field(
-        ..., min_length=1, max_length=100, description="Human-readable name"
-    )
-    description: Optional[str] = Field(
-        None, max_length=500, description="Optional description"
-    )
-    owner_id: Optional[str] = Field(
-        None, description="Reference to owner user (for admin)"
-    )
+    name: str = Field(..., min_length=1, max_length=100, description="Human-readable name")
+    description: str | None = Field(None, max_length=500, description="Optional description")
+    owner_id: str | None = Field(None, description="Reference to owner user (for admin)")
 
     # Isolation configuration
-    dataset_ids: List[str] = Field(
-        default_factory=list, description="Associated dataset IDs"
-    )
-    enabled_datasets: List[str] = Field(
+    dataset_ids: list[str] = Field(default_factory=list, description="Associated dataset IDs")
+    enabled_datasets: list[str] = Field(
         default_factory=lambda: ["default"],
         description="Datasets this workspace can access",
     )
@@ -102,9 +92,7 @@ class APIKey(BaseModel):
     """
 
     id: str = Field(..., description="Key identifier (key_xxx)")
-    workspace_id: str = Field(
-        ..., description="Associated workspace - ISOLATION BOUNDARY"
-    )
+    workspace_id: str = Field(..., description="Associated workspace - ISOLATION BOUNDARY")
 
     # Key material (security)
     key_hash: str = Field(..., description="Argon2 hash of the key")
@@ -113,19 +101,19 @@ class APIKey(BaseModel):
     )
 
     # Permissions (scoped to workspace)
-    permissions: List[Literal["read", "write", "delete", "admin"]] = Field(
+    permissions: list[Literal["read", "write", "delete", "admin"]] = Field(
         default_factory=lambda: ["read", "write"], description="Granted permissions"
     )
 
     # Lifecycle
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    expires_at: Optional[datetime] = Field(None, description="Optional expiration")
-    last_used_at: Optional[datetime] = Field(None, description="Last usage timestamp")
+    expires_at: datetime | None = Field(None, description="Optional expiration")
+    last_used_at: datetime | None = Field(None, description="Last usage timestamp")
 
     # Status
     is_active: bool = Field(True, description="Active status")
-    revoked_at: Optional[datetime] = Field(None, description="Revocation timestamp")
-    revoked_reason: Optional[str] = Field(None, description="Reason for revocation")
+    revoked_at: datetime | None = Field(None, description="Revocation timestamp")
+    revoked_reason: str | None = Field(None, description="Reason for revocation")
 
     # Usage tracking
     use_count: int = Field(0, ge=0, description="Number of times used")
@@ -140,8 +128,8 @@ class APIKeyCreateResponse(BaseModel):
     workspace_id: str
     api_key: str = Field(..., description="FULL KEY - SAVE THIS NOW")
     key_prefix: str
-    permissions: List[str]
-    expires_at: Optional[datetime]
+    permissions: list[str]
+    expires_at: datetime | None
     created_at: datetime
 
     warning: str = Field(
@@ -159,7 +147,7 @@ class VectorStoreConfig(BaseModel):
     """Configuration for vector store backend."""
 
     provider: Literal["qdrant", "pinecone", "weaviate"] = "qdrant"
-    collection_name: Optional[str] = None  # Auto-generated if not set
+    collection_name: str | None = None  # Auto-generated if not set
     dimension: int = Field(1536, ge=128, le=4096)
     distance_metric: Literal["cosine", "dot", "euclidean"] = "cosine"
 
@@ -192,7 +180,7 @@ class Vault(BaseModel):
 
     # Metadata
     name: str = Field(..., min_length=1, max_length=100)
-    description: Optional[str] = Field(None, max_length=500)
+    description: str | None = Field(None, max_length=500)
 
     # Status
     is_active: bool = Field(True)
@@ -219,8 +207,8 @@ class Document(BaseModel):
     """
 
     id: str = Field(..., description="Document identifier (doc_xxx)")
-    vault_id: Optional[str] = Field(None, description="Parent global vault (if stored globally)")
-    dataset_id: Optional[str] = Field(None, description="Parent dataset (if indexed in workspace)")
+    vault_id: str | None = Field(None, description="Parent global vault (if stored globally)")
+    dataset_id: str | None = Field(None, description="Parent dataset (if indexed in workspace)")
     workspace_id: str = Field(..., description="Owning workspace - ISOLATION")
 
     # File metadata
@@ -242,13 +230,13 @@ class Document(BaseModel):
     ] = Field(default="uploaded")
 
     # Error tracking (for failed status)
-    error_message: Optional[str] = None
+    error_message: str | None = None
     error_count: int = Field(0, ge=0, description="Number of processing failures")
 
     # Content metadata
-    language: Optional[str] = Field(None, description="Detected language (ISO 639-1)")
-    page_count: Optional[int] = Field(None, ge=0)
-    word_count: Optional[int] = Field(None, ge=0)
+    language: str | None = Field(None, description="Detected language (ISO 639-1)")
+    page_count: int | None = Field(None, ge=0)
+    word_count: int | None = Field(None, ge=0)
 
     # Processing results
     chunks_count: int = Field(0, ge=0, description="Number of chunks generated")
@@ -256,7 +244,7 @@ class Document(BaseModel):
     # Timestamps
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
-    indexed_at: Optional[datetime] = None
+    indexed_at: datetime | None = None
 
     # Versioning
     version: int = Field(1, ge=1, description="Document version")
@@ -288,9 +276,7 @@ class Chunk(BaseModel):
     end_char: int = Field(..., ge=0, description="End position in original")
 
     # Metadata
-    metadata: Dict[str, Any] = Field(
-        default_factory=dict, description="Source, headers, etc."
-    )
+    metadata: dict[str, Any] = Field(default_factory=dict, description="Source, headers, etc.")
 
     # Embedding reference
     vector_point_id: str = Field(..., description="ID in vector store")
@@ -323,16 +309,12 @@ class RAGConfig(BaseModel):
     top_k: int = Field(5, ge=1, le=50, description="Number of chunks to retrieve")
 
     # Hybrid search weights
-    vector_weight: float = Field(
-        0.7, ge=0.0, le=1.0, description="Vector search weight"
-    )
-    keyword_weight: float = Field(
-        0.3, ge=0.0, le=1.0, description="Keyword search weight"
-    )
+    vector_weight: float = Field(0.7, ge=0.0, le=1.0, description="Vector search weight")
+    keyword_weight: float = Field(0.3, ge=0.0, le=1.0, description="Keyword search weight")
 
     # Reranking
     rerank_enabled: bool = Field(False, description="Enable reranking")
-    rerank_model: Optional[str] = Field(None, description="Reranker model name")
+    rerank_model: str | None = Field(None, description="Reranker model name")
     rerank_top_k: int = Field(3, ge=1, le=10, description="Top K after reranking")
 
     # Context assembly
@@ -371,13 +353,11 @@ class SystemConfig(BaseModel):
     """
 
     # Model restrictions
-    allowed_models: List[str] = Field(
+    allowed_models: list[str] = Field(
         default_factory=lambda: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo"],
         description="Whitelist of LLM models",
     )
-    max_context_window: int = Field(
-        128000, ge=4096, description="Maximum context window"
-    )
+    max_context_window: int = Field(128000, ge=4096, description="Maximum context window")
     max_tokens_per_request: int = Field(4096, ge=256, description="Max output tokens")
 
     # RAG defaults
@@ -408,7 +388,7 @@ class WorkspaceConfig(BaseModel):
     workspace_id: str
 
     # Dataset access
-    enabled_datasets: List[str] = Field(default_factory=lambda: ["default"])
+    enabled_datasets: list[str] = Field(default_factory=lambda: ["default"])
     default_dataset_id: str = "default"
 
     # RAG settings (clamped by system limits)
@@ -431,19 +411,19 @@ class RequestConfig(BaseModel):
     validated against workspace and system limits.
     """
 
-    temperature: Optional[float] = Field(None, ge=0.0, le=2.0)
-    top_p: Optional[float] = Field(None, ge=0.0, le=1.0)
-    max_tokens: Optional[int] = Field(None, ge=1)
+    temperature: float | None = Field(None, ge=0.0, le=2.0)
+    top_p: float | None = Field(None, ge=0.0, le=1.0)
+    max_tokens: int | None = Field(None, ge=1)
     stream: bool = Field(True, description="Stream response")
 
     # RAG overrides
-    use_rag: Optional[bool] = None
-    dataset_id: Optional[str] = None
-    top_k: Optional[int] = Field(None, ge=1, le=50)
+    use_rag: bool | None = None
+    dataset_id: str | None = None
+    top_k: int | None = Field(None, ge=1, le=50)
 
     @field_validator("max_tokens")
     @classmethod
-    def validate_max_tokens(cls, v: Optional[int]) -> Optional[int]:
+    def validate_max_tokens(cls, v: int | None) -> int | None:
         """Max tokens will be clamped to system limit during resolution."""
         return v
 
@@ -474,15 +454,15 @@ class RAGTrace(BaseModel):
     retrieval_latency_ms: float = Field(..., ge=0.0)
 
     # Sources
-    sources: List[RetrievedSource] = Field(default_factory=list)
+    sources: list[RetrievedSource] = Field(default_factory=list)
 
     # Context assembly
     context_tokens: int = Field(0, ge=0)
     context_documents: int = Field(0, ge=0)
 
     # Reranking (if enabled)
-    rerank_latency_ms: Optional[float] = None
-    rerank_input_count: Optional[int] = None
+    rerank_latency_ms: float | None = None
+    rerank_input_count: int | None = None
 
 
 class UsageLog(BaseModel):
@@ -514,21 +494,21 @@ class UsageLog(BaseModel):
     duration_ms: float = Field(..., ge=0.0)
 
     # Token usage (if applicable)
-    prompt_tokens: Optional[int] = Field(None, ge=0)
-    completion_tokens: Optional[int] = Field(None, ge=0)
-    embedding_tokens: Optional[int] = Field(None, ge=0)
-    total_tokens: Optional[int] = Field(None, ge=0)
+    prompt_tokens: int | None = Field(None, ge=0)
+    completion_tokens: int | None = Field(None, ge=0)
+    embedding_tokens: int | None = Field(None, ge=0)
+    total_tokens: int | None = Field(None, ge=0)
 
     # RAG trace (if applicable)
-    rag_trace: Optional[RAGTrace] = None
+    rag_trace: RAGTrace | None = None
 
     # Error info (if failed)
-    error_code: Optional[str] = None
-    error_message: Optional[str] = Field(None, max_length=500)
+    error_code: str | None = None
+    error_message: str | None = Field(None, max_length=500)
 
     # Client info
-    client_ip_hash: Optional[str] = Field(None, description="Hashed IP for privacy")
-    user_agent_hash: Optional[str] = Field(None, description="Hashed UA for privacy")
+    client_ip_hash: str | None = Field(None, description="Hashed IP for privacy")
+    user_agent_hash: str | None = Field(None, description="Hashed UA for privacy")
 
 
 class WorkspaceUsageStats(BaseModel):
@@ -573,8 +553,8 @@ class IsolationContext(BaseModel):
 
     workspace_id: str
     api_key_id: str
-    permissions: List[str]
-    dataset_ids: List[str]
+    permissions: list[str]
+    dataset_ids: list[str]
 
     def has_permission(self, permission: str) -> bool:
         """Check if context has specific permission."""

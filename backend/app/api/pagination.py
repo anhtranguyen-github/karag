@@ -10,7 +10,7 @@ Implements consistent pagination following API design principles:
 
 from __future__ import annotations
 
-from typing import Any, Generic, Optional, TypeVar
+from typing import Any, Generic, TypeVar
 from urllib.parse import urlencode
 
 from fastapi import Query
@@ -76,7 +76,7 @@ class CursorParams:
 
     def __init__(
         self,
-        cursor: Optional[str] = Query(
+        cursor: str | None = Query(
             None,
             description="Opaque cursor for pagination (from previous response)",
         ),
@@ -116,11 +116,11 @@ class PageInfo(BaseModel):
 class CursorInfo(BaseModel):
     """Cursor-based pagination metadata."""
 
-    next_cursor: Optional[str] = Field(
+    next_cursor: str | None = Field(
         None,
         description="Opaque cursor for fetching next page",
     )
-    prev_cursor: Optional[str] = Field(
+    prev_cursor: str | None = Field(
         None,
         description="Opaque cursor for fetching previous page",
     )
@@ -217,10 +217,10 @@ def create_paginated_response(
 
 def create_cursor_response(
     items: list[T],
-    next_cursor: Optional[str],
+    next_cursor: str | None,
     params: CursorParams,
     *,
-    prev_cursor: Optional[str] = None,
+    prev_cursor: str | None = None,
     message: str = "Data retrieved successfully",
 ) -> dict[str, Any]:
     """
@@ -255,8 +255,8 @@ def generate_link_header(
     params: PaginationParams,
     total: int,
     *,
-    extra_params: Optional[dict[str, Any]] = None,
-) -> Optional[str]:
+    extra_params: dict[str, Any] | None = None,
+) -> str | None:
     """
     Generate RFC 8288 Link header for HATEOAS pagination.
 
@@ -302,7 +302,7 @@ def generate_link_header(
     return ", ".join(links) if links else None
 
 
-def parse_cursor(cursor: Optional[str]) -> tuple[Optional[str], Optional[int]]:
+def parse_cursor(cursor: str | None) -> tuple[str | None, int | None]:
     """
     Parse a cursor string into its components.
 
@@ -333,7 +333,7 @@ def parse_cursor(cursor: Optional[str]) -> tuple[Optional[str], Optional[int]]:
 
 def encode_cursor(
     last_id: str,
-    offset: Optional[int] = None,
+    offset: int | None = None,
 ) -> str:
     """
     Encode cursor components into a string.

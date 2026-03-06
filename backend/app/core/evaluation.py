@@ -9,9 +9,9 @@ Implements systematic evaluation of LLM outputs for quality:
 - Safety: Is it safe?
 """
 
-from typing import List, Dict, Optional, Any
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 import structlog
 from backend.app.core.telemetry import get_tracer
@@ -50,12 +50,12 @@ class EvaluationScore:
 class EvaluationResult:
     """Complete evaluation result."""
 
-    scores: List[EvaluationScore]
+    scores: list[EvaluationScore]
     overall_score: float
     passed: bool
-    metadata: Dict[str, Any]
+    metadata: dict[str, Any]
 
-    def get_score(self, metric: EvaluationMetric) -> Optional[float]:
+    def get_score(self, metric: EvaluationMetric) -> float | None:
         """Get score for specific metric."""
         for s in self.scores:
             if s.metric == metric:

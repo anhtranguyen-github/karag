@@ -187,9 +187,7 @@ async def migrate_existing_workspaces():
         workspace_id = workspace["id"]
 
         # Check if default vault exists
-        existing = await db.vaults.find_one(
-            {"owner_workspace_id": workspace_id, "name": "default"}
-        )
+        existing = await db.vaults.find_one({"owner_workspace_id": workspace_id, "name": "default"})
 
         if existing:
             print(f"  Workspace {workspace_id}: default vault already exists")

@@ -1,10 +1,9 @@
-from fastapi import APIRouter, Depends
-from typing import Dict, Any
+from typing import Any
+
+from backend.app.api.deps import CurrentWorkspace, get_current_workspace
 from backend.app.core.settings_manager import settings_manager
-
 from backend.app.schemas.base import AppResponse
-
-from backend.app.api.deps import get_current_workspace, CurrentWorkspace
+from fastapi import APIRouter, Depends
 
 router = APIRouter(tags=["settings"])
 
@@ -27,7 +26,7 @@ async def get_settings_metadata(
 
 @router.patch("/")
 async def update_settings(
-    updates: Dict[str, Any], current_workspace: CurrentWorkspace = Depends(get_current_workspace)
+    updates: dict[str, Any], current_workspace: CurrentWorkspace = Depends(get_current_workspace)
 ):
     """Update settings for a specific workspace."""
     settings = await settings_manager.update_settings(updates, current_workspace.id)

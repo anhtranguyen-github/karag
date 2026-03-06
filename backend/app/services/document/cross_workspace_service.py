@@ -1,10 +1,11 @@
 import uuid
 from datetime import datetime
-from backend.app.core.mongodb import mongodb_manager
+
 from backend.app.core.exceptions import NotFoundError, ValidationError
+from backend.app.core.mongodb import mongodb_manager
+from backend.app.services.document.base import logger
+from backend.app.services.document.document_ingestion_service import document_ingestion_service
 from backend.app.services.task.task_service import task_service
-from .document_ingestion_service import document_ingestion_service
-from .base import logger
 
 
 class CrossWorkspaceDocumentService:
@@ -134,9 +135,7 @@ class CrossWorkspaceDocumentService:
                     )
                 from backend.app.rag.ingestion import ingestion_pipeline
 
-                config, store = await ingestion_pipeline.get_ingestion_config(
-                    source_ws_id
-                )
+                config, store = await ingestion_pipeline.get_ingestion_config(source_ws_id)
                 await store.delete_document(config, res["id"])
 
         elif action == "share":
@@ -145,9 +144,7 @@ class CrossWorkspaceDocumentService:
                 {
                     "$addToSet": {"shared_with": target_workspace_id},
                     "$set": {
-                        f"workspace_statuses.{target_workspace_id}": res.get(
-                            "status", "uploaded"
-                        )
+                        f"workspace_statuses.{target_workspace_id}": res.get("status", "uploaded")
                     },
                 },
             )
@@ -155,11 +152,7 @@ class CrossWorkspaceDocumentService:
 
             from backend.app.rag.ingestion import ingestion_pipeline
 
-            config, store = await ingestion_pipeline.get_ingestion_config(
-                res["workspace_id"]
-            )
-            await store.sync_shared_with(
-                config, res["id"], updated_doc.get("shared_with", [])
-            )
+            config, store = await ingestion_pipeline.get_ingestion_config(res["workspace_id"])
+            await store.sync_shared_with(config, res["id"], updated_doc.get("shared_with", []))
         else:
             raise ValidationError(f"Invalid action: {action}")

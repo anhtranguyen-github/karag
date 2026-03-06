@@ -10,24 +10,24 @@ All features are configurable via environment variables defined in config.py.
 When OTEL_ENABLED=false, tracing degrades to a no-op with zero overhead.
 """
 
-import logging
 import functools
+import logging
 import time
-from pathlib import Path
-from logging.handlers import RotatingFileHandler
-from typing import Optional, Callable, Any
+from collections.abc import Callable
 from contextvars import ContextVar
-
-from backend.app.core.config import karag_settings
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
+from typing import Any
 
 import structlog
+from backend.app.core.config import karag_settings
 from opentelemetry import trace
+from opentelemetry.sdk.resources import SERVICE_NAME, Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.trace.sampling import TraceIdRatioBased
-from opentelemetry.sdk.resources import Resource, SERVICE_NAME
 from opentelemetry.trace import StatusCode
-from prometheus_client import Counter, Histogram, Gauge
+from prometheus_client import Counter, Gauge, Histogram
 
 # ---------------------------------------------------------------------------
 # Context Variables — thread-safe correlation across async tasks
@@ -209,7 +209,10 @@ ORPHAN_CARDS = Gauge(
 DOMAIN_ERROR_COUNT = Counter(
     "domain_errors_total",
     "Total domain operation errors",
-    ["error_type", "domain"],  # error_type = ValueError | RuntimeError | etc., domain = review | lesson | deck
+    [
+        "error_type",
+        "domain",
+    ],  # error_type = ValueError | RuntimeError | etc., domain = review | lesson | deck
 )
 
 
@@ -218,7 +221,7 @@ def record_llm_usage(
     model: str,
     prompt_tokens: int,
     completion_tokens: int,
-    workspace_id: Optional[str] = None,
+    workspace_id: str | None = None,
 ) -> None:
     """Record LLM token usage to both OpenTelemetry and Prometheus."""
     span = trace.get_current_span()
@@ -232,9 +235,7 @@ def record_llm_usage(
             span.set_attribute("workspace_id", workspace_id)
 
     # Prometheus metrics
-    LLM_TOKEN_USAGE.labels(provider=provider, model=model, token_type="prompt").inc(
-        prompt_tokens
-    )  # nosec B106
+    LLM_TOKEN_USAGE.labels(provider=provider, model=model, token_type="prompt").inc(prompt_tokens)  # nosec B106
     LLM_TOKEN_USAGE.labels(provider=provider, model=model, token_type="completion").inc(
         completion_tokens
     )  # nosec B106
@@ -379,8 +380,8 @@ DOMAIN_SPAN_DECK_CREATE = "deck.create"
 
 
 def traced(
-    span_name: Optional[str] = None,
-    attributes: Optional[dict] = None,
+    span_name: str | None = None,
+    attributes: dict | None = None,
 ) -> Callable:
     """
     Decorator that wraps an async function in an OpenTelemetry span.
@@ -429,6 +430,7 @@ def traced(
 # Domain-specific logging helpers
 # ---------------------------------------------------------------------------
 
+
 def get_domain_logger(name: str = "domain"):
     """
     Get a logger configured for domain operations with structured context.
@@ -457,9 +459,9 @@ def get_domain_logger(name: str = "domain"):
 
 
 def set_domain_context(
-    user_id: Optional[str] = None,
-    session_id: Optional[str] = None,
-    domain_action: Optional[str] = None,
+    user_id: str | None = None,
+    session_id: str | None = None,
+    domain_action: str | None = None,
     **kwargs,
 ) -> None:
     """
@@ -525,12 +527,12 @@ def log_domain_event(
 
 
 def record_domain_metrics(
-    session_type: Optional[str] = None,
-    rating: Optional[str] = None,
-    operation: Optional[str] = None,
-    error_type: Optional[str] = None,
-    domain: Optional[str] = None,
-    duration: Optional[float] = None,
+    session_type: str | None = None,
+    rating: str | None = None,
+    operation: str | None = None,
+    error_type: str | None = None,
+    domain: str | None = None,
+    duration: float | None = None,
 ) -> None:
     """
     Record domain-specific metrics.
@@ -572,10 +574,11 @@ def record_domain_metrics(
 # Convenience decorators for domain operations
 # ---------------------------------------------------------------------------
 
+
 def traced_domain(
     span_name: str,
-    domain_action: Optional[str] = None,
-    attributes: Optional[dict] = None,
+    domain_action: str | None = None,
+    attributes: dict | None = None,
 ) -> Callable:
     """
     Decorator for domain operations that adds tracing, logging, and metrics.
@@ -595,6 +598,7 @@ def traced_domain(
         domain_action: The domain action for logging context
         attributes: Additional span attributes
     """
+
     def decorator(func: Callable) -> Callable:
         # Apply the base traced decorator
         traced_func = traced(span_name, attributes)

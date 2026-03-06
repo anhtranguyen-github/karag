@@ -1,15 +1,15 @@
-import os
 import json
-import structlog
+import os
 from pathlib import Path
-from typing import Dict, Any, Optional, Literal
-from pydantic_core import PydanticUndefined
-from backend.app.core.schemas import AppSettings
-from backend.app.core.config import karag_settings
-from backend.app.core.mongodb import mongodb_manager
+from typing import Any, Literal
 
-from pydantic import ValidationError as PydanticValidationError
+import structlog
+from backend.app.core.config import karag_settings
 from backend.app.core.exceptions import ValidationError
+from backend.app.core.mongodb import mongodb_manager
+from backend.app.core.schemas import AppSettings
+from pydantic import ValidationError as PydanticValidationError
+from pydantic_core import PydanticUndefined
 
 logger = structlog.get_logger(__name__)
 
@@ -27,9 +27,7 @@ DATA_DIR = PROJECT_ROOT / "backend/data"
 
 
 class SettingsManager:
-    def __init__(
-        self, config_file: str = "settings.json", config_path: Optional[Path] = None
-    ):
+    def __init__(self, config_file: str = "settings.json", config_path: Path | None = None):
         # INTERNAL ONLY: Controlled mapping to data directory
         if config_path:
             self.config_path = Path(config_path)
@@ -37,7 +35,7 @@ class SettingsManager:
             self.config_path = DATA_DIR / config_file
 
         self._global_settings: AppSettings = self._load_initial_settings()
-        self._settings_cache: Dict[str, AppSettings] = {}
+        self._settings_cache: dict[str, AppSettings] = {}
         # Ensure fallback file exists
         if not self.config_path.exists():
             self._save_global_settings()
@@ -56,7 +54,7 @@ class SettingsManager:
         settings_data = {}
         if self.config_path.exists():
             try:
-                with open(self.config_path, "r") as f:
+                with open(self.config_path) as f:
                     settings_data = json.load(f)
             except Exception as e:
                 logger.error("settings_load_error", error=str(e))
@@ -91,7 +89,7 @@ class SettingsManager:
     def get_global_settings(self) -> AppSettings:
         return self._global_settings
 
-    async def get_settings(self, workspace_id: Optional[str] = None) -> AppSettings:
+    async def get_settings(self, workspace_id: str | None = None) -> AppSettings:
         """Get settings for a specific workspace, falling back to global settings."""
         if not workspace_id or workspace_id == "default" or workspace_id == "vault":
             return self._global_settings
@@ -116,9 +114,7 @@ class SettingsManager:
             merged_data = self._global_settings.model_dump()
             # Remove mongo _id and workspace_id from doc before merging
             override_data = {
-                k: v
-                for k, v in ws_settings_doc.items()
-                if k not in ["_id", "workspace_id"]
+                k: v for k, v in ws_settings_doc.items() if k not in ["_id", "workspace_id"]
             }
             merged_data.update(override_data)
 
@@ -127,17 +123,13 @@ class SettingsManager:
                 self._settings_cache[workspace_id] = settings
                 return settings
             except PydanticValidationError as e:
-                logger.error(
-                    "settings_schema_mismatch", workspace_id=workspace_id, error=str(e)
-                )
+                logger.error("settings_schema_mismatch", workspace_id=workspace_id, error=str(e))
                 return self._global_settings
         except Exception as e:
-            logger.error(
-                "settings_fetch_error", workspace_id=workspace_id, error=str(e)
-            )
+            logger.error("settings_fetch_error", workspace_id=workspace_id, error=str(e))
             return self._global_settings
 
-    def get_settings_metadata(self) -> Dict[str, Any]:
+    def get_settings_metadata(self) -> dict[str, Any]:
         """Discover settings metadata from the AppSettings schema recursively."""
         return self._discover_metadata(AppSettings)
 
@@ -145,19 +137,18 @@ class SettingsManager:
         self,
         model_class: Any,
         prefix: str = "",
-        category: Optional[str] = None,
+        category: str | None = None,
         mutable: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Recursively discover fields in Pydantic models."""
         import typing
+
         from pydantic import BaseModel
 
         metadata = {}
 
         # Determine fields to iterate
-        fields = (
-            model_class.model_fields if hasattr(model_class, "model_fields") else {}
-        )
+        fields = model_class.model_fields if hasattr(model_class, "model_fields") else {}
 
         for name, field in fields.items():
             full_name = f"{prefix}{name}"
@@ -200,7 +191,7 @@ class SettingsManager:
             if not category and "category" not in extra:
                 continue
 
-            field_data: Dict[str, Any] = {
+            field_data: dict[str, Any] = {
                 "mutable": current_mutable,
                 "category": current_category or "General",
                 "description": field.description or "",
@@ -236,7 +227,7 @@ class SettingsManager:
 
         return metadata
 
-    def _expand_flat_dict(self, flat_dict: Dict[str, Any]) -> Dict[str, Any]:
+    def _expand_flat_dict(self, flat_dict: dict[str, Any]) -> dict[str, Any]:
         """Convert a flat dict with dot-notation keys to a nested dict."""
         nested = {}
         for key, value in flat_dict.items():
@@ -250,7 +241,7 @@ class SettingsManager:
         return nested
 
     async def update_settings(
-        self, updates: Dict[str, Any], workspace_id: Optional[str] = None
+        self, updates: dict[str, Any], workspace_id: str | None = None
     ) -> AppSettings:
         """Update settings for a workspace or global."""
 
@@ -285,11 +276,7 @@ class SettingsManager:
             # Deep merge logic for expanded_updates into current_data
             def deep_update(target, source):
                 for k, v in source.items():
-                    if (
-                        isinstance(v, dict)
-                        and k in target
-                        and isinstance(target[k], dict)
-                    ):
+                    if isinstance(v, dict) and k in target and isinstance(target[k], dict):
                         deep_update(target[k], v)
                     else:
                         target[k] = v

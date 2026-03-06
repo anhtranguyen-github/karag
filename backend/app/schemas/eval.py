@@ -1,10 +1,11 @@
-from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Optional
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
+from typing import Any
+
+from pydantic import BaseModel, Field
 
 
-class EvalStatus(str, Enum):
+class EvalStatus(StrEnum):
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -13,26 +14,26 @@ class EvalStatus(str, Enum):
 
 class TestCase(BaseModel):
     query: str
-    expected_answer: Optional[str] = None
-    expected_source_ids: Optional[List[str]] = None
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    expected_answer: str | None = None
+    expected_source_ids: list[str] | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class EvalDataset(BaseModel):
     id: str
     name: str
     workspace_id: str
-    test_cases: List[TestCase]
+    test_cases: list[TestCase]
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class EvalResult(BaseModel):
     test_case: TestCase
     actual_answer: str
-    actual_source_ids: List[str]
-    metrics: Dict[str, float]  # e.g., faithfulness, answer_relevancy
+    actual_source_ids: list[str]
+    metrics: dict[str, float]  # e.g., faithfulness, answer_relevancy
     success: bool
-    error: Optional[str] = None
+    error: str | None = None
 
 
 class EvalRun(BaseModel):
@@ -40,7 +41,7 @@ class EvalRun(BaseModel):
     dataset_id: str
     workspace_id: str
     status: EvalStatus
-    results: List[EvalResult] = Field(default_factory=list)
+    results: list[EvalResult] = Field(default_factory=list)
     started_at: datetime = Field(default_factory=datetime.utcnow)
-    completed_at: Optional[datetime] = None
-    overall_metrics: Dict[str, float] = Field(default_factory=dict)
+    completed_at: datetime | None = None
+    overall_metrics: dict[str, float] = Field(default_factory=dict)

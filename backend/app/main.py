@@ -15,17 +15,10 @@ Following FastAPI best practices:
 from __future__ import annotations
 
 import os
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 import structlog
-from dotenv import load_dotenv
-from fastapi import FastAPI, Request, status
-from fastapi.exceptions import RequestValidationError
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel
-
 from backend.app.api.errors import ErrorHandlerMiddleware
 from backend.app.api.v1.router import api_v1_router
 from backend.app.core.config import karag_settings
@@ -40,6 +33,12 @@ from backend.app.core.prompt_registry import (
     prompt_registry,
 )
 from backend.app.core.telemetry import init_telemetry
+from dotenv import load_dotenv
+from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 # Load environment variables before any other initialization
 load_dotenv()
@@ -288,9 +287,7 @@ def _setup_exception_handlers(app: FastAPI) -> None:
             msg = err["msg"]
             messages.append(f"{loc}: {msg}")
 
-        main_message = (
-            f"Validation failed: {messages[0]}" if messages else "Validation failed"
-        )
+        main_message = f"Validation failed: {messages[0]}" if messages else "Validation failed"
 
         response = JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

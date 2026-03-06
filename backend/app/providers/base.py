@@ -5,9 +5,10 @@ All LangChain dependencies are isolated to the adapter module.
 """
 
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, AsyncIterator, Dict, List, Optional, Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 from pydantic import BaseModel, Field
 
@@ -18,9 +19,9 @@ class LLMResponse(BaseModel):
     content: str
     model: str
     provider: str
-    usage: Optional[Dict[str, int]] = None
-    metadata: Optional[Dict[str, Any]] = None
-    finish_reason: Optional[str] = None
+    usage: dict[str, int] | None = None
+    metadata: dict[str, Any] | None = None
+    finish_reason: str | None = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -33,9 +34,9 @@ class LLMMessage:
 
     role: str  # "system", "user", "assistant", "tool"
     content: str
-    name: Optional[str] = None  # For tool messages
-    tool_calls: Optional[List[Dict[str, Any]]] = None
-    tool_call_id: Optional[str] = None
+    name: str | None = None  # For tool messages
+    tool_calls: list[dict[str, Any]] | None = None
+    tool_call_id: str | None = None
 
 
 class LLMProvider(ABC):
@@ -59,7 +60,7 @@ class LLMProvider(ABC):
         pass
 
     @abstractmethod
-    async def chat(self, messages: List[LLMMessage], **kwargs) -> LLMResponse:
+    async def chat(self, messages: list[LLMMessage], **kwargs) -> LLMResponse:
         """Execute a chat completion request.
 
         Args:
@@ -72,7 +73,7 @@ class LLMProvider(ABC):
         pass
 
     @abstractmethod
-    async def stream(self, messages: List[LLMMessage], **kwargs) -> AsyncIterator[str]:
+    async def stream(self, messages: list[LLMMessage], **kwargs) -> AsyncIterator[str]:
         """Execute a streaming chat completion request.
 
         Args:
@@ -100,7 +101,7 @@ class ToolCapable(Protocol):
     """
 
     async def chat_with_tools(
-        self, messages: List[LLMMessage], tools: List[Dict[str, Any]], **kwargs
+        self, messages: list[LLMMessage], tools: list[dict[str, Any]], **kwargs
     ) -> LLMResponse:
         """Execute chat with tool calling support.
 
@@ -114,7 +115,7 @@ class ToolCapable(Protocol):
         """
         ...
 
-    def bind_tools(self, tools: List[Dict[str, Any]]) -> "ToolCapable":
+    def bind_tools(self, tools: list[dict[str, Any]]) -> "ToolCapable":
         """Bind tools to the provider for subsequent calls.
 
         Returns a new provider instance with tools bound, or self if mutated.
@@ -132,8 +133,8 @@ class StructuredOutputCapable(Protocol):
     """
 
     async def chat_structured(
-        self, messages: List[LLMMessage], output_schema: Dict[str, Any], **kwargs
-    ) -> Dict[str, Any]:
+        self, messages: list[LLMMessage], output_schema: dict[str, Any], **kwargs
+    ) -> dict[str, Any]:
         """Execute chat with structured JSON output.
 
         Args:
@@ -159,7 +160,7 @@ class LangGraphCompatible(Protocol):
             result = await provider.ainvoke(...)
     """
 
-    async def ainvoke(self, input: Any, config: Optional[Any] = None, **kwargs) -> Any:
+    async def ainvoke(self, input: Any, config: Any | None = None, **kwargs) -> Any:
         """LangGraph-compatible invocation method.
 
         Accepts and returns LangChain message types for compatibility
@@ -167,9 +168,7 @@ class LangGraphCompatible(Protocol):
         """
         ...
 
-    async def astream(
-        self, input: Any, config: Optional[Any] = None, **kwargs
-    ) -> AsyncIterator[Any]:
+    async def astream(self, input: Any, config: Any | None = None, **kwargs) -> AsyncIterator[Any]:
         """LangGraph-compatible streaming method.
 
         Yields LangChain message chunks for compatibility with

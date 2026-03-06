@@ -5,10 +5,11 @@ Provides abstract base class and common functionality for all dataset loaders.
 """
 
 from abc import ABC, abstractmethod
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Union
+from typing import Any
 
 import structlog
 
@@ -34,22 +35,22 @@ class DatasetEntry:
 
     id: str
     query: str
-    answer: Optional[str] = None
-    contexts: List[str] = field(default_factory=list)
-    ground_truth_documents: List[str] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    answer: str | None = None
+    contexts: list[str] = field(default_factory=list)
+    ground_truth_documents: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     # For datasets with multiple valid answers
-    alternative_answers: List[str] = field(default_factory=list)
+    alternative_answers: list[str] = field(default_factory=list)
 
     # Dataset source information
-    dataset_name: Optional[str] = None
-    language: Optional[str] = None
-    domain: Optional[str] = None  # e.g., "medical", "finance", "general"
+    dataset_name: str | None = None
+    language: str | None = None
+    domain: str | None = None  # e.g., "medical", "finance", "general"
 
     # For multi-hop or complex reasoning datasets
-    reasoning_path: Optional[List[str]] = None
-    supporting_facts: List[str] = field(default_factory=list)
+    reasoning_path: list[str] | None = None
+    supporting_facts: list[str] = field(default_factory=list)
 
     def __post_init__(self):
         """Ensure proper initialization of mutable defaults."""
@@ -73,14 +74,14 @@ class DatasetInfo:
     description: str
     language: str  # "en", "vi", "multilingual"
     task_type: str  # "qa", "retrieval", "summarization"
-    num_samples: Optional[int] = None
-    domains: List[str] = field(default_factory=list)
+    num_samples: int | None = None
+    domains: list[str] = field(default_factory=list)
     has_ground_truth_context: bool = True
     has_ground_truth_answer: bool = True
-    citation: Optional[str] = None
-    license: Optional[str] = None
-    version: Optional[str] = None
-    url: Optional[str] = None
+    citation: str | None = None
+    license: str | None = None
+    version: str | None = None
+    url: str | None = None
 
     def __post_init__(self):
         if self.domains is None:
@@ -108,7 +109,7 @@ class BaseDatasetLoader(ABC):
                     pass
     """
 
-    def __init__(self, name: str, cache_dir: Optional[Union[str, Path]] = None):
+    def __init__(self, name: str, cache_dir: str | Path | None = None):
         """
         Initialize the dataset loader.
 
@@ -117,18 +118,16 @@ class BaseDatasetLoader(ABC):
             cache_dir: Directory to cache downloaded datasets
         """
         self.name = name
-        self.cache_dir = (
-            Path(cache_dir) if cache_dir else Path.home() / ".karag" / "datasets"
-        )
+        self.cache_dir = Path(cache_dir) if cache_dir else Path.home() / ".karag" / "datasets"
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        self._info: Optional[DatasetInfo] = None
+        self._info: DatasetInfo | None = None
         self.logger = logger.bind(dataset=name)
 
     @abstractmethod
     async def load(
         self,
         split: DatasetSplit = DatasetSplit.TEST,
-        max_samples: Optional[int] = None,
+        max_samples: int | None = None,
         **kwargs,
     ) -> Iterator[DatasetEntry]:
         """
@@ -191,7 +190,7 @@ class BaseDatasetLoader(ABC):
             self.logger.error("validation_failed", error=str(e))
             return False
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """
         Get basic statistics about the dataset.
 

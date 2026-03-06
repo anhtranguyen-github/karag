@@ -6,14 +6,14 @@ with both retrieval and generation metrics.
 """
 
 import time
+from collections.abc import Callable, Iterator
 from datetime import datetime
-from typing import Any, Callable, Iterator, List
+from typing import Any
 
 import structlog
-
 from backend.app.eval.datasets.base import DatasetEntry
-from backend.app.eval.metrics.retrieval import RetrievalMetrics
 from backend.app.eval.metrics.generation import GenerationMetrics
+from backend.app.eval.metrics.retrieval import RetrievalMetrics
 from backend.app.eval.runners.base import (
     BaseRunner,
     RunnerConfig,
@@ -70,7 +70,7 @@ class StandardQARunner(BaseRunner):
         """
         result = self._create_result("dataset", config, RunnerStatus.RUNNING)
 
-        sample_results: List[SampleResult] = []
+        sample_results: list[SampleResult] = []
         count = 0
 
         try:
@@ -130,9 +130,7 @@ class StandardQARunner(BaseRunner):
                     relevant_doc_ids=entry.ground_truth_documents,
                     k_values=config.k_values,
                 )
-                sample_result.retrieval_metrics = {
-                    k: v.score for k, v in retrieval_results.items()
-                }
+                sample_result.retrieval_metrics = {k: v.score for k, v in retrieval_results.items()}
 
             # Compute generation metrics
             if config.compute_generation_metrics and sample_result.predicted_answer:

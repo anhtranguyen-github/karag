@@ -6,10 +6,11 @@ Supports both automated metrics and human feedback.
 """
 
 import re
-from typing import List, Dict, Any, Optional, Callable
+from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
-from abc import ABC, abstractmethod
+from typing import Any
 
 import structlog
 from backend.app.core.telemetry import get_tracer
@@ -38,7 +39,7 @@ class EvalResult:
     score: float  # 0.0 to 1.0
     reason: str
     confidence: float = 1.0
-    metadata: Dict[str, Any] = None
+    metadata: dict[str, Any] = None
 
     def __post_init__(self):
         if self.metadata is None:
@@ -51,10 +52,10 @@ class EvalTestCase:
 
     id: str
     query: str
-    context: Optional[str] = None
-    expected_output: Optional[str] = None
-    expected_answer: Optional[str] = None  # For RAG
-    tags: List[str] = None
+    context: str | None = None
+    expected_output: str | None = None
+    expected_answer: str | None = None  # For RAG
+    tags: list[str] = None
 
     def __post_init__(self):
         if self.tags is None:
@@ -69,8 +70,8 @@ class BaseEvaluator(ABC):
         self,
         query: str,
         response: str,
-        context: Optional[str] = None,
-        ground_truth: Optional[str] = None,
+        context: str | None = None,
+        ground_truth: str | None = None,
     ) -> EvalResult:
         pass
 
@@ -122,8 +123,8 @@ Reason: <brief explanation>"""
         self,
         query: str,
         response: str,
-        context: Optional[str] = None,
-        ground_truth: Optional[str] = None,
+        context: str | None = None,
+        ground_truth: str | None = None,
     ) -> EvalResult:
         """Evaluate using LLM judge."""
         with tracer.start_as_current_span(f"eval.{self.metric.value}"):
@@ -161,9 +162,7 @@ Reason: <brief explanation>"""
             score = max(0.0, min(1.0, score))  # Clamp to [0, 1]
 
         # Extract reason
-        reason_match = re.search(
-            r"Reason:\s*(.+?)(?:\n|$)", response, re.IGNORECASE | re.DOTALL
-        )
+        reason_match = re.search(r"Reason:\s*(.+?)(?:\n|$)", response, re.IGNORECASE | re.DOTALL)
         if reason_match:
             reason = reason_match.group(1).strip()
 
@@ -175,7 +174,7 @@ class RuleBasedEvaluator(BaseEvaluator):
     Rule-based evaluation for quick, deterministic checks.
     """
 
-    def __init__(self, metric: EvalMetric, rules: List[Callable[[str, str], float]]):
+    def __init__(self, metric: EvalMetric, rules: list[Callable[[str, str], float]]):
         self.metric = metric
         self.rules = rules
 
@@ -183,8 +182,8 @@ class RuleBasedEvaluator(BaseEvaluator):
         self,
         query: str,
         response: str,
-        context: Optional[str] = None,
-        ground_truth: Optional[str] = None,
+        context: str | None = None,
+        ground_truth: str | None = None,
     ) -> EvalResult:
         """Apply rules and aggregate scores."""
         scores = [rule(query, response) for rule in self.rules]
@@ -214,8 +213,8 @@ class EvalFramework:
     """
 
     def __init__(self):
-        self.evaluators: Dict[EvalMetric, List[BaseEvaluator]] = {}
-        self.test_cases: List[EvalTestCase] = []
+        self.evaluators: dict[EvalMetric, list[BaseEvaluator]] = {}
+        self.test_cases: list[EvalTestCase] = []
 
     def add_evaluator(
         self,
@@ -237,10 +236,10 @@ class EvalFramework:
         self,
         query: str,
         response: str,
-        context: Optional[str] = None,
-        ground_truth: Optional[str] = None,
-        metrics: Optional[List[EvalMetric]] = None,
-    ) -> Dict[EvalMetric, List[EvalResult]]:
+        context: str | None = None,
+        ground_truth: str | None = None,
+        metrics: list[EvalMetric] | None = None,
+    ) -> dict[EvalMetric, list[EvalResult]]:
         """
         Evaluate a response across multiple metrics.
 
@@ -259,14 +258,10 @@ class EvalFramework:
                 metric_results = []
                 for evaluator in self.evaluators[metric]:
                     try:
-                        result = await evaluator.evaluate(
-                            query, response, context, ground_truth
-                        )
+                        result = await evaluator.evaluate(query, response, context, ground_truth)
                         metric_results.append(result)
                     except Exception as e:
-                        logger.warning(
-                            "evaluator_failed", metric=metric.value, error=str(e)
-                        )
+                        logger.warning("evaluator_failed", metric=metric.value, error=str(e))
 
                 results[metric] = metric_results
 
@@ -275,8 +270,8 @@ class EvalFramework:
     async def run_benchmark(
         self,
         generate_fn: Callable[[str], Any],
-        test_cases: Optional[List[EvalTestCase]] = None,
-    ) -> Dict[str, Any]:
+        test_cases: list[EvalTestCase] | None = None,
+    ) -> dict[str, Any]:
         """
         Run benchmark on test cases.
 
@@ -314,9 +309,9 @@ class EvalFramework:
 
             return self._aggregate_results(all_results)
 
-    def _aggregate_results(self, results: List[Dict]) -> Dict[str, Any]:
+    def _aggregate_results(self, results: list[dict]) -> dict[str, Any]:
         """Aggregate evaluation results."""
-        metric_scores: Dict[EvalMetric, List[float]] = {}
+        metric_scores: dict[EvalMetric, list[float]] = {}
 
         for result in results:
             for metric, eval_results in result["evaluations"].items():
@@ -346,7 +341,7 @@ class EvalFramework:
             "detailed_results": results,
         }
 
-    def generate_report(self, results: Dict[str, Any]) -> str:
+    def generate_report(self, results: dict[str, Any]) -> str:
         """Generate human-readable evaluation report."""
         lines = [
             "# LLM Evaluation Report",

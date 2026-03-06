@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any
+from typing import Any
+
 import structlog
 from backend.app.core.telemetry import get_tracer
 
@@ -10,8 +11,8 @@ tracer = get_tracer(__name__)
 class BaseIngestionStrategy(ABC):
     @abstractmethod
     async def run(
-        self, task_id: str, workspace_id: str, metadata: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, task_id: str, workspace_id: str, metadata: dict[str, Any]
+    ) -> dict[str, Any]:
         """Execute the ingestion strategy."""
         pass
 

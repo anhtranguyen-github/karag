@@ -1,23 +1,22 @@
 import time
 
 import structlog
-from typing import Dict
-from langchain_core.messages import SystemMessage, AIMessage, RemoveMessage
-from langchain_core.runnables import RunnableConfig
-from backend.app.graph.state import AgentState
-from backend.app.rag.rag_service import rag_service
-from backend.app.providers.llm import get_llm
 from backend.app.core.telemetry import (
-    get_tracer,
-    LLM_REQUEST_LATENCY,
     LLM_REQUEST_COUNT,
+    LLM_REQUEST_LATENCY,
+    get_tracer,
 )
+from backend.app.graph.state import AgentState
+from backend.app.providers.llm import get_llm
+from backend.app.rag.rag_service import rag_service
+from langchain_core.messages import AIMessage, RemoveMessage, SystemMessage
+from langchain_core.runnables import RunnableConfig
 
 logger = structlog.get_logger(__name__)
 tracer = get_tracer(__name__)
 
 
-async def retrieval_node(state: AgentState) -> Dict:
+async def retrieval_node(state: AgentState) -> dict:
     """Retrieve relevant context based on configured settings."""
     workspace_id = state.get("workspace_id", "default")
     last_message = state["messages"][-1].content
@@ -50,7 +49,7 @@ async def retrieval_node(state: AgentState) -> Dict:
         }
 
 
-async def rerank_node(state: AgentState) -> Dict:
+async def rerank_node(state: AgentState) -> dict:
     """Refine and sort retrieved documents."""
     workspace_id = state.get("workspace_id", "default")
     last_message = state["messages"][-1].content
@@ -107,7 +106,7 @@ async def rerank_node(state: AgentState) -> Dict:
         }
 
 
-async def reason_node(state: AgentState, config: RunnableConfig) -> Dict:
+async def reason_node(state: AgentState, config: RunnableConfig) -> dict:
     """Analyze context and decide next steps."""
     workspace_id = state.get("workspace_id", "default")
 
@@ -121,9 +120,7 @@ async def reason_node(state: AgentState, config: RunnableConfig) -> Dict:
 
         context_str = ""
         for s in state.get("sources", []):
-            context_str += (
-                f"[{s['id']}] Source: {s['name']}\nContent: {s['content']}\n\n"
-            )
+            context_str += f"[{s['id']}] Source: {s['name']}\nContent: {s['content']}\n\n"
 
         logger.debug(
             "graph_reason_context",
@@ -132,18 +129,14 @@ async def reason_node(state: AgentState, config: RunnableConfig) -> Dict:
         )
 
         summary = state.get("summary", "")
-        summary_context = (
-            f"\n\n--- PREVIOUS CONVERSATION SUMMARY ---\n{summary}" if summary else ""
-        )
+        summary_context = f"\n\n--- PREVIOUS CONVERSATION SUMMARY ---\n{summary}" if summary else ""
 
         from backend.app.core.prompt_manager import prompt_manager
 
         system_base = prompt_manager.get_prompt("rag_system.system", version="v1")
 
         system_prompt = SystemMessage(
-            content=(
-                f"{system_base}\n\n{summary_context}\n\n--- CONTEXT ---\n{context_str}"
-            )
+            content=(f"{system_base}\n\n{summary_context}\n\n--- CONTEXT ---\n{context_str}")
         )
 
         logger.info("graph_reason_llm_invoke", workspace_id=workspace_id)
@@ -152,9 +145,7 @@ async def reason_node(state: AgentState, config: RunnableConfig) -> Dict:
         try:
             response = await llm.ainvoke(messages, config=config)
         except Exception as e:
-            logger.error(
-                "graph_reason_llm_failed", error=str(e), workspace_id=workspace_id
-            )
+            logger.error("graph_reason_llm_failed", error=str(e), workspace_id=workspace_id)
             # Create a graceful error message as the response
             error_msg = f"Error: Failed to connect to the reasoning engine ({type(llm).__name__}). Please ensure the service is running or check your configuration."
             if "ConnectError" in str(e) or "connection" in str(e).lower():
@@ -163,8 +154,7 @@ async def reason_node(state: AgentState, config: RunnableConfig) -> Dict:
             response = AIMessage(content=error_msg)
             return {
                 "messages": [response],
-                "reasoning_steps": state.get("reasoning_steps", [])
-                + ["Internal reasoning error"],
+                "reasoning_steps": state.get("reasoning_steps", []) + ["Internal reasoning error"],
             }
 
         # Determine provider and model for metrics
@@ -186,17 +176,11 @@ async def reason_node(state: AgentState, config: RunnableConfig) -> Dict:
 
         duration = time.perf_counter() - start
 
-        LLM_REQUEST_LATENCY.labels(provider=provider_name, operation="reason").observe(
-            duration
-        )
-        LLM_REQUEST_COUNT.labels(
-            provider=provider_name, operation="reason", status="ok"
-        ).inc()
+        LLM_REQUEST_LATENCY.labels(provider=provider_name, operation="reason").observe(duration)
+        LLM_REQUEST_COUNT.labels(provider=provider_name, operation="reason", status="ok").inc()
 
         # Attach reasoning data
-        current_steps = state.get("reasoning_steps", []) + [
-            "Reasoning about the query and context"
-        ]
+        current_steps = state.get("reasoning_steps", []) + ["Reasoning about the query and context"]
         response.additional_kwargs["reasoning_steps"] = current_steps
         response.additional_kwargs["sources"] = state.get("sources", [])
 
@@ -207,7 +191,7 @@ async def reason_node(state: AgentState, config: RunnableConfig) -> Dict:
         return {"messages": [response], "reasoning_steps": current_steps}
 
 
-async def generate_node(state: AgentState) -> Dict:
+async def generate_node(state: AgentState) -> dict:
     """Synthesize the final answer."""
     workspace_id = state.get("workspace_id", "default")
 
@@ -240,9 +224,7 @@ async def generate_node(state: AgentState) -> Dict:
 
         full_system = f"{system_prompt}\n\nContext:\n{context_str}"
 
-        response = await llm.ainvoke(
-            [SystemMessage(content=full_system)] + state["messages"]
-        )
+        response = await llm.ainvoke([SystemMessage(content=full_system)] + state["messages"])
 
         # Record usage
         usage = getattr(response, "usage_metadata", {})
@@ -263,7 +245,7 @@ async def generate_node(state: AgentState) -> Dict:
         return {"messages": [response], "reasoning_steps": final_steps}
 
 
-async def summarize_node(state: AgentState) -> Dict:
+async def summarize_node(state: AgentState) -> dict:
     """Summarize the conversation history if it gets too long."""
     messages = state["messages"]
     if len(messages) <= 6:
@@ -290,16 +272,12 @@ async def summarize_node(state: AgentState) -> Dict:
 
         existing_summary = state.get("summary", "")
         if existing_summary:
-            summary_prompt_base = prompt_manager.get_prompt(
-                "summarizer.extend", version="v1"
-            )
+            summary_prompt_base = prompt_manager.get_prompt("summarizer.extend", version="v1")
             summary_prompt = prompt_manager.format_prompt(
                 summary_prompt_base, existing_summary=existing_summary
             )
         else:
-            summary_prompt = prompt_manager.get_prompt(
-                "summarizer.create", version="v1"
-            )
+            summary_prompt = prompt_manager.get_prompt("summarizer.create", version="v1")
 
         messages_to_summarize = messages[:-2]
 

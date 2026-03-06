@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 from backend.app.services.workspace_service import workspace_service
 
 
@@ -29,9 +30,7 @@ async def test_workspace_delete_triggers_sync(mocker, mock_db):
 
     # Mock document_service to avoid real DB/Qdrant calls
     # Target the source instance as it is imported locally in WorkspaceService
-    mock_doc_service = mocker.patch(
-        "backend.app.services.document_service.document_service"
-    )
+    mock_doc_service = mocker.patch("backend.app.services.document_service.document_service")
     mock_doc_service.delete_many = AsyncMock()
     mock_doc_service.sync_workspaces = AsyncMock()
 

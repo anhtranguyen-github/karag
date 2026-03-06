@@ -5,10 +5,7 @@ instance. It delegates to the ProviderFactory and returns the provider-agnostic
 LLMProvider interface.
 """
 
-from typing import Optional
-
 import structlog
-
 from backend.app.core.telemetry import get_tracer
 from backend.app.providers.base import LLMProvider
 
@@ -16,7 +13,7 @@ logger = structlog.get_logger(__name__)
 tracer = get_tracer(__name__)
 
 
-async def get_llm(workspace_id: Optional[str] = None) -> LLMProvider:
+async def get_llm(workspace_id: str | None = None) -> LLMProvider:
     """Get the configured LLM provider for a specific workspace.
 
     This is the primary entry point for obtaining an LLM provider.

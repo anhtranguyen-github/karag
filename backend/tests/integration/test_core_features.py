@@ -1,8 +1,9 @@
-import pytest
 import uuid
-from httpx import AsyncClient, ASGITransport
-from backend.app.main import app
+
+import pytest
 from backend.app.core.mongodb import mongodb_manager
+from backend.app.main import app
+from httpx import ASGITransport, AsyncClient
 
 
 @pytest.fixture(autouse=True)
@@ -55,9 +56,7 @@ async def test_document_upload_and_vault():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         # Create WS
-        ws_res = await ac.post(
-            "/workspaces/", json={"name": f"Upload Test {uuid.uuid4().hex[:4]}"}
-        )
+        ws_res = await ac.post("/workspaces/", json={"name": f"Upload Test {uuid.uuid4().hex[:4]}"})
         debug_json = ws_res.json()
         assert ws_res.status_code == 200, f"Create WS failed: {debug_json}"
         ws_id = debug_json["data"]["id"]
@@ -77,9 +76,7 @@ async def test_document_upload_and_vault():
 
         # 2. Test Soft Delete (Move to Vault)
         # Using the API instead of direct service call for integration test
-        del_res = await ac.delete(
-            f"/documents/{doc_id}?workspace_id={ws_id}&vault_delete=false"
-        )
+        del_res = await ac.delete(f"/documents/{doc_id}?workspace_id={ws_id}&vault_delete=false")
         assert del_res.status_code == 200
 
         # Verify it's in vault
@@ -92,9 +89,7 @@ async def test_langgraph_execution_scenarios():
     """Test LangGraph execution through the chat stream API with different modes."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        ws_res = await ac.post(
-            "/workspaces/", json={"name": f"Graph Test {uuid.uuid4().hex[:4]}"}
-        )
+        ws_res = await ac.post("/workspaces/", json={"name": f"Graph Test {uuid.uuid4().hex[:4]}"})
         debug_json = ws_res.json()
         assert ws_res.status_code == 200, f"Create WS failed: {debug_json}"
         ws_id = debug_json["data"]["id"]

@@ -1,6 +1,7 @@
-import httpx
 import os
-from typing import List, Dict, Any
+from typing import Any
+
+import httpx
 import structlog
 
 logger = structlog.get_logger(__name__)
@@ -23,7 +24,7 @@ class TavilySearchTool:
     def __init__(self, api_key: str):
         self.api_key = api_key
 
-    async def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
+    async def search(self, query: str, max_results: int = 5) -> list[dict[str, Any]]:
         """
         Execute web search using Tavily REST API.
         Returns a list of result dicts with url, title, content keys.
@@ -59,9 +60,7 @@ class TavilySearchTool:
             logger.error("tavily_search_timeout", query=query)
             return []
         except httpx.HTTPStatusError as e:
-            logger.error(
-                "tavily_search_http_error", status=e.response.status_code, error=str(e)
-            )
+            logger.error("tavily_search_http_error", status=e.response.status_code, error=str(e))
             return []
         except Exception as e:
             logger.error("tavily_search_failed", error=str(e))

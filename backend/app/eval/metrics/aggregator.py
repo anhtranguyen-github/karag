@@ -5,9 +5,9 @@ Aggregates and reports metrics from multiple evaluation runs,
 providing statistical summaries and comparative analysis.
 """
 
-from typing import Any, Dict, List, Optional
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any
 
 import structlog
 
@@ -24,8 +24,8 @@ class AggregateResult:
     min: float
     max: float
     count: int
-    percentiles: Dict[str, float] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    percentiles: dict[str, float] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class MetricsAggregator:
@@ -53,14 +53,14 @@ class MetricsAggregator:
     """
 
     def __init__(self):
-        self.runs: Dict[str, Dict[str, Any]] = {}
+        self.runs: dict[str, dict[str, Any]] = {}
         self.logger = logger
 
     def add_run(
         self,
         run_id: str,
-        results: Dict[str, Any],
-        metadata: Optional[Dict[str, Any]] = None,
+        results: dict[str, Any],
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         """
         Add results from a single evaluation run.
@@ -79,8 +79,8 @@ class MetricsAggregator:
 
     def aggregate(
         self,
-        metric_filter: Optional[List[str]] = None,
-    ) -> Dict[str, AggregateResult]:
+        metric_filter: list[str] | None = None,
+    ) -> dict[str, AggregateResult]:
         """
         Aggregate metrics across all runs.
 
@@ -94,9 +94,9 @@ class MetricsAggregator:
             return {}
 
         # Collect all scores for each metric
-        metric_scores: Dict[str, List[float]] = {}
+        metric_scores: dict[str, list[float]] = {}
 
-        for run_id, run_data in self.runs.items():
+        for _run_id, run_data in self.runs.items():
             results = run_data["results"]
 
             for metric_name, value in results.items():
@@ -128,7 +128,7 @@ class MetricsAggregator:
         self,
         run_id_1: str,
         run_id_2: str,
-    ) -> Dict[str, Dict[str, float]]:
+    ) -> dict[str, dict[str, float]]:
         """
         Compare two evaluation runs.
 
@@ -173,7 +173,7 @@ class MetricsAggregator:
         baseline_run: str,
         comparison_run: str,
         threshold: float = 0.01,
-    ) -> Dict[str, Dict[str, float]]:
+    ) -> dict[str, dict[str, float]]:
         """
         Get metrics that improved in comparison run vs baseline.
 
@@ -198,7 +198,7 @@ class MetricsAggregator:
         baseline_run: str,
         comparison_run: str,
         threshold: float = 0.01,
-    ) -> Dict[str, Dict[str, float]]:
+    ) -> dict[str, dict[str, float]]:
         """
         Get metrics that regressed in comparison run vs baseline.
 
@@ -300,7 +300,7 @@ class MetricsAggregator:
 
         return "\n".join(lines)
 
-    def _extract_score(self, value: Any) -> Optional[float]:
+    def _extract_score(self, value: Any) -> float | None:
         """Extract numeric score from various result formats."""
         if isinstance(value, (int, float)):
             return float(value)
@@ -311,7 +311,7 @@ class MetricsAggregator:
                     return float(value[key])
         return None
 
-    def _compute_statistics(self, scores: List[float]) -> Dict[str, Any]:
+    def _compute_statistics(self, scores: list[float]) -> dict[str, Any]:
         """Compute statistical summary of scores."""
         n = len(scores)
         mean = sum(scores) / n
@@ -336,7 +336,7 @@ class MetricsAggregator:
             "percentiles": percentiles,
         }
 
-    def _percentile(self, sorted_data: List[float], p: float) -> float:
+    def _percentile(self, sorted_data: list[float], p: float) -> float:
         """Calculate percentile from sorted data."""
         k = (len(sorted_data) - 1) * p / 100
         f = int(k)
@@ -347,7 +347,7 @@ class MetricsAggregator:
 
         return sorted_data[f] * (c - k) + sorted_data[c] * (k - f)
 
-    def export_to_dict(self) -> Dict[str, Any]:
+    def export_to_dict(self) -> dict[str, Any]:
         """Export all data to a dictionary."""
         return {
             "runs": {

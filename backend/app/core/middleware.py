@@ -18,18 +18,17 @@ import time
 import uuid
 
 import structlog
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.requests import Request
-from starlette.responses import Response
-
 from backend.app.core.telemetry import (
     ERROR_COUNT,
     REQUEST_COUNT,
     REQUEST_LATENCY,
     correlation_id_var,
-    workspace_id_var,
     user_id_var,
+    workspace_id_var,
 )
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.requests import Request
+from starlette.responses import Response
 
 logger = structlog.get_logger()
 

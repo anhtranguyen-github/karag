@@ -1,7 +1,7 @@
 import os
-import structlog
 from pathlib import Path
-from typing import Union
+
+import structlog
 from backend.app.core.exceptions import ValidationError
 
 logger = structlog.get_logger(__name__)
@@ -15,9 +15,7 @@ SAFE_TEMP_DIR = BASE_DIR / "backend/data/temp"
 SAFE_TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def validate_safe_path(
-    requested_path: Union[str, Path], base_dir: Union[str, Path] = BASE_DIR
-) -> Path:
+def validate_safe_path(requested_path: str | Path, base_dir: str | Path = BASE_DIR) -> Path:
     """
     Validates that a path is safe and strictly stays within the permitted base directory.
     This prevents directory traversal attacks and protocol injection.
@@ -46,9 +44,9 @@ def validate_safe_path(
             # We use commonpath as a secondary redundant check for 'is under root'
             try:
                 common = os.path.commonpath([str_base, str_resolved])
-                if common != str_base and os.path.normpath(
-                    str_resolved
-                ) != os.path.normpath(str_base):
+                if common != str_base and os.path.normpath(str_resolved) != os.path.normpath(
+                    str_base
+                ):
                     logger.error(
                         "path_validation_failed",
                         requested=str(requested_path),
@@ -63,9 +61,7 @@ def validate_safe_path(
                             "allowed_root": str(base_path),
                         },
                     )
-            except (
-                ValueError
-            ):  # Paths on different drives (on Windows) or something else
+            except ValueError:  # Paths on different drives (on Windows) or something else
                 logger.error(
                     "path_validation_failed_ValueError",
                     requested=str(requested_path),
@@ -86,15 +82,11 @@ def validate_safe_path(
     except ValidationError:
         raise
     except Exception as e:
-        logger.error(
-            "path_validation_process_error", error=str(e), requested=str(requested_path)
-        )
+        logger.error("path_validation_process_error", error=str(e), requested=str(requested_path))
         raise ValidationError(f"Invalid path validation process: {str(e)}")
 
 
-def get_safe_temp_path(
-    filename: str = None, prefix: str = None, suffix: str = None
-) -> Path:
+def get_safe_temp_path(filename: str = None, prefix: str = None, suffix: str = None) -> Path:
     """Generate a safe temporary path within the sandboxed temp directory."""
     import uuid
 
@@ -105,7 +97,7 @@ def get_safe_temp_path(
     return SAFE_TEMP_DIR / name
 
 
-def is_within_root(path: Union[str, Path], root: Union[str, Path] = BASE_DIR) -> bool:
+def is_within_root(path: str | Path, root: str | Path = BASE_DIR) -> bool:
     """Helper to check if a path is within a root without raising an exception."""
     try:
         validate_safe_path(path, root)

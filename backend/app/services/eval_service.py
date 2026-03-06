@@ -1,19 +1,19 @@
-import uuid
 import asyncio
+import uuid
 from datetime import datetime
-from typing import List, Dict, Any, Optional
+from typing import Any
 
 import structlog
 from backend.app.core.mongodb import mongodb_manager
+from backend.app.graph.builder import app as graph_app
+from backend.app.providers.llm import get_llm
 from backend.app.schemas.eval import (
     EvalDataset,
+    EvalResult,
     EvalRun,
     EvalStatus,
-    EvalResult,
     TestCase,
 )
-from backend.app.providers.llm import get_llm
-from backend.app.graph.builder import app as graph_app
 from langchain_core.messages import HumanMessage
 
 logger = structlog.get_logger(__name__)
@@ -21,7 +21,7 @@ logger = structlog.get_logger(__name__)
 
 class EvalService:
     async def create_dataset(
-        self, name: str, workspace_id: str, test_cases: List[Dict[str, Any]]
+        self, name: str, workspace_id: str, test_cases: list[dict[str, Any]]
     ) -> str:
         db = mongodb_manager.get_async_database()
         dataset_id = str(uuid.uuid4())
@@ -35,7 +35,7 @@ class EvalService:
         await db.eval_datasets.insert_one(dataset.dict())
         return dataset_id
 
-    async def list_datasets(self, workspace_id: str) -> List[Dict[str, Any]]:
+    async def list_datasets(self, workspace_id: str) -> list[dict[str, Any]]:
         db = mongodb_manager.get_async_database()
         cursor = db.eval_datasets.find({"workspace_id": workspace_id})
         return await cursor.to_list(length=100)
@@ -71,9 +71,7 @@ class EvalService:
             for test_case in dataset.test_cases:
                 # 1. Run RAG
                 # We can use the graph_app to get the full reasoning + answer
-                config = {
-                    "configurable": {"thread_id": f"eval_{run_id}_{uuid.uuid4()}"}
-                }
+                config = {"configurable": {"thread_id": f"eval_{run_id}_{uuid.uuid4()}"}}
                 input_state = {
                     "messages": [HumanMessage(content=test_case.query)],
                     "workspace_id": dataset.workspace_id,
@@ -93,13 +91,9 @@ class EvalService:
 
                 eval_llm = await get_llm(dataset.workspace_id)
 
-                faith_sys = prompt_manager.get_prompt(
-                    "evaluator.faithfulness.system", version="v1"
-                )
+                faith_sys = prompt_manager.get_prompt("evaluator.faithfulness.system", version="v1")
                 faith_user = prompt_manager.format_prompt(
-                    prompt_manager.get_prompt(
-                        "evaluator.faithfulness.user", version="v1"
-                    ),
+                    prompt_manager.get_prompt("evaluator.faithfulness.user", version="v1"),
                     context=full_context[:4000],  # Cap context for eval
                     answer=actual_answer,
                 )
@@ -152,19 +146,15 @@ class EvalService:
             )
         except Exception as e:
             logger.error("eval_run_failed", run_id=run_id, error=str(e), exc_info=True)
-            await db.eval_runs.update_one(
-                {"id": run_id}, {"$set": {"status": EvalStatus.FAILED}}
-            )
+            await db.eval_runs.update_one({"id": run_id}, {"$set": {"status": EvalStatus.FAILED}})
 
-    async def get_run(self, run_id: str) -> Optional[Dict[str, Any]]:
+    async def get_run(self, run_id: str) -> dict[str, Any] | None:
         db = mongodb_manager.get_async_database()
         return await db.eval_runs.find_one({"id": run_id})
 
-    async def list_runs(self, workspace_id: str) -> List[Dict[str, Any]]:
+    async def list_runs(self, workspace_id: str) -> list[dict[str, Any]]:
         db = mongodb_manager.get_async_database()
-        cursor = db.eval_runs.find({"workspace_id": workspace_id}).sort(
-            "started_at", -1
-        )
+        cursor = db.eval_runs.find({"workspace_id": workspace_id}).sort("started_at", -1)
         return await cursor.to_list(length=100)
 
 

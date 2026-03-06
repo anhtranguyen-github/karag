@@ -1,6 +1,6 @@
 import pytest
-from backend.app.core.prompt_manager import PromptManager
 import yaml
+from backend.app.core.prompt_manager import PromptManager
 
 
 @pytest.fixture

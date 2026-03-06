@@ -6,11 +6,11 @@ with comprehensive retrieval metrics.
 """
 
 import time
+from collections.abc import Callable, Iterator
 from datetime import datetime
-from typing import Any, Callable, Iterator, List
+from typing import Any
 
 import structlog
-
 from backend.app.eval.datasets.base import DatasetEntry
 from backend.app.eval.metrics.retrieval import RetrievalMetrics
 from backend.app.eval.runners.base import (
@@ -68,7 +68,7 @@ class RetrievalRunner(BaseRunner):
         result = self._create_result("dataset", config, RunnerStatus.RUNNING)
         result.config.compute_generation_metrics = False
 
-        sample_results: List[SampleResult] = []
+        sample_results: list[SampleResult] = []
         count = 0
 
         try:
@@ -77,9 +77,7 @@ class RetrievalRunner(BaseRunner):
                     break
 
                 count += 1
-                sample_result = await self._evaluate_retrieval(
-                    entry, rag_pipeline, config
-                )
+                sample_result = await self._evaluate_retrieval(entry, rag_pipeline, config)
                 sample_results.append(sample_result)
 
                 if sample_result.error:
@@ -128,9 +126,7 @@ class RetrievalRunner(BaseRunner):
                     relevant_doc_ids=entry.ground_truth_documents,
                     k_values=config.k_values,
                 )
-                sample_result.retrieval_metrics = {
-                    k: v.score for k, v in retrieval_results.items()
-                }
+                sample_result.retrieval_metrics = {k: v.score for k, v in retrieval_results.items()}
 
             # Record latency
             sample_result.latency_ms = (time.time() - start_time) * 1000

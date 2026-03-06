@@ -6,7 +6,8 @@ for use in unit tests. It does not depend on LangChain.
 
 from __future__ import annotations
 
-from typing import Any, AsyncIterator, Dict, List, Optional
+from collections.abc import AsyncIterator
+from typing import Any
 
 from backend.app.providers.base import (
     LLMMessage,
@@ -26,7 +27,7 @@ class MockLLMProvider(LLMProvider, ToolCapable):
 
     def __init__(
         self,
-        responses: Optional[List[str]] = None,
+        responses: list[str] | None = None,
         provider_name: str = "mock",
         model_name: str = "mock-model",
     ):
@@ -40,10 +41,10 @@ class MockLLMProvider(LLMProvider, ToolCapable):
         self._responses = responses or ["Default mock response"]
         self._provider_name = provider_name
         self._model_name = model_name
-        self._bound_tools: Optional[List[Dict[str, Any]]] = None
+        self._bound_tools: list[dict[str, Any]] | None = None
 
         # Call history for verification
-        self.call_history: List[Dict[str, Any]] = []
+        self.call_history: list[dict[str, Any]] = []
         self._response_index = 0
 
     @property
@@ -62,7 +63,7 @@ class MockLLMProvider(LLMProvider, ToolCapable):
         self._response_index += 1
         return response
 
-    async def chat(self, messages: List[LLMMessage], **kwargs) -> LLMResponse:
+    async def chat(self, messages: list[LLMMessage], **kwargs) -> LLMResponse:
         """Execute a chat completion request.
 
         Records the call and returns a predetermined response.
@@ -89,7 +90,7 @@ class MockLLMProvider(LLMProvider, ToolCapable):
             finish_reason="stop",
         )
 
-    async def stream(self, messages: List[LLMMessage], **kwargs) -> AsyncIterator[str]:
+    async def stream(self, messages: list[LLMMessage], **kwargs) -> AsyncIterator[str]:
         """Execute a streaming chat completion request.
 
         Records the call and yields the response word by word.
@@ -113,7 +114,7 @@ class MockLLMProvider(LLMProvider, ToolCapable):
     # =============================================================================
 
     async def chat_with_tools(
-        self, messages: List[LLMMessage], tools: List[Dict[str, Any]], **kwargs
+        self, messages: list[LLMMessage], tools: list[dict[str, Any]], **kwargs
     ) -> LLMResponse:
         """Execute chat with tool calling support.
 
@@ -131,7 +132,7 @@ class MockLLMProvider(LLMProvider, ToolCapable):
         content = self._get_next_response()
 
         # Simulate a tool call if tools are provided
-        metadata: Dict[str, Any] = {"mock": True, "tools_provided": len(tools)}
+        metadata: dict[str, Any] = {"mock": True, "tools_provided": len(tools)}
 
         # For testing, if the content starts with "TOOL:", simulate a tool call
         if content.startswith("TOOL:"):
@@ -160,7 +161,7 @@ class MockLLMProvider(LLMProvider, ToolCapable):
             finish_reason="stop",
         )
 
-    def bind_tools(self, tools: List[Dict[str, Any]]) -> "MockLLMProvider":
+    def bind_tools(self, tools: list[dict[str, Any]]) -> MockLLMProvider:
         """Bind tools to the provider for subsequent calls.
 
         Returns a new mock provider with tools bound.
@@ -174,7 +175,7 @@ class MockLLMProvider(LLMProvider, ToolCapable):
         new_mock.call_history = self.call_history
         return new_mock
 
-    async def ainvoke(self, input: Any, config: Optional[Any] = None, **kwargs) -> Any:
+    async def ainvoke(self, input: Any, config: Any | None = None, **kwargs) -> Any:
         """LangGraph-compatible invocation for testing."""
         self.call_history.append(
             {
@@ -197,9 +198,7 @@ class MockLLMProvider(LLMProvider, ToolCapable):
 
         return MockMessage(content)
 
-    async def astream(
-        self, input: Any, config: Optional[Any] = None, **kwargs
-    ) -> AsyncIterator[Any]:
+    async def astream(self, input: Any, config: Any | None = None, **kwargs) -> AsyncIterator[Any]:
         """LangGraph-compatible streaming for testing."""
         self.call_history.append(
             {
@@ -226,7 +225,7 @@ class MockLLMProvider(LLMProvider, ToolCapable):
     # =============================================================================
 
     @property
-    def calls(self) -> List[Dict[str, Any]]:
+    def calls(self) -> list[dict[str, Any]]:
         """Return the call history for verification."""
         return self.call_history
 

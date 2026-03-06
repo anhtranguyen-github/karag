@@ -5,7 +5,7 @@ Loads and manages dataset, metric, and benchmark configurations.
 """
 
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 import structlog
 import yaml
@@ -20,7 +20,7 @@ class ConfigLoader:
     Supports YAML and JSON formats.
     """
 
-    def __init__(self, config_dir: Optional[Union[str, Path]] = None):
+    def __init__(self, config_dir: str | Path | None = None):
         """
         Initialize config loader.
 
@@ -30,10 +30,10 @@ class ConfigLoader:
         if config_dir is None:
             config_dir = Path(__file__).parent
         self.config_dir = Path(config_dir)
-        self._cache: Dict[str, Any] = {}
+        self._cache: dict[str, Any] = {}
         self.logger = logger
 
-    def load(self, filename: str) -> Dict[str, Any]:
+    def load(self, filename: str) -> dict[str, Any]:
         """
         Load a configuration file.
 
@@ -52,7 +52,7 @@ class ConfigLoader:
             raise FileNotFoundError(f"Config file not found: {filepath}")
 
         try:
-            with open(filepath, "r", encoding="utf-8") as f:
+            with open(filepath, encoding="utf-8") as f:
                 if filepath.suffix in [".yaml", ".yml"]:
                     config = yaml.safe_load(f)
                 elif filepath.suffix == ".json":
@@ -70,23 +70,23 @@ class ConfigLoader:
             self.logger.error("config_load_failed", filename=filename, error=str(e))
             raise
 
-    def get_dataset_config(self, dataset_name: str) -> Optional[Dict[str, Any]]:
+    def get_dataset_config(self, dataset_name: str) -> dict[str, Any] | None:
         """Get configuration for a specific dataset."""
         config = self.load("datasets.yaml")
         return config.get("datasets", {}).get(dataset_name)
 
-    def get_metrics_config(self) -> Dict[str, Any]:
+    def get_metrics_config(self) -> dict[str, Any]:
         """Get metrics configuration."""
         return self.load("metrics.yaml")
 
-    def get_benchmark_config(self, benchmark_name: str) -> Optional[Dict[str, Any]]:
+    def get_benchmark_config(self, benchmark_name: str) -> dict[str, Any] | None:
         """Get configuration for a specific benchmark."""
         config = self.load("benchmarks.yaml")
         return config.get("benchmarks", {}).get(benchmark_name)
 
 
 # Global config loader instance
-_config_loader: Optional[ConfigLoader] = None
+_config_loader: ConfigLoader | None = None
 
 
 def get_config_loader() -> ConfigLoader:
@@ -97,11 +97,11 @@ def get_config_loader() -> ConfigLoader:
     return _config_loader
 
 
-def load_dataset_config(dataset_name: str) -> Optional[Dict[str, Any]]:
+def load_dataset_config(dataset_name: str) -> dict[str, Any] | None:
     """Convenience function to load dataset config."""
     return get_config_loader().get_dataset_config(dataset_name)
 
 
-def load_metrics_config() -> Dict[str, Any]:
+def load_metrics_config() -> dict[str, Any]:
     """Convenience function to load metrics config."""
     return get_config_loader().get_metrics_config()

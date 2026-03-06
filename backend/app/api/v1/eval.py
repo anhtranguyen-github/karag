@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Request
-from backend.app.services.eval_service import eval_service
 from backend.app.schemas.base import AppResponse
+from backend.app.services.eval_service import eval_service
+from fastapi import APIRouter, Request
 
 router = APIRouter()
 
@@ -40,9 +40,7 @@ async def list_runs(workspace_id: str = "default"):
 async def get_run(run_id: str):
     run = await eval_service.get_run(run_id)
     if not run:
-        return AppResponse.business_failure(
-            code="NOT_FOUND", message="Eval run not found"
-        )
+        return AppResponse.business_failure(code="NOT_FOUND", message="Eval run not found")
     # MongoDB _id is not serializable
     if "_id" in run:
         del run["_id"]

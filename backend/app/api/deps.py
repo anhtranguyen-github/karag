@@ -16,16 +16,15 @@ Following FastAPI dependency injection best practices:
 
 from __future__ import annotations
 
-from typing import Annotated, Optional
-
-from fastapi import Depends, HTTPException, Query, Request, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt
-from pydantic import BaseModel
+from typing import Annotated
 
 from backend.app.core.config import karag_settings
 from backend.app.core.exceptions import AuthenticationError
 from backend.app.core.mongodb import mongodb_manager
+from fastapi import Depends, HTTPException, Query, Request, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import JWTError, jwt
+from pydantic import BaseModel
 
 # JWT configuration
 JWT_SECRET_KEY = karag_settings.SECRET_KEY
@@ -44,7 +43,7 @@ class CurrentWorkspace(BaseModel):
     """
 
     id: str
-    name: Optional[str] = None
+    name: str | None = None
     is_public: bool = False
 
 
@@ -57,14 +56,14 @@ class CurrentUser(BaseModel):
     """
 
     id: str
-    email: Optional[str] = None
+    email: str | None = None
     is_admin: bool = False
     permissions: list[str] = []
 
 
 async def get_current_workspace(
     request: Request,
-    workspace_id: Optional[str] = None,
+    workspace_id: str | None = None,
 ) -> CurrentWorkspace:
     """
     Extract and validate workspace context from request.
@@ -76,7 +75,7 @@ async def get_current_workspace(
     """
     # Priority 1: Query parameter (explicitly passed or from request)
     ws_id = workspace_id or request.query_params.get("workspace_id")
-    
+
     if not ws_id:
         # Priority 2: Extract from URL path
         # Pattern: /api/v1/workspaces/{id}/... or /workspaces/{id}/...
@@ -122,10 +121,10 @@ async def get_current_workspace(
 async def get_optional_workspace(
     request: Request,
     workspace_id: Annotated[
-        Optional[str],
+        str | None,
         Query(None, description="Optional workspace ID"),
     ] = None,
-) -> Optional[CurrentWorkspace]:
+) -> CurrentWorkspace | None:
     """
     Optionally extract workspace context (may return None).
 
@@ -167,7 +166,7 @@ def verify_jwt_token(token: str) -> dict:
 
 async def get_current_user(
     credentials: Annotated[
-        Optional[HTTPAuthorizationCredentials],
+        HTTPAuthorizationCredentials | None,
         Depends(security_scheme),
     ],
 ) -> CurrentUser:
@@ -245,10 +244,10 @@ async def get_current_user(
 
 async def get_optional_user(
     credentials: Annotated[
-        Optional[HTTPAuthorizationCredentials],
+        HTTPAuthorizationCredentials | None,
         Depends(security_scheme),
     ],
-) -> Optional[CurrentUser]:
+) -> CurrentUser | None:
     """
     Optionally extract user context (may return None).
 
@@ -346,7 +345,7 @@ class SearchParams:
     def __init__(
         self,
         q: Annotated[
-            Optional[str],
+            str | None,
             Query(
                 None,
                 description="Search query string",
@@ -355,7 +354,7 @@ class SearchParams:
             ),
         ] = None,
         sort: Annotated[
-            Optional[str],
+            str | None,
             Query(
                 None,
                 description="Sort field (prefix with - for descending)",
@@ -363,7 +362,7 @@ class SearchParams:
             ),
         ] = None,
         filters: Annotated[
-            Optional[str],
+            str | None,
             Query(
                 None,
                 description="Filter parameters as JSON string",
@@ -392,11 +391,9 @@ def get_database():
 
 # Type aliases for cleaner route signatures
 WorkspaceDep = Annotated[CurrentWorkspace, Depends(get_current_workspace)]
-OptionalWorkspaceDep = Annotated[
-    Optional[CurrentWorkspace], Depends(get_optional_workspace)
-]
+OptionalWorkspaceDep = Annotated[CurrentWorkspace | None, Depends(get_optional_workspace)]
 UserDep = Annotated[CurrentUser, Depends(get_current_user)]
-OptionalUserDep = Annotated[Optional[CurrentUser], Depends(get_optional_user)]
+OptionalUserDep = Annotated[CurrentUser | None, Depends(get_optional_user)]
 AdminDep = Annotated[CurrentUser, Depends(require_admin)]
 PaginationDep = Annotated[PaginationParams, Depends()]
 SearchDep = Annotated[SearchParams, Depends()]

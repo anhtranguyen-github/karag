@@ -11,9 +11,9 @@ It verifies:
 - Document retrieval for citations
 """
 
+import asyncio
 import os
 import sys
-import asyncio
 
 # Test configuration
 BASE_URL = os.getenv("KARAG_API_URL", "http://localhost:8000/api/v1")
@@ -83,13 +83,9 @@ async def test_chat_completion_non_streaming():
 
         # Verify response structure
         assert response.id, "Missing response ID"
-        assert response.object == "chat.completion", (
-            f"Wrong object type: {response.object}"
-        )
+        assert response.object == "chat.completion", f"Wrong object type: {response.object}"
         assert response.created, "Missing created timestamp"
-        assert response.model == f"karag:{TEST_WORKSPACE}", (
-            f"Wrong model: {response.model}"
-        )
+        assert response.model == f"karag:{TEST_WORKSPACE}", f"Wrong model: {response.model}"
         assert len(response.choices) > 0, "No choices in response"
 
         choice = response.choices[0]
@@ -129,9 +125,7 @@ async def test_chat_completion_streaming():
 
         stream = await client.chat.completions.create(
             model=f"karag:{TEST_WORKSPACE}",
-            messages=[
-                {"role": "user", "content": "Explain vector databases in one sentence."}
-            ],
+            messages=[{"role": "user", "content": "Explain vector databases in one sentence."}],
             temperature=0.7,
             max_tokens=100,
             stream=True,
@@ -145,13 +139,9 @@ async def test_chat_completion_streaming():
 
             # Verify chunk structure
             assert chunk.id, "Missing chunk ID"
-            assert chunk.object == "chat.completion.chunk", (
-                f"Wrong object type: {chunk.object}"
-            )
+            assert chunk.object == "chat.completion.chunk", f"Wrong object type: {chunk.object}"
             assert chunk.created, "Missing created timestamp"
-            assert chunk.model == f"karag:{TEST_WORKSPACE}", (
-                f"Wrong model: {chunk.model}"
-            )
+            assert chunk.model == f"karag:{TEST_WORKSPACE}", f"Wrong model: {chunk.model}"
             assert len(chunk.choices) > 0, "No choices in chunk"
 
             choice = chunk.choices[0]
@@ -211,7 +201,7 @@ async def test_citations():
         print(f"  Citations found: {len(citations)}")
 
         if citations:
-            for i, citation in enumerate(citations[:3]):  # Show first 3
+            for _i, citation in enumerate(citations[:3]):  # Show first 3
                 print(f"    - doc:{citation}")
 
         return True
@@ -339,9 +329,7 @@ async def run_all_tests():
 
     # Run tests
     results.append(("List Models", await test_list_models()))
-    results.append(
-        ("Non-Streaming Completion", await test_chat_completion_non_streaming())
-    )
+    results.append(("Non-Streaming Completion", await test_chat_completion_non_streaming()))
     results.append(("Streaming Completion", await test_chat_completion_streaming()))
     results.append(("Citations", await test_citations()))
     results.append(("QA Mode", await test_mode_qa()))

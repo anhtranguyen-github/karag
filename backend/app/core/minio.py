@@ -1,10 +1,10 @@
 import io
 
 import structlog
-from minio import Minio
-from minio.error import S3Error
 from backend.app.core.config import karag_settings
 from backend.app.core.telemetry import get_tracer
+from minio import Minio
+from minio.error import S3Error
 
 logger = structlog.get_logger(__name__)
 tracer = get_tracer(__name__)
@@ -16,7 +16,7 @@ class MinioManager:
 
     def __new__(cls):
         if cls._instance is None:
-            cls._instance = super(MinioManager, cls).__new__(cls)
+            cls._instance = super().__new__(cls)
         return cls._instance
 
     @property
@@ -46,12 +46,10 @@ class MinioManager:
                     self.client.make_bucket(bucket)
                     # Production Requirement: Enable Versioning for Data Ops
                     try:
-                        from minio.versioningconfig import VersioningConfig
                         from minio.commonconfig import ENABLED
+                        from minio.versioningconfig import VersioningConfig
 
-                        self.client.set_bucket_versioning(
-                            bucket, VersioningConfig(ENABLED)
-                        )
+                        self.client.set_bucket_versioning(bucket, VersioningConfig(ENABLED))
                         logger.info("minio_versioning_enabled", bucket=bucket)
                     except Exception as ve:
                         logger.warning(
@@ -113,9 +111,7 @@ class MinioManager:
             attributes={"minio.object": object_name},
         ):
             try:
-                response = self.client.get_object(
-                    karag_settings.MINIO_BUCKET, object_name
-                )
+                response = self.client.get_object(karag_settings.MINIO_BUCKET, object_name)
                 return response.read()
             except Exception as e:
                 logger.error("minio_download_error", object=object_name, error=str(e))

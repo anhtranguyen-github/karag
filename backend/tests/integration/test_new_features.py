@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 from backend.app.core.settings_manager import settings_manager
 
 
@@ -105,12 +106,8 @@ async def test_ingestion_progress_updates(mocker, mock_db_and_col):
     mock_col.find_one.return_value = doc
 
     mocker.patch("backend.app.core.minio.minio_manager.get_file", return_value=b"some")
-    mocker.patch(
-        "backend.app.core.path_utils.validate_safe_path", side_effect=lambda x: Path(x)
-    )
-    mocker.patch(
-        "backend.app.core.path_utils.get_safe_temp_path", return_value=Path("temp.txt")
-    )
+    mocker.patch("backend.app.core.path_utils.validate_safe_path", side_effect=lambda x: Path(x))
+    mocker.patch("backend.app.core.path_utils.get_safe_temp_path", return_value=Path("temp.txt"))
     mocker.patch("os.remove")
     mocker.patch("os.path.exists", return_value=True)
     mocker.patch("builtins.open", mocker.mock_open())
@@ -124,9 +121,7 @@ async def test_ingestion_progress_updates(mocker, mock_db_and_col):
     mock_loader = MagicMock()
     mock_loader.load.return_value = [MagicMock(page_content="page1")]
     mocker.patch("backend.app.rag.ingestion.TextLoader", return_value=mock_loader)
-    mocker.patch(
-        "backend.app.rag.rag_service.rag_service.chunk_text", return_value=["chunk1"]
-    )
+    mocker.patch("backend.app.rag.rag_service.rag_service.chunk_text", return_value=["chunk1"])
     mocker.patch(
         "backend.app.rag.rag_service.rag_service.get_embeddings",
         return_value=[[0.1] * 1536],
@@ -150,8 +145,6 @@ async def test_ingestion_progress_updates(mocker, mock_db_and_col):
         document_ingestion_service,
     )
 
-    await document_ingestion_service.index_document(
-        "doc_1", "ws_1", task_id="task_prog"
-    )
+    await document_ingestion_service.index_document("doc_1", "ws_1", task_id="task_prog")
 
     assert mock_task.update_task.call_count > 1

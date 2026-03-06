@@ -9,27 +9,26 @@ Verifies:
 5. The @traced decorator wraps spans correctly
 """
 
-import pytest
 from unittest.mock import patch
 
+import pytest
+from backend.app.core.middleware import ObservabilityMiddleware
 from backend.app.core.telemetry import (
-    configure_logging,
-    configure_tracing,
-    init_telemetry,
-    get_tracer,
-    traced,
-    correlation_id_var,
-    workspace_id_var,
+    ACTIVE_STREAMS,
+    DOCUMENT_INGESTION_COUNT,
+    ERROR_COUNT,
+    LLM_REQUEST_LATENCY,
+    RAG_RETRIEVAL_LATENCY,
     REQUEST_COUNT,
     REQUEST_LATENCY,
-    ERROR_COUNT,
-    RAG_RETRIEVAL_LATENCY,
-    DOCUMENT_INGESTION_COUNT,
-    LLM_REQUEST_LATENCY,
-    ACTIVE_STREAMS,
+    configure_logging,
+    configure_tracing,
+    correlation_id_var,
+    get_tracer,
+    init_telemetry,
+    traced,
+    workspace_id_var,
 )
-from backend.app.core.middleware import ObservabilityMiddleware
-
 
 # ---------------------------------------------------------------------------
 # Telemetry Configuration Tests
@@ -108,9 +107,7 @@ class TestContextVariables:
 
     def test_correlation_id_default(self):
         """Default correlation ID should be empty string."""
-        assert correlation_id_var.get() == "" or isinstance(
-            correlation_id_var.get(), str
-        )
+        assert correlation_id_var.get() == "" or isinstance(correlation_id_var.get(), str)
 
     def test_correlation_id_set_and_get(self):
         """Setting correlation ID should be retrievable."""
@@ -140,15 +137,11 @@ class TestPrometheusMetrics:
 
     def test_request_latency_exists(self):
         """REQUEST_LATENCY histogram should be defined."""
-        REQUEST_LATENCY.labels(
-            method="POST", endpoint="/chat/stream", status="200"
-        ).observe(0.5)
+        REQUEST_LATENCY.labels(method="POST", endpoint="/chat/stream", status="200").observe(0.5)
 
     def test_error_count_exists(self):
         """ERROR_COUNT counter should be defined."""
-        ERROR_COUNT.labels(
-            method="GET", endpoint="/test", error_type="ValueError"
-        ).inc()
+        ERROR_COUNT.labels(method="GET", endpoint="/test", error_type="ValueError").inc()
 
     def test_rag_retrieval_latency(self):
         """RAG retrieval latency histogram should accept engine and mode labels."""

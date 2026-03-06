@@ -1,22 +1,22 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional, Any, Dict
-from pydantic import BaseModel
+from typing import Any
 
 from backend.app.schemas.database import IngestionConfig
 from backend.app.schemas.retrieval import RetrievalConfig
+from pydantic import BaseModel
 
 
 class DocumentPoint(BaseModel):
     id: str
-    vector: List[float]
-    payload: Dict[str, Any]
-    sparse_vector: Optional[Dict[str, Any]] = None
+    vector: list[float]
+    payload: dict[str, Any]
+    sparse_vector: dict[str, Any] | None = None
 
 
 class SearchResult(BaseModel):
     id: str
     score: float
-    payload: Dict[str, Any]
+    payload: dict[str, Any]
 
 
 class VectorStore(ABC):
@@ -26,9 +26,7 @@ class VectorStore(ABC):
         pass
 
     @abstractmethod
-    async def upsert_documents(
-        self, config: IngestionConfig, points: List[DocumentPoint]
-    ) -> bool:
+    async def upsert_documents(self, config: IngestionConfig, points: list[DocumentPoint]) -> bool:
         """Upsert document points (vectors + payloads) into the store."""
         pass
 
@@ -36,11 +34,11 @@ class VectorStore(ABC):
     async def search(
         self,
         config: RetrievalConfig,
-        query_vector: List[float],
+        query_vector: list[float],
         query_text: str,
         workspace_id: str,
-        collection_name: Optional[str] = None,
-    ) -> List[SearchResult]:
+        collection_name: str | None = None,
+    ) -> list[SearchResult]:
         """Perform a hybrid search using both dense vector and keyword/sparse strategies."""
         pass
 
@@ -50,7 +48,7 @@ class VectorStore(ABC):
         pass
 
     @abstractmethod
-    async def list_documents(self, config: IngestionConfig) -> List[Dict[str, Any]]:
+    async def list_documents(self, config: IngestionConfig) -> list[dict[str, Any]]:
         """List documents present in the given workspace/collection."""
         pass
 
@@ -60,15 +58,13 @@ class VectorStore(ABC):
         pass
 
     @abstractmethod
-    async def get_document_centroids(
-        self, config: IngestionConfig
-    ) -> List[Dict[str, Any]]:
+    async def get_document_centroids(self, config: IngestionConfig) -> list[dict[str, Any]]:
         """Calculate the average vector (centroid) for each document."""
         pass
 
     @abstractmethod
     async def sync_shared_with(
-        self, config: IngestionConfig, doc_id: str, shared_with: List[str]
+        self, config: IngestionConfig, doc_id: str, shared_with: list[str]
     ) -> bool:
         """Update shared_with list for all points of a document."""
         pass
@@ -76,12 +72,12 @@ class VectorStore(ABC):
     @abstractmethod
     async def get_document_chunks(
         self, config: IngestionConfig, doc_id: str, limit: int = 100
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Retrieve vector chunks associated with a specific document ID."""
         pass
 
     @abstractmethod
-    async def purge_documents(self, doc_ids: List[str]) -> None:
+    async def purge_documents(self, doc_ids: list[str]) -> None:
         """Completely purge all vectors for the given document IDs across all logical collections."""
         pass
 
@@ -91,6 +87,6 @@ class VectorStore(ABC):
         pass
 
     @abstractmethod
-    async def get_system_info(self) -> Dict[str, Any]:
+    async def get_system_info(self) -> dict[str, Any]:
         """Get system info / status of the vector store."""
         pass

@@ -10,11 +10,11 @@ Tests RAG system robustness against:
 
 import random
 import time
+from collections.abc import Callable, Iterator
 from datetime import datetime
-from typing import Any, Callable, Dict, Iterator, List, Optional
+from typing import Any
 
 import structlog
-
 from backend.app.eval.datasets.base import DatasetEntry
 from backend.app.eval.metrics.generation import GenerationMetrics
 from backend.app.eval.runners.base import (
@@ -59,7 +59,7 @@ class RobustnessRunner(BaseRunner):
         rag_pipeline: Callable[[str], Any],
         config: RunnerConfig,
         noise_level: float = 0.1,
-        test_types: Optional[List[str]] = None,
+        test_types: list[str] | None = None,
     ) -> RunnerResult:
         """
         Run robustness evaluation.
@@ -81,8 +81,8 @@ class RobustnessRunner(BaseRunner):
         if test_types is None:
             test_types = ["typo", "noise", "ambiguous", "counterfactual"]
 
-        sample_results: List[SampleResult] = []
-        robustness_tests: List[Dict] = []
+        sample_results: list[SampleResult] = []
+        robustness_tests: list[dict] = []
         count = 0
 
         try:
@@ -93,9 +93,7 @@ class RobustnessRunner(BaseRunner):
                 count += 1
 
                 # Run baseline (clean query)
-                baseline_result = await self._evaluate_baseline(
-                    entry, rag_pipeline, config
-                )
+                baseline_result = await self._evaluate_baseline(entry, rag_pipeline, config)
 
                 # Run robustness tests
                 test_results = {}
@@ -173,7 +171,7 @@ class RobustnessRunner(BaseRunner):
         config: RunnerConfig,
         test_type: str,
         noise_level: float,
-    ) -> Dict:
+    ) -> dict:
         """Run a single robustness test."""
         # Generate perturbed query
         if test_type == "typo":
@@ -212,9 +210,7 @@ class RobustnessRunner(BaseRunner):
                     contexts=contexts,
                     reference_answer=entry.answer,
                 )
-                test_result["metrics"] = {
-                    k: v.score for k, v in generation_results.items()
-                }
+                test_result["metrics"] = {k: v.score for k, v in generation_results.items()}
 
         except Exception as e:
             test_result["error"] = str(e)
@@ -262,11 +258,11 @@ class RobustnessRunner(BaseRunner):
 
     def _aggregate_robustness(
         self,
-        robustness_tests: List[Dict],
-    ) -> Dict[str, Dict[str, float]]:
+        robustness_tests: list[dict],
+    ) -> dict[str, dict[str, float]]:
         """Aggregate robustness test results."""
         # Group by test type
-        by_type: Dict[str, List[Dict]] = {}
+        by_type: dict[str, list[dict]] = {}
 
         for test in robustness_tests:
             for test_type, result in test["tests"].items():
@@ -278,7 +274,7 @@ class RobustnessRunner(BaseRunner):
         aggregated = {}
         for test_type, results in by_type.items():
             # Collect metric scores
-            metric_scores: Dict[str, List[float]] = {}
+            metric_scores: dict[str, list[float]] = {}
 
             for result in results:
                 if "metrics" in result:

@@ -1,10 +1,16 @@
-from typing import List, Optional, Literal
-from fastapi import APIRouter, Request, Depends
-from pydantic import BaseModel, Field, field_validator
-from backend.app.services.workspace_service import workspace_service
-from backend.app.core.exceptions import ValidationError, NotFoundError
+from typing import Literal
+
+from backend.app.api.deps import (
+    CurrentUser,
+    CurrentWorkspace,
+    get_current_user,
+    get_current_workspace,
+)
+from backend.app.core.exceptions import NotFoundError, ValidationError
 from backend.app.schemas.base import AppResponse
-from backend.app.api.deps import get_current_user, get_current_workspace, CurrentUser, CurrentWorkspace
+from backend.app.services.workspace_service import workspace_service
+from fastapi import APIRouter, Depends, Request
+from pydantic import BaseModel, Field, field_validator
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
 
@@ -17,32 +23,32 @@ class WorkspaceStats(BaseModel):
 class Workspace(BaseModel):
     id: str
     name: str
-    description: Optional[str] = None
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
-    stats: Optional[WorkspaceStats] = None
+    description: str | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+    stats: WorkspaceStats | None = None
 
     # Filterable fields
-    llm_provider: Optional[str] = None
-    embedding_provider: Optional[str] = None
-    rag_engine: Optional[str] = None
+    llm_provider: str | None = None
+    embedding_provider: str | None = None
+    rag_engine: str | None = None
 
 
 class WorkspaceDetail(Workspace):
-    threads: List[dict] = []
-    documents: List[dict] = []
-    settings: Optional[dict] = None
+    threads: list[dict] = []
+    documents: list[dict] = []
+    settings: dict | None = None
 
 
 class WorkspaceCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=50, pattern=r"^[\w\s.-]+$")
-    description: Optional[str] = Field(None, max_length=200)
+    description: str | None = Field(None, max_length=200)
 
     # Grouped Component configurations
-    embedding: Optional[dict] = Field(default_factory=dict)
-    retrieval: Optional[dict] = Field(default_factory=dict)
-    generation: Optional[dict] = Field(default_factory=dict)
-    chunking: Optional[dict] = Field(default_factory=dict)
+    embedding: dict | None = Field(default_factory=dict)
+    retrieval: dict | None = Field(default_factory=dict)
+    generation: dict | None = Field(default_factory=dict)
+    chunking: dict | None = Field(default_factory=dict)
 
     # Legacy flat fields for backward compatibility
     embedding_provider: str = "openai"
@@ -70,9 +76,9 @@ class WorkspaceCreate(BaseModel):
     chunk_overlap: int = Field(150, ge=0, le=1000)
 
     # Backend / System
-    neo4j_uri: Optional[str] = None
-    neo4j_user: Optional[str] = None
-    neo4j_password: Optional[str] = None
+    neo4j_uri: str | None = None
+    neo4j_user: str | None = None
+    neo4j_password: str | None = None
 
     @field_validator("name")
     @classmethod
@@ -83,12 +89,12 @@ class WorkspaceCreate(BaseModel):
 
 
 class WorkspaceUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
+    name: str | None = None
+    description: str | None = None
 
 
-@router.get("/", response_model=AppResponse[List[Workspace]])
-@router.get("", response_model=AppResponse[List[Workspace]])
+@router.get("/", response_model=AppResponse[list[Workspace]])
+@router.get("", response_model=AppResponse[list[Workspace]])
 async def list_workspaces(current_user: CurrentUser = Depends(get_current_user)):
     workspaces = await workspace_service.list_all(current_user.id)
     return AppResponse.success_response(data=workspaces)

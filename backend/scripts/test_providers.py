@@ -1,12 +1,11 @@
 import asyncio
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+
 from langchain_community.chat_models import ChatOllama
 from langchain_community.embeddings import OllamaEmbeddings
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 
-async def test_provider(
-    name, llm_url, embed_url, model="qwen2.5:0.5b", is_ollama=False
-):
+async def test_provider(name, llm_url, embed_url, model="qwen2.5:0.5b", is_ollama=False):
     print(f"\n--- Testing Provider: {name} ---")
 
     # Test LLM
@@ -27,13 +26,9 @@ async def test_provider(
     try:
         print(f"Testing Embedding at {embed_url}...")
         if is_ollama:
-            embeddings = OllamaEmbeddings(
-                base_url=embed_url.replace("/v1", ""), model=model
-            )
+            embeddings = OllamaEmbeddings(base_url=embed_url.replace("/v1", ""), model=model)
         else:
-            embeddings = OpenAIEmbeddings(
-                base_url=embed_url, api_key="EMPTY", model=model
-            )
+            embeddings = OpenAIEmbeddings(base_url=embed_url, api_key="EMPTY", model=model)
 
         vector = await embeddings.aembed_query("Hello world")
         print(f"Embedding Vector Length: {len(vector)}")
@@ -53,6 +48,4 @@ if __name__ == "__main__":
     parser.add_argument("--ollama", action="store_true")
     args = parser.parse_args()
 
-    asyncio.run(
-        test_provider(args.name, args.llm_url, args.embed_url, args.model, args.ollama)
-    )
+    asyncio.run(test_provider(args.name, args.llm_url, args.embed_url, args.model, args.ollama))

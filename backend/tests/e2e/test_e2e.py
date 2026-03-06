@@ -1,10 +1,11 @@
-import pytest
 import io
+from unittest.mock import AsyncMock, patch
+
+import pytest
 import pytest_asyncio
-from httpx import AsyncClient, ASGITransport
-from fastapi import FastAPI
 from backend.app.api.v1.router import api_v1_router
-from unittest.mock import patch, AsyncMock
+from fastapi import FastAPI
+from httpx import ASGITransport, AsyncClient
 
 
 @pytest_asyncio.fixture
@@ -15,9 +16,7 @@ async def async_client():
 
     # Mock BackgroundTasks.add_task to run synchronously or just ignore it
     # This prevents 'Event loop is closed' from background tasks
-    with patch(
-        "fastapi.BackgroundTasks.add_task", side_effect=lambda f, *args, **kwargs: None
-    ):
+    with patch("fastapi.BackgroundTasks.add_task", side_effect=lambda f, *args, **kwargs: None):
         transport = ASGITransport(app=test_app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
             yield ac
@@ -38,9 +37,7 @@ async def test_e2e_document_flow(async_client):
         new=AsyncMock(return_value=mock_upload_dict),
     ):
         files = {"file": ("test.txt", io.BytesIO(b"test content"), "text/plain")}
-        res = await async_client.post(
-            "/upload", files=files, params={"workspace_id": "e2e_test"}
-        )
+        res = await async_client.post("/upload", files=files, params={"workspace_id": "e2e_test"})
         assert res.status_code == 200
 
 

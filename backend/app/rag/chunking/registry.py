@@ -1,12 +1,13 @@
-from typing import List, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
+
 from backend.app.schemas.chunking import (
     ChunkingConfig,
+    DocumentStructureChunkingConfig,
+    FixedLengthChunkingConfig,
     RecursiveChunkingConfig,
+    SemanticChunkingConfig,
     SentenceChunkingConfig,
     TokenChunkingConfig,
-    SemanticChunkingConfig,
-    FixedLengthChunkingConfig,
-    DocumentStructureChunkingConfig,
 )
 
 
@@ -14,13 +15,13 @@ from backend.app.schemas.chunking import (
 class Chunker(Protocol):
     async def chunk(
         self, text: str, config: ChunkingConfig, workspace_id: str = None
-    ) -> List[str]: ...
+    ) -> list[str]: ...
 
 
 class RecursiveChunker:
     async def chunk(
         self, text: str, config: RecursiveChunkingConfig, workspace_id: str = None
-    ) -> List[str]:
+    ) -> list[str]:
         from langchain_text_splitters import RecursiveCharacterTextSplitter
 
         splitter = RecursiveCharacterTextSplitter(
@@ -35,7 +36,7 @@ class RecursiveChunker:
 class SentenceChunker:
     async def chunk(
         self, text: str, config: SentenceChunkingConfig, workspace_id: str = None
-    ) -> List[str]:
+    ) -> list[str]:
         # Simple sentence splitter if nltk/spaCy not wanted immediately
         # LangChain doesn't have a direct 'SentenceOverlap' splitter easily used without NLTK usually
         # But we can use character splitter with newline/period separators if needed
@@ -55,15 +56,13 @@ class SentenceChunker:
 class TokenChunker:
     async def chunk(
         self, text: str, config: TokenChunkingConfig, workspace_id: str = None
-    ) -> List[str]:
+    ) -> list[str]:
         from langchain_text_splitters import TokenTextSplitter
 
         splitter = TokenTextSplitter(
             chunk_size=config.max_tokens,
             chunk_overlap=config.token_overlap,
-            encoding_name="cl100k_base"
-            if config.tokenizer_type == "tiktoken"
-            else None,
+            encoding_name="cl100k_base" if config.tokenizer_type == "tiktoken" else None,
         )
         return splitter.split_text(text)
 
@@ -71,9 +70,9 @@ class TokenChunker:
 class SemanticChunkerImpl:
     async def chunk(
         self, text: str, config: SemanticChunkingConfig, workspace_id: str = None
-    ) -> List[str]:
-        from langchain_experimental.text_splitter import SemanticChunker
+    ) -> list[str]:
         from backend.app.providers.embedding import get_embeddings
+        from langchain_experimental.text_splitter import SemanticChunker
 
         provider = await get_embeddings(workspace_id)
         splitter = SemanticChunker(
@@ -85,7 +84,7 @@ class SemanticChunkerImpl:
 class FixedLengthChunker:
     async def chunk(
         self, text: str, config: FixedLengthChunkingConfig, workspace_id: str = None
-    ) -> List[str]:
+    ) -> list[str]:
         from langchain_text_splitters import CharacterTextSplitter
 
         splitter = CharacterTextSplitter(
@@ -102,7 +101,7 @@ class DocumentStructureChunker:
         text: str,
         config: DocumentStructureChunkingConfig,
         workspace_id: str = None,
-    ) -> List[str]:
+    ) -> list[str]:
         # Basic implementation or header-based
         from langchain_text_splitters import MarkdownHeaderTextSplitter
 
@@ -125,7 +124,7 @@ class ChunkingRegistry:
 
     async def chunk_text(
         self, text: str, config: ChunkingConfig, workspace_id: str = None
-    ) -> List[str]:
+    ) -> list[str]:
         chunker = self._chunkers.get(config.strategy)
         if not chunker:
             raise ValueError(f"Unknown chunking strategy: {config.strategy}")

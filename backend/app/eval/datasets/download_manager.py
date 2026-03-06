@@ -6,13 +6,11 @@ Manages dataset downloads with caching, progress tracking, and parallel download
 
 import asyncio
 import os
-from pathlib import Path
-from typing import Dict, List, Optional, Union
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 
 import structlog
-
 from backend.app.eval.datasets.registry import dataset_registry
 
 logger = structlog.get_logger(__name__)
@@ -35,8 +33,8 @@ class DownloadTask:
     dataset_name: str
     status: DownloadStatus = DownloadStatus.PENDING
     progress: float = 0.0
-    error: Optional[str] = None
-    local_path: Optional[Path] = None
+    error: str | None = None
+    local_path: Path | None = None
 
 
 class DownloadManager:
@@ -64,7 +62,7 @@ class DownloadManager:
 
     def __init__(
         self,
-        cache_dir: Optional[Union[str, Path]] = None,
+        cache_dir: str | Path | None = None,
         max_concurrent: int = 3,
     ):
         """
@@ -85,13 +83,11 @@ class DownloadManager:
                 self.cache_dir = Path.home() / ".karag" / "datasets"
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.max_concurrent = max_concurrent
-        self._tasks: Dict[str, DownloadTask] = {}
+        self._tasks: dict[str, DownloadTask] = {}
         self._semaphore = asyncio.Semaphore(max_concurrent)
         self.logger = logger
 
-    async def download(
-        self, dataset_name: str, force: bool = False, **loader_kwargs
-    ) -> Path:
+    async def download(self, dataset_name: str, force: bool = False, **loader_kwargs) -> Path:
         """
         Download a single dataset.
 
@@ -142,9 +138,7 @@ class DownloadManager:
                 task.local_path = path
                 task.progress = 100.0
 
-                self.logger.info(
-                    "download_completed", dataset=dataset_name, path=str(path)
-                )
+                self.logger.info("download_completed", dataset=dataset_name, path=str(path))
 
                 return path
 
@@ -155,8 +149,8 @@ class DownloadManager:
                 raise
 
     async def download_batch(
-        self, dataset_names: List[str], force: bool = False, **loader_kwargs
-    ) -> Dict[str, Union[Path, Exception]]:
+        self, dataset_names: list[str], force: bool = False, **loader_kwargs
+    ) -> dict[str, Path | Exception]:
         """
         Download multiple datasets in parallel.
 
@@ -177,12 +171,12 @@ class DownloadManager:
 
         return {
             name: result if not isinstance(result, Exception) else result
-            for name, result in zip(dataset_names, results)
+            for name, result in zip(dataset_names, results, strict=False)
         }
 
     async def _download_with_error_handling(
         self, dataset_name: str, force: bool = False, **loader_kwargs
-    ) -> Union[Path, Exception]:
+    ) -> Path | Exception:
         """Download with error handling."""
         try:
             return await self.download(dataset_name, force, **loader_kwargs)
@@ -197,12 +191,12 @@ class DownloadManager:
         except KeyError:
             return False
 
-    def get_status(self, dataset_name: str) -> Optional[DownloadStatus]:
+    def get_status(self, dataset_name: str) -> DownloadStatus | None:
         """Get download status of a dataset."""
         task = self._tasks.get(dataset_name)
         return task.status if task else None
 
-    def get_all_statuses(self) -> Dict[str, DownloadStatus]:
+    def get_all_statuses(self) -> dict[str, DownloadStatus]:
         """Get statuses of all tracked downloads."""
         return {name: task.status for name, task in self._tasks.items()}
 
@@ -210,7 +204,7 @@ class DownloadManager:
         """Get expected path for a dataset."""
         return self.cache_dir / dataset_name
 
-    def clear_cache(self, dataset_name: Optional[str] = None) -> None:
+    def clear_cache(self, dataset_name: str | None = None) -> None:
         """
         Clear cached datasets.
 
@@ -236,13 +230,13 @@ class DownloadManager:
     def get_cache_size(self) -> int:
         """Get total cache size in bytes."""
         total_size = 0
-        for dirpath, dirnames, filenames in self.cache_dir.walk():
+        for dirpath, _dirnames, filenames in self.cache_dir.walk():
             for f in filenames:
                 fp = dirpath / f
                 total_size += fp.stat().st_size
         return total_size
 
-    def list_cached(self) -> List[str]:
+    def list_cached(self) -> list[str]:
         """List all cached datasets."""
         cached = []
         for path in self.cache_dir.iterdir():
