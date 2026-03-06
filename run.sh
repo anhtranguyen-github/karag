@@ -252,7 +252,7 @@ verify_frontend() {
     fi
 
     log_info "Running ESLint..."
-    pnpm run lint --silent 2>/dev/null || log_warn "ESLint issues found"
+    pnpm run lint 2>/dev/null || log_warn "ESLint issues found"
 
     cd - >/dev/null
     log_success "Frontend verification complete"
