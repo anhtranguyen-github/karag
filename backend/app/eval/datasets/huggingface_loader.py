@@ -7,7 +7,7 @@ column mapping for different dataset formats.
 
 from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable, Optional
 
 import structlog
 from backend.app.eval.datasets.base import (
@@ -53,7 +53,7 @@ class HuggingFaceDatasetLoader(BaseDatasetLoader):
         column_mapping: dict[str, str] | None = None,
         split_mapping: dict[DatasetSplit, str] | None = None,
         dataset_info: DatasetInfo | None = None,
-        preprocess_fn: callable | None = None,
+        preprocess_fn: Optional[Callable] = None,
     ):
         """
         Initialize HuggingFace dataset loader.

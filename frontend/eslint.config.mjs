@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Auto-generated API client (regenerated in CI)
+    "src/client/**",
+    "src/generated/**",
   ]),
   // Custom rule overrides for CI compatibility
   {
