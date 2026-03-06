@@ -95,7 +95,10 @@ select = [
     "TID",    # tidy imports
 ]
 
-ignore = []
+ignore = [
+    "E501",  # Line too long (handled separately)
+    "B904",  # raise in except clause - common pattern in exception handling
+]
 
 [tool.ruff.flake8-tidy-imports]
 ban-relative-imports = "all"

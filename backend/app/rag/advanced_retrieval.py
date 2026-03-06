@@ -8,8 +8,9 @@ Implements production patterns from llm-app-patterns skill:
 """
 
 import asyncio
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Optional
+from typing import Any
 
 import structlog
 from backend.app.core.telemetry import get_tracer
@@ -366,7 +367,7 @@ class HybridRetriever:
 def create_advanced_retriever(
     llm_client,
     semantic_retriever: Callable,
-    keyword_retriever: Optional[Callable] = None,
+    keyword_retriever: Callable | None = None,
     enable_multi_query: bool = True,
     enable_compression: bool = True,
 ) -> Any:

@@ -5,9 +5,9 @@ Supports loading datasets from HuggingFace Hub with standardized
 column mapping for different dataset formats.
 """
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 import structlog
 from backend.app.eval.datasets.base import (
@@ -53,7 +53,7 @@ class HuggingFaceDatasetLoader(BaseDatasetLoader):
         column_mapping: dict[str, str] | None = None,
         split_mapping: dict[DatasetSplit, str] | None = None,
         dataset_info: DatasetInfo | None = None,
-        preprocess_fn: Optional[Callable] = None,
+        preprocess_fn: Callable | None = None,
     ):
         """
         Initialize HuggingFace dataset loader.
