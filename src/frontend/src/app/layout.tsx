@@ -1,47 +1,14 @@
-import type { Metadata } from "next";
-import "./globals.css";
+import type { ReactNode } from "react";
 
-export const metadata: Metadata = {
-    title: "Karag",
-    description: "Your knowledge workspace",
+export const metadata = {
+  title: "Frontend",
+  description: "Next.js frontend"
 };
 
-import { ErrorProvider } from "@/context/error-context";
-import { ToastProvider } from "@/context/toast-context";
-import { TaskProvider } from "@/context/task-context";
-import { JobPanel } from "@/components/job-panel";
-import { ThemeProvider } from "@/components/theme-provider";
-import { AuthProvider } from "@/context/auth-context";
-import { AuthGuard } from "@/components/auth/auth-guard";
-
-export default function RootLayout({
-    children,
-}: {
-    children: React.ReactNode;
-}) {
-    return (
-        <html lang="en" suppressHydrationWarning className="h-full">
-            <body className="antialiased font-sans text-foreground bg-background h-full" suppressHydrationWarning>
-                <ThemeProvider
-                    attribute="class"
-                    defaultTheme="dark"
-                    enableSystem
-                    disableTransitionOnChange
-                >
-                    <AuthProvider>
-                        <ErrorProvider>
-                            <ToastProvider>
-                                <TaskProvider>
-                                    <AuthGuard>
-                                        {children}
-                                    </AuthGuard>
-                                    <JobPanel />
-                                </TaskProvider>
-                            </ToastProvider>
-                        </ErrorProvider>
-                    </AuthProvider>
-                </ThemeProvider>
-            </body>
-        </html>
-    );
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  );
 }

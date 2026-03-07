@@ -1,0 +1,23 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Install backend') {
+            steps {
+                sh 'cd src/backend && uv sync'
+            }
+        }
+
+        stage('Test backend') {
+            steps {
+                sh 'cd src/backend && uv run pytest'
+            }
+        }
+
+        stage('Build frontend') {
+            steps {
+                sh 'cd src/frontend && pnpm install && pnpm build'
+            }
+        }
+    }
+}

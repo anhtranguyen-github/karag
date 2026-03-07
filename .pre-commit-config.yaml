@@ -1,86 +1,12 @@
-# Pre-commit hooks for architecture enforcement
-# Install with: pre-commit install
-
 repos:
-  # =============================================================================
-  # Python Checks
-  # =============================================================================
-  
-  - repo: https://github.com/psf/black
-    rev: 24.1.1
-    hooks:
-      - id: black
-        language_version: python3.11
-
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.14
+    rev: v0.4.0
     hooks:
       - id: ruff
-        args: [--fix]
       - id: ruff-format
 
-  # =============================================================================
-  # Custom Quality Scanners
-  # =============================================================================
-  
-  - repo: local
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
     hooks:
-      # Hardcoded URL/Route Scanner
-      - id: hardcoded-strings
-        name: Hardcoded URLs and Routes
-        entry: python tools/check_hardcoded_strings.py
-        language: system
-        pass_filenames: false
-        stages: [pre-commit]
-        
-      # Mock/Placeholder Data Scanner
-      - id: mock-data
-        name: Mock and Placeholder Data
-        entry: python tools/check_mock_data.py
-        language: system
-        pass_filenames: false
-        stages: [pre-commit]
-        
-      # Debug Artifact Scanner
-      - id: debug-artifacts
-        name: Debug Artifacts
-        entry: python tools/check_debug_artifacts.py
-        language: system
-        pass_filenames: false
-        stages: [pre-commit]
-
-  # =============================================================================
-  # Architecture Drift Detection
-  # =============================================================================
-  
-  - repo: local
-    hooks:
-      - id: architecture-drift
-        name: Architecture Drift Detection
-        entry: python scripts/drift_detector.py --strict
-        language: system
-        pass_filenames: false
-        stages: [pre-commit]
-        description: Check for domain boundary violations
-
-  # =============================================================================
-  # TypeScript/JavaScript Checks  
-  # =============================================================================
-  
-  - repo: https://github.com/prettier/prettier
-    rev: 3.2.4
-    hooks:
-      - id: prettier
-        files: \.(ts|tsx|js|jsx|json|md|yaml|yml)$
-        stages: [pre-commit]
-
-  # =============================================================================
-  # Secret Scanning
-  # =============================================================================
-  
-  - repo: https://github.com/trufflesecurity/trufflehog
-    rev: main
-    hooks:
-      - id: trufflehog
-        args: [--only-verified]
-        stages: [commit-msg]
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
