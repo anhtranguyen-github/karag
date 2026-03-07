@@ -32,7 +32,7 @@ cd "${PROJECT_ROOT}"
 echo -e "\n\e[32m[Q3] Security: Pattern Analysis\e[0m"
 cd "${BACKEND_DIR}"
 uv run bandit -r app/ -ll
-if grep -q ":path}" frontend/src/lib/api/openapi.json; then
+if grep -q ":path}" src/frontend/src/lib/api/openapi.json; then
     echo -e "\e[31mCRITICAL: Path traversal vulnerability surface detected in openapi.json!\e[0m"
     exit 1
 fi
@@ -45,11 +45,12 @@ cd "${BACKEND_DIR}"
 uv lock --check
 cd "${PROJECT_ROOT}"
 # Verify Dockerfile build
-docker build -t karag:local-test -f backend/Dockerfile .
+docker build -t karag:local-test -f src/backend/Dockerfile .
 
 # Question 5: Are infrastructure and configs safe by default?
 echo -e "\n\e[32m[Q5] Infrastructure & Config: Safety Scan\e[0m"
 uvx checkov -d . --check HIGH,CRITICAL --framework dockerfile,docker_compose --soft-fail false
-python3 -c "import yaml; yaml.safe_load(open('backend/app/core/prompts.yaml'))"
+python3 -c "import yaml; yaml.safe_load(open('src/backend/app/core/prompts.yaml'))"
 
 echo -e "\n\e[34m=== ALL 5 QUESTIONS ANSWERED: SUCCESS ===\e[0m"
+

@@ -126,7 +126,7 @@ pipeline {
                         echo "Auditing API contracts for common security pitfalls..."
                         sh '''
                             # Check for uncontrolled path parameters in OpenAPI spec
-                            if grep -q ":path}" frontend/src/lib/api/openapi.json; then
+                            if grep -q ":path}" src/frontend/src/lib/api/openapi.json; then
                                 echo "ERROR: Path traversal vulnerability surface detected in openapi.json!"
                                 exit 1
                             fi
@@ -156,7 +156,7 @@ pipeline {
                 stage('Artifact: Docker Build') {
                     steps {
                         echo "Proving the application can be containerized..."
-                        sh "docker build --no-cache -t ${env.APP_NAME}:${env.BUILD_ID} -f backend/Dockerfile ."
+                        sh "docker build --no-cache -t ${env.APP_NAME}:${env.BUILD_ID} -f src/backend/Dockerfile ."
                     }
                 }
             }
@@ -178,7 +178,7 @@ pipeline {
                 stage('Config: Prompt Validation') {
                     steps {
                         echo "Validating Prompt Registry schemas..."
-                        sh 'python3 -c "import yaml; yaml.safe_load(open(\'backend/app/core/prompts.yaml\'))"'
+                        sh 'python3 -c "import yaml; yaml.safe_load(open(\'src/backend/app/core/prompts.yaml\'))"'
                     }
                 }
             }
@@ -212,3 +212,4 @@ pipeline {
         }
     }
 }
+

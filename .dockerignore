@@ -7,19 +7,19 @@
 __pycache__/
 *.py[cod]
 *$py.class
-backend/.venv/
-backend/.pytest_cache/
-backend/tests/results/
-backend/test-results/
+src/backend/.venv/
+src/backend/.pytest_cache/
+src/backend/tests/results/
+src/backend/test-results/
 .coverage
 coverage.xml
 
 # Node
-frontend/node_modules/
-frontend/.next/
-frontend/out/
-frontend/build/
-frontend/.pnpm-store/
+src/frontend/node_modules/
+src/frontend/.next/
+src/frontend/out/
+src/frontend/build/
+src/frontend/.pnpm-store/
 
 # Environment
 .env
@@ -52,3 +52,4 @@ scripts/
 README.md
 Jenkinsfile
 sonar-project.properties
+

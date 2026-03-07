@@ -85,7 +85,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'pnpm'
-          cache-dependency-path: frontend/pnpm-lock.yaml
+          cache-dependency-path: src/frontend/pnpm-lock.yaml
 
       - name: Build
         working-directory: ./frontend
@@ -125,8 +125,8 @@ jobs:
 
       - name: Docker Image Verification
         run: |
-          docker build -t karag-backend:test -f backend/Dockerfile .
-          docker build -t karag-frontend:test -f frontend/Dockerfile .
+          docker build -t karag-backend:test -f src/backend/Dockerfile .
+          docker build -t karag-frontend:test -f src/frontend/Dockerfile .
 
   # --- Stage 4: Production Deployment ---
   deploy-vercel:
@@ -194,7 +194,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./backend
-          file: ./backend/Dockerfile
+          file: ./src/backend/Dockerfile
           push: true
           tags: ${{ steps.meta-backend.outputs.tags }}
           labels: ${{ steps.meta-backend.outputs.labels }}
@@ -205,7 +205,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
-          file: ./frontend/Dockerfile
+          file: ./src/frontend/Dockerfile
           push: true
           tags: ${{ steps.meta-frontend.outputs.tags }}
           labels: ${{ steps.meta-frontend.outputs.labels }}
@@ -258,4 +258,5 @@ jobs:
         with:
           sarif_file: 'trivy-frontend-results.sarif'
           category: 'trivy-frontend'
+
 

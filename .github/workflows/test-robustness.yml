@@ -7,18 +7,18 @@ on:
   push:
     branches: [main, dev]
     paths:
-      - 'backend/tests/**'
-      - 'frontend/tests/**'
-      - 'backend/app/**'
-      - 'frontend/src/**'
+      - 'src/backend/tests/**'
+      - 'src/frontend/tests/**'
+      - 'src/backend/app/**'
+      - 'src/frontend/src/**'
       - '.github/workflows/test-robustness.yml'
   pull_request:
     branches: [main, dev]
     paths:
-      - 'backend/tests/**'
-      - 'frontend/tests/**'
-      - 'backend/app/**'
-      - 'frontend/src/**'
+      - 'src/backend/tests/**'
+      - 'src/frontend/tests/**'
+      - 'src/backend/app/**'
+      - 'src/frontend/src/**'
       - '.github/workflows/test-robustness.yml'
   workflow_dispatch:
     inputs:
@@ -145,7 +145,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: assertion-analysis-report
-          path: backend/assertion_analysis.json
+          path: src/backend/assertion_analysis.json
           retention-days: 7
         continue-on-error: true
 
@@ -206,9 +206,9 @@ jobs:
         with:
           name: mutmut-report
           path: |
-            backend/mutmut_report.txt
-            backend/mutmut_report.json
-            backend/mutmut_html/
+            src/backend/mutmut_report.txt
+            src/backend/mutmut_report.json
+            src/backend/mutmut_html/
           retention-days: 7
         continue-on-error: true
 
@@ -233,7 +233,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
-          cache-dependency-path: frontend/pnpm-lock.yaml
+          cache-dependency-path: src/frontend/pnpm-lock.yaml
 
       - name: Install Dependencies
         working-directory: ./frontend
@@ -270,8 +270,8 @@ jobs:
         with:
           name: stryker-report
           path: |
-            frontend/reports/stryker-report.json
-            frontend/reports/stryker-html/
+            src/frontend/reports/stryker-report.json
+            src/frontend/reports/stryker-html/
           retention-days: 7
         continue-on-error: true
 
@@ -729,3 +729,4 @@ jobs:
           echo "- stryker-report" >> $GITHUB_STEP_SUMMARY
           echo "- assertion-analysis-report" >> $GITHUB_STEP_SUMMARY
           echo "- test-robustness-report" >> $GITHUB_STEP_SUMMARY
+

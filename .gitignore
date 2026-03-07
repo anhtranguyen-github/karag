@@ -30,8 +30,8 @@ env/
 # ===================
 # Generated API Client (Regenerated in CI)
 # ===================
-frontend/src/generated/
-frontend/src/client/
+src/frontend/src/generated/
+src/frontend/src/client/
 
 # ===================
 # Environment
@@ -93,8 +93,8 @@ coverage/
 .nyc_output/
 playwright-report/
 test-results/
-frontend/playwright-report/
-frontend/test-results/
+src/frontend/playwright-report/
+src/frontend/test-results/
 .coverage
 coverage.xml
 *.cover
@@ -125,10 +125,10 @@ ollama_data/
 mongo_data/
 minio_data/
 /models/
-!frontend/src/lib/api/models/
+!src/frontend/src/lib/api/models/
 model_cache/
-backend/data/*.json
-!backend/data/.keep
+src/backend/data/*.json
+!src/backend/data/.keep
 *.pdf
 *.zip
 *.tar.gz
@@ -165,10 +165,10 @@ venv/
 .venv/
 .tox/
 pip-delete-this-directory.txt
-backend/app/graph/__pycache__/
-backend/app/tools/__pycache__/
-backend/app/rag/__pycache__/
-backend/app/core/__pycache__/
+src/backend/app/graph/__pycache__/
+src/backend/app/tools/__pycache__/
+src/backend/app/rag/__pycache__/
+src/backend/app/core/__pycache__/
 
 # ===================
 # Secrets & Keys

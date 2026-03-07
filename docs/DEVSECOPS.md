@@ -108,7 +108,7 @@ Our security strategy employs defense in depth with multiple specialized tools:
 
 #### SAST (Static Application Security Testing)
 
-**Bandit** ([`backend/pyproject.toml`](../backend/pyproject.toml))
+**Bandit** ([`src/backend/pyproject.toml`](../src/backend/pyproject.toml))
 - Focuses on Python-specific security issues
 - Runs with confidence level `-ll` (medium and high)
 - Configuration in dev dependency group
@@ -147,17 +147,17 @@ Our security strategy employs defense in depth with multiple specialized tools:
 
 ### 4.1 Backend Testing
 
-**Framework:** pytest ([`backend/pyproject.toml`](../backend/pyproject.toml), [`backend/pytest.ini`](../backend/pytest.ini))
+**Framework:** pytest ([`src/backend/pyproject.toml`](../src/backend/pyproject.toml), [`src/backend/pytest.ini`](../src/backend/pytest.ini))
 
 **Test Markers:**
 
 | Marker | Purpose | Location |
 |--------|---------|----------|
-| `unit` | Fast tests with deterministic mocks | `backend/tests/unit/` |
-| `integration` | Tests with stubbed services | `backend/tests/integration/` |
-| `contract` | Schema validation tests | `backend/tests/contract/` |
-| `canary` | Real LLM provider tests (non-blocking) | `backend/tests/canary/` |
-| `e2e` | Full end-to-end user flows | `backend/tests/e2e/` |
+| `unit` | Fast tests with deterministic mocks | `src/backend/tests/unit/` |
+| `integration` | Tests with stubbed services | `src/backend/tests/integration/` |
+| `contract` | Schema validation tests | `src/backend/tests/contract/` |
+| `canary` | Real LLM provider tests (non-blocking) | `src/backend/tests/canary/` |
+| `e2e` | Full end-to-end user flows | `src/backend/tests/e2e/` |
 
 **Coverage:**
 - Configured with `pytest-cov`
@@ -166,7 +166,7 @@ Our security strategy employs defense in depth with multiple specialized tools:
 
 ### 4.2 Frontend Testing
 
-**Framework:** Vitest ([`frontend/vitest.config.ts`](../frontend/vitest.config.ts))
+**Framework:** Vitest ([`src/frontend/vitest.config.ts`](../src/frontend/vitest.config.ts))
 
 **Configuration:**
 - Environment: `jsdom` for DOM simulation
@@ -184,8 +184,8 @@ Our security strategy employs defense in depth with multiple specialized tools:
 
 **SonarQube** ([`sonar-project.properties`](../sonar-project.properties))
 - Aggregates coverage from both backend and frontend
-- Backend: `backend/tests/results/coverage.xml`
-- Frontend: `frontend/coverage/lcov.info`
+- Backend: `src/backend/tests/results/coverage.xml`
+- Frontend: `src/frontend/coverage/lcov.info`
 - Python version: 3.10
 - Excludes: `__pycache__`, `.venv`, `node_modules`, `.next`, `build`
 
@@ -288,7 +288,7 @@ This means:
 
 ```bash
 # Navigate to backend directory
-cd backend
+cd src/backend
 
 # Run linting (ruff)
 uv run ruff check .
@@ -311,7 +311,7 @@ uv run pytest --cov=app --cov-report=html
 
 ```bash
 # Navigate to frontend directory
-cd frontend
+cd src/frontend
 
 # Install dependencies
 pnpm install
@@ -333,10 +333,10 @@ Before pushing code, run these checks locally:
 
 ```bash
 # Backend
-cd backend && uv run ruff check . && uv run bandit -r app/ && uv run pytest -m unit
+cd src/backend && uv run ruff check . && uv run bandit -r app/ && uv run pytest -m unit
 
 # Frontend  
-cd frontend && pnpm run lint && pnpm test:unit
+cd src/frontend && pnpm run lint && pnpm test:unit
 ```
 
 ---
@@ -349,11 +349,11 @@ cd frontend && pnpm run lint && pnpm test:unit
 | [`Jenkinsfile`](../Jenkinsfile) | Jenkins pipeline definition |
 | [`GITHUB_SECRETS.md`](./GITHUB_SECRETS.md) | **Repository secrets and variables setup guide** |
 | [`sonar-project.properties`](../sonar-project.properties) | SonarQube configuration |
-| [`backend/pyproject.toml`](../backend/pyproject.toml) | Python dependencies and tool config |
-| [`backend/pytest.ini`](../backend/pytest.ini) | pytest configuration and markers |
-| [`frontend/vitest.config.ts`](../frontend/vitest.config.ts) | Vitest test runner configuration |
-| [`backend/Dockerfile`](../backend/Dockerfile) | Backend container build |
-| [`frontend/Dockerfile`](../frontend/Dockerfile) | Frontend container build |
+| [`src/backend/pyproject.toml`](../src/backend/pyproject.toml) | Python dependencies and tool config |
+| [`src/backend/pytest.ini`](../src/backend/pytest.ini) | pytest configuration and markers |
+| [`src/frontend/vitest.config.ts`](../src/frontend/vitest.config.ts) | Vitest test runner configuration |
+| [`src/backend/Dockerfile`](../src/backend/Dockerfile) | Backend container build |
+| [`src/frontend/Dockerfile`](../src/frontend/Dockerfile) | Frontend container build |
 | [`docker-compose.yml`](../docker-compose.yml) | Local development stack |
 
 ---
@@ -369,3 +369,4 @@ If you discover a security vulnerability, please follow responsible disclosure p
 ---
 
 *Last updated: 2026-03-04*
+

@@ -105,7 +105,7 @@ Karag is built for production-grade dependability, observability, and reliable o
 
 ### Frontend
 ```bash
-cd frontend
+cd src/frontend
 pnpm install
 pnpm run dev
 ```
@@ -115,7 +115,7 @@ pnpm run dev
 # Install uv toolchain
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-cd backend
+cd src/backend
 uv sync
 uv run app/main.py
 ```
@@ -126,13 +126,13 @@ The project is governed by strict end-to-end testing suites.
 
 ### Backend Tests
 ```bash
-cd backend
+cd src/backend
 uv run pytest tests/unit -v
 ```
 
 ### Frontend Tests
 ```bash
-cd frontend
+cd src/frontend
 pnpm run test         # Vitest unit & component matching
 pnpm run type-check   # Validate TS boundaries
 ```

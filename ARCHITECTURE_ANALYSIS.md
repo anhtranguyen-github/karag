@@ -31,9 +31,9 @@ karag/
 ├── sonar-project.properties
 ├── vercel.json
 ├── .github/                # GitHub workflows
-├── backend/                # Python FastAPI backend
+├── src/backend/                # Python FastAPI backend
 ├── docs/                  # Documentation
-├── frontend/              # Next.js frontend
+├── src/frontend/              # Next.js frontend
 ├── groovy_scripts/        # Jenkins groovy scripts
 ├── k8s/                   # Kubernetes configs
 ├── scripts/               # Utility scripts
@@ -49,24 +49,24 @@ karag/
 
 | Issue | Location | Description |
 |-------|----------|-------------|
-| Duplicate graph modules | `backend/app/graph/` and `backend/app/rag/graph/` | Two separate graph implementations exist with similar names (nodes.py, state.py). The `backend/app/graph/` is used for the main agent workflow while `backend/app/rag/graph/` is for RAG-specific graphs. This creates confusion. |
-| Nested empty eval config dirs | `backend/app/eval/{datasets,metrics,runners,config}/` | These appear to be brace expansion artifacts that were never properly created as directories. |
+| Duplicate graph modules | `src/backend/app/graph/` and `src/backend/app/rag/graph/` | Two separate graph implementations exist with similar names (nodes.py, state.py). The `src/backend/app/graph/` is used for the main agent workflow while `src/backend/app/rag/graph/` is for RAG-specific graphs. This creates confusion. |
+| Nested empty eval config dirs | `src/backend/app/eval/{datasets,metrics,runners,config}/` | These appear to be brace expansion artifacts that were never properly created as directories. |
 
 ### 2.2 Empty or Unused Files
 
 | File | Size | Issue |
 |------|------|-------|
-| `backend/README.md` | 0 bytes | Empty README - REMOVED |
-| `backend/data/.keep` | 0 bytes | Empty placeholder - REMOVED |
+| `src/backend/README.md` | 0 bytes | Empty README - REMOVED |
+| `src/backend/data/.keep` | 0 bytes | Empty placeholder - REMOVED |
 | `openapi.json` | 0 bytes | Empty file - REMOVED |
 
-**Note:** `backend/app/rag/store/__init__.py` and `backend/app/rag/tools/__init__.py` are REQUIRED for Python package imports and should NOT be removed.
+**Note:** `src/backend/app/rag/store/__init__.py` and `src/backend/app/rag/tools/__init__.py` are REQUIRED for Python package imports and should NOT be removed.
 
 ### 2.3 Environment File Issues
 
 | Issue | Details |
 |-------|---------|
-| Multiple .env files | Found: `./.env`, `backend/.env`, `backend/.env.local`, `backend/.env.example` |
+| Multiple .env files | Found: `./.env`, `src/backend/.env`, `src/backend/.env.local`, `src/backend/.env.example` |
 | Root .env at project level | The root `.env` contains sensitive data and should not be in the repository root |
 | Inconsistent .env locations | Backend has its own .env but root also has one |
 
@@ -78,12 +78,12 @@ The following files exceed 10,000 characters and may benefit from refactoring:
 |------|-------------|
 | `run.sh` | 24,082 chars |
 | `openapi-workspace-document.json` | 31,229 chars |
-| `backend/app/api/v1/completions.py` | ~29,792 chars |
-| `backend/app/services/chat_service.py` | ~28,069 chars |
-| `backend/app/core/telemetry.py` | ~21,451 chars |
-| `backend/app/eval/metrics/generation.py` | ~21,002 chars |
-| `backend/app/schemas/baas.py` | ~19,852 chars |
-| `backend/app/main.py` | ~14,383 chars |
+| `src/backend/app/api/v1/completions.py` | ~29,792 chars |
+| `src/backend/app/services/chat_service.py` | ~28,069 chars |
+| `src/backend/app/core/telemetry.py` | ~21,451 chars |
+| `src/backend/app/eval/metrics/generation.py` | ~21,002 chars |
+| `src/backend/app/schemas/baas.py` | ~19,852 chars |
+| `src/backend/app/main.py` | ~14,383 chars |
 
 ### 2.5 Duplicate Filenames in Different Locations
 
@@ -91,19 +91,19 @@ The following filenames appear in multiple locations (legitimate but worth notin
 
 | Filename | Locations |
 |----------|-----------|
-| `auth.py` | `backend/app/core/auth.py`, `backend/app/api/v1/auth.py` |
+| `auth.py` | `src/backend/app/core/auth.py`, `src/backend/app/api/v1/auth.py` |
 | `base.py` | Multiple locations (base classes in different modules) |
-| `chat.py` | `backend/app/api/v1/chat.py`, `backend/app/schemas/chat.py` |
-| `documents.py` | `backend/app/api/v1/documents.py`, `backend/app/schemas/documents.py` |
-| `nodes.py` | `backend/app/graph/nodes.py`, `backend/app/rag/graph/nodes.py` |
-| `state.py` | `backend/app/graph/state.py`, `backend/app/rag/graph/state.py` |
+| `chat.py` | `src/backend/app/api/v1/chat.py`, `src/backend/app/schemas/chat.py` |
+| `documents.py` | `src/backend/app/api/v1/documents.py`, `src/backend/app/schemas/documents.py` |
+| `nodes.py` | `src/backend/app/graph/nodes.py`, `src/backend/app/rag/graph/nodes.py` |
+| `state.py` | `src/backend/app/graph/state.py`, `src/backend/app/rag/graph/state.py` |
 
 ### 2.6 Unused Artifacts Removed
 
 | File | Notes |
 |------|-------|
-| `backend/backend/data/settings.json` | Unused nested config - REMOVED |
-| `backend/backend/data/tools.json` | Unused nested config - REMOVED |
+| `src/backend/src/backend/data/settings.json` | Unused nested config - REMOVED |
+| `src/backend/src/backend/data/tools.json` | Unused nested config - REMOVED |
 
 ---
 
@@ -124,14 +124,14 @@ This is consistent across the codebase.
 
 ### Files Removed (Safe Cleanup)
 - `openapi.json` (empty, unused)
-- `backend/README.md` (empty)
-- `backend/data/.keep` (empty placeholder)
-- `backend/backend/data/settings.json` (unused nested config)
-- `backend/backend/data/tools.json` (unused nested config)
+- `src/backend/README.md` (empty)
+- `src/backend/data/.keep` (empty placeholder)
+- `src/backend/src/backend/data/settings.json` (unused nested config)
+- `src/backend/src/backend/data/tools.json` (unused nested config)
 
 ### Files Restored (Required)
-- `backend/app/rag/store/__init__.py` (required for Python imports)
-- `backend/app/rag/tools/__init__.py` (required for Python imports)
+- `src/backend/app/rag/store/__init__.py` (required for Python imports)
+- `src/backend/app/rag/tools/__init__.py` (required for Python imports)
 
 ### Documentation Added
 - `ARCHITECTURE_ANALYSIS.md` - Comprehensive analysis report
@@ -142,10 +142,10 @@ This is consistent across the codebase.
 
 ### High Priority
 1. Review `.env` file handling - ensure no secrets are committed
-2. Consider adding `backend/data/` and `backend/backend/` to `.gitignore`
+2. Consider adding `src/backend/data/` and `src/backend/src/backend/` to `.gitignore`
 
 ### Medium Priority
-1. Consider clarifying the relationship between `backend/app/graph/` and `backend/app/rag/graph/`
+1. Consider clarifying the relationship between `src/backend/app/graph/` and `src/backend/app/rag/graph/`
 2. Split large files like `completions.py`, `chat_service.py` if they have multiple responsibilities
 
 ### Low Priority
@@ -155,3 +155,4 @@ This is consistent across the codebase.
 
 *Generated: 2026-03-05*
 *Updated: 2026-03-05*
+

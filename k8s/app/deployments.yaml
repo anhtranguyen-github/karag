@@ -25,7 +25,7 @@ spec:
             name: backend-secrets
         volumeMounts:
         - name: app-data
-          mountPath: /app/backend/data
+          mountPath: /app/src/backend/data
       volumes:
       - name: app-data
         persistentVolumeClaim:
@@ -53,3 +53,4 @@ spec:
         image: karag/karag-frontend:latest
         ports:
         - containerPort: 3000
+

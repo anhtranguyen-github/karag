@@ -2,17 +2,18 @@
     "version": 2,
     "builds": [
         {
-            "src": "frontend/package.json",
+            "src": "src/frontend/package.json",
             "use": "@vercel/next"
         }
     ],
     "rewrites": [
         {
             "source": "/(.*)",
-            "destination": "/frontend/$1"
+            "destination": "/src/frontend/$1"
         }
     ],
     "env": {
         "PYTHON_VERSION": "3.10"
     }
 }
+

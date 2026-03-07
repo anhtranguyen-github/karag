@@ -14,7 +14,7 @@ This implementation adds a complete Backend-as-a-Service (BaaS) core to Karag, c
 
 ## Files Created
 
-### 1. Data Models (`backend/app/schemas/baas.py`)
+### 1. Data Models (`src/backend/app/schemas/baas.py`)
 
 Authoritative data models for all BaaS entities:
 
@@ -34,32 +34,32 @@ Authoritative data models for all BaaS entities:
 
 ### 2. Services
 
-#### API Key Service (`backend/app/services/api_key_service.py`)
+#### API Key Service (`src/backend/app/services/api_key_service.py`)
 - Key generation with Argon2 hashing
 - Key validation and workspace resolution
 - Permission checking
 - Revocation and cleanup
 
-#### Vault Service (`backend/app/services/vault_service.py`)
+#### Vault Service (`src/backend/app/services/vault_service.py`)
 - Global vault management (read-only, shared)
 - Workspace vault creation and isolation
 - Access control enforcement
 - Collection naming for isolation
 
-#### Configuration Service (`backend/app/services/config_service.py`)
+#### Configuration Service (`src/backend/app/services/config_service.py`)
 - System config (operator-only)
 - Workspace config (restricted)
 - Request config resolution with clamping
 - Validation and precedence handling
 
-#### Usage Service (`backend/app/services/usage_service.py`)
+#### Usage Service (`src/backend/app/services/usage_service.py`)
 - Structured request logging
 - Token usage tracking
 - RAG trace creation
 - Statistics aggregation
 - Sensitive data redaction
 
-### 3. Dependencies (`backend/app/api/baas_deps.py`)
+### 3. Dependencies (`src/backend/app/api/baas_deps.py`)
 
 FastAPI dependencies for:
 - API key extraction from headers
@@ -67,7 +67,7 @@ FastAPI dependencies for:
 - Permission requirements (read/write/delete/admin)
 - Backward compatibility with existing JWT auth
 
-### 4. Admin API (`backend/app/api/v1/baas_admin.py`)
+### 4. Admin API (`src/backend/app/api/v1/baas_admin.py`)
 
 Control plane endpoints:
 - `POST /admin/baas/workspaces/{id}/api-keys` - Create API key
@@ -326,7 +326,7 @@ REDACTED_FIELDS = [
 ## File Reference
 
 ```
-backend/
+src/backend/
 ├── app/
 │   ├── schemas/
 │   │   └── baas.py              # Data models (Blocks 1,2,4,5)
@@ -354,3 +354,4 @@ docs/
 - **Audit Trail**: Every request logged with workspace attribution
 - **Access Control**: Deny-by-default with explicit permissions
 - **Data Retention**: Configurable TTL for usage logs (default 90 days)
+

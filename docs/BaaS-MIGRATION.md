@@ -95,7 +95,7 @@ if __name__ == "__main__":
 ### 1.3 Middleware Registration
 
 ```python
-# In backend/app/main.py, add to app initialization
+# In src/backend/app/main.py, add to app initialization
 
 from backend.app.api.baas_deps import get_isolation_context
 from backend.app.services.api_key_service import api_key_service
@@ -263,7 +263,7 @@ Updates needed:
 3. Add RAG trace logging
 
 ```python
-# In backend/app/api/v1/completions.py
+# In src/backend/app/api/v1/completions.py
 
 from backend.app.api.baas_deps import IsolationContextDep, get_isolation_context
 from backend.app.services.usage_service import usage_service
@@ -391,7 +391,7 @@ db.usage_logs.createIndex(
 ### 5.2 Middleware Integration
 
 ```python
-# In backend/app/core/middleware.py
+# In src/backend/app/core/middleware.py
 
 from backend.app.services.usage_service import usage_service
 
@@ -498,3 +498,4 @@ After successful migration:
    - Update API documentation
    - Create user guides for API keys
    - Document admin endpoints
+

@@ -133,7 +133,7 @@ deep_cleanup() {
     pkill -f "next-dev" 2>/dev/null || true
 
     # Remove lock files
-    rm -f frontend/.next/dev/lock 2>/dev/null || true
+    rm -f src/frontend/.next/dev/lock 2>/dev/null || true
 
     # Kill ports
     kill_port "$BACKEND_PORT"
@@ -203,7 +203,7 @@ preflight() {
 verify_backend() {
     log_info "Verifying backend..."
 
-    cd backend
+    cd src/backend
 
     log_info "Synchronizing dependencies..."
     uv sync --quiet
@@ -231,7 +231,7 @@ verify_backend() {
 verify_frontend() {
     log_info "Verifying frontend..."
 
-    cd frontend
+    cd src/frontend
 
     if [[ ! -d "node_modules" ]]; then
         log_info "Installing dependencies..."
@@ -278,7 +278,7 @@ check_cloud_mongo() {
 
     # Use Python for proper MongoDB connectivity check
     (
-        cd backend
+        cd src/backend
         MONGO_URI="$MONGO_URI" uv run python3 -c "
 import pymongo
 import os
@@ -386,7 +386,7 @@ launch_backend() {
     export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}."
 
     log_info "Starting FastAPI server..."
-    nohup uv run --project backend backend/app/main.py > logs/backend.log 2>&1 &
+    nohup uv run --project src/backend python src/backend/app/main.py > logs/backend.log 2>&1 &
     local pid=$!
 
     echo -n "Waiting for API..."
@@ -414,7 +414,7 @@ launch_backend() {
 launch_frontend() {
     log_phase "FRONTEND LAUNCH"
 
-    cd frontend
+    cd src/frontend
 
     if [[ ! -d "node_modules" ]]; then
         log_info "Installing dependencies..."
@@ -525,10 +525,10 @@ cmd_build() {
     log_phase "BUILD"
 
     log_info "Building backend..."
-    (cd backend && uv sync)
+    (cd src/backend && uv sync)
 
     log_info "Building frontend..."
-    (cd frontend && pnpm install && pnpm run build)
+    (cd src/frontend && pnpm install && pnpm run build)
 
     log_success "Build complete"
 }
@@ -632,16 +632,16 @@ except Exception as e:
     echo ""
 
     log_info "Installing frontend dependencies..."
-    (cd frontend && pnpm install --frozen-lockfile)
+    (cd src/frontend && pnpm install --frozen-lockfile)
 
     log_info "Generating API client..."
-    (cd frontend && pnpm run generate-client)
+    (cd src/frontend && pnpm run generate-client)
 
     log_info "Building frontend for production..."
-    (cd frontend && pnpm run build)
+    (cd src/frontend && pnpm run build)
 
     log_success "Cloud build complete"
-    log_info "Output: frontend/.next/"
+    log_info "Output: src/frontend/.next/"
     log_info "Deploy this folder to your cloud hosting provider (Vercel, Netlify, etc.)"
 }
 
@@ -651,10 +651,10 @@ cmd_test() {
     log_phase "TEST"
 
     log_info "Running backend tests..."
-    (cd backend && uv run pytest tests/unit tests/integration 2>/dev/null) || log_warn "Backend tests failed"
+    (cd src/backend && uv run pytest tests/unit tests/integration 2>/dev/null) || log_warn "Backend tests failed"
 
     log_info "Running frontend tests..."
-    (cd frontend && pnpm run test:unit 2>/dev/null) || log_warn "Frontend tests failed"
+    (cd src/frontend && pnpm run test:unit 2>/dev/null) || log_warn "Frontend tests failed"
 
     log_success "Testing complete"
 }
@@ -733,7 +733,7 @@ cmd_clean() {
     kill_port "$FRONTEND_PORT"
 
     log_info "Removing caches and logs..."
-    rm -rf logs/ backend/.venv frontend/node_modules frontend/.next 2>/dev/null || true
+    rm -rf logs/ src/backend/.venv src/frontend/node_modules src/frontend/.next 2>/dev/null || true
 
     log_success "System cleaned"
 }
@@ -861,3 +861,4 @@ case "$COMMAND" in
         exit 1
         ;;
 esac
+

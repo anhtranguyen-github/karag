@@ -68,7 +68,7 @@ ruff check .
 
 **Bandit (Security)**
 ```bash
-bandit -r backend/
+bandit -r src/backend/
 ```
 
 **Hardcoded Strings**
@@ -224,3 +224,4 @@ Defined in `importlinter.ini` with contracts for each layer.
 2. **Pre-commit**: Add hook in `.pre-commit-config.yaml`
 3. **CI**: Add step in `.github/workflows/ci.yml`
 4. **Documentation**: Update this file
+

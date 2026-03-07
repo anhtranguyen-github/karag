@@ -23,8 +23,8 @@ import pytest
 
 # Root directories to scan - use relative path for portability
 PROJECT_ROOT = Path(__file__).parent.parent.parent.resolve()
-FRONTEND_DIR = PROJECT_ROOT / "frontend"
-BACKEND_DIR = PROJECT_ROOT / "backend"
+FRONTEND_DIR = PROJECT_ROOT / "src" / "frontend"
+BACKEND_DIR = PROJECT_ROOT / "src" / "backend"
 FASTAPI_DOMAIN_DIR = PROJECT_ROOT / "fastapi-domain"
 
 # Domain tables that should only be writable through domain services

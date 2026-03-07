@@ -59,7 +59,7 @@ run_check "Ruff" "ruff check ."
 echo "========================================"
 echo "2. Bandit Security Scanner"
 echo "========================================"
-run_check "Bandit" "bandit -r backend/ -x tests/"
+run_check "Bandit" "bandit -r src/backend/ -x tests/"
 
 # 3. Detect Secrets (if baseline exists)
 echo "========================================"
@@ -113,3 +113,4 @@ else
     echo -e "${RED}$FAILED_CHECKS check(s) failed${NC}"
     exit 1
 fi
+

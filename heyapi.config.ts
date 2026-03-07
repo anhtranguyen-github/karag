@@ -21,7 +21,7 @@ export default defineConfig({
   input: 'openapi/schema.json',
   
   // Output directory for generated code
-  output: 'frontend/src/client',
+  output: 'src/frontend/src/client',
   
   // Plugins for generating different parts of the SDK
   plugins: [
@@ -35,3 +35,4 @@ export default defineConfig({
     '@hey-api/client-fetch',
   ],
 });
+
