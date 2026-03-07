@@ -475,15 +475,15 @@ launch_frontend() {
         fi
         log_kv "Port" "$FRONTEND_PORT"
         log_kv "Log file" "logs/frontend.log"
-        log_cmd "pnpm run start"
-        nohup pnpm run start > ../../logs/frontend.log 2>&1 &
+        log_cmd "pnpm exec next start -p ${FRONTEND_PORT}"
+        nohup pnpm exec next start -p "${FRONTEND_PORT}" > ../../logs/frontend.log 2>&1 &
         pid=$!
     else
         log_info "Starting development server..."
         log_kv "Port" "$FRONTEND_PORT"
         log_kv "Log file" "logs/frontend.log"
-        log_cmd "pnpm run dev"
-        nohup pnpm run dev > ../../logs/frontend.log 2>&1 &
+        log_cmd "pnpm exec next dev -H 0.0.0.0 -p ${FRONTEND_PORT}"
+        nohup pnpm exec next dev -H 0.0.0.0 -p "${FRONTEND_PORT}" > ../../logs/frontend.log 2>&1 &
         pid=$!
     fi
 

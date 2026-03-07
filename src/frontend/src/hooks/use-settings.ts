@@ -40,6 +40,20 @@ export interface SettingMetadata {
     step?: number;
 }
 
+const isAuthError = (payload: any) => {
+    const status = payload?.response?.status;
+    const code = payload?.error?.code ?? payload?.detail?.code;
+    return status === 401 || status === 403 || code === 'AUTHENTICATION_REQUIRED' || code === 'AUTHENTICATION_ERROR';
+};
+
+const unwrapPayload = <T,>(payload: any): T => {
+    if (payload?.error) {
+        throw payload;
+    }
+
+    return (payload?.data?.data ?? payload?.data ?? payload) as T;
+};
+
 export function useSettingsMetadata(workspaceId?: string) {
     const [metadata, setMetadata] = useState<Record<string, SettingMetadata> | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -48,19 +62,16 @@ export function useSettingsMetadata(workspaceId?: string) {
     const fetchMetadata = useCallback(async () => {
         setIsLoading(true);
         try {
-            const payload = (workspaceId
+            const payload = workspaceId
                 ? (await workspaces.getSettingsMetadata({ workspaceId }))
-                : (await admin.getGlobalSettingsMetadata())) as any;
+                : (await admin.getGlobalSettingsMetadata());
 
-            if (payload.success) {
-                setMetadata(payload.data);
-                setError(null);
-            } else {
-                setError(payload.message || 'Failed to parse metadata.');
-            }
+            setMetadata(unwrapPayload<Record<string, SettingMetadata>>(payload));
+            setError(null);
         } catch (err: any) {
             console.error('Failed to fetch settings metadata:', err);
-            setError('Connection failed.');
+            setMetadata(null);
+            setError(isAuthError(err) ? null : 'Connection failed.');
         } finally {
             setIsLoading(false);
         }
@@ -81,18 +92,17 @@ export function useSettings(workspaceId?: string) {
     const fetchSettings = useCallback(async () => {
         setIsLoading(true);
         try {
-            const payload = (workspaceId
+            const payload = workspaceId
                 ? (await workspaces.getSettings({ workspaceId }))
-                : (await admin.getGlobalSettings())) as any;
+                : (await admin.getGlobalSettings());
 
-            if (payload.success && payload.data) {
-                setSettings(payload.data);
-            } else if (!payload.success) {
-                showError("Connection error", "Unable to retrieve settings. Please check your connection.");
-            }
+            setSettings(unwrapPayload<AppSettings>(payload));
         } catch (err) {
             console.error('Failed to fetch settings:', err);
-            showError("Connection error", "Unable to retrieve settings. Please check your connection.");
+            setSettings(null);
+            if (!isAuthError(err)) {
+                showError("Connection error", "Unable to retrieve settings. Please check your connection.");
+            }
         } finally {
             setIsLoading(false);
         }
@@ -100,32 +110,25 @@ export function useSettings(workspaceId?: string) {
 
     const updateSettings = async (updates: Partial<AppSettings>) => {
         try {
-            const payload = (workspaceId
+            const payload = workspaceId
                 ? (await workspaces.updateSettings({
                     workspaceId,
                     requestBody: updates as any
                 }))
                 : (await admin.updateGlobalSettings({
                     requestBody: updates as any
-                }))) as any;
+                }));
 
-            if (payload.success) {
-                const newSettings = payload.data || payload;
-                setSettings(newSettings);
-                return newSettings;
-            } else {
-                let title = "Failed to save";
-                const message = payload.message || payload.detail || "The server rejected the configuration update.";
-                if (payload.code === "VALIDATION_ERROR") {
-                    title = "Invalid input";
-                }
-
-                showError(title, message, payload.params ? JSON.stringify(payload.params) : undefined);
-                return null;
-            }
-        } catch (err) {
+            const newSettings = unwrapPayload<AppSettings>(payload);
+            setSettings(newSettings);
+            return newSettings;
+        } catch (err: any) {
             console.error('Failed to update settings:', err);
-            showError("Network error", "Action failed. Please try again.");
+            if (isAuthError(err)) {
+                showError("Authentication required", "Please sign in again to update settings.");
+            } else {
+                showError("Network error", "Action failed. Please try again.");
+            }
             return null;
         }
     };

@@ -20,6 +20,7 @@ import { useError } from '@/context/error-context';
 import { getIllegalCharsFound } from '@/lib/constants';
 import { useTasks } from '@/context/task-context';
 import { useToast } from '@/context/toast-context';
+import { parseApiError } from '@/lib/api-errors';
 import {
     Select,
     SelectContent,
@@ -294,13 +295,11 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
             setIsUploadModalOpen(false);
             toast.success('Document uploaded successfully');
         } catch (err: unknown) {
-            const title = "Upload Failed";
-            let message = "Upload failed";
+            const parsed = await parseApiError(err, "Upload failed");
             try {
                 const response = (err as any).response;
                 if (response) {
                     const payload = await response.json();
-                    message = payload.message || message;
                     if (payload.code === 'DUPLICATE_DETECTED' && payload.data) {
                         setDuplicateData({
                             id: payload.data.existing_doc?.id,
@@ -311,8 +310,8 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                         return;
                     }
                 }
-            } catch (e) { }
-            showError(title, message, `File: ${file.name}`);
+            } catch { }
+            showError("Upload Failed", parsed.message, parsed.details || `File: ${file.name}`);
         } finally {
             setIsUploading(false);
         }
@@ -355,17 +354,8 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
             setImportUrl('');
             toast.success('Import task started successfully');
         } catch (err: unknown) {
-            try {
-                const response = (err as any).response;
-                if (response) {
-                    const payload = await response.json();
-                    showError("Import Failed", payload.message || 'Failed to start import', `Source: ${importUrl}`);
-                } else {
-                    showError("Import Failed", 'Failed to start import', `Source: ${importUrl}`);
-                }
-            } catch (e) {
-                showError("Network Error", "Could not connect to document service.");
-            }
+            const parsed = await parseApiError(err, 'Failed to start import');
+            showError("Import Failed", parsed.message, parsed.details || `Source: ${importUrl}`);
         } finally {
             setIsUploading(false);
         }

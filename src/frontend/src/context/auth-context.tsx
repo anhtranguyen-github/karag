@@ -41,6 +41,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         router.push("/login");
     }, [router]);
 
+    const clearInvalidSession = useCallback(() => {
+        localStorage.removeItem("karag_token");
+        configureApi(null);
+        setToken(null);
+        setUser(null);
+    }, []);
+
     useEffect(() => {
         const fetchUser = async () => {
             const storedToken = localStorage.getItem("karag_token");
@@ -52,13 +59,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     setUser(profile);
                 } catch (error) {
                     console.error("Failed to fetch user profile:", error);
-                    logout();
+                    clearInvalidSession();
                 }
             }
             setIsLoading(false);
         };
         fetchUser();
-    }, [logout]);
+    }, [clearInvalidSession]);
 
     const login = async (email: string, password: string) => {
         setIsLoading(true);

@@ -3,6 +3,7 @@ import type { Workspace, WorkspaceCreate, WorkspaceUpdate, WorkspaceDetail as AP
 import { datasets as datasetsApi } from '@/sdk/datasets';
 import { workspaces as workspacesApi } from '@/sdk/workspaces';
 import { useError } from '@/context/error-context';
+import { isApiStatus, parseApiError, unwrapApiPayload } from '@/lib/api-errors';
 
 export type { Workspace, WorkspaceCreate, WorkspaceUpdate };
 
@@ -34,14 +35,9 @@ export function useWorkspaces() {
     const fetchWorkspaces = useCallback(async () => {
         setIsLoading(true);
         try {
-            const payload = (await workspacesApi.list()) as any;
-
-            if (!payload.success || !payload.data) {
-                showError(payload.code || "Error", payload.message || "Failed to load workspaces.");
-                return;
-            }
-
-            const mappedData = payload.data.map((ws: any) => ({
+            const payload = await workspacesApi.list();
+            const data = unwrapApiPayload<Workspace[]>(payload);
+            const mappedData = data.map((ws: any) => ({
                 ...ws,
                 ragEngine: ws.rag_engine
             }));
@@ -61,7 +57,8 @@ export function useWorkspaces() {
             }
         } catch (err: unknown) {
             console.error('Failed to fetch workspaces:', err);
-            showError("Application Error", "An unexpected error occurred while loading workspaces.");
+            const parsed = await parseApiError(err, "An unexpected error occurred while loading workspaces.");
+            showError("Application Error", parsed.message, parsed.details);
         } finally {
             setIsLoading(false);
         }
@@ -78,84 +75,71 @@ export function useWorkspaces() {
 
     const createWorkspace = async (payload: WorkspaceCreate) => {
         try {
-            const appResponse = (await workspacesApi.create({
+            const appResponse = await workspacesApi.create({
                 requestBody: payload
-            })) as any;
-
-            if (appResponse.success && appResponse.data) {
-                const ws = appResponse.data;
-                const mappedWs = {
-                    ...ws,
-                    ragEngine: (ws as any).rag_engine
-                } as any;
-                await fetchWorkspaces();
-                return { success: true, workspace: mappedWs };
-            } else {
-                const title = "Unable to Create Workspace";
-                const message = (appResponse as any).message || "System rejected creation request.";
-                showError(title, message, JSON.stringify(appResponse.data));
-                return { success: false, error: message };
-            }
+            });
+            const ws = unwrapApiPayload<Workspace>(appResponse);
+            const mappedWs = {
+                ...ws,
+                ragEngine: (ws as any).rag_engine
+            } as any;
+            await fetchWorkspaces();
+            return { success: true, workspace: mappedWs };
         } catch (err: unknown) {
             console.error('Failed to create workspace:', err);
-            showError("Network Error", "Handshake failed. The intelligence hub is currently unreachable.");
-            return { success: false, error: 'Connection error' };
+            const parsed = await parseApiError(
+                err,
+                isApiStatus(err, [409])
+                    ? 'A workspace with that name already exists.'
+                    : 'System rejected creation request.',
+            );
+            showError("Unable to Create Workspace", parsed.message, parsed.details);
+            return { success: false, error: parsed.message };
         }
     };
 
     const updateWorkspace = async (id: string, name: string, description?: string) => {
         try {
             const updatePayload: WorkspaceUpdate = { name, description };
-            const appResponse = (await workspacesApi.update({
+            await workspacesApi.update({
                 workspaceId: id,
                 requestBody: updatePayload
-            })) as any;
-
-            if (appResponse.success) {
-                await fetchWorkspaces();
-            } else {
-                showError("Update Failed", (appResponse as any).message || "Could not save changes.");
-            }
+            });
+            await fetchWorkspaces();
         } catch (err: unknown) {
-            showError("Connection Error", "Could not save changes. Handshake failed during synchronization.");
             console.error('Failed to update workspace:', err);
+            const parsed = await parseApiError(err, "Could not save changes.");
+            showError("Update Failed", parsed.message, parsed.details);
         }
     };
 
     const deleteWorkspace = async (id: string, datasetDelete: boolean = false) => {
         try {
-            const appResponse = (await workspacesApi.delete({
+            await workspacesApi.delete({
                 workspaceId: id,
                 datasetDelete: datasetDelete
-            })) as any;
-
-            if (appResponse.success) {
-                if (currentWorkspace?.id === id) {
-                    localStorage.removeItem('currentWorkspaceId');
-                }
-                await fetchWorkspaces();
-            } else {
-                showError("Deletion Failed", (appResponse as any).message || 'Unable to delete workspace.');
+            });
+            if (currentWorkspace?.id === id) {
+                localStorage.removeItem('currentWorkspaceId');
             }
+            await fetchWorkspaces();
         } catch (err: unknown) {
-            showError("Connection Error", "Could not delete workspace. Please check your connection.");
             console.error('Failed to delete workspace:', err);
+            const parsed = await parseApiError(err, 'Unable to delete workspace.');
+            showError("Deletion Failed", parsed.message, parsed.details);
         }
     };
 
     const getWorkspaceDetails = async (id: string): Promise<WorkspaceDetail | null> => {
         try {
-            const result = (await workspacesApi.getDetails({
+            const result = await workspacesApi.getDetails({
                 workspaceId: id
-            })) as any;
-            if (result.success && result.data) {
-                const data = result.data as APIWorkspaceDetail;
-                return {
-                    ...data,
-                    ragEngine: (data as any).settings?.rag_engine
-                } as any;
-            }
-            return null;
+            });
+            const data = unwrapApiPayload<APIWorkspaceDetail>(result);
+            return {
+                ...data,
+                ragEngine: (data as any).settings?.rag_engine
+            } as any;
         } catch (err: unknown) {
             console.error('Failed to fetch workspace details:', err);
             return null;
@@ -165,11 +149,11 @@ export function useWorkspaces() {
     const shareDocument = async (sourceName: string, targetWorkspaceId: string) => {
         if (!currentWorkspace) return false;
         try {
-            const response = (await datasetsApi.shareDocument({
+            await datasetsApi.shareDocument({
                 workspaceId: currentWorkspace.id,
                 requestBody: { source_name: sourceName, target_workspace_id: targetWorkspaceId }
-            })) as any;
-            return response.success;
+            });
+            return true;
         } catch (err: unknown) {
             console.error('Failed to share document:', err);
             return false;

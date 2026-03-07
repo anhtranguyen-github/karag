@@ -28,6 +28,7 @@ import { ChunkingStrategySelector, ChunkingStrategyDetails } from '../chunking/S
 import { RetrievalSettings } from '../retrieval/RetrievalSettings';
 import { GenerationSettings } from '../generation/GenerationSettings';
 import { useToast } from '@/context/toast-context';
+import { isApiStatus, parseApiError, unwrapApiPayload } from '@/lib/api-errors';
 
 interface WorkspaceWizardProps {
     isOpen: boolean;
@@ -141,21 +142,23 @@ export function WorkspaceWizard({ isOpen, onClose }: WorkspaceWizardProps) {
                 chunking_strategy: data.chunking.strategy,
             };
 
-            const result = (await workspaces.create({ requestBody: payload })) as any;
-
-            if (result.success) {
-                successToast(result.message || 'Workspace created successfully');
-                onClose();
-                router.refresh();
-                if (result.data?.id) {
-                    router.push(`/workspaces/${result.data.id}`);
-                }
-            } else {
-                errorToast(result.message || 'Failed to create workspace');
+            const result = await workspaces.create({ requestBody: payload });
+            const workspace = unwrapApiPayload<{ id: string }>(result);
+            successToast('Workspace created successfully');
+            onClose();
+            router.refresh();
+            if (workspace?.id) {
+                router.push(`/workspaces/${workspace.id}`);
             }
         } catch (error: any) {
             console.error('Failed to create workspace:', error);
-            errorToast(error.message || 'An unexpected error occurred');
+            const parsed = await parseApiError(
+                error,
+                isApiStatus(error, [409])
+                    ? 'A workspace with that name already exists.'
+                    : 'An unexpected error occurred',
+            );
+            errorToast(parsed.message);
         } finally {
             setIsSubmitting(false);
         }
