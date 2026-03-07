@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useRouter } from "next/navigation";
 import type { User, UserCreate } from "@/sdk/generated";
 import { auth } from "@/sdk/auth";
+import { configureApi } from "@/lib/api-client";
 
 interface AuthContextType {
     user: User | null;
@@ -17,6 +18,14 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const unwrapPayload = <T,>(payload: any): T => {
+    if (payload?.error) {
+        throw payload.error;
+    }
+
+    return (payload?.data?.data ?? payload?.data ?? payload) as T;
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(null);
@@ -25,6 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const logout = useCallback(() => {
         localStorage.removeItem("karag_token");
+        configureApi(null);
         setToken(null);
         setUser(null);
         setIsLoading(false);
@@ -35,9 +45,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const fetchUser = async () => {
             const storedToken = localStorage.getItem("karag_token");
             if (storedToken) {
+                configureApi(storedToken);
                 setToken(storedToken);
                 try {
-                    const profile = (await auth.me()) as any;
+                    const profile = unwrapPayload<User>(await auth.me());
                     setUser(profile);
                 } catch (error) {
                     console.error("Failed to fetch user profile:", error);
@@ -52,22 +63,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const login = async (email: string, password: string) => {
         setIsLoading(true);
         try {
-            const tokenData = (await auth.login({
+            const tokenData = unwrapPayload<{ access_token: string; token_type: string }>(await auth.login({
                 formData: {
                     username: email,
                     password: password
                 }
-            })) as any;
+            }));
 
             localStorage.setItem("karag_token", tokenData.access_token);
+            configureApi(tokenData.access_token);
             setToken(tokenData.access_token);
             // Fetch user profile after login
             try {
-                const profile = (await auth.me()) as any;
+                const profile = unwrapPayload<User>(await auth.me());
                 setUser(profile);
             } catch {
                 // Profile fetch is optional at login time
             }
+            router.replace("/");
         } catch (error) {
             console.error("Login failed:", error);
             throw error;

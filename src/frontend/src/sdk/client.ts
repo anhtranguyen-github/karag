@@ -12,18 +12,16 @@ if (!configured) {
     client.setConfig({
         ...client.getConfig(),
         baseUrl: API_BASE_URL,
-        fetch: (request: Request) => globalThis.fetch(request),
-    });
+        fetch: (request: Request) => {
+            const token = resolveAuthToken();
+            if (!token) {
+                return globalThis.fetch(request);
+            }
 
-    client.interceptors.request.use((request: Request) => {
-        const token = resolveAuthToken();
-        if (!token) {
-            return request;
-        }
-
-        const headers = new Headers(request.headers);
-        headers.set("Authorization", `Bearer ${token}`);
-        return new Request(request, { headers });
+            const headers = new Headers(request.headers);
+            headers.set("Authorization", `Bearer ${token}`);
+            return globalThis.fetch(new Request(request, { headers }));
+        },
     });
 
     configured = true;
