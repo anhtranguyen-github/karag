@@ -6,11 +6,12 @@ from typing import Any
 
 import structlog
 from src.backend.app.core.factory import ProviderFactory
-from src.backend.app.core.telemetry import (
+from src.backend.app.observability import (
     DOCUMENT_INGESTION_COUNT,
     DOCUMENT_INGESTION_LATENCY,
     get_tracer,
 )
+from src.backend.app.rag.runtime import rag_pipeline_resolver
 from src.backend.app.rag.rag_service import rag_service
 from src.backend.app.rag.store.base import DocumentPoint
 from src.backend.app.schemas.database import IngestionConfig
@@ -32,38 +33,8 @@ class IngestionPipeline:
         self, workspace_id: str, dataset_id: str | None = None
     ) -> tuple[IngestionConfig, Any]:
         """Get the ingestion config and the store instance for the workspace or dataset."""
-        from src.backend.app.core.settings_manager import settings_manager
-        from src.backend.app.services.dataset_service import dataset_service
-        from src.backend.app.services.pipeline_service import pipeline_service
-
-        if dataset_id:
-            try:
-                dataset = await dataset_service.get_dataset(dataset_id, workspace_id)
-                pipeline = await pipeline_service.get_pipeline(dataset.pipeline_id, workspace_id)
-
-                config = IngestionConfig(
-                    workspace_id=workspace_id,
-                    vector_size=pipeline.embedding.dimension,
-                    chunking=pipeline.chunking,
-                    collection_name_override=dataset.vector_store_config.collection_name,
-                )
-                store = await ProviderFactory.get_vector_store(workspace_id)  # Should eventually be connector-aware
-                return config, store
-            except Exception as e:
-                logger.warning(
-                    "dataset_config_fetch_failed",
-                    error=str(e),
-                    workspace_id=workspace_id,
-                    dataset_id=dataset_id,
-                )
-                # Fallback to workspace defaults
-
-        settings = await settings_manager.get_settings(workspace_id)
-        config = IngestionConfig(
-            workspace_id=workspace_id,
-            vector_size=settings.embedding.dimensions,
-            chunking=settings.chunking,
-        )
+        pipeline = await rag_pipeline_resolver.resolve(workspace_id, dataset_id=dataset_id)
+        config = pipeline.to_ingestion_config()
         store = await ProviderFactory.get_vector_store(workspace_id)
         return config, store
 
@@ -437,4 +408,3 @@ class IngestionPipeline:
 
 
 ingestion_pipeline = IngestionPipeline()
-

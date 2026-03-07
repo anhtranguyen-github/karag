@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 import structlog
 from src.backend.app.api.errors import ErrorHandlerMiddleware
 from src.backend.app.api.v1.router import api_v1_router
-from src.backend.app.core.config import karag_settings
+from src.backend.app.config import config_service, karag_settings, settings_manager
 from src.backend.app.core.exceptions import BaseAppException
 from src.backend.app.core.middleware import (
     ObservabilityMiddleware,
@@ -22,7 +22,7 @@ from src.backend.app.core.prompt_registry import (
     PromptVersion,
     prompt_registry,
 )
-from src.backend.app.core.telemetry import init_telemetry
+from src.backend.app.observability import init_telemetry
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
@@ -106,11 +106,10 @@ async def _initialize_infrastructure() -> None:
 
 async def _initialize_vector_store() -> None:
     """Initialize vector store with correct embedding dimensions."""
-    from src.backend.app.core.settings_manager import settings_manager
     from src.backend.app.rag.ingestion import ingestion_pipeline
 
     global_settings = settings_manager.get_global_settings()
-    target_dim = global_settings.embedding_dim
+    target_dim = global_settings.embedding.dimensions
 
     logger.info(
         "vector_init",
@@ -185,8 +184,6 @@ async def _initialize_baas_core() -> None:
     logger.info("baas_init_start", msg="Initializing BaaS Core...")
 
     # Block 4: Initialize system config
-    from src.backend.app.services.config_service import config_service
-
     await config_service.initialize_system_config()
     logger.info("baas_system_config_ready")
 
@@ -457,4 +454,3 @@ if __name__ == "__main__":
         reload=True,
         log_level=karag_settings.LOG_LEVEL.lower(),
     )
-

@@ -1,39 +1,49 @@
 # Architectural Refactor Plan
 
-## Current Architecture
+## Target Shape
 
-- The repository is a split monorepo with a Python FastAPI backend and a Next.js frontend, plus deployment, CI, and documentation assets at the root.
-- The backend already contains many BaaS-oriented capabilities: multi-workspace support, provider abstractions, ingestion, vector storage, telemetry, and an OpenAI-style chat/models layer.
-- The frontend already contains an admin console, workspace management, document management, and SDK-driven API access.
+The target platform is a self-hostable RAG-focused BaaS with:
 
-## Legacy And Inconsistencies
-
-- Backend imports are hard-coded to `backend.app...`, which tightly couples module layout to the old directory root.
-- The frontend mixes three API access patterns: `src/sdk/generated`, `src/lib/api`, and imports from a missing `@/client`.
-- Graph execution is split between `app/graph` and `app/rag/graph`, which makes agent vs. RAG orchestration boundaries unclear.
-- Control-plane and data-plane code are mixed in the same router namespace and service layer.
-- Build, CI, Docker, and shell scripts assumed `backend/` and `frontend/` at the repository root.
-
-## Duplicate Or Obsolete Areas
-
-- `src/frontend/src/lib/api` duplicates generated client responsibilities already covered by `src/frontend/src/sdk/generated`.
-- `src/frontend/src/sdk` and `@/client` were overlapping abstractions without a stable single entrypoint.
-- `src/backend/app/graph` and `src/backend/app/rag/graph` duplicate workflow concepts with different scopes.
-- Root-level path references in CI/docs/scripts duplicated environment knowledge and were brittle during moves.
-
-## Target Refactor Direction
-
-- Move runtime projects under `src/backend` and `src/frontend`.
-- Keep a single Python package import root at `src.backend`.
-- Keep a single frontend generated-client surface at `src/frontend/src/client`, backed by `src/frontend/src/sdk/generated`.
-- Expand the OpenAI-compatible API surface beyond chat/models to include embeddings/files.
-- Preserve existing workspace-aware services while reorganizing the repository toward a modular RAG BaaS platform.
+- modular provider registries
+- workspace-aware runtime configuration
+- OpenAI-compatible API endpoints
+- reusable ingestion and retrieval pipelines
+- explicit observability and control-plane boundaries
+- a frontend admin console backed by one canonical SDK surface
 
 ## Execution Plan
 
-1. Move backend and frontend into `src/` and update imports, Docker, CI, scripts, and test paths.
-2. Keep the current backend implementation running under the new package root `src.backend`.
-3. Add missing OpenAI-compatible endpoints for embeddings and files.
-4. Consolidate frontend API access behind a single client entrypoint and retire the missing-client inconsistency.
-5. Introduce `src/shared/` as the shared contract area for SDK and type artifacts.
-6. Follow up by incrementally separating orchestration, providers, observability, and configuration into clearer bounded modules.
+1. Stabilize runtime composition.
+   - Introduce explicit `config` and `observability` package boundaries.
+   - Replace hard-coded provider branching with registries.
+
+2. Centralize pipeline resolution.
+   - Use one resolver for workspace defaults and dataset-specific pipeline overrides.
+   - Reuse that resolver in both ingestion and retrieval.
+
+3. Preserve OpenAI compatibility while tightening semantics.
+   - Keep `/v1/chat/completions`, `/v1/embeddings`, `/v1/models`, and `/v1/files`.
+   - Normalize workspace resolution across endpoints.
+
+4. Retire legacy duplication incrementally.
+   - Keep the current frontend SDK as the main API surface.
+   - Migrate tests and compatibility code away from `src/frontend/src/lib/api/` before deleting it.
+
+5. Extend the modular platform.
+   - Add additional vector, storage, and model providers behind the registries.
+   - Move shared contracts and SDK generation into `src/shared/`.
+   - Consolidate agent graph and RAG graph orchestration into a single runtime layer.
+
+## Phase Completed In This Change
+
+- Added backend `config` and `observability` packages.
+- Added provider registries and refactored the factory to use them.
+- Added a shared RAG pipeline resolver for ingestion and retrieval.
+- Fixed backend startup embedding-dimension initialization.
+- Fixed embeddings endpoint workspace resolution.
+
+## Residual Risks
+
+- frontend legacy generated client still exists for compatibility with tests
+- provider registries currently expose the providers already implemented in the codebase; additional backends still need adapters
+- full orchestration unification is still a follow-up migration, not part of this patch

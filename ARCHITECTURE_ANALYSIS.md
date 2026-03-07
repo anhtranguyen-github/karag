@@ -1,158 +1,63 @@
 # Repository Architecture Analysis
 
-## Overview
+## Current Architecture
 
-This report documents the current structure of the karag repository, identifying issues and opportunities for improvement. The analysis follows a systematic exploration of the codebase to understand its organization, dependencies, and potential problems.
+The repository is already a `src/`-based monorepo:
 
----
+- `src/backend`: FastAPI backend for multi-workspace RAG, ingestion, provider access, pipelines, and admin APIs
+- `src/frontend`: Next.js admin console and developer UI
+- `src/shared`: placeholder area for shared contracts and SDK artifacts
+- root-level `openapi/`, `docker-compose.yml`, `k8s/`, `docs/`, and CI scripts support build and deployment
 
-## 1. Directory Structure Overview
+The backend already provides most of the intended RAG BaaS surface:
 
-### Root Level
-```
-karag/
-├── .dockerignore
-├── .env                    # Root-level environment file (contains secrets)
-├── .gitattributes
-├── .gitignore
-├── .pre-commit-config.yaml
-├── CHANGELOG.md
-├── docker-compose.yml
-├── eval_test_report.json   # Test artifact
-├── importlinter.ini
-├── Jenkinsfile
-├── nginx.conf
-├── openapi-workspace-document.json
-├── pytest.ini
-├── README.md
-├── requirements.txt
-├── run.sh                  # Large shell script (24KB)
-├── setup_jenkins_tools.sh
-├── sonar-project.properties
-├── vercel.json
-├── .github/                # GitHub workflows
-├── src/backend/                # Python FastAPI backend
-├── docs/                  # Documentation
-├── src/frontend/              # Next.js frontend
-├── groovy_scripts/        # Jenkins groovy scripts
-├── k8s/                   # Kubernetes configs
-├── scripts/               # Utility scripts
-├── tests/                 # Root-level tests
-└── tools/                 # Development tools
-```
+- document ingestion and storage
+- embedding generation
+- vector retrieval
+- graph-backed RAG paths
+- OpenAI-style `/v1/chat/completions`, `/v1/embeddings`, `/v1/models`, `/v1/files`
+- workspace-aware settings and control-plane services
+- structured logging, metrics, and tracing
 
----
+## Legacy And Architectural Gaps
 
-## 2. Issues Identified
+### Legacy code
 
-### 2.1 Duplicate/Confusing Directory Structures
+- `src/frontend/src/lib/api/` is an older generated client surface that overlaps with the live `src/frontend/src/sdk/` entrypoint
+- `src/backend/app/graph/` and `src/backend/app/rag/graph/` represent two orchestration layers with unclear boundaries
+- root-level architecture docs described an earlier migration state and no longer matched the current code
 
-| Issue | Location | Description |
-|-------|----------|-------------|
-| Duplicate graph modules | `src/backend/app/graph/` and `src/backend/app/rag/graph/` | Two separate graph implementations exist with similar names (nodes.py, state.py). The `src/backend/app/graph/` is used for the main agent workflow while `src/backend/app/rag/graph/` is for RAG-specific graphs. This creates confusion. |
-| Nested empty eval config dirs | `src/backend/app/eval/{datasets,metrics,runners,config}/` | These appear to be brace expansion artifacts that were never properly created as directories. |
+### Unused or weakly used modules
 
-### 2.2 Empty or Unused Files
+- `src/frontend/src/lib/api/` appears to be mostly legacy compatibility code; the app imports `@/sdk` instead
+- some root-level scripts and generated artifacts still encode old runtime assumptions but are not part of the active request path
 
-| File | Size | Issue |
-|------|------|-------|
-| `src/backend/README.md` | 0 bytes | Empty README - REMOVED |
-| `src/backend/data/.keep` | 0 bytes | Empty placeholder - REMOVED |
-| `openapi.json` | 0 bytes | Empty file - REMOVED |
+### Duplicated logic
 
-**Note:** `src/backend/app/rag/store/__init__.py` and `src/backend/app/rag/tools/__init__.py` are REQUIRED for Python package imports and should NOT be removed.
+- provider selection was duplicated inside a single hard-coded factory rather than composed from registries
+- ingestion and query flows both resolved pipeline configuration independently
+- observability and config concerns existed, but were exposed through `core/` instead of explicit package boundaries
 
-### 2.3 Environment File Issues
+### Architecture inconsistencies
 
-| Issue | Details |
-|-------|---------|
-| Multiple .env files | Found: `./.env`, `src/backend/.env`, `src/backend/.env.local`, `src/backend/.env.example` |
-| Root .env at project level | The root `.env` contains sensitive data and should not be in the repository root |
-| Inconsistent .env locations | Backend has its own .env but root also has one |
+- the backend had a modular directory tree, but runtime composition was still centralized in a few monolithic files
+- pipeline configuration existed in both workspace settings and dataset-bound pipeline records without a single resolver
+- OpenAI-compatible model parsing mixed workspace names and workspace IDs across endpoints
+- the frontend had two generated client concepts (`lib/api` and `sdk/generated`) instead of a single canonical client surface
 
-### 2.4 Large Files
+## Refactor Direction Applied
 
-The following files exceed 10,000 characters and may benefit from refactoring:
+This refactor focused on the live backend composition layer first:
 
-| File | Approx. Size |
-|------|-------------|
-| `run.sh` | 24,082 chars |
-| `openapi-workspace-document.json` | 31,229 chars |
-| `src/backend/app/api/v1/completions.py` | ~29,792 chars |
-| `src/backend/app/services/chat_service.py` | ~28,069 chars |
-| `src/backend/app/core/telemetry.py` | ~21,451 chars |
-| `src/backend/app/eval/metrics/generation.py` | ~21,002 chars |
-| `src/backend/app/schemas/baas.py` | ~19,852 chars |
-| `src/backend/app/main.py` | ~14,383 chars |
+- introduced explicit `config` and `observability` packages as stable import boundaries
+- replaced hard-coded provider construction with registry-backed provider resolution
+- introduced a shared RAG pipeline resolver used by both ingestion and retrieval flows
+- fixed backend startup to use the actual embedding dimension source from typed settings
+- fixed OpenAI-compatible embeddings resolution to map model workspace names to workspace IDs consistently
 
-### 2.5 Duplicate Filenames in Different Locations
+## Remaining Follow-Up
 
-The following filenames appear in multiple locations (legitimate but worth noting):
-
-| Filename | Locations |
-|----------|-----------|
-| `auth.py` | `src/backend/app/core/auth.py`, `src/backend/app/api/v1/auth.py` |
-| `base.py` | Multiple locations (base classes in different modules) |
-| `chat.py` | `src/backend/app/api/v1/chat.py`, `src/backend/app/schemas/chat.py` |
-| `documents.py` | `src/backend/app/api/v1/documents.py`, `src/backend/app/schemas/documents.py` |
-| `nodes.py` | `src/backend/app/graph/nodes.py`, `src/backend/app/rag/graph/nodes.py` |
-| `state.py` | `src/backend/app/graph/state.py`, `src/backend/app/rag/graph/state.py` |
-
-### 2.6 Unused Artifacts Removed
-
-| File | Notes |
-|------|-------|
-| `src/backend/src/backend/data/settings.json` | Unused nested config - REMOVED |
-| `src/backend/src/backend/data/tools.json` | Unused nested config - REMOVED |
-
----
-
-## 3. Import Analysis
-
-### Import Style
-The codebase uses absolute imports from the project root:
-```python
-from backend.app.core.config import Settings
-from backend.app.api.v1.chat import router
-```
-
-This is consistent across the codebase.
-
----
-
-## 4. Summary of Changes Made
-
-### Files Removed (Safe Cleanup)
-- `openapi.json` (empty, unused)
-- `src/backend/README.md` (empty)
-- `src/backend/data/.keep` (empty placeholder)
-- `src/backend/src/backend/data/settings.json` (unused nested config)
-- `src/backend/src/backend/data/tools.json` (unused nested config)
-
-### Files Restored (Required)
-- `src/backend/app/rag/store/__init__.py` (required for Python imports)
-- `src/backend/app/rag/tools/__init__.py` (required for Python imports)
-
-### Documentation Added
-- `ARCHITECTURE_ANALYSIS.md` - Comprehensive analysis report
-
----
-
-## 5. Remaining Recommendations
-
-### High Priority
-1. Review `.env` file handling - ensure no secrets are committed
-2. Consider adding `src/backend/data/` and `src/backend/src/backend/` to `.gitignore`
-
-### Medium Priority
-1. Consider clarifying the relationship between `src/backend/app/graph/` and `src/backend/app/rag/graph/`
-2. Split large files like `completions.py`, `chat_service.py` if they have multiple responsibilities
-
-### Low Priority
-1. Standardize service naming conventions
-
----
-
-*Generated: 2026-03-05*
-*Updated: 2026-03-05*
-
+- migrate or remove the legacy frontend generated client after test fixtures are moved off `src/frontend/src/lib/api/`
+- collapse `app/graph` and `app/rag/graph` behind a single orchestration boundary
+- add more provider implementations behind the new registries, especially storage and alternative vector stores
+- move shared OpenAPI contract and SDK generation fully into `src/shared/`

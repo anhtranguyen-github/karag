@@ -2,10 +2,11 @@ import time
 from typing import Any
 
 import structlog
-from src.backend.app.core.telemetry import (
+from src.backend.app.observability import (
     EMBEDDING_REQUEST_LATENCY,
     get_tracer,
 )
+from src.backend.app.rag.runtime import rag_pipeline_resolver
 from src.backend.app.rag.advanced_retrieval import (
     ContextualCompressor,
     MultiQueryRetriever,
@@ -19,11 +20,10 @@ tracer = get_tracer(__name__)
 class RAGService:
     async def chunk_text(self, text: str, workspace_id: str) -> list[str]:
         """Split text into chunks using selected strategy."""
-        from src.backend.app.core.settings_manager import settings_manager
         from src.backend.app.rag.chunking.registry import chunking_registry
 
-        settings = await settings_manager.get_settings(workspace_id)
-        config = settings.chunking
+        pipeline = await rag_pipeline_resolver.resolve(workspace_id)
+        config = pipeline.chunking
 
         with tracer.start_as_current_span(
             "rag.chunk_text",
@@ -62,7 +62,7 @@ class RAGService:
             result = await provider.embed_documents(texts)
             duration = time.perf_counter() - start
 
-            provider_name = type(provider).__name__
+            provider_name = getattr(provider, "provider_name", type(provider).__name__)
             EMBEDDING_REQUEST_LATENCY.labels(provider=provider_name).observe(duration)
 
             logger.debug(
@@ -106,18 +106,10 @@ class RAGService:
             # Execute retrieval via adapter pattern
             store = await ProviderFactory.get_vector_store(workspace_id)
 
-            from src.backend.app.services.dataset_service import dataset_service
-            from src.backend.app.services.pipeline_service import pipeline_service
-
+            pipeline = await rag_pipeline_resolver.resolve(workspace_id, dataset_id=dataset_id)
             settings = await settings_manager.get_settings(workspace_id)
-            if dataset_id:
-                dataset = await dataset_service.get_dataset(dataset_id, workspace_id)
-                pipeline = await pipeline_service.get_pipeline(dataset.pipeline_id, workspace_id)
-                retrieval_config = pipeline.retrieval
-                collection_name = dataset.vector_store_config.collection_name
-            else:
-                retrieval_config = settings.retrieval
-                collection_name = None  # use store default
+            retrieval_config = pipeline.retrieval
+            collection_name = pipeline.collection_name
 
             query_vector = await self.get_query_embedding(query, workspace_id)
 
@@ -140,14 +132,13 @@ class RAGService:
                 )
 
             # --- Optional Reranking Step ---
-            if settings.retrieval.rerank.enabled:
+            rerank_config = pipeline.reranker or getattr(settings.retrieval, "rerank", None)
+            if rerank_config and rerank_config.enabled:
                 from src.backend.app.providers.reranker import get_reranker
 
                 reranker = await get_reranker(workspace_id)
                 if reranker:
-                    # Reranker expects Dict with 'payload': {'text': ...}
-                    # Our results already match this structure mostly
-                    top_n = settings.retrieval.rerank.top_n
+                    top_n = rerank_config.top_n
                     reranked = await reranker.rerank(query, results, top_k=top_n)
                     results = reranked
 
@@ -155,7 +146,7 @@ class RAGService:
             logger.info(
                 "rag_search_complete",
                 results=len(results),
-                rerank_enabled=settings.retrieval.rerank.enabled,
+                rerank_enabled=bool(rerank_config and rerank_config.enabled),
                 duration_ms=round(duration * 1000, 2),
                 workspace_id=workspace_id,
             )
@@ -311,4 +302,3 @@ class RAGService:
 
 
 rag_service = RAGService()
-

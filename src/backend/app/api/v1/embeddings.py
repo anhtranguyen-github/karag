@@ -3,6 +3,7 @@ from typing import Annotated
 
 from src.backend.app.api.deps import CurrentUser, get_current_user
 from src.backend.app.api.v1.completions import create_openai_error_response, parse_model_name, verify_workspace_access
+from src.backend.app.core.mongodb import mongodb_manager
 from src.backend.app.providers.embedding import get_embeddings
 from src.backend.app.schemas.openai import (
     EmbeddingRequest,
@@ -25,9 +26,16 @@ def _estimate_tokens(texts: list[str]) -> int:
     return sum(max(1, len(text.split())) for text in texts)
 
 
+async def _resolve_workspace_id(model_name: str) -> str:
+    _, workspace_name, _ = parse_model_name(model_name)
+    db = mongodb_manager.get_async_database()
+    workspace = await db.workspaces.find_one({"$or": [{"name": workspace_name}, {"id": workspace_name}]})
+    return workspace["id"] if workspace else workspace_name
+
+
 @router.post("/embeddings", response_model=EmbeddingResponse)
 async def create_embeddings(request: EmbeddingRequest, user: UserDep) -> EmbeddingResponse:
-    _, workspace_id, _ = parse_model_name(request.model)
+    workspace_id = await _resolve_workspace_id(request.model)
 
     if not await verify_workspace_access(user, workspace_id):
         return create_openai_error_response(
