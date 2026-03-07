@@ -1,6 +1,8 @@
 import json
-from backend.app.main import app
 import os
+
+from backend.app.main import app
+
 
 def dump_schema():
     schema = app.openapi()

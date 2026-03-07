@@ -14,7 +14,6 @@ from backend.app.schemas.documents import (
 from backend.app.services.document_service import document_service
 from backend.app.services.task.task_service import task_service
 from fastapi import APIRouter, BackgroundTasks, Depends, File, UploadFile
-from fastapi.encoders import jsonable_encoder
 
 router = APIRouter(tags=["documents"])
 

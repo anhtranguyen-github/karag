@@ -1,4 +1,3 @@
-from typing import Literal
 
 from backend.app.api.deps import (
     CurrentUser,
@@ -9,8 +8,8 @@ from backend.app.api.deps import (
 from backend.app.core.exceptions import NotFoundError, ValidationError
 from backend.app.schemas.base import AppResponse
 from backend.app.services.workspace_service import workspace_service
-from fastapi import APIRouter, Depends, Request
-from pydantic import BaseModel, Field, field_validator
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
 

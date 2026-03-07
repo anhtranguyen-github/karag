@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { api } from '@/lib/api-client';
+import { sdk } from '@/sdk';
 import { useError } from '@/context/error-context';
 
 export interface DocumentPoint {
@@ -34,9 +34,9 @@ export function useDocuments() {
     const fetchDocuments = useCallback(async () => {
         try {
             setIsLoading(true);
-            const payload = await api.listAllDocumentsWorkspacesWorkspaceIdDocumentsAllGet({
+            const payload = (await sdk.documents.listAll({
                 workspaceId: "vault" // Global view uses vault context
-            });
+            })) as any;
 
             if (payload.success && payload.data) {
                 setDocuments(payload.data);
@@ -55,11 +55,11 @@ export function useDocuments() {
 
     const deleteDocument = async (name: string, workspaceId: string, vaultDelete: boolean = false) => {
         try {
-            const payload = await api.deleteDocumentWorkspacesWorkspaceIdDocumentsDocumentIdDelete({
+            const payload = (await sdk.documents.delete({
                 documentId: name,
                 workspaceId: workspaceId,
-                vaultDelete
-            });
+                datasetDelete: vaultDelete
+            })) as any;
             if (payload.success) {
                 await fetchDocuments();
                 return true;
@@ -80,15 +80,15 @@ export function useDocuments() {
 
     const updateWorkspaceAction = async (name: string, workspaceId: string, targetWorkspaceId: string, action: 'move' | 'share' | 'unshare', forceReindex: boolean = false) => {
         try {
-            const payload = await api.updateDocumentWorkspacesWorkspacesWorkspaceIdDocumentsUpdateWorkspacesPost({
+            const payload = (await sdk.documents.updateWorkspaces({
                 workspaceId: workspaceId,
-                documentWorkspaceUpdate: {
-                    documentId: name,
-                    targetWorkspaceId: targetWorkspaceId,
+                requestBody: {
+                    document_id: name,
+                    target_workspace_id: targetWorkspaceId,
                     action: action as any,
-                    forceReindex
+                    force_reindex: forceReindex
                 }
-            });
+            })) as any;
 
             if (payload.success) {
                 await fetchDocuments();
@@ -113,10 +113,10 @@ export function useDocuments() {
 
     const inspectDocument = async (name: string, workspaceId: string) => {
         try {
-            const payload = await api.inspectDocumentWorkspacesWorkspaceIdDocumentsDocumentIdInspectGet({
+            const payload = (await sdk.documents.inspect({
                 documentId: name,
                 workspaceId
-            });
+            })) as any;
             if (payload.success && payload.data) {
                 return payload.data;
             }

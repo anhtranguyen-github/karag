@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
-import { api } from "@/lib/api-client";
-import { Workspace } from "@/client/types.gen";
+import { sdk } from "@/sdk";
+import type { Workspace } from "@/sdk/generated";
 import { WorkspaceWizard } from "@/components/workspace/WorkspaceWizard";
 import { DeleteWorkspaceModal } from "@/components/workspace/delete-workspace-modal";
 import { QuickViewWorkspaceModal } from "@/components/workspace/quick-view-modal";
@@ -33,7 +33,7 @@ export default function Home() {
 
   const fetchWorkspaces = async () => {
     try {
-      const response = await api.listWorkspacesApiV1WorkspacesGet();
+      const response = await sdk.workspaces.list();
       const data = response.data || [];
       const mappedData = data.map((ws: Workspace & { llm_provider?: string, embedding_provider?: string, rag_engine?: string }) => ({
         ...ws,
@@ -58,7 +58,7 @@ export default function Home() {
     setWorkspaceToDelete(null); // Close modal immediately
 
     try {
-      await api.deleteWorkspaceApiV1WorkspacesWorkspaceIdDelete({ workspaceId: workspaceToDelete.id, datasetDelete });
+      await sdk.workspaces.delete({ workspaceId: workspaceToDelete.id, datasetDelete });
       toast.dismiss(toastId);
       toast.success(`Workspace ${wsName} successfully ${datasetDelete ? 'purged' : 'removed'}`);
       setWorkspaces(workspaces.filter(ws => ws.id !== workspaceToDelete.id));
@@ -102,7 +102,7 @@ export default function Home() {
             <Link href="/profile">
               <button className="h-11 px-6 rounded-xl bg-secondary border border-border hover:bg-muted transition-all font-bold text-[11px] tracking-wide text-muted-foreground hover:text-foreground flex items-center gap-2 active:scale-95 group">
                 <UserIcon size={16} />
-                {user?.fullName || "Profile"}
+                {user?.full_name || "Profile"}
               </button>
             </Link>
             <Link href="/dashboard/storage">

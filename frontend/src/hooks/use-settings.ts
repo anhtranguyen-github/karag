@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { api } from '@/lib/api-client';
+import { sdk } from '@/sdk';
 import { useError } from '@/context/error-context';
 
 export interface AppSettings {
@@ -47,9 +47,9 @@ export function useSettingsMetadata(workspaceId?: string) {
     const fetchMetadata = useCallback(async () => {
         setIsLoading(true);
         try {
-            const payload = workspaceId
-                ? await api.getSettingsMetadataApiV1WorkspacesWorkspaceIdSettingsMetadataGet({ workspaceId })
-                : await api.getGlobalSettingsMetadataApiV1AdminSettingsMetadataGet();
+            const payload = (workspaceId
+                ? (await sdk.workspaces.getSettingsMetadata({ workspaceId }))
+                : (await sdk.admin.getGlobalSettingsMetadata())) as any;
 
             if (payload.success) {
                 setMetadata(payload.data);
@@ -80,9 +80,9 @@ export function useSettings(workspaceId?: string) {
     const fetchSettings = useCallback(async () => {
         setIsLoading(true);
         try {
-            const payload = workspaceId
-                ? await api.getSettingsApiV1WorkspacesWorkspaceIdSettingsGet({ workspaceId })
-                : await api.getGlobalSettingsApiV1AdminSettingsGet();
+            const payload = (workspaceId
+                ? (await sdk.workspaces.getSettings({ workspaceId }))
+                : (await sdk.admin.getGlobalSettings())) as any;
 
             if (payload.success && payload.data) {
                 setSettings(payload.data);
@@ -99,14 +99,14 @@ export function useSettings(workspaceId?: string) {
 
     const updateSettings = async (updates: Partial<AppSettings>) => {
         try {
-            const payload = workspaceId
-                ? await api.updateSettingsApiV1WorkspacesWorkspaceIdSettingsPatch({
+            const payload = (workspaceId
+                ? (await sdk.workspaces.updateSettings({
                     workspaceId,
-                    requestBody: updates
-                })
-                : await api.updateGlobalSettingsApiV1AdminSettingsPatch({
-                    requestBody: updates
-                });
+                    requestBody: updates as any
+                }))
+                : (await sdk.admin.updateGlobalSettings({
+                    requestBody: updates as any
+                }))) as any;
 
             if (payload.success) {
                 const newSettings = payload.data || payload;

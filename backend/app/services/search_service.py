@@ -1,9 +1,10 @@
 from typing import Any
+
 import structlog
-from backend.app.repositories.workspace_repository import workspace_repository
-from backend.app.repositories.thread_repository import thread_repository
-from backend.app.repositories.document_repository import document_repository
 from backend.app.core.mongodb import mongodb_manager
+from backend.app.repositories.document_repository import document_repository
+from backend.app.repositories.thread_repository import thread_repository
+from backend.app.repositories.workspace_repository import workspace_repository
 
 logger = structlog.get_logger(__name__)
 

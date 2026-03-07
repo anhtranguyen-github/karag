@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { api } from '@/lib/api-client';
+import { sdk } from '@/sdk';
 import Link from 'next/link';
 
 interface InspectedPoint {
@@ -62,10 +62,10 @@ export default function DocumentsPage() {
         try {
             const [points, contentPayload] = await Promise.all([
                 inspectDocument(doc.name, doc.workspace_id),
-                api.getDocumentWorkspacesWorkspaceIdDocumentsDocumentIdGet({
+                sdk.documents.get({
                     documentId: doc.name,
                     workspaceId: doc.workspace_id
-                })
+                }) as any
             ]);
 
             if (points) setInspectedPoints(points);

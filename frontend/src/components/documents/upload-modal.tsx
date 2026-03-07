@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { api } from "@/lib/api-client";
+import { sdk } from "@/sdk";
 import { UploadCloud, Link as LinkIcon, FileText, Globe, Github } from "lucide-react";
 
 // Standard Tab style for premium modals
@@ -50,27 +50,27 @@ export function UploadModal({ isOpen, onClose, workspaceId, onUploadComplete }: 
 
             if (mode === "file") {
                 if (!file) return;
-                await api.uploadDocumentWorkspacesWorkspaceIdUploadPost({
+                (await sdk.documents.upload({
                     workspaceId: targetWorkspace,
-                    file
-                });
+                    formData: { file }
+                })) as any;
             } else if (mode === "link") {
                 if (!url) return;
                 if (url.includes('github.com')) {
-                    await api.importGithubDocumentWorkspacesWorkspaceIdImportGithubPost({
+                    (await sdk.documents.importGithub({
                         workspaceId: targetWorkspace,
-                        gitHubImportRequest: { url, branch }
-                    });
+                        requestBody: { url: url as any, branch }
+                    })) as any;
                 } else if (url.toLowerCase().endsWith('.xml') || url.toLowerCase().includes('sitemap')) {
-                    await api.importSitemapDocumentWorkspacesWorkspaceIdImportSitemapPost({
+                    (await sdk.documents.importSitemap({
                         workspaceId: targetWorkspace,
-                        sitemapImportRequest: { url }
-                    });
+                        requestBody: { url: url as any }
+                    })) as any;
                 } else {
-                    await api.importUrlDocumentWorkspacesWorkspaceIdImportUrlPost({
+                    (await sdk.documents.importUrl({
                         workspaceId: targetWorkspace,
-                        urlImportRequest: { url }
-                    });
+                        requestBody: { url: url as any }
+                    })) as any;
                 }
             }
 

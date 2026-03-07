@@ -4,8 +4,10 @@ import pytest
 from backend.app.core.mongodb import mongodb_manager
 from backend.app.main import app
 from httpx import ASGITransport, AsyncClient
+
 print(f"DEBUG_APP_FILE: {app.__init__.__module__ if hasattr(app, '__init__') else 'no_init'}") # wait simpler
 import backend.app.main as main_mod
+
 print(f"DEBUG_APP_FILE: {main_mod.__file__}")
 
 

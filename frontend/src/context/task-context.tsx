@@ -1,7 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { api } from '@/lib/api-client';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { sdk } from '@/sdk';
 import { useToast } from '@/context/toast-context';
 
 export interface TaskItem {
@@ -47,7 +47,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     const { success: toastSuccess, error: toastError } = useToast();
 
     // Track status per taskId to detect transitions (completed/failed)
-    const lastStatusesRef = React.useRef<Record<string, string>>({});
+    const lastStatusesRef = useRef<Record<string, string>>({});
 
     // Load dismissed IDs from localStorage on mount
     useEffect(() => {
@@ -80,10 +80,11 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const fetchTasks = useCallback(async (workspaceId?: string) => {
+        if (!workspaceId) return;
         try {
-            const payload = await api.listTasksWorkspacesWorkspaceIdTasksGet({
-                workspaceId: workspaceId!
-            });
+            const payload = (await sdk.tasks.list({
+                workspaceId: workspaceId
+            })) as any;
             if (payload.success && payload.data) {
                 setTasks(payload.data || []);
             }
@@ -92,39 +93,9 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
-    // Poll every 2 seconds
-    useEffect(() => {
-        fetchTasks();
-        const interval = setInterval(() => fetchTasks(), 2000);
-        return () => clearInterval(interval);
-    }, [fetchTasks]);
-
-    // Toast notifications on status change
-    useEffect(() => {
-        const nextStatuses: Record<string, string> = {};
-
-        tasks.forEach(task => {
-            const lastStatus = lastStatusesRef.current[task.id];
-            if (lastStatus && lastStatus !== task.status) {
-                const filename = task.metadata.filename || 'Document';
-                const operation = task.metadata.operation || task.type;
-                const label = operation.charAt(0).toUpperCase() + operation.slice(1).replace(/_/g, ' ');
-
-                if (task.status === 'completed') {
-                    toastSuccess(`${label} complete: ${filename}`);
-                } else if (task.status === 'failed') {
-                    toastError(`${label} failed: ${filename}${task.message ? ` - ${task.message}` : ''}`);
-                }
-            }
-            nextStatuses[task.id] = task.status;
-        });
-
-        lastStatusesRef.current = nextStatuses;
-    }, [tasks, toastSuccess, toastError]);
-
     // Derived filtered lists
     const activeTasks = useMemo(() => tasks.filter(
-        t => (t.status === 'pending' || t.status === 'processing') && !dismissedIds.has(t.id)
+        t => (t.status === 'pending' || t.status === 'running' || t.status === 'processing') && !dismissedIds.has(t.id)
     ), [tasks, dismissedIds]);
 
     const recentCompletedTasks = useMemo(() => {
@@ -142,12 +113,36 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
     const hasActiveWork = activeTasks.length > 0;
 
+    // Toast notifications on status change
+    useEffect(() => {
+        const nextStatuses: Record<string, string> = {};
+
+        tasks.forEach(task => {
+            const lastStatus = lastStatusesRef.current[task.id];
+            if (lastStatus && lastStatus !== task.status) {
+                const filename = task.metadata?.filename || 'Document';
+                const operation = task.metadata?.operation || task.type;
+                const label = operation.charAt(0).toUpperCase() + operation.slice(1).replace(/_/g, ' ');
+
+                if (task.status === 'completed') {
+                    toastSuccess(`${label} complete: ${filename}`);
+                } else if (task.status === 'failed') {
+                    toastError(`${label} failed: ${filename}${task.message ? ` - ${task.message}` : ''}`);
+                }
+            }
+            nextStatuses[task.id] = task.status;
+        });
+
+        lastStatusesRef.current = nextStatuses;
+    }, [tasks, toastSuccess, toastError]);
+
     const retryTask = useCallback(async (taskId: string, workspaceId?: string) => {
+        if (!workspaceId) return;
         try {
-            const payload = await api.retryTaskWorkspacesWorkspaceIdTasksTaskIdRetryPost({
-                workspaceId: workspaceId!,
+            const payload = (await sdk.tasks.retry({
+                workspaceId,
                 taskId
-            });
+            })) as any;
             if (payload.success) {
                 // Remove from dismissed set so it reappears when retrying
                 setDismissedIds(prev => {
@@ -163,11 +158,12 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     }, [fetchTasks]);
 
     const cancelTask = useCallback(async (taskId: string, workspaceId?: string) => {
+        if (!workspaceId) return;
         try {
-            const payload = await api.cancelTaskWorkspacesWorkspaceIdTasksTaskIdCancelPost({
-                workspaceId: workspaceId!,
+            const payload = (await sdk.tasks.cancel({
+                workspaceId,
                 taskId
-            });
+            })) as any;
             if (payload.success) {
                 // Auto-dismiss canceled tasks to keep UI clean
                 setDismissedIds(prev => {
@@ -200,7 +196,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
             refreshTasks: fetchTasks,
             retryTask,
             cancelTask,
-            dismissTask,
+            dismissTask
         }}>
             {children}
         </TaskContext.Provider>

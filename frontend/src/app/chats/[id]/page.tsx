@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { ThreadList } from "@/components/chat/thread-list";
 import { useWorkspaces } from "@/hooks/use-workspaces";
 import { ChatInterface } from "@/components/chat/chat-interface";
-import { api } from "@/lib/api-client";
+import { sdk } from "@/sdk";
 import { Loader2, Home, FileText, Settings, PanelLeftOpen } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -51,10 +51,10 @@ export default function GlobalChatPage() {
                     setIsLoading(false);
                     return;
                 }
-                const payload = await api.getThreadWorkspacesWorkspaceIdChatThreadsThreadIdGet({
+                const payload = (await sdk.chat.getThread({
                     threadId,
                     workspaceId: targetWs
-                });
+                })) as any;
 
                 if (payload.success && payload.data) {
                     const data = payload.data as { workspace_id: string };

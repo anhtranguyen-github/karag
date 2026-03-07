@@ -7,7 +7,7 @@ import {
     Search, FileText, MessageSquare,
     Loader2, X, ArrowRight, Clock, Box
 } from 'lucide-react';
-import { api } from '@/lib/api-client';
+import { sdk } from '@/sdk';
 import { cn } from '@/lib/utils';
 
 type SearchScope = 'all' | 'documents' | 'chats' | 'workspaces';
@@ -56,10 +56,10 @@ function SearchContent() {
         const allResults: SearchResult[] = [];
 
         try {
-            const payload = await api.globalSearchWorkspacesWorkspaceIdSearchGet({
+            const payload = (await sdk.search.global({
                 workspaceId: "all",
                 q: searchQuery
-            });
+            })) as any;
 
             if (payload.success && payload.data) {
                 const data = payload.data as {

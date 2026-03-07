@@ -1,4 +1,4 @@
-import * as client from "../client";
+import * as client from "../sdk/generated";
 
 // Configure the global OpenAPI settings
 client.OpenAPI.BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -24,5 +24,5 @@ if (typeof window !== "undefined") {
 }
 
 export const api = client;
-export type { Workspace, WorkspaceCreate } from "../client";
+export type { Workspace, WorkspaceCreate } from "../sdk/generated";
 

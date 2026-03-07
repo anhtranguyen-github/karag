@@ -35,7 +35,7 @@ export class AdminOpsApi extends runtime.BaseAPI {
      * Get global system settings.
      * Get Global Settings
      */
-    async getGlobalSettingsAdminSettingsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async getGlobalSettingsApiV1AdminSettingsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -61,8 +61,8 @@ export class AdminOpsApi extends runtime.BaseAPI {
      * Get global system settings.
      * Get Global Settings
      */
-    async getGlobalSettingsAdminSettingsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.getGlobalSettingsAdminSettingsGetRaw(initOverrides);
+    async getGlobalSettingsApiV1AdminSettingsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.getGlobalSettingsApiV1AdminSettingsGetRaw(initOverrides);
         return await response.value();
     }
 
@@ -70,7 +70,7 @@ export class AdminOpsApi extends runtime.BaseAPI {
      * Get metadata for settings fields.
      * Get Global Settings Metadata
      */
-    async getGlobalSettingsMetadataAdminSettingsMetadataGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async getGlobalSettingsMetadataApiV1AdminSettingsMetadataGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -96,8 +96,8 @@ export class AdminOpsApi extends runtime.BaseAPI {
      * Get metadata for settings fields.
      * Get Global Settings Metadata
      */
-    async getGlobalSettingsMetadataAdminSettingsMetadataGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.getGlobalSettingsMetadataAdminSettingsMetadataGetRaw(initOverrides);
+    async getGlobalSettingsMetadataApiV1AdminSettingsMetadataGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.getGlobalSettingsMetadataApiV1AdminSettingsMetadataGetRaw(initOverrides);
         return await response.value();
     }
 
@@ -105,7 +105,7 @@ export class AdminOpsApi extends runtime.BaseAPI {
      * Get a high-level overview of system components.
      * Get Ops Overview
      */
-    async getOpsOverviewAdminOpsOverviewGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async getOpsOverviewApiV1AdminOpsOverviewGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -131,8 +131,8 @@ export class AdminOpsApi extends runtime.BaseAPI {
      * Get a high-level overview of system components.
      * Get Ops Overview
      */
-    async getOpsOverviewAdminOpsOverviewGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.getOpsOverviewAdminOpsOverviewGetRaw(initOverrides);
+    async getOpsOverviewApiV1AdminOpsOverviewGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.getOpsOverviewApiV1AdminOpsOverviewGetRaw(initOverrides);
         return await response.value();
     }
 
@@ -140,7 +140,7 @@ export class AdminOpsApi extends runtime.BaseAPI {
      * List all prompts in the registry.
      * Get Prompts
      */
-    async getPromptsAdminPromptsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async getPromptsApiV1AdminPromptsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -166,8 +166,8 @@ export class AdminOpsApi extends runtime.BaseAPI {
      * List all prompts in the registry.
      * Get Prompts
      */
-    async getPromptsAdminPromptsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.getPromptsAdminPromptsGetRaw(initOverrides);
+    async getPromptsApiV1AdminPromptsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.getPromptsApiV1AdminPromptsGetRaw(initOverrides);
         return await response.value();
     }
 
@@ -175,7 +175,7 @@ export class AdminOpsApi extends runtime.BaseAPI {
      * Get status of the vector store.
      * Get Vector Status
      */
-    async getVectorStatusAdminVectorStatusGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async getVectorStatusApiV1AdminVectorStatusGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -201,8 +201,8 @@ export class AdminOpsApi extends runtime.BaseAPI {
      * Get status of the vector store.
      * Get Vector Status
      */
-    async getVectorStatusAdminVectorStatusGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.getVectorStatusAdminVectorStatusGetRaw(initOverrides);
+    async getVectorStatusApiV1AdminVectorStatusGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.getVectorStatusApiV1AdminVectorStatusGetRaw(initOverrides);
         return await response.value();
     }
 
@@ -210,11 +210,11 @@ export class AdminOpsApi extends runtime.BaseAPI {
      * Update global system settings (workspace_id=\'default\').
      * Update Global Settings
      */
-    async updateGlobalSettingsAdminSettingsPatchRaw(requestParameters: UpdateGlobalSettingsAdminSettingsPatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async updateGlobalSettingsApiV1AdminSettingsPatchRaw(requestParameters: UpdateGlobalSettingsAdminSettingsPatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         if (requestParameters['requestBody'] == null) {
             throw new runtime.RequiredError(
                 'requestBody',
-                'Required parameter "requestBody" was null or undefined when calling updateGlobalSettingsAdminSettingsPatch().'
+                'Required parameter "requestBody" was null or undefined when calling updateGlobalSettingsApiV1AdminSettingsPatch().'
             );
         }
 
@@ -246,8 +246,8 @@ export class AdminOpsApi extends runtime.BaseAPI {
      * Update global system settings (workspace_id=\'default\').
      * Update Global Settings
      */
-    async updateGlobalSettingsAdminSettingsPatch(requestParameters: UpdateGlobalSettingsAdminSettingsPatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.updateGlobalSettingsAdminSettingsPatchRaw(requestParameters, initOverrides);
+    async updateGlobalSettingsApiV1AdminSettingsPatch(requestParameters: UpdateGlobalSettingsAdminSettingsPatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.updateGlobalSettingsApiV1AdminSettingsPatchRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

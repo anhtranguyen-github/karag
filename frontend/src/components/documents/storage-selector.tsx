@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/modal";
-import { api } from "@/lib/api-client";
+import { sdk } from "@/sdk";
 import { Check, Database, Loader2, FileText, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -38,9 +38,9 @@ export function StorageSelector({
     const fetchStorage = async () => {
         setLoading(true);
         try {
-            const payload = await api.listVaultDocumentsWorkspacesWorkspaceIdVaultGet({
+            const payload = (await sdk.documents.listAll({
                 workspaceId: workspaceId!
-            });
+            })) as any;
 
             setDocuments((payload.data as any[]) || []);
         } catch (e) {
@@ -61,14 +61,14 @@ export function StorageSelector({
         setLoading(true);
         try {
             const promises = Array.from(selectedIds).map(docId =>
-                api.updateDocumentWorkspacesWorkspacesWorkspaceIdDocumentsUpdateWorkspacesPost({
+                sdk.documents.updateWorkspaces({
                     workspaceId: workspaceId,
-                    documentWorkspaceUpdate: {
-                        documentId: docId,
-                        targetWorkspaceId: workspaceId,
+                    requestBody: {
+                        document_id: docId,
+                        target_workspace_id: workspaceId,
                         action: "share"
                     }
-                })
+                } as any)
             );
             await Promise.all(promises);
 

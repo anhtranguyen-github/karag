@@ -7,7 +7,7 @@ import {
     Target, Terminal, Shield, FileText, Search, BrainCircuit
 } from 'lucide-react';
 import { useSettings, useSettingsMetadata } from '@/hooks/use-settings';
-import { api } from '@/lib/api-client';
+import { sdk } from '@/sdk';
 import { cn } from '@/lib/utils';
 import { OverviewTab } from '@/components/admin/overview-tab';
 import { LLMOpsTab } from '@/components/admin/llmops-tab';
@@ -50,11 +50,11 @@ export default function AdminConsolePage() {
 
     const fetchData = useCallback(async () => {
         try {
-            const [overview, vectorStat, prompts] = await Promise.all([
-                api.getOpsOverviewAdminOpsOverviewGet(),
-                api.getVectorStatusAdminVectorStatusGet(),
-                api.getPromptsAdminPromptsGet()
-            ]);
+            const [overview, vectorStat, prompts] = (await Promise.all([
+                sdk.admin.getOpsOverview(),
+                sdk.admin.getVectorStatus(),
+                sdk.admin.getPrompts()
+            ])) as any[];
 
             // Handling raw metrics (if overview returns prometheus-style text or a payload containing it)
             // Note: If the new API returns a structured object, we might need to adjust parseMetric

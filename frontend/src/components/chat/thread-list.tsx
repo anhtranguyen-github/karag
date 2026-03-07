@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Plus, MessageSquare, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { api } from "@/lib/api-client";
+import { sdk } from "@/sdk";
 
 interface Thread {
     id: string;
@@ -38,7 +38,7 @@ export function ThreadList({
             setLoading(true);
         }
         try {
-            const res = await api.listChatThreadsWorkspacesWorkspaceIdChatThreadsGet({ workspaceId: workspaceId as string });
+            const res = (await sdk.chat.listThreads({ workspaceId: workspaceId as string })) as any;
             setThreads((res.data as unknown as Thread[]) || []);
         } catch (e) {
             console.error("Failed to fetch threads", e);

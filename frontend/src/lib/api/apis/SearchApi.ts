@@ -44,18 +44,18 @@ export class SearchApi extends runtime.BaseAPI {
      * Perform a unified search across all architectural entities.
      * Global Search
      */
-    async globalSearchWorkspacesWorkspaceIdSearchGetRaw(requestParameters: GlobalSearchWorkspacesWorkspaceIdSearchGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponse>> {
+    async globalSearchApiV1WorkspacesWorkspaceIdSearchGetRaw(requestParameters: GlobalSearchWorkspacesWorkspaceIdSearchGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponse>> {
         if (requestParameters['workspaceId'] == null) {
             throw new runtime.RequiredError(
                 'workspaceId',
-                'Required parameter "workspaceId" was null or undefined when calling globalSearchWorkspacesWorkspaceIdSearchGet().'
+                'Required parameter "workspaceId" was null or undefined when calling globalSearchApiV1WorkspacesWorkspaceIdSearchGet().'
             );
         }
 
         if (requestParameters['q'] == null) {
             throw new runtime.RequiredError(
                 'q',
-                'Required parameter "q" was null or undefined when calling globalSearchWorkspacesWorkspaceIdSearchGet().'
+                'Required parameter "q" was null or undefined when calling globalSearchApiV1WorkspacesWorkspaceIdSearchGet().'
             );
         }
 
@@ -90,8 +90,8 @@ export class SearchApi extends runtime.BaseAPI {
      * Perform a unified search across all architectural entities.
      * Global Search
      */
-    async globalSearchWorkspacesWorkspaceIdSearchGet(requestParameters: GlobalSearchWorkspacesWorkspaceIdSearchGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponse> {
-        const response = await this.globalSearchWorkspacesWorkspaceIdSearchGetRaw(requestParameters, initOverrides);
+    async globalSearchApiV1WorkspacesWorkspaceIdSearchGet(requestParameters: GlobalSearchWorkspacesWorkspaceIdSearchGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponse> {
+        const response = await this.globalSearchApiV1WorkspacesWorkspaceIdSearchGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

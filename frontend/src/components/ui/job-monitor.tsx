@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api } from "@/lib/api-client";
+import { sdk } from "@/sdk";
 import { cn } from "@/lib/utils";
 import { Loader2, CheckCircle2, ChevronDown } from "lucide-react";
 
@@ -20,11 +20,11 @@ export function JobMonitor({ workspaceId }: { workspaceId?: string }) {
 
     const fetchTasks = async () => {
         try {
-            const payload = await api.listTasksWorkspacesWorkspaceIdTasksGet({
+            const payload = (await sdk.tasks.list({
                 workspaceId: workspaceId!,
                 limit: 5
-            });
-             
+            })) as any;
+
             setTasks((payload.data as any) || []);
         } catch (e) {
             console.error("Failed to fetch tasks", e);

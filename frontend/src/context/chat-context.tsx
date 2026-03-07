@@ -1,7 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import { api } from '@/lib/api-client';
+import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import { sdk } from '@/sdk';
 import { useError } from '@/context/error-context';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 
@@ -55,10 +55,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         }
 
         try {
-            const payload = await api.getChatHistoryWorkspacesWorkspaceIdChatHistoryThreadIdGet({
+            const payload = (await sdk.chat.getHistory({
                 workspaceId: workspaceId!,
                 threadId: id
-            });
+            })) as any;
             if (payload.success && payload.data) {
                 setMessages(payload.data);
                 historyCache.current[id] = payload.data;
@@ -71,9 +71,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     const fetchThreads = useCallback(async (workspaceId: string) => {
         setIsLoadingThreads(true);
         try {
-            const payload = await api.listChatThreadsWorkspacesWorkspaceIdChatThreadsGet({
+            const payload = (await sdk.chat.listThreads({
                 workspaceId: workspaceId!
-            });
+            })) as any;
             if (payload.success && payload.data) {
                 setThreads(payload.data);
             }
@@ -86,10 +86,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
     const deleteThread = useCallback(async (id: string, workspaceId: string) => {
         try {
-            const payload = await api.deleteThreadWorkspacesWorkspaceIdChatThreadsThreadIdDelete({
+            const payload = (await sdk.chat.deleteThread({
                 workspaceId: workspaceId!,
                 threadId: id
-            });
+            })) as any;
             if (payload.success) {
                 setThreads(prev => prev.filter(t => t.id !== id));
                 delete historyCache.current[id];

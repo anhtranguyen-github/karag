@@ -2,12 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api-client";
-import { User, Token, UserCreate } from "@/lib/api";
-import { initApi } from "@/lib/api-init";
-
-// Initialize API client
-initApi();
+import { sdk, type User, type UserCreate } from "@/sdk";
 
 interface AuthContextType {
     user: User | null;
@@ -41,7 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (storedToken) {
                 setToken(storedToken);
                 try {
-                    const profile = await api.readUserMeAuthMeGet();
+                    const profile = (await sdk.auth.me()) as any;
                     setUser(profile);
                 } catch (error) {
                     console.error("Failed to fetch user profile:", error);
@@ -56,25 +51,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const login = async (email: string, password: string) => {
         setIsLoading(true);
         try {
-            const formData = new FormData();
-            formData.append("username", email);
-            formData.append("password", password);
-
-            const tokenData = await api.loginAccessTokenAuthLoginPost({
-                username: email,
-                password: password
-            });
-
-            if (tokenData.accessToken) {
-                localStorage.setItem("karag_token", tokenData.accessToken);
-                setToken(tokenData.accessToken);
-                // Fetch user profile after login
-                try {
-                    const profile = await api.readUserMeAuthMeGet();
-                    setUser(profile);
-                } catch {
-                    // Profile fetch is optional at login time
+            const tokenData = (await sdk.auth.login({
+                formData: {
+                    username: email,
+                    password: password
                 }
+            })) as any;
+
+            localStorage.setItem("karag_token", tokenData.access_token);
+            setToken(tokenData.access_token);
+            // Fetch user profile after login
+            try {
+                const profile = (await sdk.auth.me()) as any;
+                setUser(profile);
+            } catch {
+                // Profile fetch is optional at login time
             }
         } catch (error) {
             console.error("Login failed:", error);
@@ -87,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const register = async (data: UserCreate) => {
         setIsLoading(true);
         try {
-            await api.registerAuthRegisterPost({ userCreate: data });
+            (await sdk.auth.register({ requestBody: data })) as any;
             // After registration, user needs to login
             router.push("/login");
         } catch (error) {

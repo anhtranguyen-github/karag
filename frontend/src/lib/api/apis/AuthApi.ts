@@ -56,18 +56,18 @@ export class AuthApi extends runtime.BaseAPI {
      * OAuth2 compatible token login, get an access token for future requests.
      * Login Access Token
      */
-    async loginAccessTokenAuthLoginPostRaw(requestParameters: LoginAccessTokenAuthLoginPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Token>> {
+    async loginAccessTokenApiV1AuthLoginPostRaw(requestParameters: LoginAccessTokenAuthLoginPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Token>> {
         if (requestParameters['username'] == null) {
             throw new runtime.RequiredError(
                 'username',
-                'Required parameter "username" was null or undefined when calling loginAccessTokenAuthLoginPost().'
+                'Required parameter "username" was null or undefined when calling loginAccessTokenApiV1AuthLoginPost().'
             );
         }
 
         if (requestParameters['password'] == null) {
             throw new runtime.RequiredError(
                 'password',
-                'Required parameter "password" was null or undefined when calling loginAccessTokenAuthLoginPost().'
+                'Required parameter "password" was null or undefined when calling loginAccessTokenApiV1AuthLoginPost().'
             );
         }
 
@@ -131,8 +131,8 @@ export class AuthApi extends runtime.BaseAPI {
      * OAuth2 compatible token login, get an access token for future requests.
      * Login Access Token
      */
-    async loginAccessTokenAuthLoginPost(requestParameters: LoginAccessTokenAuthLoginPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Token> {
-        const response = await this.loginAccessTokenAuthLoginPostRaw(requestParameters, initOverrides);
+    async loginAccessTokenApiV1AuthLoginPost(requestParameters: LoginAccessTokenAuthLoginPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Token> {
+        const response = await this.loginAccessTokenApiV1AuthLoginPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -140,7 +140,7 @@ export class AuthApi extends runtime.BaseAPI {
      * Get current user.
      * Read User Me
      */
-    async readUserMeAuthMeGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<User>> {
+    async readUserMeApiV1AuthMeGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<User>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -167,8 +167,8 @@ export class AuthApi extends runtime.BaseAPI {
      * Get current user.
      * Read User Me
      */
-    async readUserMeAuthMeGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<User> {
-        const response = await this.readUserMeAuthMeGetRaw(initOverrides);
+    async readUserMeApiV1AuthMeGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<User> {
+        const response = await this.readUserMeApiV1AuthMeGetRaw(initOverrides);
         return await response.value();
     }
 
@@ -176,11 +176,11 @@ export class AuthApi extends runtime.BaseAPI {
      * Create new user.
      * Register
      */
-    async registerAuthRegisterPostRaw(requestParameters: RegisterAuthRegisterPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponseUser>> {
+    async registerApiV1AuthRegisterPostRaw(requestParameters: RegisterAuthRegisterPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponseUser>> {
         if (requestParameters['userCreate'] == null) {
             throw new runtime.RequiredError(
                 'userCreate',
-                'Required parameter "userCreate" was null or undefined when calling registerAuthRegisterPost().'
+                'Required parameter "userCreate" was null or undefined when calling registerApiV1AuthRegisterPost().'
             );
         }
 
@@ -208,8 +208,8 @@ export class AuthApi extends runtime.BaseAPI {
      * Create new user.
      * Register
      */
-    async registerAuthRegisterPost(requestParameters: RegisterAuthRegisterPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponseUser> {
-        const response = await this.registerAuthRegisterPostRaw(requestParameters, initOverrides);
+    async registerApiV1AuthRegisterPost(requestParameters: RegisterAuthRegisterPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponseUser> {
+        const response = await this.registerApiV1AuthRegisterPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -1,4 +1,3 @@
-from typing import Any
 
 from backend.app.repositories.base_repository import BaseRepository
 from backend.app.schemas.task import Task

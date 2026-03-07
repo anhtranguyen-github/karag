@@ -22,13 +22,13 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@/lib/api-client', () => ({
     api: {
-        listWorkspacesWorkspacesGet: vi.fn(),
-        getSettingsMetadataWorkspacesWorkspaceIdSettingsMetadataGet: vi.fn(),
-        getGlobalSettingsMetadataAdminSettingsMetadataGet: vi.fn(),
-        getSettingsWorkspacesWorkspaceIdSettingsGet: vi.fn(),
-        getGlobalSettingsAdminSettingsGet: vi.fn(),
-        getWorkspaceMetadataWorkspacesWorkspaceIdMetadataGet: vi.fn(),
-        createWorkspaceWorkspacesPost: vi.fn(),
+        listWorkspacesApiV1WorkspacesGet: vi.fn(),
+        getSettingsMetadataApiV1WorkspacesWorkspaceIdSettingsMetadataGet: vi.fn(),
+        getGlobalSettingsMetadataApiV1AdminSettingsMetadataGet: vi.fn(),
+        getSettingsApiV1WorkspacesWorkspaceIdSettingsGet: vi.fn(),
+        getGlobalSettingsApiV1AdminSettingsGet: vi.fn(),
+        getWorkspaceDetailsApiV1WorkspacesWorkspaceIdDetailsGet: vi.fn(),
+        createWorkspaceApiV1WorkspacesPost: vi.fn(),
     }
 }));
 
@@ -43,14 +43,14 @@ describe('Workspace Navigation Integration', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-         
-        (api.listWorkspacesWorkspacesGet as any).mockResolvedValue({ success: true, data: mockWorkspaces });
-         
-        (api.getSettingsMetadataWorkspacesWorkspaceIdSettingsMetadataGet as any).mockResolvedValue({ success: true, data: {} });
-         
-        (api.getGlobalSettingsMetadataAdminSettingsMetadataGet as any).mockResolvedValue({ success: true, data: {} });
-         
-        (api.getGlobalSettingsAdminSettingsGet as any).mockResolvedValue({ success: true, data: {} });
+
+        (api.listWorkspacesApiV1WorkspacesGet as any).mockResolvedValue({ success: true, data: mockWorkspaces });
+
+        (api.getSettingsMetadataApiV1WorkspacesWorkspaceIdSettingsMetadataGet as any).mockResolvedValue({ success: true, data: {} });
+
+        (api.getGlobalSettingsMetadataApiV1AdminSettingsMetadataGet as any).mockResolvedValue({ success: true, data: {} });
+
+        (api.getGlobalSettingsApiV1AdminSettingsGet as any).mockResolvedValue({ success: true, data: {} });
     });
 
     it('navigates to workspace when card clicked', async () => {
@@ -69,8 +69,8 @@ describe('Workspace Navigation Integration', () => {
     });
 
     it('opens create modal and creates workspace', async () => {
-         
-        (api.createWorkspaceWorkspacesPost as any).mockResolvedValue({ success: true, data: { id: 'new-ws', name: 'New Workspace' } });
+
+        (api.createWorkspaceApiV1WorkspacesPost as any).mockResolvedValue({ success: true, data: { id: 'new-ws', name: 'New Workspace' } });
 
         render(
             <ErrorProvider>
@@ -95,8 +95,8 @@ describe('Workspace Navigation Integration', () => {
         fireEvent.click(submitButton);
 
         await waitFor(() => {
-            expect(api.createWorkspaceWorkspacesPost).toHaveBeenCalledWith(expect.objectContaining({
-                workspaceCreate: expect.objectContaining({
+            expect(api.createWorkspaceApiV1WorkspacesPost).toHaveBeenCalledWith(expect.objectContaining({
+                requestBody: expect.objectContaining({
                     name: 'New Workspace'
                 })
             }));
@@ -112,8 +112,8 @@ describe('Workspace Navigation Integration', () => {
     });
 
     it('selects simple fields in create modal', async () => {
-         
-        (api.createWorkspaceWorkspacesPost as any).mockResolvedValue({ success: true, data: { id: 'new-ws' } });
+
+        (api.createWorkspaceApiV1WorkspacesPost as any).mockResolvedValue({ success: true, data: { id: 'new-ws' } });
 
         render(
             <ErrorProvider>
@@ -136,8 +136,8 @@ describe('Workspace Navigation Integration', () => {
         fireEvent.click(submitButton);
 
         await waitFor(() => {
-            expect(api.createWorkspaceWorkspacesPost).toHaveBeenCalledWith(expect.objectContaining({
-                workspaceCreate: expect.objectContaining({
+            expect(api.createWorkspaceApiV1WorkspacesPost).toHaveBeenCalledWith(expect.objectContaining({
+                requestBody: expect.objectContaining({
                     name: 'Custom WS'
                 })
             }));

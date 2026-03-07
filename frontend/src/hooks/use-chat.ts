@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
-import { api } from '@/lib/api-client';
+import { sdk } from '@/sdk';
 import { useError } from '@/context/error-context';
 
 export interface Message {
@@ -39,10 +39,10 @@ export function useChat(workspaceId: string = "vault") {
 
     const fetchHistory = useCallback(async (id: string) => {
         try {
-            const payload = await api.getChatHistoryWorkspacesWorkspaceIdChatHistoryThreadIdGet({
+            const payload = (await sdk.chat.getHistory({
                 workspaceId: workspaceId,
                 threadId: id
-            });
+            })) as any;
 
             if (payload.success && payload.data) {
                 setMessages(payload.data);

@@ -24,13 +24,13 @@ export interface WorkspaceStats {
      * @type {number}
      * @memberof WorkspaceStats
      */
-    threadCount?: number;
+    thread_count?: number;
     /**
      * 
      * @type {number}
      * @memberof WorkspaceStats
      */
-    docCount?: number;
+    doc_count?: number;
 }
 
 /**
@@ -50,8 +50,8 @@ export function WorkspaceStatsFromJSONTyped(json: any, ignoreDiscriminator: bool
     }
     return {
         
-        'threadCount': json['thread_count'] == null ? undefined : json['thread_count'],
-        'docCount': json['doc_count'] == null ? undefined : json['doc_count'],
+        'thread_count': json['thread_count'] == null ? undefined : json['thread_count'],
+        'doc_count': json['doc_count'] == null ? undefined : json['doc_count'],
     };
 }
 
@@ -66,8 +66,8 @@ export function WorkspaceStatsToJSONTyped(value?: WorkspaceStats | null, ignoreD
 
     return {
         
-        'thread_count': value['threadCount'],
-        'doc_count': value['docCount'],
+        'thread_count': value['thread_count'],
+        'doc_count': value['doc_count'],
     };
 }
 

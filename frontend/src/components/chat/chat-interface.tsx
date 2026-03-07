@@ -6,7 +6,7 @@ import { fetchEventSource } from "@microsoft/fetch-event-source";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { api } from "@/lib/api-client";
+import { sdk } from "@/sdk";
 import { Send, Loader2, Brain } from "lucide-react";
 import { CitationModal } from "./citation-modal";
 import { ChatMessage } from "@/components/chat-message";
@@ -94,10 +94,10 @@ export function ChatInterface({
             setMessages([]); // Clear while loading existing thread
 
             try {
-                const histRes = await api.getChatHistoryWorkspacesWorkspaceIdChatHistoryThreadIdGet({
+                const histRes = (await sdk.chat.getHistory({
                     threadId: propThreadId,
                     workspaceId: workspaceId!
-                });
+                })) as any;
                 const history = (histRes.data as unknown as Array<{
                     id?: string;
                     role: 'user' | 'assistant';

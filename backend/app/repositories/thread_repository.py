@@ -1,6 +1,6 @@
-from typing import Any
 from backend.app.repositories.base_repository import BaseRepository
 from backend.app.schemas.chat import ThreadMetadata
+
 
 class ThreadRepository(BaseRepository[ThreadMetadata]):
     def __init__(self):

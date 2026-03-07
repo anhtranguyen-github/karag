@@ -7,7 +7,7 @@ import {
     HardDrive, Hash, Download, Loader2, AlertCircle,
     Copy, Check, ChevronRight, ExternalLink, FolderOpen
 } from 'lucide-react';
-import { api } from '@/lib/api-client';
+import { sdk } from '@/sdk';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -76,10 +76,10 @@ export default function DocumentDetailPage() {
         const fetchDocument = async () => {
             setIsLoading(true);
             try {
-                const payload = await api.getDocumentWorkspacesWorkspaceIdDocumentsDocumentIdGet({
+                const payload = (await sdk.documents.get({
                     workspaceId,
                     documentId: docId
-                });
+                })) as any;
                 if (payload.success) setDocument(payload.data);
             } catch (err) {
                 console.error('Failed to load document:', err);
@@ -94,10 +94,10 @@ export default function DocumentDetailPage() {
         if (chunks.length > 0) return;
         setChunksLoading(true);
         try {
-            const payload = await api.getDocumentChunksWorkspacesWorkspaceIdDocumentsDocumentIdChunksGet({
+            const payload = (await sdk.documents.getChunks({
                 workspaceId,
                 documentId: docId
-            });
+            })) as any;
             setChunks(payload.data || payload || []);
         } catch (err) {
             console.error('Failed to load chunks:', err);
@@ -109,10 +109,10 @@ export default function DocumentDetailPage() {
     const fetchInspect = useCallback(async () => {
         if (inspectData) return;
         try {
-            const payload = await api.inspectDocumentWorkspacesWorkspaceIdDocumentsDocumentIdInspectGet({
+            const payload = (await sdk.documents.inspect({
                 workspaceId,
                 documentId: docId
-            });
+            })) as any;
             setInspectData(payload.data || null);
         } catch (err) {
             console.error('Failed to inspect document:', err);

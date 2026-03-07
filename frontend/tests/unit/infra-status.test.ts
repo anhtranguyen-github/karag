@@ -12,10 +12,10 @@ describe('Infrastructure Health Check', () => {
         };
 
         // Use vitest's mocked api (already set up in some other tests or we can do it here)
-         
-        vi.spyOn(api, 'rootGet').mockResolvedValue(mockResponse as any);
 
-        const response = await api.rootGet();
-        expect(response.data.status).toBe('online');
+        vi.spyOn(api, 'healthCheckGet').mockResolvedValue(mockResponse as any);
+
+        const response = await api.healthCheckGet();
+        expect(response.status).toBe('online');
     });
 });

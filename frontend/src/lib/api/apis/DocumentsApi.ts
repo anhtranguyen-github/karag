@@ -119,18 +119,18 @@ export class DocumentsApi extends runtime.BaseAPI {
     /**
      * Delete Document
      */
-    async deleteDocumentWorkspacesWorkspaceIdDocumentsDocumentIdDeleteRaw(requestParameters: DeleteDocumentWorkspacesWorkspaceIdDocumentsDocumentIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async deleteDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdDeleteRaw(requestParameters: DeleteDocumentWorkspacesWorkspaceIdDocumentsDocumentIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         if (requestParameters['documentId'] == null) {
             throw new runtime.RequiredError(
                 'documentId',
-                'Required parameter "documentId" was null or undefined when calling deleteDocumentWorkspacesWorkspaceIdDocumentsDocumentIdDelete().'
+                'Required parameter "documentId" was null or undefined when calling deleteDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdDelete().'
             );
         }
 
         if (requestParameters['workspaceId'] == null) {
             throw new runtime.RequiredError(
                 'workspaceId',
-                'Required parameter "workspaceId" was null or undefined when calling deleteDocumentWorkspacesWorkspaceIdDocumentsDocumentIdDelete().'
+                'Required parameter "workspaceId" was null or undefined when calling deleteDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdDelete().'
             );
         }
 
@@ -169,26 +169,26 @@ export class DocumentsApi extends runtime.BaseAPI {
     /**
      * Delete Document
      */
-    async deleteDocumentWorkspacesWorkspaceIdDocumentsDocumentIdDelete(requestParameters: DeleteDocumentWorkspacesWorkspaceIdDocumentsDocumentIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.deleteDocumentWorkspacesWorkspaceIdDocumentsDocumentIdDeleteRaw(requestParameters, initOverrides);
+    async deleteDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdDelete(requestParameters: DeleteDocumentWorkspacesWorkspaceIdDocumentsDocumentIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.deleteDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdDeleteRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
      * Get Document Chunks
      */
-    async getDocumentChunksWorkspacesWorkspaceIdDocumentsDocumentIdChunksGetRaw(requestParameters: GetDocumentChunksWorkspacesWorkspaceIdDocumentsDocumentIdChunksGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async getDocumentChunksApiV1WorkspacesWorkspaceIdDocumentsDocumentIdChunksGetRaw(requestParameters: GetDocumentChunksWorkspacesWorkspaceIdDocumentsDocumentIdChunksGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         if (requestParameters['documentId'] == null) {
             throw new runtime.RequiredError(
                 'documentId',
-                'Required parameter "documentId" was null or undefined when calling getDocumentChunksWorkspacesWorkspaceIdDocumentsDocumentIdChunksGet().'
+                'Required parameter "documentId" was null or undefined when calling getDocumentChunksApiV1WorkspacesWorkspaceIdDocumentsDocumentIdChunksGet().'
             );
         }
 
         if (requestParameters['workspaceId'] == null) {
             throw new runtime.RequiredError(
                 'workspaceId',
-                'Required parameter "workspaceId" was null or undefined when calling getDocumentChunksWorkspacesWorkspaceIdDocumentsDocumentIdChunksGet().'
+                'Required parameter "workspaceId" was null or undefined when calling getDocumentChunksApiV1WorkspacesWorkspaceIdDocumentsDocumentIdChunksGet().'
             );
         }
 
@@ -227,26 +227,26 @@ export class DocumentsApi extends runtime.BaseAPI {
     /**
      * Get Document Chunks
      */
-    async getDocumentChunksWorkspacesWorkspaceIdDocumentsDocumentIdChunksGet(requestParameters: GetDocumentChunksWorkspacesWorkspaceIdDocumentsDocumentIdChunksGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.getDocumentChunksWorkspacesWorkspaceIdDocumentsDocumentIdChunksGetRaw(requestParameters, initOverrides);
+    async getDocumentChunksApiV1WorkspacesWorkspaceIdDocumentsDocumentIdChunksGet(requestParameters: GetDocumentChunksWorkspacesWorkspaceIdDocumentsDocumentIdChunksGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.getDocumentChunksApiV1WorkspacesWorkspaceIdDocumentsDocumentIdChunksGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
      * Get Document
      */
-    async getDocumentWorkspacesWorkspaceIdDocumentsDocumentIdGetRaw(requestParameters: GetDocumentWorkspacesWorkspaceIdDocumentsDocumentIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async getDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdGetRaw(requestParameters: GetDocumentWorkspacesWorkspaceIdDocumentsDocumentIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         if (requestParameters['documentId'] == null) {
             throw new runtime.RequiredError(
                 'documentId',
-                'Required parameter "documentId" was null or undefined when calling getDocumentWorkspacesWorkspaceIdDocumentsDocumentIdGet().'
+                'Required parameter "documentId" was null or undefined when calling getDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdGet().'
             );
         }
 
         if (requestParameters['workspaceId'] == null) {
             throw new runtime.RequiredError(
                 'workspaceId',
-                'Required parameter "workspaceId" was null or undefined when calling getDocumentWorkspacesWorkspaceIdDocumentsDocumentIdGet().'
+                'Required parameter "workspaceId" was null or undefined when calling getDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdGet().'
             );
         }
 
@@ -281,8 +281,8 @@ export class DocumentsApi extends runtime.BaseAPI {
     /**
      * Get Document
      */
-    async getDocumentWorkspacesWorkspaceIdDocumentsDocumentIdGet(requestParameters: GetDocumentWorkspacesWorkspaceIdDocumentsDocumentIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.getDocumentWorkspacesWorkspaceIdDocumentsDocumentIdGetRaw(requestParameters, initOverrides);
+    async getDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdGet(requestParameters: GetDocumentWorkspacesWorkspaceIdDocumentsDocumentIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.getDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -363,18 +363,18 @@ export class DocumentsApi extends runtime.BaseAPI {
     /**
      * Import Github Document
      */
-    async importGithubDocumentWorkspacesWorkspaceIdImportGithubPostRaw(requestParameters: ImportGithubDocumentWorkspacesWorkspaceIdImportGithubPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponse>> {
+    async importGithubDocumentApiV1WorkspacesWorkspaceIdImportGithubPostRaw(requestParameters: ImportGithubDocumentWorkspacesWorkspaceIdImportGithubPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponse>> {
         if (requestParameters['workspaceId'] == null) {
             throw new runtime.RequiredError(
                 'workspaceId',
-                'Required parameter "workspaceId" was null or undefined when calling importGithubDocumentWorkspacesWorkspaceIdImportGithubPost().'
+                'Required parameter "workspaceId" was null or undefined when calling importGithubDocumentApiV1WorkspacesWorkspaceIdImportGithubPost().'
             );
         }
 
         if (requestParameters['gitHubImportRequest'] == null) {
             throw new runtime.RequiredError(
                 'gitHubImportRequest',
-                'Required parameter "gitHubImportRequest" was null or undefined when calling importGithubDocumentWorkspacesWorkspaceIdImportGithubPost().'
+                'Required parameter "gitHubImportRequest" was null or undefined when calling importGithubDocumentApiV1WorkspacesWorkspaceIdImportGithubPost().'
             );
         }
 
@@ -407,26 +407,26 @@ export class DocumentsApi extends runtime.BaseAPI {
     /**
      * Import Github Document
      */
-    async importGithubDocumentWorkspacesWorkspaceIdImportGithubPost(requestParameters: ImportGithubDocumentWorkspacesWorkspaceIdImportGithubPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponse> {
-        const response = await this.importGithubDocumentWorkspacesWorkspaceIdImportGithubPostRaw(requestParameters, initOverrides);
+    async importGithubDocumentApiV1WorkspacesWorkspaceIdImportGithubPost(requestParameters: ImportGithubDocumentWorkspacesWorkspaceIdImportGithubPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponse> {
+        const response = await this.importGithubDocumentApiV1WorkspacesWorkspaceIdImportGithubPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
      * Import Sitemap Document
      */
-    async importSitemapDocumentWorkspacesWorkspaceIdImportSitemapPostRaw(requestParameters: ImportSitemapDocumentWorkspacesWorkspaceIdImportSitemapPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponse>> {
+    async importSitemapDocumentApiV1WorkspacesWorkspaceIdImportSitemapPostRaw(requestParameters: ImportSitemapDocumentWorkspacesWorkspaceIdImportSitemapPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponse>> {
         if (requestParameters['workspaceId'] == null) {
             throw new runtime.RequiredError(
                 'workspaceId',
-                'Required parameter "workspaceId" was null or undefined when calling importSitemapDocumentWorkspacesWorkspaceIdImportSitemapPost().'
+                'Required parameter "workspaceId" was null or undefined when calling importSitemapDocumentApiV1WorkspacesWorkspaceIdImportSitemapPost().'
             );
         }
 
         if (requestParameters['sitemapImportRequest'] == null) {
             throw new runtime.RequiredError(
                 'sitemapImportRequest',
-                'Required parameter "sitemapImportRequest" was null or undefined when calling importSitemapDocumentWorkspacesWorkspaceIdImportSitemapPost().'
+                'Required parameter "sitemapImportRequest" was null or undefined when calling importSitemapDocumentApiV1WorkspacesWorkspaceIdImportSitemapPost().'
             );
         }
 
@@ -459,26 +459,26 @@ export class DocumentsApi extends runtime.BaseAPI {
     /**
      * Import Sitemap Document
      */
-    async importSitemapDocumentWorkspacesWorkspaceIdImportSitemapPost(requestParameters: ImportSitemapDocumentWorkspacesWorkspaceIdImportSitemapPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponse> {
-        const response = await this.importSitemapDocumentWorkspacesWorkspaceIdImportSitemapPostRaw(requestParameters, initOverrides);
+    async importSitemapDocumentApiV1WorkspacesWorkspaceIdImportSitemapPost(requestParameters: ImportSitemapDocumentWorkspacesWorkspaceIdImportSitemapPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponse> {
+        const response = await this.importSitemapDocumentApiV1WorkspacesWorkspaceIdImportSitemapPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
      * Import Url Document
      */
-    async importUrlDocumentWorkspacesWorkspaceIdImportUrlPostRaw(requestParameters: ImportUrlDocumentWorkspacesWorkspaceIdImportUrlPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponse>> {
+    async importUrlDocumentApiV1WorkspacesWorkspaceIdImportUrlPostRaw(requestParameters: ImportUrlDocumentWorkspacesWorkspaceIdImportUrlPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponse>> {
         if (requestParameters['workspaceId'] == null) {
             throw new runtime.RequiredError(
                 'workspaceId',
-                'Required parameter "workspaceId" was null or undefined when calling importUrlDocumentWorkspacesWorkspaceIdImportUrlPost().'
+                'Required parameter "workspaceId" was null or undefined when calling importUrlDocumentApiV1WorkspacesWorkspaceIdImportUrlPost().'
             );
         }
 
         if (requestParameters['urlImportRequest'] == null) {
             throw new runtime.RequiredError(
                 'urlImportRequest',
-                'Required parameter "urlImportRequest" was null or undefined when calling importUrlDocumentWorkspacesWorkspaceIdImportUrlPost().'
+                'Required parameter "urlImportRequest" was null or undefined when calling importUrlDocumentApiV1WorkspacesWorkspaceIdImportUrlPost().'
             );
         }
 
@@ -511,8 +511,8 @@ export class DocumentsApi extends runtime.BaseAPI {
     /**
      * Import Url Document
      */
-    async importUrlDocumentWorkspacesWorkspaceIdImportUrlPost(requestParameters: ImportUrlDocumentWorkspacesWorkspaceIdImportUrlPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponse> {
-        const response = await this.importUrlDocumentWorkspacesWorkspaceIdImportUrlPostRaw(requestParameters, initOverrides);
+    async importUrlDocumentApiV1WorkspacesWorkspaceIdImportUrlPost(requestParameters: ImportUrlDocumentWorkspacesWorkspaceIdImportUrlPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponse> {
+        const response = await this.importUrlDocumentApiV1WorkspacesWorkspaceIdImportUrlPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -573,18 +573,18 @@ export class DocumentsApi extends runtime.BaseAPI {
     /**
      * Inspect Document
      */
-    async inspectDocumentWorkspacesWorkspaceIdDocumentsDocumentIdInspectGetRaw(requestParameters: InspectDocumentWorkspacesWorkspaceIdDocumentsDocumentIdInspectGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async inspectDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdInspectGetRaw(requestParameters: InspectDocumentWorkspacesWorkspaceIdDocumentsDocumentIdInspectGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         if (requestParameters['documentId'] == null) {
             throw new runtime.RequiredError(
                 'documentId',
-                'Required parameter "documentId" was null or undefined when calling inspectDocumentWorkspacesWorkspaceIdDocumentsDocumentIdInspectGet().'
+                'Required parameter "documentId" was null or undefined when calling inspectDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdInspectGet().'
             );
         }
 
         if (requestParameters['workspaceId'] == null) {
             throw new runtime.RequiredError(
                 'workspaceId',
-                'Required parameter "workspaceId" was null or undefined when calling inspectDocumentWorkspacesWorkspaceIdDocumentsDocumentIdInspectGet().'
+                'Required parameter "workspaceId" was null or undefined when calling inspectDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdInspectGet().'
             );
         }
 
@@ -619,19 +619,19 @@ export class DocumentsApi extends runtime.BaseAPI {
     /**
      * Inspect Document
      */
-    async inspectDocumentWorkspacesWorkspaceIdDocumentsDocumentIdInspectGet(requestParameters: InspectDocumentWorkspacesWorkspaceIdDocumentsDocumentIdInspectGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.inspectDocumentWorkspacesWorkspaceIdDocumentsDocumentIdInspectGetRaw(requestParameters, initOverrides);
+    async inspectDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdInspectGet(requestParameters: InspectDocumentWorkspacesWorkspaceIdDocumentsDocumentIdInspectGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.inspectDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdInspectGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
      * List All Documents
      */
-    async listAllDocumentsWorkspacesWorkspaceIdDocumentsAllGetRaw(requestParameters: ListAllDocumentsWorkspacesWorkspaceIdDocumentsAllGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async listAllDocumentsApiV1WorkspacesWorkspaceIdDocumentsAllGetRaw(requestParameters: ListAllDocumentsWorkspacesWorkspaceIdDocumentsAllGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         if (requestParameters['workspaceId'] == null) {
             throw new runtime.RequiredError(
                 'workspaceId',
-                'Required parameter "workspaceId" was null or undefined when calling listAllDocumentsWorkspacesWorkspaceIdDocumentsAllGet().'
+                'Required parameter "workspaceId" was null or undefined when calling listAllDocumentsApiV1WorkspacesWorkspaceIdDocumentsAllGet().'
             );
         }
 
@@ -665,8 +665,8 @@ export class DocumentsApi extends runtime.BaseAPI {
     /**
      * List All Documents
      */
-    async listAllDocumentsWorkspacesWorkspaceIdDocumentsAllGet(requestParameters: ListAllDocumentsWorkspacesWorkspaceIdDocumentsAllGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.listAllDocumentsWorkspacesWorkspaceIdDocumentsAllGetRaw(requestParameters, initOverrides);
+    async listAllDocumentsApiV1WorkspacesWorkspaceIdDocumentsAllGet(requestParameters: ListAllDocumentsWorkspacesWorkspaceIdDocumentsAllGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.listAllDocumentsApiV1WorkspacesWorkspaceIdDocumentsAllGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -812,18 +812,18 @@ export class DocumentsApi extends runtime.BaseAPI {
      * Workspace operations using internal IDs.
      * Update Document Workspaces
      */
-    async updateDocumentWorkspacesWorkspacesWorkspaceIdDocumentsUpdateWorkspacesPostRaw(requestParameters: UpdateDocumentWorkspacesWorkspacesWorkspaceIdDocumentsUpdateWorkspacesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async updateDocumentWorkspacesApiV1WorkspacesWorkspaceIdDocumentsUpdateWorkspacesPostRaw(requestParameters: UpdateDocumentWorkspacesWorkspacesWorkspaceIdDocumentsUpdateWorkspacesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         if (requestParameters['workspaceId'] == null) {
             throw new runtime.RequiredError(
                 'workspaceId',
-                'Required parameter "workspaceId" was null or undefined when calling updateDocumentWorkspacesWorkspacesWorkspaceIdDocumentsUpdateWorkspacesPost().'
+                'Required parameter "workspaceId" was null or undefined when calling updateDocumentWorkspacesApiV1WorkspacesWorkspaceIdDocumentsUpdateWorkspacesPost().'
             );
         }
 
         if (requestParameters['documentWorkspaceUpdate'] == null) {
             throw new runtime.RequiredError(
                 'documentWorkspaceUpdate',
-                'Required parameter "documentWorkspaceUpdate" was null or undefined when calling updateDocumentWorkspacesWorkspacesWorkspaceIdDocumentsUpdateWorkspacesPost().'
+                'Required parameter "documentWorkspaceUpdate" was null or undefined when calling updateDocumentWorkspacesApiV1WorkspacesWorkspaceIdDocumentsUpdateWorkspacesPost().'
             );
         }
 
@@ -861,26 +861,26 @@ export class DocumentsApi extends runtime.BaseAPI {
      * Workspace operations using internal IDs.
      * Update Document Workspaces
      */
-    async updateDocumentWorkspacesWorkspacesWorkspaceIdDocumentsUpdateWorkspacesPost(requestParameters: UpdateDocumentWorkspacesWorkspacesWorkspaceIdDocumentsUpdateWorkspacesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.updateDocumentWorkspacesWorkspacesWorkspaceIdDocumentsUpdateWorkspacesPostRaw(requestParameters, initOverrides);
+    async updateDocumentWorkspacesApiV1WorkspacesWorkspaceIdDocumentsUpdateWorkspacesPost(requestParameters: UpdateDocumentWorkspacesWorkspacesWorkspaceIdDocumentsUpdateWorkspacesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.updateDocumentWorkspacesApiV1WorkspacesWorkspaceIdDocumentsUpdateWorkspacesPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
      * Upload Document
      */
-    async uploadDocumentWorkspacesWorkspaceIdUploadPostRaw(requestParameters: UploadDocumentWorkspacesWorkspaceIdUploadPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponse>> {
+    async uploadDocumentApiV1WorkspacesWorkspaceIdUploadPostRaw(requestParameters: UploadDocumentWorkspacesWorkspaceIdUploadPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponse>> {
         if (requestParameters['workspaceId'] == null) {
             throw new runtime.RequiredError(
                 'workspaceId',
-                'Required parameter "workspaceId" was null or undefined when calling uploadDocumentWorkspacesWorkspaceIdUploadPost().'
+                'Required parameter "workspaceId" was null or undefined when calling uploadDocumentApiV1WorkspacesWorkspaceIdUploadPost().'
             );
         }
 
         if (requestParameters['file'] == null) {
             throw new runtime.RequiredError(
                 'file',
-                'Required parameter "file" was null or undefined when calling uploadDocumentWorkspacesWorkspaceIdUploadPost().'
+                'Required parameter "file" was null or undefined when calling uploadDocumentApiV1WorkspacesWorkspaceIdUploadPost().'
             );
         }
 
@@ -935,8 +935,8 @@ export class DocumentsApi extends runtime.BaseAPI {
     /**
      * Upload Document
      */
-    async uploadDocumentWorkspacesWorkspaceIdUploadPost(requestParameters: UploadDocumentWorkspacesWorkspaceIdUploadPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponse> {
-        const response = await this.uploadDocumentWorkspacesWorkspaceIdUploadPostRaw(requestParameters, initOverrides);
+    async uploadDocumentApiV1WorkspacesWorkspaceIdUploadPost(requestParameters: UploadDocumentWorkspacesWorkspaceIdUploadPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponse> {
+        const response = await this.uploadDocumentApiV1WorkspacesWorkspaceIdUploadPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

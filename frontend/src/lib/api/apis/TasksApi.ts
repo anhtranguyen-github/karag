@@ -57,18 +57,18 @@ export class TasksApi extends runtime.BaseAPI {
      * Cancel a pending or processing task.
      * Cancel Task
      */
-    async cancelTaskWorkspacesWorkspaceIdTasksTaskIdCancelPostRaw(requestParameters: CancelTaskWorkspacesWorkspaceIdTasksTaskIdCancelPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async cancelTaskApiV1WorkspacesWorkspaceIdTasksTaskIdCancelPostRaw(requestParameters: CancelTaskWorkspacesWorkspaceIdTasksTaskIdCancelPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         if (requestParameters['taskId'] == null) {
             throw new runtime.RequiredError(
                 'taskId',
-                'Required parameter "taskId" was null or undefined when calling cancelTaskWorkspacesWorkspaceIdTasksTaskIdCancelPost().'
+                'Required parameter "taskId" was null or undefined when calling cancelTaskApiV1WorkspacesWorkspaceIdTasksTaskIdCancelPost().'
             );
         }
 
         if (requestParameters['workspaceId'] == null) {
             throw new runtime.RequiredError(
                 'workspaceId',
-                'Required parameter "workspaceId" was null or undefined when calling cancelTaskWorkspacesWorkspaceIdTasksTaskIdCancelPost().'
+                'Required parameter "workspaceId" was null or undefined when calling cancelTaskApiV1WorkspacesWorkspaceIdTasksTaskIdCancelPost().'
             );
         }
 
@@ -104,8 +104,8 @@ export class TasksApi extends runtime.BaseAPI {
      * Cancel a pending or processing task.
      * Cancel Task
      */
-    async cancelTaskWorkspacesWorkspaceIdTasksTaskIdCancelPost(requestParameters: CancelTaskWorkspacesWorkspaceIdTasksTaskIdCancelPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.cancelTaskWorkspacesWorkspaceIdTasksTaskIdCancelPostRaw(requestParameters, initOverrides);
+    async cancelTaskApiV1WorkspacesWorkspaceIdTasksTaskIdCancelPost(requestParameters: CancelTaskWorkspacesWorkspaceIdTasksTaskIdCancelPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.cancelTaskApiV1WorkspacesWorkspaceIdTasksTaskIdCancelPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -221,11 +221,11 @@ export class TasksApi extends runtime.BaseAPI {
      * List tasks for the current workspace.
      * List Tasks
      */
-    async listTasksWorkspacesWorkspaceIdTasksGetRaw(requestParameters: ListTasksWorkspacesWorkspaceIdTasksGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async listTasksApiV1WorkspacesWorkspaceIdTasksGetRaw(requestParameters: ListTasksWorkspacesWorkspaceIdTasksGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         if (requestParameters['workspaceId'] == null) {
             throw new runtime.RequiredError(
                 'workspaceId',
-                'Required parameter "workspaceId" was null or undefined when calling listTasksWorkspacesWorkspaceIdTasksGet().'
+                'Required parameter "workspaceId" was null or undefined when calling listTasksApiV1WorkspacesWorkspaceIdTasksGet().'
             );
         }
 
@@ -268,8 +268,8 @@ export class TasksApi extends runtime.BaseAPI {
      * List tasks for the current workspace.
      * List Tasks
      */
-    async listTasksWorkspacesWorkspaceIdTasksGet(requestParameters: ListTasksWorkspacesWorkspaceIdTasksGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.listTasksWorkspacesWorkspaceIdTasksGetRaw(requestParameters, initOverrides);
+    async listTasksApiV1WorkspacesWorkspaceIdTasksGet(requestParameters: ListTasksWorkspacesWorkspaceIdTasksGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.listTasksApiV1WorkspacesWorkspaceIdTasksGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -277,18 +277,18 @@ export class TasksApi extends runtime.BaseAPI {
      * Mark a failed task as retryable and re-dispatch it to background workers.
      * Retry Task
      */
-    async retryTaskWorkspacesWorkspaceIdTasksTaskIdRetryPostRaw(requestParameters: RetryTaskWorkspacesWorkspaceIdTasksTaskIdRetryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async retryTaskApiV1WorkspacesWorkspaceIdTasksTaskIdRetryPostRaw(requestParameters: RetryTaskWorkspacesWorkspaceIdTasksTaskIdRetryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         if (requestParameters['taskId'] == null) {
             throw new runtime.RequiredError(
                 'taskId',
-                'Required parameter "taskId" was null or undefined when calling retryTaskWorkspacesWorkspaceIdTasksTaskIdRetryPost().'
+                'Required parameter "taskId" was null or undefined when calling retryTaskApiV1WorkspacesWorkspaceIdTasksTaskIdRetryPost().'
             );
         }
 
         if (requestParameters['workspaceId'] == null) {
             throw new runtime.RequiredError(
                 'workspaceId',
-                'Required parameter "workspaceId" was null or undefined when calling retryTaskWorkspacesWorkspaceIdTasksTaskIdRetryPost().'
+                'Required parameter "workspaceId" was null or undefined when calling retryTaskApiV1WorkspacesWorkspaceIdTasksTaskIdRetryPost().'
             );
         }
 
@@ -324,8 +324,8 @@ export class TasksApi extends runtime.BaseAPI {
      * Mark a failed task as retryable and re-dispatch it to background workers.
      * Retry Task
      */
-    async retryTaskWorkspacesWorkspaceIdTasksTaskIdRetryPost(requestParameters: RetryTaskWorkspacesWorkspaceIdTasksTaskIdRetryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.retryTaskWorkspacesWorkspaceIdTasksTaskIdRetryPostRaw(requestParameters, initOverrides);
+    async retryTaskApiV1WorkspacesWorkspaceIdTasksTaskIdRetryPost(requestParameters: RetryTaskWorkspacesWorkspaceIdTasksTaskIdRetryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.retryTaskApiV1WorkspacesWorkspaceIdTasksTaskIdRetryPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

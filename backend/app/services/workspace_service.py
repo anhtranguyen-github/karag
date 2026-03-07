@@ -6,9 +6,9 @@ import structlog
 from backend.app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from backend.app.core.mongodb import mongodb_manager
 from backend.app.repositories.workspace_repository import workspace_repository
-from backend.app.schemas.workspace import Workspace, WorkspaceDetail, WorkspaceStats
 from backend.app.schemas.chat import ThreadMetadata
 from backend.app.schemas.documents import DocumentResponse
+from backend.app.schemas.workspace import Workspace, WorkspaceDetail, WorkspaceStats
 
 logger = structlog.get_logger(__name__)
 

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { api } from '@/lib/api-client';
+import { sdk } from '@/sdk';
 import { useError } from '@/context/error-context';
 
 export interface Thread {
@@ -18,9 +18,9 @@ export function useThreads(workspaceId: string) {
     const fetchThreads = useCallback(async () => {
         setIsLoading(true);
         try {
-            const payload = await api.listChatThreadsWorkspacesWorkspaceIdChatThreadsGet({
+            const payload = (await sdk.chat.listThreads({
                 workspaceId: workspaceId
-            });
+            })) as any;
             if (payload.success && payload.data) {
                 setThreads(payload.data);
             }
@@ -38,11 +38,11 @@ export function useThreads(workspaceId: string) {
         }
 
         try {
-            const payload = await api.updateThreadTitleWorkspacesWorkspaceIdChatThreadsThreadIdTitlePatch({
+            const payload = (await sdk.chat.updateTitle({
                 workspaceId: workspaceId,
                 threadId: id,
-                threadTitleUpdate: { title }
-            });
+                requestBody: { title }
+            })) as any;
 
             if (payload.success) {
                 await fetchThreads();
@@ -57,10 +57,10 @@ export function useThreads(workspaceId: string) {
 
     const deleteThread = async (id: string) => {
         try {
-            const payload = await api.deleteThreadWorkspacesWorkspaceIdChatThreadsThreadIdDelete({
+            const payload = (await sdk.chat.deleteThread({
                 workspaceId: workspaceId,
                 threadId: id
-            });
+            })) as any;
             if (payload.success) {
                 await fetchThreads();
             } else {

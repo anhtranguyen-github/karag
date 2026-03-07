@@ -39,9 +39,9 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@/lib/api-client', () => ({
     api: {
-        getThreadWorkspacesWorkspaceIdChatThreadsThreadIdGet: vi.fn().mockResolvedValue({ success: true, data: { workspace_id: 'test-workspace' } }),
-        getChatHistoryWorkspacesWorkspaceIdChatHistoryThreadIdGet: vi.fn().mockResolvedValue({ success: true, data: [] }),
-        listChatThreadsWorkspacesWorkspaceIdChatThreadsGet: vi.fn().mockResolvedValue({ success: true, data: [] }),
+        getThreadApiV1WorkspacesWorkspaceIdChatThreadsThreadIdGet: vi.fn().mockResolvedValue({ success: true, data: { workspace_id: 'test-workspace' } }),
+        getChatHistoryApiV1WorkspacesWorkspaceIdChatHistoryThreadIdGet: vi.fn().mockResolvedValue({ success: true, data: [] }),
+        listChatThreadsApiV1WorkspacesWorkspaceIdChatThreadsGet: vi.fn().mockResolvedValue({ success: true, data: [] }),
     }
 }));
 

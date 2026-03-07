@@ -10,7 +10,6 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import structlog
-from backend.app.core.mongodb import mongodb_manager
 from backend.app.repositories.task_repository import task_repository
 from backend.app.schemas.task import Task
 

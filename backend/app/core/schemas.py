@@ -3,19 +3,14 @@ from typing import Any, Literal
 from backend.app.schemas.chunking import ChunkingConfig, RecursiveChunkingConfig
 from backend.app.schemas.embedding import (
     EmbeddingConfig,
-    HuggingFaceEmbeddingConfig,
-    OllamaEmbeddingConfig,
-    OpenAIEmbeddingConfig,
-    SparseEmbeddingConfig,
 )
-from backend.app.schemas.execution import ExecutionMode, RuntimeSettings
+from backend.app.schemas.execution import RuntimeSettings
 from backend.app.schemas.generation import (
     GenerationConfig,
-    LlamaGenerationConfig,
     OpenAIGenerationConfig,
 )
 from backend.app.schemas.retrieval import RetrievalConfig
-from pydantic import BaseModel, Field, computed_field, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 
 class AppSettings(BaseModel):

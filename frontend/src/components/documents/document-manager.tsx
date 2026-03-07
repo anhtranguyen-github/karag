@@ -6,7 +6,7 @@ import {
     Shield, Database, HardDrive, Calendar,
     CheckCircle2, AlertCircle, X, Info
 } from 'lucide-react';
-import { api } from '@/lib/api-client';
+import { sdk } from '@/sdk';
 import { useError } from '@/context/error-context';
 import { useToast } from '@/context/toast-context';
 import { cn } from '@/lib/utils';
@@ -47,9 +47,9 @@ export function DocumentManager({ workspaceId }: DocumentManagerProps) {
     const fetchDocuments = useCallback(async () => {
         setIsLoading(true);
         try {
-            const payload = await api.listAllDocumentsWorkspacesWorkspaceIdDocumentsAllGet({
+            const payload = (await sdk.documents.listAll({
                 workspaceId: workspaceId!
-            });
+            })) as any;
             if (payload.success && payload.data) {
                 setDocuments(payload.data);
             }
@@ -71,10 +71,10 @@ export function DocumentManager({ workspaceId }: DocumentManagerProps) {
         setIsUploading(true);
 
         try {
-            const payload = await api.uploadDocumentWorkspacesWorkspaceIdUploadPost({
+            const payload = (await sdk.documents.upload({
                 workspaceId: workspaceId!,
-                file: file
-            });
+                formData: { file }
+            })) as any;
             if (payload.success) {
                 toast.success(`${file.name} uploaded successfully`);
                 fetchDocuments();
@@ -98,11 +98,11 @@ export function DocumentManager({ workspaceId }: DocumentManagerProps) {
         setDocToDelete(null); // Close modal immediately
 
         try {
-            const payload = await api.deleteDocumentWorkspacesWorkspaceIdDocumentsDocumentIdDelete({
+            const payload = (await sdk.documents.delete({
                 workspaceId: workspaceId!,
                 documentId: docToDelete.filename, // Using filename as identifier for now based on legacy logic, check if id is better
-                vaultDelete: !workspaceId
-            });
+                datasetDelete: !workspaceId
+            })) as any;
             toast.dismiss(toastId);
             if (payload.success) {
                 toast.success(`Successfully deleted ${docName}`);
@@ -311,10 +311,10 @@ function DocumentDetailPanel({ doc, workspaceId, onClose }: { doc: Document, wor
         const fetchContent = async () => {
             setIsLoading(true);
             try {
-                const payload = await api.getDocumentWorkspacesWorkspaceIdDocumentsDocumentIdGet({
+                const payload = (await sdk.documents.get({
                     workspaceId: workspaceId!,
                     documentId: doc.id
-                });
+                })) as any;
                 if (payload.success && payload.data) {
                     setContent(payload.data.content);
                 }
@@ -508,7 +508,7 @@ function DeleteDocumentModal({
                         </div>
                     </div>
 
-                     <div className="px-5">
+                    <div className="px-5">
                         <p className="text-xs text-muted-foreground leading-relaxed text-center">
                             {isGlobal ? (
                                 <>

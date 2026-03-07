@@ -69,11 +69,11 @@ export class WorkspacesApi extends runtime.BaseAPI {
     /**
      * Create Workspace
      */
-    async createWorkspaceWorkspacesPostRaw(requestParameters: CreateWorkspaceWorkspacesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async createWorkspaceApiV1WorkspacesPostRaw(requestParameters: CreateWorkspaceWorkspacesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         if (requestParameters['workspaceCreate'] == null) {
             throw new runtime.RequiredError(
                 'workspaceCreate',
-                'Required parameter "workspaceCreate" was null or undefined when calling createWorkspaceWorkspacesPost().'
+                'Required parameter "workspaceCreate" was null or undefined when calling createWorkspaceApiV1WorkspacesPost().'
             );
         }
 
@@ -109,19 +109,19 @@ export class WorkspacesApi extends runtime.BaseAPI {
     /**
      * Create Workspace
      */
-    async createWorkspaceWorkspacesPost(requestParameters: CreateWorkspaceWorkspacesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.createWorkspaceWorkspacesPostRaw(requestParameters, initOverrides);
+    async createWorkspaceApiV1WorkspacesPost(requestParameters: CreateWorkspaceWorkspacesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.createWorkspaceApiV1WorkspacesPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
      * Create Workspace
      */
-    async createWorkspaceWorkspacesPost_1Raw(requestParameters: CreateWorkspaceWorkspacesPost0Request, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async createWorkspaceApiV1WorkspacesPost_1Raw(requestParameters: CreateWorkspaceWorkspacesPost0Request, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
         if (requestParameters['workspaceCreate'] == null) {
             throw new runtime.RequiredError(
                 'workspaceCreate',
-                'Required parameter "workspaceCreate" was null or undefined when calling createWorkspaceWorkspacesPost_1().'
+                'Required parameter "workspaceCreate" was null or undefined when calling createWorkspaceApiV1WorkspacesPost_1().'
             );
         }
 
@@ -157,8 +157,8 @@ export class WorkspacesApi extends runtime.BaseAPI {
     /**
      * Create Workspace
      */
-    async createWorkspaceWorkspacesPost_1(requestParameters: CreateWorkspaceWorkspacesPost0Request, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.createWorkspaceWorkspacesPost_1Raw(requestParameters, initOverrides);
+    async createWorkspaceApiV1WorkspacesPost_1(requestParameters: CreateWorkspaceWorkspacesPost0Request, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.createWorkspaceApiV1WorkspacesPost_1Raw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -307,7 +307,7 @@ export class WorkspacesApi extends runtime.BaseAPI {
     /**
      * List Workspaces
      */
-    async listWorkspacesWorkspacesGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponseListWorkspace>> {
+    async listWorkspacesApiV1WorkspacesGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponseListWorkspace>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -333,15 +333,15 @@ export class WorkspacesApi extends runtime.BaseAPI {
     /**
      * List Workspaces
      */
-    async listWorkspacesWorkspacesGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponseListWorkspace> {
-        const response = await this.listWorkspacesWorkspacesGetRaw(initOverrides);
+    async listWorkspacesApiV1WorkspacesGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponseListWorkspace> {
+        const response = await this.listWorkspacesApiV1WorkspacesGetRaw(initOverrides);
         return await response.value();
     }
 
     /**
      * List Workspaces
      */
-    async listWorkspacesWorkspacesGet_2Raw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponseListWorkspace>> {
+    async listWorkspacesApiV1WorkspacesGet_2Raw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppResponseListWorkspace>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -367,8 +367,8 @@ export class WorkspacesApi extends runtime.BaseAPI {
     /**
      * List Workspaces
      */
-    async listWorkspacesWorkspacesGet_2(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponseListWorkspace> {
-        const response = await this.listWorkspacesWorkspacesGet_2Raw(initOverrides);
+    async listWorkspacesApiV1WorkspacesGet_2(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppResponseListWorkspace> {
+        const response = await this.listWorkspacesApiV1WorkspacesGet_2Raw(initOverrides);
         return await response.value();
     }
 

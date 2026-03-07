@@ -6,14 +6,14 @@ from typing import Any
 import structlog
 from backend.app.core.mongodb import mongodb_manager
 from backend.app.core.settings_manager import settings_manager
-from backend.app.repositories.thread_repository import thread_repository
-from backend.app.schemas.chat import ChatMessage, ThreadMetadata
 from backend.app.core.telemetry import (
     ACTIVE_STREAMS,
     get_tracer,
 )
 from backend.app.graph.builder import app as graph_app
 from backend.app.providers.llm import get_llm
+from backend.app.repositories.thread_repository import thread_repository
+from backend.app.schemas.chat import ChatMessage, ThreadMetadata
 from langchain_core.messages import HumanMessage, SystemMessage
 
 logger = structlog.get_logger(__name__)
