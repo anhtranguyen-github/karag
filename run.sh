@@ -450,6 +450,7 @@ launch_backend() {
 launch_frontend() {
     log_phase "FRONTEND LAUNCH"
 
+    mkdir -p logs
     cd src/frontend
 
     if [[ ! -d "node_modules" ]]; then
@@ -458,7 +459,7 @@ launch_frontend() {
         pnpm install --silent
     fi
 
-    if [[ ! -d "src/lib/api" ]] || [[ -z "$(ls -A src/lib/api 2>/dev/null)" ]]; then
+    if [[ ! -d "src/sdk/generated" ]] || [[ -z "$(ls -A src/sdk/generated 2>/dev/null)" ]]; then
         log_info "Generating API client..."
         log_cmd "pnpm run generate-client"
         pnpm run generate-client >/dev/null 2>&1 || true
@@ -475,14 +476,14 @@ launch_frontend() {
         log_kv "Port" "$FRONTEND_PORT"
         log_kv "Log file" "logs/frontend.log"
         log_cmd "pnpm run start"
-        nohup pnpm run start > ../logs/frontend.log 2>&1 &
+        nohup pnpm run start > ../../logs/frontend.log 2>&1 &
         pid=$!
     else
         log_info "Starting development server..."
         log_kv "Port" "$FRONTEND_PORT"
         log_kv "Log file" "logs/frontend.log"
         log_cmd "pnpm run dev"
-        nohup pnpm run dev > ../logs/frontend.log 2>&1 &
+        nohup pnpm run dev > ../../logs/frontend.log 2>&1 &
         pid=$!
     fi
 
