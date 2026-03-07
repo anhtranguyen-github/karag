@@ -1,8 +1,9 @@
 "use client";
 
 import { useAuth } from "@/context/auth-context";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
+import { buildLoginRedirectUrl, resolvePostLoginRedirect } from "@/lib/auth-redirect";
 
 /** Routes that don't require authentication */
 const PUBLIC_ROUTES = ["/login", "/register"];
@@ -17,23 +18,23 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     const { isAuthenticated, isLoading } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
+    const searchParams = useSearchParams();
 
     const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
+    const currentSearch = searchParams.toString();
+    const nextTarget = searchParams.get("next");
 
     useEffect(() => {
         if (isLoading) return;
 
         if (!isAuthenticated && !isPublicRoute) {
-            // Not logged in → send to login, preserve intended destination
-            const returnUrl = pathname !== "/" ? `?returnUrl=${encodeURIComponent(pathname)}` : "";
-            router.replace(`/login${returnUrl}`);
+            router.replace(buildLoginRedirectUrl(pathname, currentSearch ? `?${currentSearch}` : ""));
         }
 
         if (isAuthenticated && isPublicRoute) {
-            // Already logged in → no reason to be on login/register
-            router.replace("/");
+            router.replace(resolvePostLoginRedirect(nextTarget));
         }
-    }, [isAuthenticated, isLoading, isPublicRoute, pathname, router]);
+    }, [currentSearch, isAuthenticated, isLoading, isPublicRoute, nextTarget, pathname, router]);
 
     // While loading, show a centered spinner
     if (isLoading) {

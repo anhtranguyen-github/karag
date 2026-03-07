@@ -7,6 +7,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Mail, Lock, LogIn, Database } from "lucide-react";
 import { useToast } from "@/context/toast-context";
+import { DEFAULT_LOGIN_REDIRECT, resolvePostLoginRedirect } from "@/lib/auth-redirect";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
@@ -15,16 +16,16 @@ export default function LoginPage() {
     const toast = useToast();
     const searchParams = useSearchParams();
     const router = useRouter();
-    const returnUrl = searchParams.get("returnUrl") || "/";
+    const nextUrl = resolvePostLoginRedirect(searchParams.get("next")) || DEFAULT_LOGIN_REDIRECT;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
             await login(email, password);
             toast.success("Welcome back!");
-            router.replace(returnUrl);
-        } catch {
-            toast.error("Login failed. Please check your credentials.");
+            router.replace(nextUrl);
+        } catch (error: any) {
+            toast.error(error?.message || "Login failed. Please check your credentials.");
         }
     };
 

@@ -11,15 +11,42 @@ Following API design principles:
 
 from datetime import datetime
 from enum import StrEnum
+from urllib.parse import quote, urlsplit
 from typing import Any
 
 import structlog
 from fastapi import HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel, Field
 from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = structlog.get_logger(__name__)
+
+
+def _is_safe_redirect_target(target: str) -> bool:
+    if not target or not target.startswith("/") or target.startswith("//"):
+        return False
+
+    parsed = urlsplit(target)
+    return not parsed.scheme and not parsed.netloc
+
+
+def _build_safe_next_target(request: Request) -> str:
+    path = request.url.path or "/"
+    query = request.url.query
+    target = f"{path}?{query}" if query else path
+    return target if _is_safe_redirect_target(target) else "/dashboard"
+
+
+def _should_redirect_unauthenticated_request(request: Request, exc: HTTPException) -> bool:
+    if exc.status_code != 401 or request.method not in {"GET", "HEAD"}:
+        return False
+
+    accept = request.headers.get("accept", "")
+    sec_fetch_mode = request.headers.get("sec-fetch-mode", "")
+    sec_fetch_dest = request.headers.get("sec-fetch-dest", "")
+
+    return "text/html" in accept or sec_fetch_mode == "navigate" or sec_fetch_dest == "document"
 
 
 class ErrorSeverity(StrEnum):
@@ -319,6 +346,10 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
 
     def _handle_http_exception(self, exc: HTTPException, request: Request) -> JSONResponse:
         """Handle FastAPI HTTP exceptions."""
+        if _should_redirect_unauthenticated_request(request, exc):
+            next_target = quote(_build_safe_next_target(request), safe="")
+            return RedirectResponse(url=f"/login?next={next_target}", status_code=307)
+
         request_id = getattr(request.state, "request_id", None)
 
         error_response = ErrorResponse(

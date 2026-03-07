@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import type { User, UserCreate } from "@/sdk/generated";
 import { auth } from "@/sdk/auth";
 import { configureApi } from "@/lib/api-client";
+import { parseApiError, unwrapApiPayload } from "@/lib/api-errors";
+import { AUTH_TOKEN_COOKIE } from "@/lib/auth-redirect";
 
 interface AuthContextType {
     user: User | null;
@@ -18,12 +20,17 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const unwrapPayload = <T,>(payload: any): T => {
-    if (payload?.error) {
-        throw payload.error;
+const persistAuthToken = (token: string | null) => {
+    if (typeof document === "undefined") {
+        return;
     }
 
-    return (payload?.data?.data ?? payload?.data ?? payload) as T;
+    if (!token) {
+        document.cookie = `${AUTH_TOKEN_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
+        return;
+    }
+
+    document.cookie = `${AUTH_TOKEN_COOKIE}=${encodeURIComponent(token)}; Path=/; SameSite=Lax`;
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -34,6 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const logout = useCallback(() => {
         localStorage.removeItem("karag_token");
+        persistAuthToken(null);
         configureApi(null);
         setToken(null);
         setUser(null);
@@ -43,6 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const clearInvalidSession = useCallback(() => {
         localStorage.removeItem("karag_token");
+        persistAuthToken(null);
         configureApi(null);
         setToken(null);
         setUser(null);
@@ -52,10 +61,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const fetchUser = async () => {
             const storedToken = localStorage.getItem("karag_token");
             if (storedToken) {
+                persistAuthToken(storedToken);
                 configureApi(storedToken);
                 setToken(storedToken);
                 try {
-                    const profile = unwrapPayload<User>(await auth.me());
+                    const profile = unwrapApiPayload<User>(await auth.me());
                     setUser(profile);
                 } catch (error) {
                     console.error("Failed to fetch user profile:", error);
@@ -70,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const login = async (email: string, password: string) => {
         setIsLoading(true);
         try {
-            const tokenData = unwrapPayload<{ access_token: string; token_type: string }>(await auth.login({
+            const tokenData = unwrapApiPayload<{ access_token: string; token_type: string }>(await auth.login({
                 formData: {
                     username: email,
                     password: password
@@ -78,19 +88,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }));
 
             localStorage.setItem("karag_token", tokenData.access_token);
+            persistAuthToken(tokenData.access_token);
             configureApi(tokenData.access_token);
             setToken(tokenData.access_token);
             // Fetch user profile after login
             try {
-                const profile = unwrapPayload<User>(await auth.me());
+                const profile = unwrapApiPayload<User>(await auth.me());
                 setUser(profile);
             } catch {
                 // Profile fetch is optional at login time
             }
-            router.replace("/");
         } catch (error) {
-            console.error("Login failed:", error);
-            throw error;
+            const parsed = await parseApiError(error, "Login failed. Please check your credentials.");
+            console.error("Login failed:", parsed);
+            throw new Error(parsed.message);
         } finally {
             setIsLoading(false);
         }
@@ -103,8 +114,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // After registration, user needs to login
             router.push("/login");
         } catch (error) {
-            console.error("Registration failed:", error);
-            throw error;
+            const parsed = await parseApiError(error, "Registration failed.");
+            console.error("Registration failed:", parsed);
+            throw new Error(parsed.message);
         } finally {
             setIsLoading(false);
         }
