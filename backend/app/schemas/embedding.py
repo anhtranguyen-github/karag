@@ -45,9 +45,7 @@ class VoyageEmbeddingConfig(BaseModel):
 class CohereEmbeddingConfig(BaseModel):
     provider: Literal["cohere"] = "cohere"
     model: Literal["embed-english-v3.0", "embed-multilingual-v3.0"] = "embed-english-v3.0"
-    input_type: Literal["search_query", "search_document", "classification", "clustering"] = (
-        "search_query"
-    )
+    input_type: Literal["search_query", "search_document", "classification", "clustering"] = "search_query"
     truncate: Literal["NONE", "START", "END"] = "END"
     batch_size: int = Field(default=32, ge=1, le=512)
 

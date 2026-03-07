@@ -57,7 +57,7 @@ async def test_upload_to_vault_auto_indexes(mocker):
     # Execute run_ingestion background task
     await document_service.run_ingestion(
         task_id="task-123",
-        safe_filename="test.pdf",
+        filename="test.pdf",
         content=content,
         content_type="application/pdf",
         workspace_id="vault",
@@ -96,7 +96,7 @@ async def test_upload_to_workspace_auto_indexes(mocker):
 
     await document_service.run_ingestion(
         task_id="task-456",
-        safe_filename="test.pdf",
+        filename="test.pdf",
         content=content,
         content_type="application/pdf",
         workspace_id="my-workspace",
@@ -108,7 +108,7 @@ async def test_upload_to_workspace_auto_indexes(mocker):
     # Check final update call (completed status)
     last_task_update = task_service.update_task.call_args_list[-1]
     assert last_task_update[1]["status"] == "completed"
-    assert "indexed (5 fragments)" in last_task_update[1]["message"]
+    assert "indexed (5 chunks)" in last_task_update[1]["message"]
 
 
 @pytest.mark.asyncio
@@ -136,7 +136,7 @@ async def test_upload_resilience_on_qdrant_403(mocker):
     try:
         await document_service.run_ingestion(
             task_id="task-789",
-            safe_filename="resilience.pdf",
+            filename="resilience.pdf",
             content=b"content",
             content_type="application/pdf",
             workspace_id="test-ws",

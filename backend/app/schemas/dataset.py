@@ -13,9 +13,7 @@ class ConnectorBase(BaseModel):
     id: str = Field(...)
     workspace_id: str = Field(...)
     name: str = Field(..., max_length=100)
-    type: Literal[
-        "qdrant", "pinecone", "weaviate", "neo4j", "notion", "google_drive", "github", "confluence"
-    ]
+    type: Literal["qdrant", "pinecone", "weaviate", "neo4j", "notion", "google_drive", "github", "confluence"]
     status: Literal["active", "error", "syncing"] = Field(default="active")
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -34,7 +32,7 @@ class Neo4jConnector(ConnectorBase):
 class Dataset(BaseModel):
     """
     Dataset - logical storage unit representing chunks & docs.
-    Replaces "workspace_vault" to follow standard naming.
+    Replaces "document storage" to follow standard naming.
     """
 
     id: str = Field(..., description="Dataset identifier (ds_xxx)")

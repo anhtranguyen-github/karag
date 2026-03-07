@@ -86,9 +86,7 @@ async def list_workspace_api_keys(
 
     Required Permission: admin
     """
-    keys = await api_key_service.list_workspace_keys(
-        workspace_id=workspace_id, include_inactive=include_inactive
-    )
+    keys = await api_key_service.list_workspace_keys(workspace_id=workspace_id, include_inactive=include_inactive)
     return AppResponse.success_response(data=keys)
 
 
@@ -240,7 +238,5 @@ async def get_workspace_usage_stats(
     Required Permission: admin
     """
     period_start = datetime.utcnow() - __import__("datetime").timedelta(days=days)
-    stats = await usage_service.get_workspace_usage_stats(
-        workspace_id=workspace_id, period_start=period_start
-    )
+    stats = await usage_service.get_workspace_usage_stats(workspace_id=workspace_id, period_start=period_start)
     return AppResponse.success_response(data=stats)

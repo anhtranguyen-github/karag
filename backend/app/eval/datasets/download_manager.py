@@ -126,9 +126,7 @@ class DownloadManager:
                 self.logger.info("starting_download", dataset=dataset_name)
 
                 # Get loader
-                loader = dataset_registry.get(
-                    dataset_name, cache_dir=self.cache_dir, **loader_kwargs
-                )
+                loader = dataset_registry.get(dataset_name, cache_dir=self.cache_dir, **loader_kwargs)
 
                 # Download
                 path = await loader.download(force=force)
@@ -162,10 +160,7 @@ class DownloadManager:
         Returns:
             Dictionary mapping dataset names to paths or exceptions
         """
-        tasks = [
-            self._download_with_error_handling(name, force, **loader_kwargs)
-            for name in dataset_names
-        ]
+        tasks = [self._download_with_error_handling(name, force, **loader_kwargs) for name in dataset_names]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
 

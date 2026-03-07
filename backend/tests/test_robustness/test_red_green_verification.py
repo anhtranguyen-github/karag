@@ -87,7 +87,7 @@ class RedGreenVerifier:
         # If no mutation caused tests to fail, tests are invalid
         return RedGreenResult(
             valid=False,
-            message="Tests did not fail for any controlled mutation. Tests may be invalid or too weak.",
+            message="Tests did not fail for any controlled mutation. Tests may be weak.",
             mutation=None,
             details=results,
         )
@@ -205,9 +205,7 @@ class RedGreenResult:
 class MutationResult:
     """Result of a single mutation attempt."""
 
-    def __init__(
-        self, mutation: str, red_phase_passed: bool, green_phase_passed: bool, error: str | None
-    ):
+    def __init__(self, mutation: str, red_phase_passed: bool, green_phase_passed: bool, error: str | None):
         self.mutation = mutation
         self.red_phase_passed = red_phase_passed
         self.green_phase_passed = green_phase_passed

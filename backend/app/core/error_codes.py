@@ -1,7 +1,7 @@
-from enum import StrEnum
+from enum import Enum
 
 
-class AppErrorCode(StrEnum):
+class AppErrorCode(str, Enum):
     # Task & Jobs
     TASK_NOT_FOUND = "TASK_NOT_FOUND"
     TASK_CANCELLED = "TASK_CANCELLED"

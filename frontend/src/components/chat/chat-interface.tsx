@@ -236,7 +236,7 @@ export function ChatInterface({
         if (!input.trim() || isLoading) return;
 
         const messageText = input;
-        const currentWorkspaceId = propWorkspaceId || "vault";
+        const currentWorkspaceId = propWorkspaceId || "default";
 
         // Set user message immediately
         const userMsg: Message = { id: `user-${Date.now()}`, role: "user", content: messageText };

@@ -141,7 +141,7 @@ export function WorkspaceWizard({ isOpen, onClose }: WorkspaceWizardProps) {
                 chunking_strategy: data.chunking.strategy,
             };
 
-            const result = await api.createWorkspaceWorkspacesPost({ workspaceCreate: payload });
+            const result = await api.createWorkspaceApiV1WorkspacesPost({ requestBody: payload });
 
             if (result.success) {
                 successToast(result.message || 'Workspace created successfully');

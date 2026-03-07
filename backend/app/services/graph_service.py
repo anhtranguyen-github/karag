@@ -120,9 +120,7 @@ class GraphService:
                 }
 
             # Merge relationships, avoiding exact duplicates
-            existing_rels = {
-                (rel["target"], rel["type"]) for rel in registry[name]["relationships"]
-            }
+            existing_rels = {(rel["target"], rel["type"]) for rel in registry[name]["relationships"]}
             for rel in ent.get("relationships", []):
                 target = rel.get("target")
                 rel_type = rel.get("type", "RelatedTo")

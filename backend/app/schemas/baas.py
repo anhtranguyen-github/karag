@@ -3,7 +3,7 @@ BaaS Core Data Models (Blocks 1-5)
 
 This module defines the authoritative data models for the Backend-as-a-Service core:
 - Block 1: Identity & Access (Workspace, APIKey)
-- Block 2: Data & Storage (Vault, Document, Chunk)
+- Block 2: Data & Storage (DocumentStorage, Document, Chunk)
 - Block 4: Control Plane (RAGConfig, SystemConfig)
 - Block 5: Observability (UsageLog, RAGTrace)
 
@@ -96,9 +96,7 @@ class APIKey(BaseModel):
 
     # Key material (security)
     key_hash: str = Field(..., description="Argon2 hash of the key")
-    key_prefix: str = Field(
-        ..., min_length=8, max_length=16, description="First N chars for identification"
-    )
+    key_prefix: str = Field(..., min_length=8, max_length=16, description="First N chars for identification")
 
     # Permissions (scoped to workspace)
     permissions: list[Literal["read", "write", "delete", "admin"]] = Field(
@@ -157,23 +155,23 @@ class FileStoreConfig(BaseModel):
 
     provider: Literal["minio", "s3", "gcs", "azure"] = "minio"
     bucket: str = "rag-docs"
-    prefix: str = ""  # Path prefix for this vault
+    prefix: str = ""  # Path prefix for this storage
 
 
-class Vault(BaseModel):
+class DocumentStorage(BaseModel):
     """
-    Vault - logical storage unit for documents and embeddings.
+    DocumentStorage - logical storage unit for documents and embeddings.
 
     TYPES:
     - global: Platform-owned, read-only, shared across workspaces
     - workspace: Isolated per workspace, full CRUD
 
     ISOLATION:
-    - Workspace vaults use collection naming: "ws_{workspace_id}_kb"
-    - Global vaults are read-only for all workspaces
+    - Workspace storage units use collection naming: "ws_{workspace_id}_kb"
+    - Global storage units are read-only for all workspaces
     """
 
-    id: str = Field(..., description="Vault identifier (vault_xxx)")
+    id: str = Field(..., description="Storage identifier (store_xxx)")
 
     # Storage configuration
     file_store_config: FileStoreConfig = Field(default_factory=FileStoreConfig)
@@ -196,9 +194,7 @@ class Vault(BaseModel):
 
 class Document(BaseModel):
     """
-    Document - a file ingested into a vault.
-
-    ISOLATION: Documents are scoped to vault + workspace.
+    ISOLATION: Documents are scoped to storage + workspace.
     Cross-workspace access is prevented by query filters.
 
     LIFECYCLE: uploaded → processing → indexed → (archived)
@@ -207,7 +203,7 @@ class Document(BaseModel):
     """
 
     id: str = Field(..., description="Document identifier (doc_xxx)")
-    vault_id: str | None = Field(None, description="Parent global vault (if stored globally)")
+    storage_id: str | None = Field(None, description="Parent global storage (if stored globally)")
     dataset_id: str | None = Field(None, description="Parent dataset (if indexed in workspace)")
     workspace_id: str = Field(..., description="Owning workspace - ISOLATION")
 
@@ -303,9 +299,7 @@ class RAGConfig(BaseModel):
     """
 
     # Retrieval settings
-    retrieval_mode: Literal["vector", "hybrid", "graph"] = Field(
-        default="hybrid", description="Retrieval strategy"
-    )
+    retrieval_mode: Literal["vector", "hybrid", "graph"] = Field(default="hybrid", description="Retrieval strategy")
     top_k: int = Field(5, ge=1, le=50, description="Number of chunks to retrieve")
 
     # Hybrid search weights
@@ -318,16 +312,12 @@ class RAGConfig(BaseModel):
     rerank_top_k: int = Field(3, ge=1, le=10, description="Top K after reranking")
 
     # Context assembly
-    max_context_tokens: int = Field(
-        4000, ge=500, le=8000, description="Max tokens in context window"
-    )
+    max_context_tokens: int = Field(4000, ge=500, le=8000, description="Max tokens in context window")
     context_template: str = Field("default", description="Context assembly template")
 
     # Source tracking
     include_citations: bool = Field(True, description="Include source citations")
-    min_similarity_score: float = Field(
-        0.7, ge=0.0, le=1.0, description="Minimum similarity threshold"
-    )
+    min_similarity_score: float = Field(0.7, ge=0.0, le=1.0, description="Minimum similarity threshold")
 
     @field_validator("keyword_weight")
     @classmethod
@@ -364,10 +354,8 @@ class SystemConfig(BaseModel):
     default_rag_config: RAGConfig = Field(default_factory=RAGConfig)
 
     # Feature flags
-    enable_global_vault: bool = Field(True, description="Enable global vault access")
-    enable_workspace_sharing: bool = Field(
-        False, description="Enable doc sharing between workspaces"
-    )
+    enable_global_storage: bool = Field(True, description="Enable global storage access")
+    enable_workspace_sharing: bool = Field(False, description="Enable doc sharing between workspaces")
 
     # Operational
     request_timeout_seconds: int = Field(60, ge=10, le=300)

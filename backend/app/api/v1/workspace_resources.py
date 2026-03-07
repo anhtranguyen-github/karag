@@ -11,9 +11,7 @@ router = APIRouter(tags=["workspace-resources"])
 
 
 @router.get("/datasets", response_model=AppResponse[list[Dataset]])
-async def list_datasets(
-    workspace_id: str, current_workspace: CurrentWorkspace = Depends(get_current_workspace)
-):
+async def list_datasets(workspace_id: str, current_workspace: CurrentWorkspace = Depends(get_current_workspace)):
     """List all datasets in a workspace."""
     datasets = await dataset_service.list_workspace_datasets(workspace_id)
     return AppResponse.success_response(data=datasets)
@@ -63,9 +61,7 @@ async def delete_dataset(
 
 
 @router.get("/pipelines", response_model=AppResponse[list[PipelineConfig]])
-async def list_pipelines(
-    workspace_id: str, current_workspace: CurrentWorkspace = Depends(get_current_workspace)
-):
+async def list_pipelines(workspace_id: str, current_workspace: CurrentWorkspace = Depends(get_current_workspace)):
     """List pipeline configs for workspace. (Mock implementation for now)"""
     # In a full implementation, PipelineConfigs would be stored in the DB alongside settings
     # We return an empty list or a default pipeline built from workspace config

@@ -113,9 +113,7 @@ class MockLLMProvider(LLMProvider, ToolCapable):
     # ToolCapable Implementation
     # =============================================================================
 
-    async def chat_with_tools(
-        self, messages: list[LLMMessage], tools: list[dict[str, Any]], **kwargs
-    ) -> LLMResponse:
+    async def chat_with_tools(self, messages: list[LLMMessage], tools: list[dict[str, Any]], **kwargs) -> LLMResponse:
         """Execute chat with tool calling support.
 
         Records the call and returns a response that may include tool calls.
@@ -253,8 +251,7 @@ class MockLLMProvider(LLMProvider, ToolCapable):
                     return True
 
         raise AssertionError(
-            f"Expected call to {method} with {kwargs}, "
-            f"but no matching call found in {self.call_history}"
+            f"Expected call to {method} with {kwargs}, but no matching call found in {self.call_history}"
         )
 
     def reset(self):

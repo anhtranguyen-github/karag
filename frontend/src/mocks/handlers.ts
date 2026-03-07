@@ -10,8 +10,8 @@ export const handlers = [
             message: "Workspaces loaded",
             data: [
                 {
-                    id: 'vault',
-                    name: 'Vault',
+                    id: 'default',
+                    name: 'Document Storage',
                     description: 'Primary knowledge storage',
                     llm_provider: 'openai',
                     embedding_provider: 'openai',
@@ -49,7 +49,7 @@ export const handlers = [
             message: "Thread loaded",
             data: {
                 id: params.id,
-                workspace_id: 'vault',
+                workspace_id: 'default',
                 title: 'Mock Thread'
             }
         });
@@ -63,7 +63,7 @@ export const handlers = [
                 {
                     id: 'doc-1',
                     name: 'research_paper.pdf',
-                    workspace_id: 'vault',
+                    workspace_id: 'default',
                     status: 'indexed',
                     size_bytes: 102400,
                     created_at: new Date().toISOString()
@@ -93,7 +93,7 @@ export const handlers = [
                     id: 'res-1',
                     title: 'Search Result 1',
                     snippet: 'This is a mocked search result for: ' + query,
-                    workspace_id: 'vault'
+                    workspace_id: 'default'
                 }
             ]
         });

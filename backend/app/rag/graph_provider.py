@@ -12,9 +12,7 @@ class GraphProvider:
     Handles graph-aware retrieval using Neo4j to constrain or expand the search space.
     """
 
-    async def search(
-        self, query: str, query_vector: list[float], workspace_id: str, limit: int = 5
-    ) -> list[dict]:
+    async def search(self, query: str, query_vector: list[float], workspace_id: str, limit: int = 5) -> list[dict]:
         """
         Executes Graph-Aware RAG pipeline:
         1. Query Neo4j for entities related to the query keywords.
@@ -87,9 +85,7 @@ class GraphProvider:
                 workspace_id=workspace_id,
             )
 
-            results = [
-                {"id": res.id, "score": res.score, "payload": res.payload} for res in search_results
-            ]
+            results = [{"id": res.id, "score": res.score, "payload": res.payload} for res in search_results]
 
             # Annotate results with graph metadata
             for res in results:
@@ -112,9 +108,7 @@ class GraphProvider:
                 query_text=query,
                 workspace_id=workspace_id,
             )
-            return [
-                {"id": res.id, "score": res.score, "payload": res.payload} for res in search_results
-            ]
+            return [{"id": res.id, "score": res.score, "payload": res.payload} for res in search_results]
 
     async def upsert_entities(self, entities: list[dict[str, Any]], workspace_id: str):
         """Insert or update entities and relationships using the injected GraphStore."""

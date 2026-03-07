@@ -75,9 +75,7 @@ def build_rag_graph():
             return "reflect"
         return "assemble"
 
-    workflow.add_conditional_edges(
-        "rerank", should_reflect, {"reflect": "reflect", "assemble": "assemble"}
-    )
+    workflow.add_conditional_edges("rerank", should_reflect, {"reflect": "reflect", "assemble": "assemble"})
 
     # Conditional Branch: To Loop or Not to Loop
     def loop_decision(state: GraphState):
@@ -85,9 +83,7 @@ def build_rag_graph():
             return "assemble"
         return "build_query"
 
-    workflow.add_conditional_edges(
-        "reflect", loop_decision, {"assemble": "assemble", "build_query": "build_query"}
-    )
+    workflow.add_conditional_edges("reflect", loop_decision, {"assemble": "assemble", "build_query": "build_query"})
 
     # Flow: Assemble -> Generate
     workflow.add_edge("assemble", "generate")

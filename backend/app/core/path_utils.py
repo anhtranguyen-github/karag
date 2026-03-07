@@ -44,9 +44,7 @@ def validate_safe_path(requested_path: str | Path, base_dir: str | Path = BASE_D
             # We use commonpath as a secondary redundant check for 'is under root'
             try:
                 common = os.path.commonpath([str_base, str_resolved])
-                if common != str_base and os.path.normpath(str_resolved) != os.path.normpath(
-                    str_base
-                ):
+                if common != str_base and os.path.normpath(str_resolved) != os.path.normpath(str_base):
                     logger.error(
                         "path_validation_failed",
                         requested=str(requested_path),

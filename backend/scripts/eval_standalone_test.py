@@ -33,9 +33,7 @@ class RetrievalResult:
 class RetrievalMetrics:
     """Traditional Information Retrieval metrics."""
 
-    def recall_at_k(
-        self, retrieved_doc_ids: list[str], relevant_doc_ids: list[str], k: int
-    ) -> RetrievalResult:
+    def recall_at_k(self, retrieved_doc_ids: list[str], relevant_doc_ids: list[str], k: int) -> RetrievalResult:
         """Calculate Recall@k."""
         if not relevant_doc_ids:
             return RetrievalResult(metric_name="recall", score=0.0, k=k)
@@ -55,9 +53,7 @@ class RetrievalMetrics:
             },
         )
 
-    def precision_at_k(
-        self, retrieved_doc_ids: list[str], relevant_doc_ids: list[str], k: int
-    ) -> RetrievalResult:
+    def precision_at_k(self, retrieved_doc_ids: list[str], relevant_doc_ids: list[str], k: int) -> RetrievalResult:
         """Calculate Precision@k."""
         if k == 0:
             return RetrievalResult(metric_name="precision", score=0.0, k=k)
@@ -82,15 +78,11 @@ class RetrievalMetrics:
 
         for i, doc_id in enumerate(retrieved_doc_ids):
             if doc_id in relevant:
-                return RetrievalResult(
-                    metric_name="mrr", score=1.0 / (i + 1), details={"rank": i + 1}
-                )
+                return RetrievalResult(metric_name="mrr", score=1.0 / (i + 1), details={"rank": i + 1})
 
         return RetrievalResult(metric_name="mrr", score=0.0, details={"rank": None})
 
-    def hit_rate(
-        self, retrieved_doc_ids: list[str], relevant_doc_ids: list[str], k: int
-    ) -> RetrievalResult:
+    def hit_rate(self, retrieved_doc_ids: list[str], relevant_doc_ids: list[str], k: int) -> RetrievalResult:
         """Calculate Hit Rate@k."""
         retrieved_at_k = set(retrieved_doc_ids[:k])
         relevant = set(relevant_doc_ids)
@@ -98,9 +90,7 @@ class RetrievalMetrics:
 
         return RetrievalResult(metric_name="hit_rate", score=score, k=k)
 
-    def dcg_at_k(
-        self, retrieved_doc_ids: list[str], relevance_scores: dict[str, float], k: int
-    ) -> float:
+    def dcg_at_k(self, retrieved_doc_ids: list[str], relevance_scores: dict[str, float], k: int) -> float:
         """Calculate DCG@k."""
         dcg = 0.0
         for i, doc_id in enumerate(retrieved_doc_ids[:k]):
@@ -108,9 +98,7 @@ class RetrievalMetrics:
             dcg += (2**rel - 1) / math.log2(i + 2)
         return dcg
 
-    def ndcg_at_k(
-        self, retrieved_doc_ids: list[str], relevance_scores: dict[str, float], k: int
-    ) -> RetrievalResult:
+    def ndcg_at_k(self, retrieved_doc_ids: list[str], relevance_scores: dict[str, float], k: int) -> RetrievalResult:
         """Calculate nDCG@k."""
         dcg = self.dcg_at_k(retrieved_doc_ids, relevance_scores, k)
 
@@ -337,9 +325,7 @@ def test_mock_rag_evaluation():
     print(f"{'Query':<45} {'Recall':<8} {'MRR':<6} {'EM':<6} {'F1':<6}")
     print("-" * 80)
     for r in results:
-        print(
-            f"{r['query']:<45} {r['recall@5']:<8} {r['mrr']:<6} {r['exact_match']:<6} {r['f1']:<6}"
-        )
+        print(f"{r['query']:<45} {r['recall@5']:<8} {r['mrr']:<6} {r['exact_match']:<6} {r['f1']:<6}")
 
     # Summary
     avg_recall = sum(r["recall@5"] for r in results) / len(results)
@@ -394,12 +380,7 @@ def verify_dataset_configs():
         # Simple parsing to extract dataset names
         lines = content.split("\n")
         for line in lines:
-            if (
-                line.strip()
-                and not line.startswith(" ")
-                and not line.startswith("#")
-                and ":" in line
-            ):
+            if line.strip() and not line.startswith(" ") and not line.startswith("#") and ":" in line:
                 name = line.split(":")[0].strip()
                 if name and name not in ["datasets", "groups"]:
                     print(f"      - {name}")

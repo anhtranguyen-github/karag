@@ -184,9 +184,7 @@ class LangChainAdapter(LLMProvider, ToolCapable, LangGraphCompatible):
 
         # Check cache for deterministic requests
         if temperature == 0:
-            cached = await llm_cache.get(
-                llm_cache._cache_key(prompt, self._model_name, self._provider_name, **kwargs)
-            )
+            cached = await llm_cache.get(llm_cache._cache_key(prompt, self._model_name, self._provider_name, **kwargs))
             if cached:
                 logger.debug("llm_cache_hit", provider=self._provider_name)
                 response = cached["response"]
@@ -262,9 +260,7 @@ class LangChainAdapter(LLMProvider, ToolCapable, LangGraphCompatible):
     # ToolCapable Implementation
     # =========================================================================
 
-    async def chat_with_tools(
-        self, messages: list[LLMMessage], tools: list[dict[str, Any]], **kwargs
-    ) -> LLMResponse:
+    async def chat_with_tools(self, messages: list[LLMMessage], tools: list[dict[str, Any]], **kwargs) -> LLMResponse:
         """Execute chat with tool calling support.
 
         Args:

@@ -98,9 +98,7 @@ class RobustnessRunner(BaseRunner):
                 # Run robustness tests
                 test_results = {}
                 for test_type in test_types:
-                    test_result = await self._run_robustness_test(
-                        entry, rag_pipeline, config, test_type, noise_level
-                    )
+                    test_result = await self._run_robustness_test(entry, rag_pipeline, config, test_type, noise_level)
                     test_results[test_type] = test_result
 
                 sample_results.append(baseline_result)
@@ -156,9 +154,7 @@ class RobustnessRunner(BaseRunner):
                     contexts=contexts,
                     reference_answer=entry.answer,
                 )
-                sample_result.generation_metrics = {
-                    k: v.score for k, v in generation_results.items()
-                }
+                sample_result.generation_metrics = {k: v.score for k, v in generation_results.items()}
         except Exception as e:
             sample_result.error = str(e)
 

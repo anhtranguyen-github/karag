@@ -112,9 +112,7 @@ class TaskWorker:
             elif task_type == "sitemap_ingestion":
                 if "sitemap_url" in metadata:
                     asyncio.create_task(
-                        document_service.run_sitemap_background(
-                            task_id, metadata["sitemap_url"], workspace_id
-                        )
+                        document_service.run_sitemap_background(task_id, metadata["sitemap_url"], workspace_id)
                     )
             elif task_type == "github_ingestion":
                 if "repo_url" in metadata:
@@ -129,9 +127,7 @@ class TaskWorker:
             elif task_type == "indexing":
                 if "filename" in metadata:
                     asyncio.create_task(
-                        document_service.run_index_background(
-                            task_id, metadata["filename"], workspace_id
-                        )
+                        document_service.run_index_background(task_id, metadata["filename"], workspace_id)
                     )
             # Audio ingestion requires content bytes which are not in metadata (persisted in MinIO usually)
             # For now, audio is a manual re-upload, but we handle the status.

@@ -15,82 +15,12 @@ from pydantic import BaseModel, Field, field_validator
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
 
 
-class WorkspaceStats(BaseModel):
-    thread_count: int = 0
-    doc_count: int = 0
-
-
-class Workspace(BaseModel):
-    id: str
-    name: str
-    description: str | None = None
-    created_at: str | None = None
-    updated_at: str | None = None
-    stats: WorkspaceStats | None = None
-
-    # Filterable fields
-    llm_provider: str | None = None
-    embedding_provider: str | None = None
-    rag_engine: str | None = None
-
-
-class WorkspaceDetail(Workspace):
-    threads: list[dict] = []
-    documents: list[dict] = []
-    settings: dict | None = None
-
-
-class WorkspaceCreate(BaseModel):
-    name: str = Field(..., min_length=1, max_length=50, pattern=r"^[\w\s.-]+$")
-    description: str | None = Field(None, max_length=200)
-
-    # Grouped Component configurations
-    embedding: dict | None = Field(default_factory=dict)
-    retrieval: dict | None = Field(default_factory=dict)
-    generation: dict | None = Field(default_factory=dict)
-    chunking: dict | None = Field(default_factory=dict)
-
-    # Legacy flat fields for backward compatibility
-    embedding_provider: str = "openai"
-    embedding_model: str = "text-embedding-3-small"
-    embedding_dim: int = 1536
-    rag_engine: Literal["basic", "graph"] = "basic"
-    search_limit: int = Field(5, ge=1, le=50)
-    recall_k: int = Field(20, ge=1, le=100)
-    hybrid_alpha: float = Field(0.5, ge=0.0, le=1.0)
-    graph_enabled: bool = True
-    reranker_enabled: bool = False
-    reranker_provider: str = "none"
-    rerank_top_k: int = Field(3, ge=1, le=15)
-    agentic_enabled: bool = True
-    llm_provider: str = "openai"
-    llm_model: str = "gpt-4o"
-    temperature: float = Field(0.7, ge=0.0, le=2.0)
-    runtime_mode: Literal["auto", "fast", "think", "deep"] = "auto"
-    runtime_stream_thoughts: bool = True
-    runtime_trace_level: Literal["basic", "detailed", "debug"] = "detailed"
-    chunking_strategy: Literal[
-        "recursive", "sentence", "token", "semantic", "fixed", "document"
-    ] = "recursive"
-    chunk_size: int = Field(800, ge=100, le=4000)
-    chunk_overlap: int = Field(150, ge=0, le=1000)
-
-    # Backend / System
-    neo4j_uri: str | None = None
-    neo4j_user: str | None = None
-    neo4j_password: str | None = None
-
-    @field_validator("name")
-    @classmethod
-    def validate_name(cls, v: str) -> str:
-        if not v.strip():
-            raise ValueError("Name cannot be empty or whitespace only")
-        return v.strip()
-
-
-class WorkspaceUpdate(BaseModel):
-    name: str | None = None
-    description: str | None = None
+from backend.app.schemas.workspace import (
+    Workspace,
+    WorkspaceCreate,
+    WorkspaceDetail,
+    WorkspaceUpdate,
+)
 
 
 @router.get("/", response_model=AppResponse[list[Workspace]])
@@ -100,16 +30,14 @@ async def list_workspaces(current_user: CurrentUser = Depends(get_current_user))
     return AppResponse.success_response(data=workspaces)
 
 
-@router.post("/")
-@router.post("")
-async def create_workspace(
-    ws: WorkspaceCreate, current_user: CurrentUser = Depends(get_current_user)
-):
+@router.post("/", response_model=AppResponse[Workspace])
+@router.post("", response_model=AppResponse[Workspace])
+async def create_workspace(ws: WorkspaceCreate, current_user: CurrentUser = Depends(get_current_user)):
     result = await workspace_service.create(ws.model_dump(), current_user.id)
-    return AppResponse.from_result(result)
+    return AppResponse.success_response(data=result)
 
 
-@router.patch("/{workspace_id}")
+@router.patch("/{workspace_id}", response_model=AppResponse[Workspace])
 async def update_workspace(
     workspace_id: str,
     ws: WorkspaceUpdate,
@@ -122,19 +50,17 @@ async def update_workspace(
     return AppResponse.success_response(data=result)
 
 
-@router.delete("/{workspace_id}")
+@router.delete("/{workspace_id}", response_model=AppResponse[dict])
 async def delete_workspace(
     workspace_id: str,
-    vault_delete: bool = False,
+    dataset_delete: bool = False,
     current_workspace: CurrentWorkspace = Depends(get_current_workspace),
 ):
-    await workspace_service.delete(workspace_id, vault_delete=vault_delete)
-    return AppResponse.success_response(
-        data={"id": workspace_id}, message=f"Workspace {workspace_id} deleted"
-    )
+    await workspace_service.delete(workspace_id, dataset_delete=dataset_delete)
+    return AppResponse.success_response(data={"id": workspace_id}, message=f"Workspace {workspace_id} deleted")
 
 
-@router.get("/{workspace_id}/details")
+@router.get("/{workspace_id}/details", response_model=AppResponse[WorkspaceDetail])
 async def get_workspace_details(
     workspace_id: str, current_workspace: CurrentWorkspace = Depends(get_current_workspace)
 ):
@@ -144,18 +70,18 @@ async def get_workspace_details(
     return AppResponse.success_response(data=details)
 
 
-@router.post("/{workspace_id}/share-document")
+class ShareDocumentPayload(BaseModel):
+    source_name: str
+    target_workspace_id: str
+
+@router.post("/{workspace_id}/share-document", response_model=AppResponse[dict])
 async def share_document(
     workspace_id: str,
-    request: Request,
+    payload: ShareDocumentPayload,
     current_workspace: CurrentWorkspace = Depends(get_current_workspace),
 ):
-    data = await request.json()
-    source_name = data.get("source_name")
-    target_workspace_id = data.get("target_workspace_id")
-
-    if not source_name or not target_workspace_id:
-        raise ValidationError("source_name and target_workspace_id are required")
+    source_name = payload.source_name
+    target_workspace_id = payload.target_workspace_id
 
     from backend.app.services.document_service import document_service
 
@@ -167,8 +93,6 @@ async def share_document(
 
 
 @router.get("/{workspace_id}/graph")
-async def get_workspace_graph(
-    workspace_id: str, current_workspace: CurrentWorkspace = Depends(get_current_workspace)
-):
+async def get_workspace_graph(workspace_id: str, current_workspace: CurrentWorkspace = Depends(get_current_workspace)):
     graph_data = await workspace_service.get_graph_data(workspace_id)
     return AppResponse.success_response(data=graph_data)

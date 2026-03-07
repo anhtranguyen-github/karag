@@ -64,9 +64,7 @@ def redact_sensitive_data(data: dict[str, Any]) -> dict[str, Any]:
         elif isinstance(value, dict):
             redacted[key] = redact_sensitive_data(value)
         elif isinstance(value, list):
-            redacted[key] = [
-                redact_sensitive_data(item) if isinstance(item, dict) else item for item in value
-            ]
+            redacted[key] = [redact_sensitive_data(item) if isinstance(item, dict) else item for item in value]
         else:
             redacted[key] = value
 
@@ -274,9 +272,7 @@ class UsageService:
                 "$group": {
                     "_id": None,
                     "total_requests": {"$sum": 1},
-                    "successful_requests": {
-                        "$sum": {"$cond": [{"$lt": ["$status_code", 400]}, 1, 0]}
-                    },
+                    "successful_requests": {"$sum": {"$cond": [{"$lt": ["$status_code", 400]}, 1, 0]}},
                     "failed_requests": {"$sum": {"$cond": [{"$gte": ["$status_code", 400]}, 1, 0]}},
                     "total_prompt_tokens": {"$sum": "$prompt_tokens"},
                     "total_completion_tokens": {"$sum": "$completion_tokens"},

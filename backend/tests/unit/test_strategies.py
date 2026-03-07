@@ -53,9 +53,7 @@ def test_retrieval_config_defaults():
     assert config.graph.enabled is False
 
     # Custom
-    config = RetrievalConfig(
-        rerank={"enabled": True, "provider": "cohere"}, graph={"enabled": True}
-    )
+    config = RetrievalConfig(rerank={"enabled": True, "provider": "cohere"}, graph={"enabled": True})
     assert config.rerank.enabled is True
     assert config.graph.enabled is True
 

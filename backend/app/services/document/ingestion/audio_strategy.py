@@ -11,9 +11,7 @@ class AudioIngestionStrategy(BaseIngestionStrategy):
     def task_type(self) -> str:
         return "audio_ingestion"
 
-    async def run(
-        self, task_id: str, workspace_id: str, metadata: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def run(self, task_id: str, workspace_id: str, metadata: dict[str, Any]) -> dict[str, Any]:
         from backend.app.rag.ingestion import ingestion_pipeline
 
         filename = metadata.get("filename")
@@ -39,14 +37,10 @@ class AudioIngestionStrategy(BaseIngestionStrategy):
                 f.write(content)
 
             # MOCK/PLACEHOLDER for actual STT
-            await task_service.update_task(
-                task_id, progress=30, message="Transcribing audio (Mock mode)..."
-            )
+            await task_service.update_task(task_id, progress=30, message="Transcribing audio (Mock mode)...")
             transcribed_text = f"Sample transcription for {filename}. Audio converted to text."
 
-            await task_service.update_task(
-                task_id, progress=70, message="Indexing transcribed text..."
-            )
+            await task_service.update_task(task_id, progress=70, message="Indexing transcribed text...")
 
             num_chunks = await ingestion_pipeline.process_text(
                 transcribed_text,

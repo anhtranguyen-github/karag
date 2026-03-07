@@ -29,7 +29,7 @@ class DocumentResponse(BaseModel):
     """Standard document response for frontend integration.
 
     This schema is used for:
-    - Document listing in workspace vault
+    - Document listing in workspace storage
     - Citation click-through from chat
     - Document metadata display
     """
@@ -101,3 +101,50 @@ class DocumentCitationResponse(BaseModel):
             }
         }
     }
+
+
+class DocumentMetadata(BaseModel):
+    id: str
+    filename: str
+    extension: str | None = None
+    content_type: str
+    size: int | None = None
+    created_at: str | None = None
+    minio_path: str | None = None
+
+
+class DocumentRelationship(BaseModel):
+    workspace_id: str
+    workspace_name: str
+    status: str
+    chunks: int
+    embedding_dim: int | None = None
+    model: str | None = None
+    last_indexed: str | None = None
+    is_primary: bool = False
+    type: str
+    shared_from: str | None = None
+
+
+class DocumentInspectionResponse(BaseModel):
+    metadata: DocumentMetadata
+    relationships: list[DocumentRelationship] = []
+    zombies_detected: bool = False
+
+
+class DocumentListItem(DocumentResponse):
+    """Alias for DocumentResponse for consistency in lists."""
+
+    pass
+
+
+class DocumentUploadResponse(BaseModel):
+    status: str = "success"
+    task_id: str | None = None
+    filename: str
+    content_type: str | None = None
+    duplicate_info: dict | None = None
+    code: str | None = None
+    message: str | None = None
+    params: dict | None = None
+    content: bytes | None = Field(None, exclude=True)

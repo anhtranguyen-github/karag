@@ -17,15 +17,15 @@ async def test_global_exception_handler_and_cors(mocker):
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         # Include Origin header to trigger CORS
         origin = "http://localhost:3000"
-        response = await ac.get("/documents-all", headers={"Origin": origin})
+        response = await ac.get("/api/v1/workspaces/default/documents-all", headers={"Origin": origin})
 
     assert response.status_code == 500
 
     # Verify it's valid JSON (this was failing before, returning raw text)
     data = response.json()
     assert data["success"] is False
-    assert data["code"] == "INTERNAL_SERVER_ERROR"
-    assert data["message"] == "An unexpected error occurred."
+    assert data["error"]["code"] == "INTERNAL_ERROR"
+    assert data["error"]["message"] == "An unexpected error occurred"
 
     # Verify CORS headers are present even on 500 error
     # Note: CORSMiddleware in FastAPI usually handles this correctly IF the response is a Response object

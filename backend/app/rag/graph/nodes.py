@@ -77,9 +77,7 @@ async def analyze_intent(state: GraphState, config: RunnableConfig) -> dict[str,
         if m["role"] == "user":
             history_messages.append(HumanMessage(content=m["content"]))
         else:
-            history_messages.append(
-                SystemMessage(content=m["content"])
-            )  # Assistant as system for intent analyzer
+            history_messages.append(SystemMessage(content=m["content"]))  # Assistant as system for intent analyzer
 
     messages = [
         SystemMessage(content=system_prompt),
@@ -124,9 +122,7 @@ async def build_query_context(state: GraphState, config: RunnableConfig) -> dict
         "Break complex questions into atomic search components."
     )
     if state["loop_count"] > 0:
-        system_prompt += (
-            "\nPrevious results were insufficient. Analyze current context gaps and refine queries."
-        )
+        system_prompt += "\nPrevious results were insufficient. Analyze current context gaps and refine queries."
 
     messages = [SystemMessage(content=system_prompt), HumanMessage(content=query)]
     response = await llm.ainvoke(messages, config={**config, "tags": ["reasoning"]})
@@ -143,9 +139,7 @@ async def retrieve_context(state: GraphState) -> dict[str, Any]:
 
     import asyncio
 
-    search_tasks = [
-        rag_service.search(query=q, workspace_id=state["workspace_id"]) for q in queries
-    ]
+    search_tasks = [rag_service.search(query=q, workspace_id=state["workspace_id"]) for q in queries]
     all_results = await asyncio.gather(*search_tasks)
 
     results = []

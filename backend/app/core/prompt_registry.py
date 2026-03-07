@@ -172,7 +172,7 @@ class PromptRegistry:
 
     def _get_user_bucket(self, user_id: str, num_buckets: int) -> int:
         """Deterministic user bucketing for A/B testing."""
-        hash_val = int(hashlib.md5(user_id.encode()).hexdigest(), 16)
+        hash_val = int(hashlib.md5(user_id.encode(), usedforsecurity=False).hexdigest(), 16)
         return hash_val % num_buckets
 
     async def _get_specific(self, name: str, version: str) -> PromptVersion | None:
@@ -255,9 +255,7 @@ class PromptRegistry:
 
         # Success rate
         success = outcome.get("success", True)
-        metrics["success_rate"] = (metrics["success_rate"] * uses + (1.0 if success else 0.0)) / (
-            uses + 1
-        )
+        metrics["success_rate"] = (metrics["success_rate"] * uses + (1.0 if success else 0.0)) / (uses + 1)
 
         metrics["uses"] = uses + 1
 
@@ -266,9 +264,7 @@ class PromptRegistry:
             if "avg_rating" not in metrics:
                 metrics["avg_rating"] = outcome["user_rating"]
             else:
-                metrics["avg_rating"] = (metrics["avg_rating"] * uses + outcome["user_rating"]) / (
-                    uses + 1
-                )
+                metrics["avg_rating"] = (metrics["avg_rating"] * uses + outcome["user_rating"]) / (uses + 1)
 
         await self.register(prompt)
 
@@ -376,9 +372,7 @@ class PromptTemplate:
         if not self._prompt:
             raise RuntimeError("Prompt not loaded")
 
-        example_text = "\n\n".join(
-            [f"Input: {ex['input']}\nOutput: {ex['output']}" for ex in examples]
-        )
+        example_text = "\n\n".join([f"Input: {ex['input']}\nOutput: {ex['output']}" for ex in examples])
 
         return f"{example_text}\n\n{self._prompt.template}"
 

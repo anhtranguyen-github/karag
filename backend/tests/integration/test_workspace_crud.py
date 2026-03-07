@@ -59,13 +59,9 @@ async def test_workspace_create_basic(mocker):
 
     with patch("backend.app.core.mongodb.mongodb_manager.get_async_database", return_value=mock_db):
         # Mock the settings manager to avoid real DB calls
-        mocker.patch(
-            "backend.app.core.settings_manager.settings_manager.get_settings", new=AsyncMock()
-        )
+        mocker.patch("backend.app.core.settings_manager.settings_manager.get_settings", new=AsyncMock())
 
-        result = await workspace_service.create(
-            {"name": f"Test Workspace {uuid.uuid4().hex[:4]}"}, "test_user_123"
-        )
+        result = await workspace_service.create({"name": f"Test Workspace {uuid.uuid4().hex[:4]}"}, "test_user_123")
 
         assert result["status"] == "success"
         assert "data" in result
@@ -79,9 +75,7 @@ async def test_workspace_create_with_config(mocker):
     mock_db, mock_col = get_mock_db()
 
     with patch("backend.app.core.mongodb.mongodb_manager.get_async_database", return_value=mock_db):
-        mocker.patch(
-            "backend.app.core.settings_manager.settings_manager.get_settings", new=AsyncMock()
-        )
+        mocker.patch("backend.app.core.settings_manager.settings_manager.get_settings", new=AsyncMock())
 
         result = await workspace_service.create(
             {
@@ -111,9 +105,7 @@ async def test_workspace_create_graph_engine(mocker):
     mock_db, mock_col = get_mock_db()
 
     with patch("backend.app.core.mongodb.mongodb_manager.get_async_database", return_value=mock_db):
-        mocker.patch(
-            "backend.app.core.settings_manager.settings_manager.get_settings", new=AsyncMock()
-        )
+        mocker.patch("backend.app.core.settings_manager.settings_manager.get_settings", new=AsyncMock())
 
         result = await workspace_service.create(
             {
@@ -162,9 +154,7 @@ async def test_workspace_update(mocker):
     for char in WORKSPACE_NAME_FORBIDDEN:
         mock_db, mock_col = get_mock_db()
 
-        with patch(
-            "backend.app.core.mongodb.mongodb_manager.get_async_database", return_value=mock_db
-        ):
+        with patch("backend.app.core.mongodb.mongodb_manager.get_async_database", return_value=mock_db):
             from backend.app.core.exceptions import ValidationError
 
             try:
@@ -217,9 +207,7 @@ async def test_workspace_invalid_name():
     for char in WORKSPACE_NAME_FORBIDDEN:
         mock_db, mock_col = get_mock_db()
 
-        with patch(
-            "backend.app.core.mongodb.mongodb_manager.get_async_database", return_value=mock_db
-        ):
+        with patch("backend.app.core.mongodb.mongodb_manager.get_async_database", return_value=mock_db):
             result = await workspace_service.create({"name": f"Test{char}Name"}, "test_user")
 
             assert result["status"] == "error"
@@ -259,9 +247,7 @@ async def test_workspace_rag_engine_immutable(mocker):
     mock_db, mock_col = get_mock_db()
 
     with patch("backend.app.core.mongodb.mongodb_manager.get_async_database", return_value=mock_db):
-        mocker.patch(
-            "backend.app.core.settings_manager.settings_manager.get_settings", new=AsyncMock()
-        )
+        mocker.patch("backend.app.core.settings_manager.settings_manager.get_settings", new=AsyncMock())
 
         # Create workspace with rag_engine
         result = await workspace_service.create(
@@ -319,9 +305,7 @@ async def test_workspace_settings_persistence(mocker):
     mock_db, mock_col = get_mock_db()
 
     with patch("backend.app.core.mongodb.mongodb_manager.get_async_database", return_value=mock_db):
-        mocker.patch(
-            "backend.app.core.settings_manager.settings_manager.get_settings", new=AsyncMock()
-        )
+        mocker.patch("backend.app.core.settings_manager.settings_manager.get_settings", new=AsyncMock())
 
         # Create workspace with settings
         await workspace_service.create(

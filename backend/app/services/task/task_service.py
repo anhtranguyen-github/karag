@@ -11,6 +11,8 @@ from typing import Any
 
 import structlog
 from backend.app.core.mongodb import mongodb_manager
+from backend.app.repositories.task_repository import task_repository
+from backend.app.schemas.task import Task
 
 logger = structlog.get_logger(__name__)
 
@@ -27,14 +29,13 @@ class TaskService:
         metadata: dict | None = None,
         workspace_id: str | None = None,
     ) -> str:
-        db = mongodb_manager.get_async_database()
         task_id = str(uuid.uuid4())
         now = datetime.utcnow().isoformat()
         record = {
             "id": task_id,
             "type": task_type,
             "status": "pending",
-            "priority": metadata.get("priority", 1) if metadata else 1,  # Default priority 1
+            "priority": metadata.get("priority", 1) if metadata else 1,
             "progress": 0,
             "message": "Initializing...",
             "error_code": None,
@@ -47,7 +48,7 @@ class TaskService:
             "max_retries": metadata.get("max_retries", 3) if metadata else 3,
             "next_retry_at": None,
         }
-        await db[self.COLLECTION].insert_one(record)
+        await task_repository.create(record)
         logger.info("task_created", task_id=task_id, task_type=task_type)
         return task_id
 
@@ -62,7 +63,6 @@ class TaskService:
         metadata: dict | None = None,
         result: dict | None = None,
     ):
-        db = mongodb_manager.get_async_database()
         update: dict[str, Any] = {"updated_at": datetime.utcnow().isoformat()}
         if status is not None:
             update["status"] = status
@@ -80,15 +80,12 @@ class TaskService:
             for k, v in metadata.items():
                 set_op["$set"][f"metadata.{k}"] = v
 
-        await db[self.COLLECTION].update_one({"id": task_id}, set_op)
+        await task_repository.collection.update_one({"id": task_id}, set_op)
+        # We could use task_repository.update but set_op with $set.metadata.k is more specific
 
     # ── Read ────────────────────────────────────────────────
-    async def get_task(self, task_id: str) -> dict[str, Any] | None:
-        db = mongodb_manager.get_async_database()
-        doc = await db[self.COLLECTION].find_one({"id": task_id})
-        if doc and "_id" in doc:
-            doc["_id"] = str(doc["_id"])
-        return doc
+    async def get_task(self, task_id: str) -> Task | None:
+        return await task_repository.get_by_id(task_id)
 
     async def list_tasks(
         self,
@@ -96,8 +93,7 @@ class TaskService:
         workspace_id: str | None = None,
         include_completed: bool = True,
         limit: int = 50,
-    ) -> list[dict[str, Any]]:
-        db = mongodb_manager.get_async_database()
+    ) -> list[Task]:
         query: dict[str, Any] = {}
         if task_type:
             query["type"] = task_type
@@ -106,24 +102,16 @@ class TaskService:
         if not include_completed:
             query["status"] = {"$in": ["pending", "processing"]}
 
-        cursor = (
-            db[self.COLLECTION]
-            .find(query)
-            .sort([("priority", -1), ("created_at", -1)])
-            .limit(limit)
-        )
-        tasks = await cursor.to_list(length=limit)
-        for t in tasks:
-            if "_id" in t:
-                t["_id"] = str(t["_id"])
-        return tasks
+        cursor = task_repository.collection.find(query).sort([("priority", -1), ("created_at", -1)]).limit(limit)
+        docs = await cursor.to_list(length=limit)
+        return [Task.model_validate(task_repository.normalize_id(doc)) for doc in docs]
+    # note: task_repository.list_all doesn't support complex sorting/querying yet so we use collection directly
 
     # ── Cleanup ─────────────────────────────────────────────
     async def cleanup_old_tasks(self, older_than_hours: int = 24):
         """Remove completed/failed/canceled tasks older than the specified window."""
-        db = mongodb_manager.get_async_database()
         cutoff = (datetime.utcnow() - timedelta(hours=older_than_hours)).isoformat()
-        result = await db[self.COLLECTION].delete_many(
+        result = await task_repository.collection.delete_many(
             {
                 "status": {"$in": ["completed", "failed", "canceled"]},
                 "updated_at": {"$lt": cutoff},
@@ -149,7 +137,7 @@ class TaskService:
         """Check if task has been canceled."""
         task = await self.get_task(task_id)
         # Check specific status or if task was deleted
-        return not task or task.get("status") == "canceled"
+        return not task or getattr(task, "status", None) == "canceled"
 
     async def fail_with_retry(self, task_id: str, error_message: str, error_code: str):
         """Handle task failure with potential automatic retry."""
@@ -157,8 +145,8 @@ class TaskService:
         if not task:
             return
 
-        retry_count = task.get("retry_count", 0)
-        max_retries = task.get("max_retries", 3)
+        retry_count = getattr(task, "retry_count", 0)
+        max_retries = getattr(task, "max_retries", 3)
 
         if retry_count < max_retries:
             next_count = retry_count + 1
@@ -190,8 +178,7 @@ class TaskService:
     # ── Resilience ──────────────────────────────────────────
     async def reset_running_tasks_on_startup(self):
         """Reset tasks stuck in 'processing' state during startup."""
-        db = mongodb_manager.get_async_database()
-        result = await db[self.COLLECTION].update_many(
+        result = await task_repository.collection.update_many(
             {"status": "processing"},
             {
                 "$set": {
@@ -207,10 +194,9 @@ class TaskService:
 
     async def timeout_stuck_tasks(self, timeout_minutes: int = 60):
         """Fail tasks that have been processing for too long."""
-        db = mongodb_manager.get_async_database()
         cutoff = (datetime.utcnow() - timedelta(minutes=timeout_minutes)).isoformat()
 
-        result = await db[self.COLLECTION].update_many(
+        result = await task_repository.collection.update_many(
             {"status": "processing", "updated_at": {"$lt": cutoff}},
             {
                 "$set": {

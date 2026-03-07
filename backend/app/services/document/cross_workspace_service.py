@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 from backend.app.core.exceptions import NotFoundError, ValidationError
-from backend.app.core.mongodb import mongodb_manager
+from backend.app.repositories.document_repository import document_repository
 from backend.app.services.document.base import logger
 from backend.app.services.document.document_ingestion_service import document_ingestion_service
 from backend.app.services.task.task_service import task_service
@@ -76,8 +76,7 @@ class CrossWorkspaceDocumentService:
         if task_id and await task_service.is_cancelled(task_id):
             return
 
-        db = mongodb_manager.get_async_database()
-        res = await db.documents.find_one({"id": doc_id})
+        res = await document_repository.collection.find_one({"id": doc_id})
         if not res:
             raise NotFoundError(f"Document '{doc_id}' not found.")
 
@@ -89,7 +88,7 @@ class CrossWorkspaceDocumentService:
             else:
                 query["id"] = res.get("id")
 
-            exists = await db.documents.find_one(query)
+            exists = await document_repository.collection.find_one(query)
             if exists:
                 return
 
@@ -108,10 +107,8 @@ class CrossWorkspaceDocumentService:
             new_doc["created_at"] = datetime.utcnow().isoformat()
             new_doc["updated_at"] = new_doc["created_at"]
 
-            await db.documents.insert_one(new_doc)
-            await document_ingestion_service.index_document(
-                new_id, target_workspace_id, task_id=task_id
-            )
+            await document_repository.create(new_doc)
+            await document_ingestion_service.index_document(new_id, target_workspace_id, task_id=task_id)
             return
 
         # Always re-index if document is not in the target workspace's expected state
@@ -120,35 +117,29 @@ class CrossWorkspaceDocumentService:
         await document_ingestion_service.index_document(
             res["id"], target_workspace_id, force=force_reindex, task_id=task_id
         )
-        res = await db.documents.find_one({"id": res["id"]})
+        res = await document_repository.collection.find_one({"id": res["id"]})
 
         if action == "move":
             source_ws_id = res["workspace_id"]
-            await db.documents.update_one(
-                {"id": res["id"]}, {"$set": {"workspace_id": target_workspace_id}}
-            )
+            await document_repository.update(res["id"], {"workspace_id": target_workspace_id})
 
             if source_ws_id != target_workspace_id:
                 if task_id:
-                    await task_service.update_task(
-                        task_id, progress=90, message="Cleaning up source workspace..."
-                    )
+                    await task_service.update_task(task_id, progress=90, message="Cleaning up source workspace...")
                 from backend.app.rag.ingestion import ingestion_pipeline
 
                 config, store = await ingestion_pipeline.get_ingestion_config(source_ws_id)
                 await store.delete_document(config, res["id"])
 
         elif action == "share":
-            await db.documents.update_one(
+            await document_repository.collection.update_one(
                 {"id": res["id"]},
                 {
                     "$addToSet": {"shared_with": target_workspace_id},
-                    "$set": {
-                        f"workspace_statuses.{target_workspace_id}": res.get("status", "uploaded")
-                    },
+                    "$set": {f"workspace_statuses.{target_workspace_id}": res.get("status", "uploaded")},
                 },
             )
-            updated_doc = await db.documents.find_one({"id": res["id"]})
+            updated_doc = await document_repository.collection.find_one({"id": res["id"]})
 
             from backend.app.rag.ingestion import ingestion_pipeline
 

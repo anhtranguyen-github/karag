@@ -6,14 +6,14 @@ import { api } from "@/lib/api-client";
 import { Check, Database, Loader2, FileText, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface VaultDocument {
+interface StorageDocument {
     id: string;
     name: string;
     created_at?: string;
     size?: number;
 }
 
-export function VaultSelector({
+export function StorageSelector({
     isOpen,
     onClose,
     workspaceId,
@@ -24,24 +24,24 @@ export function VaultSelector({
     workspaceId: string,
     onAttachComplete?: () => void
 }) {
-    const [documents, setDocuments] = useState<VaultDocument[]>([]);
+    const [documents, setDocuments] = useState<StorageDocument[]>([]);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
 
     useEffect(() => {
         if (isOpen) {
-            fetchVault();
+            fetchStorage();
         }
     }, [isOpen]);
 
-    const fetchVault = async () => {
+    const fetchStorage = async () => {
         setLoading(true);
         try {
             const payload = await api.listVaultDocumentsWorkspacesWorkspaceIdVaultGet({
                 workspaceId: workspaceId!
             });
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             setDocuments((payload.data as any[]) || []);
         } catch (e) {
             console.error(e);
@@ -95,7 +95,7 @@ export function VaultSelector({
                     <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500 border border-indigo-500/20">
                         <Database size={16} />
                     </div>
-                    <span>Collective Vault</span>
+                    <span>Collective Storage</span>
                 </div>
             )}
             className="max-w-2xl"
@@ -119,11 +119,11 @@ export function VaultSelector({
                     {loading && documents.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center gap-4 opacity-50">
                             <Loader2 size={24} className="animate-spin text-indigo-500" />
-                            <span className="text-[10px] font-black uppercase tracking-widest">Querying Vault...</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest">Querying Storage...</span>
                         </div>
                     ) : filteredDocs.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center gap-2 opacity-30 italic">
-                            <span className="text-xs">No matching documents found in the vault.</span>
+                            <span className="text-xs">No matching documents found in storage.</span>
                         </div>
                     ) : (
                         filteredDocs.map(doc => {

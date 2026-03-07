@@ -48,7 +48,7 @@ class ConfigService:
         max_context_window=128000,
         max_tokens_per_request=4096,
         default_rag_config=RAGConfig(),
-        enable_global_vault=True,
+        enable_global_storage=True,
         enable_workspace_sharing=False,
         request_timeout_seconds=60,
         max_upload_size_mb=100,
@@ -141,9 +141,7 @@ class ConfigService:
         new_config = SystemConfig(**current_dict)
 
         # Save to database
-        await db.system_config.update_one(
-            {"id": cls.SYSTEM_CONFIG_ID}, {"$set": current_dict}, upsert=True
-        )
+        await db.system_config.update_one({"id": cls.SYSTEM_CONFIG_ID}, {"$set": current_dict}, upsert=True)
 
         logger.info(
             "system_config_updated",
@@ -184,16 +182,12 @@ class ConfigService:
             rag_config=system_config.default_rag_config,
             default_temperature=0.7,
             default_max_tokens=1024,
-            default_model=system_config.allowed_models[0]
-            if system_config.allowed_models
-            else "gpt-4o",
+            default_model=system_config.allowed_models[0] if system_config.allowed_models else "gpt-4o",
             rate_limits=RateLimitConfig(),
         )
 
     @classmethod
-    async def update_workspace_config(
-        cls, workspace_id: str, updates: dict[str, Any]
-    ) -> WorkspaceConfig:
+    async def update_workspace_config(cls, workspace_id: str, updates: dict[str, Any]) -> WorkspaceConfig:
         """
         Update workspace configuration.
 
@@ -224,9 +218,7 @@ class ConfigService:
         new_config = WorkspaceConfig(**current_dict)
 
         # Save
-        await db.workspace_configs.update_one(
-            {"workspace_id": workspace_id}, {"$set": current_dict}, upsert=True
-        )
+        await db.workspace_configs.update_one({"workspace_id": workspace_id}, {"$set": current_dict}, upsert=True)
 
         logger.info(
             "workspace_config_updated",
@@ -237,9 +229,7 @@ class ConfigService:
         return new_config
 
     @classmethod
-    def _clamp_workspace_updates(
-        cls, updates: dict[str, Any], system_config: SystemConfig
-    ) -> dict[str, Any]:
+    def _clamp_workspace_updates(cls, updates: dict[str, Any], system_config: SystemConfig) -> dict[str, Any]:
         """
         Clamp workspace config updates to system limits.
 
@@ -260,9 +250,7 @@ class ConfigService:
         # Clamp max_tokens
         if "default_max_tokens" in updates:
             tokens = updates["default_max_tokens"]
-            clamped["default_max_tokens"] = max(
-                1, min(system_config.max_tokens_per_request, tokens)
-            )
+            clamped["default_max_tokens"] = max(1, min(system_config.max_tokens_per_request, tokens))
 
         # Validate model against allowed list
         if "default_model" in updates:
@@ -273,12 +261,10 @@ class ConfigService:
                     requested_model=model,
                     allowed_models=system_config.allowed_models,
                 )
-                raise ValidationError(
-                    f"Model '{model}' is not allowed. Allowed models: {system_config.allowed_models}"
-                )
+                raise ValidationError(f"Model '{model}' is not allowed. Allowed models: {system_config.allowed_models}")
             clamped["default_model"] = model
 
-        # Pass through other updates (RAG config, vault settings)
+        # Pass through other updates (RAG config, storage settings)
         for key in ["enabled_datasets", "default_dataset_id", "rag_config", "rate_limits"]:
             if key in updates:
                 clamped[key] = updates[key]
@@ -340,9 +326,7 @@ class ConfigService:
                 resolved["top_p"] = max(0.0, min(1.0, request_config.top_p))
 
             if request_config.max_tokens is not None:
-                resolved["max_tokens"] = min(
-                    request_config.max_tokens, system_config.max_tokens_per_request
-                )
+                resolved["max_tokens"] = min(request_config.max_tokens, system_config.max_tokens_per_request)
 
             resolved["stream"] = request_config.stream
 

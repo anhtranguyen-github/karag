@@ -63,16 +63,12 @@ class VectorStore(ABC):
         pass
 
     @abstractmethod
-    async def sync_shared_with(
-        self, config: IngestionConfig, doc_id: str, shared_with: list[str]
-    ) -> bool:
+    async def sync_shared_with(self, config: IngestionConfig, doc_id: str, shared_with: list[str]) -> bool:
         """Update shared_with list for all points of a document."""
         pass
 
     @abstractmethod
-    async def get_document_chunks(
-        self, config: IngestionConfig, doc_id: str, limit: int = 100
-    ) -> list[dict[str, Any]]:
+    async def get_document_chunks(self, config: IngestionConfig, doc_id: str, limit: int = 100) -> list[dict[str, Any]]:
         """Retrieve vector chunks associated with a specific document ID."""
         pass
 

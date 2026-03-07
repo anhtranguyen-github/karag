@@ -50,12 +50,15 @@ async def test_thread_api_endpoints(mocker):
     mock_col.update_one = AsyncMock(return_value=MagicMock(matched_count=1))
     mock_col.delete_one = AsyncMock(return_value=MagicMock(deleted_count=1))
     mock_col.delete_many = AsyncMock()
+    mock_col.find_one = AsyncMock(return_value={"id": "default", "name": "Default Workspace"})
 
     mock_aggregate = MagicMock()
     mock_aggregate.to_list = AsyncMock(return_value=[{"_id": thread_id}])
     mock_col.aggregate.return_value = mock_aggregate
 
-    mock_col.find.return_value.to_list = AsyncMock(
+    mock_find_result = MagicMock()
+    mock_find_result.sort.return_value = mock_find_result
+    mock_find_result.to_list = AsyncMock(
         return_value=[
             {
                 "thread_id": thread_id,
@@ -64,6 +67,7 @@ async def test_thread_api_endpoints(mocker):
             }
         ]
     )
+    mock_col.find.return_value = mock_find_result
     mock_db.__getitem__.return_value = mock_col
     mock_db.thread_metadata = mock_col
     mock_db.checkpoints = mock_col
@@ -74,9 +78,11 @@ async def test_thread_api_endpoints(mocker):
 
     transport = httpx.ASGITransport(app=fastapi_app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        res = await ac.patch(f"/chat/threads/{thread_id}/title", json={"title": "Updated Title"})
+        res = await ac.patch(f"/api/v1/workspaces/default/chat/threads/{thread_id}/title", json={"title": "Updated Title"})
+        if res.status_code != 200:
+            print(f"DEBUG: {res.status_code} - {res.text}")
         assert res.status_code == 200
 
-        res = await ac.get("/chat/threads", params={"workspace_id": "default"})
+        res = await ac.get("/api/v1/workspaces/default/chat/threads")
         assert res.status_code == 200
         assert len(res.json()["data"]) >= 1

@@ -1,10 +1,10 @@
-from enum import StrEnum
+from enum import Enum
 from typing import Literal
 
 from pydantic import BaseModel, Field
 
 
-class ExecutionMode(StrEnum):
+class ExecutionMode(str, Enum):
     AUTO = "auto"
     FAST = "fast"
     THINK = "think"

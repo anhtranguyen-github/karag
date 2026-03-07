@@ -6,6 +6,8 @@ from typing import Any
 import structlog
 from backend.app.core.mongodb import mongodb_manager
 from backend.app.core.settings_manager import settings_manager
+from backend.app.repositories.thread_repository import thread_repository
+from backend.app.schemas.chat import ChatMessage, ThreadMetadata
 from backend.app.core.telemetry import (
     ACTIVE_STREAMS,
     get_tracer,
@@ -20,7 +22,7 @@ tracer = get_tracer(__name__)
 
 class ChatService:
     @staticmethod
-    async def get_history(thread_id: str) -> list[dict]:
+    async def get_history(thread_id: str) -> list[ChatMessage]:
         """Fetch the chat history for a specific thread."""
         with tracer.start_as_current_span(
             "chat.get_history",
@@ -43,7 +45,7 @@ class ChatService:
                             msg_data["reasoning_steps"] = msg.additional_kwargs["reasoning_steps"]
                         if "sources" in msg.additional_kwargs:
                             msg_data["sources"] = msg.additional_kwargs["sources"]
-                    history.append(msg_data)
+                    history.append(ChatMessage(**msg_data))
                 return history
 
             # Fallback: read from chat_messages collection (for execution/RAG path)
@@ -67,65 +69,33 @@ class ChatService:
                         msg_data["reasoning_steps"] = doc["reasoning_steps"]
                     if "sources" in doc:
                         msg_data["sources"] = doc["sources"]
-                    history.append(msg_data)
+                    history.append(ChatMessage(**msg_data))
                 return history
 
             return []
 
     @staticmethod
-    async def list_threads(workspace_id: str = "vault") -> list[dict]:
+    async def list_threads(workspace_id: str) -> list[ThreadMetadata]:
         """List all available chat threads for a workspace."""
         with tracer.start_as_current_span(
             "chat.list_threads",
             attributes={"workspace_id": workspace_id},
         ):
-            db = mongodb_manager.get_async_database()
-            metadata_col = db["thread_metadata"]
-
-            # Sort by updated_at descending, fallback to _id
-            workspace_threads = (
-                await metadata_col.find({"workspace_id": workspace_id})
-                .sort([("updated_at", -1), ("_id", -1)])
-                .to_list(None)
-            )
-
-            return [
-                {
-                    "id": doc["thread_id"],
-                    "title": doc.get("title", "New chat"),
-                    "has_thinking": doc.get("has_thinking", False),
-                    "tags": doc.get("tags", []),
-                    "updated_at": doc.get("updated_at"),
-                }
-                for doc in workspace_threads
-            ]
+            workspace_threads = await thread_repository.list_by_workspace(workspace_id)
+            return [ThreadMetadata.model_validate(thread_repository.normalize_id(doc)) for doc in workspace_threads]
 
     @staticmethod
-    async def get_thread(thread_id: str) -> dict:
+    async def get_thread(thread_id: str) -> ThreadMetadata | None:
         """Fetch metadata for a specific thread."""
-        db = mongodb_manager.get_async_database()
-        meta = await db["thread_metadata"].find_one({"thread_id": thread_id})
-        if not meta:
-            return {
-                "id": thread_id,
-                "title": "New chat",
-                "workspace_id": "vault",
-            }
-        return {
-            "id": thread_id,
-            "title": meta.get("title", "New chat"),
-            "workspace_id": meta.get("workspace_id", "vault"),
-            "has_thinking": meta.get("has_thinking", False),
-            "tags": meta.get("tags", []),
-        }
+        doc = await thread_repository.get_by_thread_id(thread_id)
+        if not doc:
+            return None
+        return ThreadMetadata.model_validate(thread_repository.normalize_id(doc))
 
     @staticmethod
     async def update_title(thread_id: str, title: str):
         """Update the title of a specific thread."""
-        db = mongodb_manager.get_async_database()
-        await db["thread_metadata"].update_one(
-            {"thread_id": thread_id}, {"$set": {"title": title}}, upsert=True
-        )
+        await thread_repository.collection.update_one({"thread_id": thread_id}, {"$set": {"title": title}}, upsert=True)
 
     @staticmethod
     async def delete_thread(thread_id: str):
@@ -139,11 +109,11 @@ class ChatService:
             await db["checkpoints"].delete_many({"thread_id": thread_id})
             await db["checkpoint_writes"].delete_many({"thread_id": thread_id})
             await db["chat_messages"].delete_many({"thread_id": thread_id})
-            await db["thread_metadata"].delete_one({"thread_id": thread_id})
+            await thread_repository.collection.delete_one({"thread_id": thread_id})
             logger.info("chat_thread_deleted", thread_id=thread_id)
 
     @staticmethod
-    async def generate_title(message: str, thread_id: str, workspace_id: str = "vault"):
+    async def generate_title(message: str, thread_id: str, workspace_id: str):
         """Automatically generate a title and metadata tags for a new thread."""
         with tracer.start_as_current_span(
             "chat.generate_title",
@@ -153,10 +123,8 @@ class ChatService:
             },
         ):
             try:
-                db = mongodb_manager.get_async_database()
-                col = db["thread_metadata"]
                 history = await ChatService.get_history(thread_id)
-                db_meta = await col.find_one({"thread_id": thread_id})
+                db_meta = await thread_repository.get_by_thread_id(thread_id)
                 logger.info(
                     "generate_title_check",
                     thread_id=thread_id,
@@ -168,7 +136,7 @@ class ChatService:
                 # If we have less than 5 messages, just ensure it's "New chat"
                 if len(history) < 5:
                     if len(history) >= 1 and (not db_meta or "title" not in db_meta):
-                        await col.update_one(
+                        await thread_repository.collection.update_one(
                             {"thread_id": thread_id},
                             {
                                 "$set": {
@@ -181,7 +149,7 @@ class ChatService:
                         )
                     elif db_meta:
                         # Even if we don't change title, update the timestamp
-                        await col.update_one(
+                        await thread_repository.collection.update_one(
                             {"thread_id": thread_id},
                             {"$set": {"updated_at": datetime.utcnow().isoformat()}},
                         )
@@ -212,9 +180,7 @@ class ChatService:
                 )
 
                 llm = await get_llm(workspace_id)
-                response = await llm.ainvoke(
-                    [SystemMessage(content=sys_tem), HumanMessage(content=user_msg)]
-                )
+                response = await llm.ainvoke([SystemMessage(content=sys_tem), HumanMessage(content=user_msg)])
 
                 # Record usage
                 usage = getattr(response, "usage_metadata", {})
@@ -243,7 +209,7 @@ class ChatService:
                     title = content.split("\n")[0][:50]
                     tags = []
 
-                await col.update_one(
+                await thread_repository.collection.update_one(
                     {"thread_id": thread_id},
                     {
                         "$set": {
@@ -297,8 +263,7 @@ class ChatService:
 
         try:
             # Ensure thread metadata exists immediately so it shows up in the sidebar
-            db = mongodb_manager.get_async_database()
-            await db["thread_metadata"].update_one(
+            await thread_repository.collection.update_one(
                 {"thread_id": thread_id},
                 {
                     "$set": {
@@ -379,9 +344,7 @@ class ChatService:
                                 content = event["data"]["output"].content
                                 if content:
                                     # Truncate very long internal logic for better UI readability
-                                    reason_msg = (
-                                        content[:400] + "..." if len(content) > 400 else content
-                                    )
+                                    reason_msg = content[:400] + "..." if len(content) > 400 else content
                                     collected_reasoning.append(reason_msg)
                                     yield f"data: {json.dumps({'type': 'reasoning', 'steps': [reason_msg]})}\n\n"
 
@@ -462,10 +425,7 @@ class ChatService:
 
                             # Fallback harvesting for the final generation node if streaming didn't happen
                             if node_name in ["generate", "synthesize"] and not collected_content:
-                                final = (
-                                    output.get("final_answer")
-                                    or (output.get("draft_answers", [""])[0])
-                                )
+                                final = output.get("final_answer") or (output.get("draft_answers", [""])[0])
                                 if final:
                                     collected_content.append(final)
                                     yield f"data: {json.dumps({'type': 'content', 'delta': final})}\n\n"
@@ -529,8 +489,7 @@ class ChatService:
                             if isinstance(output, dict):
                                 settings = await settings_manager.get_settings(workspace_id)
                                 if settings.show_reasoning and "reasoning_steps" in output:
-                                    db = mongodb_manager.get_async_database()
-                                    await db["thread_metadata"].update_one(
+                                    await thread_repository.collection.update_one(
                                         {"thread_id": thread_id},
                                         {"$set": {"has_thinking": True}},
                                     )

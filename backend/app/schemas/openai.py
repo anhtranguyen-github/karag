@@ -12,9 +12,7 @@ class OpenAIMessage(BaseModel):
     )
     content: str | None = Field(None, description="The content of the message")
     name: str | None = Field(None, description="The name of the author")
-    tool_calls: list[dict[str, Any]] | None = Field(
-        None, description="Tool calls made by the assistant"
-    )
+    tool_calls: list[dict[str, Any]] | None = Field(None, description="Tool calls made by the assistant")
     tool_call_id: str | None = Field(None, description="Tool call ID for tool messages")
 
 
@@ -41,9 +39,7 @@ class ChatCompletionRequest(BaseModel):
     logit_bias: dict[str, int] | None = Field(None, description="Logit bias per token")
     user: str | None = Field(None, description="Unique identifier for end-user")
     seed: int | None = Field(None, description="Seed for deterministic sampling")
-    response_format: dict[str, Any] | None = Field(
-        None, description="Response format specification"
-    )
+    response_format: dict[str, Any] | None = Field(None, description="Response format specification")
 
 
 class ChatCompletionResponseChoice(BaseModel):
@@ -73,12 +69,8 @@ class ChatCompletionUsage(BaseModel):
     prompt_tokens: int = Field(..., description="Number of tokens in the prompt")
     completion_tokens: int = Field(..., description="Number of tokens in the completion")
     total_tokens: int = Field(..., description="Total number of tokens used")
-    prompt_tokens_details: dict[str, Any] | None = Field(
-        None, description="Details about prompt tokens"
-    )
-    completion_tokens_details: dict[str, Any] | None = Field(
-        None, description="Details about completion tokens"
-    )
+    prompt_tokens_details: dict[str, Any] | None = Field(None, description="Details about prompt tokens")
+    completion_tokens_details: dict[str, Any] | None = Field(None, description="Details about completion tokens")
 
 
 class ChatCompletionResponse(BaseModel):
@@ -88,9 +80,7 @@ class ChatCompletionResponse(BaseModel):
     object: str = Field("chat.completion", description="Object type")
     created: int = Field(..., description="Unix timestamp of creation")
     model: str = Field(..., description="Model used for completion")
-    choices: list[ChatCompletionResponseChoice] = Field(
-        ..., description="List of completion choices"
-    )
+    choices: list[ChatCompletionResponseChoice] = Field(..., description="List of completion choices")
     usage: ChatCompletionUsage = Field(..., description="Token usage statistics")
     system_fingerprint: str | None = Field(None, description="System fingerprint")
 

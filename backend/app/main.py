@@ -1,15 +1,5 @@
 """
 Karag API - Modular RAG & Agentic Chatbot API
-
-This module initializes the FastAPI application with proper lifecycle management,
-middleware stack, exception handling, and routing configuration.
-
-Following FastAPI best practices:
-- Async-first architecture
-- Proper lifespan context management
-- Structured error handling
-- Comprehensive observability
-- Security best practices
 """
 
 from __future__ import annotations
@@ -189,7 +179,7 @@ async def _initialize_baas_core() -> None:
     Initialize BaaS Core components (Blocks 1-5).
 
     - Block 1: Initialize API key system
-    - Block 2: Initialize global vault
+    - Block 2: Initialize global storage
     - Block 4: Initialize system configuration
     """
     logger.info("baas_init_start", msg="Initializing BaaS Core...")
@@ -199,12 +189,6 @@ async def _initialize_baas_core() -> None:
 
     await config_service.initialize_system_config()
     logger.info("baas_system_config_ready")
-
-    # Block 2: Initialize global vault
-    from backend.app.services.vault_service import vault_service
-
-    await vault_service.initialize_global_vault()
-    logger.info("baas_global_vault_ready")
 
     # Block 1: Cleanup expired API keys
     from backend.app.services.api_key_service import api_key_service
@@ -330,15 +314,13 @@ def _setup_exception_handlers(app: FastAPI) -> None:
             exc_info=True,
         )
 
-        debug_mode = karag_settings.LOG_LEVEL.upper() == "DEBUG"
-
         response = JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={
                 "success": False,
                 "code": "INTERNAL_SERVER_ERROR",
-                "message": "An unexpected error occurred.",
-                "data": {"detail": str(exc)} if debug_mode else None,
+                "message": f"UNHANDLED: {type(exc).__name__}: {exc}",
+                "data": {"detail": str(exc)},
             },
         )
         return _attach_cors_headers(response, request)

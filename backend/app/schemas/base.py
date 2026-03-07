@@ -303,9 +303,6 @@ class BatchOperationResult(BaseModel, Generic[T]):
                     "items": self.success,
                     "errors": self.failed,
                 },
-                message=(
-                    f"Partially successful: {self.success_count} succeeded, "
-                    f"{self.failure_count} failed"
-                ),
+                message=(f"Partially successful: {self.success_count} succeeded, {self.failure_count} failed"),
                 code="PARTIAL_SUCCESS",
             )

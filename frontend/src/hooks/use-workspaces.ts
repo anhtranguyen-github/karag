@@ -1,14 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { api } from '@/lib/api-client';
+import { api, type Workspace, type WorkspaceCreate } from '@/lib/api-client';
 import { useError } from '@/context/error-context';
-import { Workspace, WorkspaceCreate, WorkspaceUpdate } from '@/lib/api';
-export type { Workspace, WorkspaceCreate, WorkspaceUpdate };
+import type { WorkspaceUpdate, WorkspaceDetail as APIWorkspaceDetail } from '@/client/types.gen';
 
-export interface WorkspaceExtended extends Workspace {
-    llmProvider?: string | null;
-    embeddingProvider?: string | null;
-    ragEngine?: string | null;
-}
+export type { Workspace, WorkspaceCreate, WorkspaceUpdate };
 
 export interface Thread {
     id: string;
@@ -22,42 +17,44 @@ export interface DocumentRef {
     chunks?: number;
 }
 
-export interface WorkspaceDetail extends WorkspaceExtended {
+export interface WorkspaceDetail extends Workspace {
     threads: Thread[];
     documents: DocumentRef[];
+    settings?: any;
+    ragEngine?: string | null;
 }
 
 export function useWorkspaces() {
-    const [workspaces, setWorkspaces] = useState<WorkspaceExtended[]>([]);
-    const [currentWorkspace, setCurrentWorkspace] = useState<WorkspaceExtended | null>(null);
+    const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+    const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const { showError } = useError();
 
     const fetchWorkspaces = useCallback(async () => {
+        setIsLoading(true);
         try {
-            const payload = await api.listWorkspacesWorkspacesGet();
+            const payload = await api.listWorkspacesApiV1WorkspacesGet();
 
             if (!payload.success || !payload.data) {
                 showError(payload.code || "Error", payload.message || "Failed to load workspaces.");
                 return;
             }
 
-            const mappedData = payload.data.map(ws => ({
+            const mappedData = payload.data.map((ws: any) => ({
                 ...ws,
-                llmProvider: ws.llmProvider,
-                embeddingProvider: ws.embeddingProvider,
-                ragEngine: ws.ragEngine
+                ragEngine: ws.rag_engine
             }));
 
             setWorkspaces(mappedData);
 
             const savedWsId = localStorage.getItem('currentWorkspaceId');
-            const found = mappedData.find(ws => ws.id === savedWsId);
+            const found = mappedData.find((ws: Workspace) => ws.id === savedWsId);
             if (found) {
                 setCurrentWorkspace(found);
             } else if (mappedData.length > 0) {
-                setCurrentWorkspace(mappedData[0]);
-                localStorage.setItem('currentWorkspaceId', mappedData[0].id);
+                const first = mappedData[0];
+                setCurrentWorkspace(first);
+                localStorage.setItem('currentWorkspaceId', first.id);
             } else {
                 setCurrentWorkspace(null);
             }
@@ -73,30 +70,28 @@ export function useWorkspaces() {
         fetchWorkspaces();
     }, [fetchWorkspaces]);
 
-    const selectWorkspace = (ws: WorkspaceExtended) => {
+    const selectWorkspace = (ws: Workspace) => {
         setCurrentWorkspace(ws);
         localStorage.setItem('currentWorkspaceId', ws.id);
     };
 
     const createWorkspace = async (payload: WorkspaceCreate) => {
         try {
-            const appResponse = await api.createWorkspaceWorkspacesPost({
-                workspaceCreate: payload
+            const appResponse = await api.createWorkspaceApiV1WorkspacesPost({
+                requestBody: payload
             });
 
             if (appResponse.success && appResponse.data) {
                 const ws = appResponse.data;
                 const mappedWs = {
                     ...ws,
-                    llmProvider: ws.llmProvider,
-                    embeddingProvider: ws.embeddingProvider,
-                    ragEngine: ws.ragEngine
-                };
+                    ragEngine: (ws as any).rag_engine
+                } as any;
                 await fetchWorkspaces();
                 return { success: true, workspace: mappedWs };
             } else {
                 const title = "Unable to Create Workspace";
-                const message = appResponse.message || "System rejected creation request.";
+                const message = (appResponse as any).message || "System rejected creation request.";
                 showError(title, message, JSON.stringify(appResponse.data));
                 return { success: false, error: message };
             }
@@ -110,15 +105,15 @@ export function useWorkspaces() {
     const updateWorkspace = async (id: string, name: string, description?: string) => {
         try {
             const updatePayload: WorkspaceUpdate = { name, description };
-            const appResponse = await api.updateWorkspaceWorkspacesWorkspaceIdPatch({
+            const appResponse = await api.updateWorkspaceApiV1WorkspacesWorkspaceIdPatch({
                 workspaceId: id,
-                workspaceUpdate: updatePayload
+                requestBody: updatePayload
             });
 
             if (appResponse.success) {
                 await fetchWorkspaces();
             } else {
-                showError("Update Failed", appResponse.message || "Could not save changes.");
+                showError("Update Failed", (appResponse as any).message || "Could not save changes.");
             }
         } catch (err: unknown) {
             showError("Connection Error", "Could not save changes. Handshake failed during synchronization.");
@@ -126,11 +121,11 @@ export function useWorkspaces() {
         }
     };
 
-    const deleteWorkspace = async (id: string, vaultDelete: boolean = false) => {
+    const deleteWorkspace = async (id: string, datasetDelete: boolean = false) => {
         try {
-            const appResponse = await api.deleteWorkspaceWorkspacesWorkspaceIdDelete({
+            const appResponse = await api.deleteWorkspaceApiV1WorkspacesWorkspaceIdDelete({
                 workspaceId: id,
-                vaultDelete: vaultDelete
+                datasetDelete: datasetDelete
             });
 
             if (appResponse.success) {
@@ -139,7 +134,7 @@ export function useWorkspaces() {
                 }
                 await fetchWorkspaces();
             } else {
-                showError("Deletion Failed", appResponse.message || 'Unable to delete workspace.');
+                showError("Deletion Failed", (appResponse as any).message || 'Unable to delete workspace.');
             }
         } catch (err: unknown) {
             showError("Connection Error", "Could not delete workspace. Please check your connection.");
@@ -149,11 +144,15 @@ export function useWorkspaces() {
 
     const getWorkspaceDetails = async (id: string): Promise<WorkspaceDetail | null> => {
         try {
-            const result = await api.getWorkspaceDetailsWorkspacesWorkspaceIdDetailsGet({
+            const result = await api.getWorkspaceDetailsApiV1WorkspacesWorkspaceIdDetailsGet({
                 workspaceId: id
             });
             if (result.success && result.data) {
-                return result.data;
+                const data = result.data as APIWorkspaceDetail;
+                return {
+                    ...data,
+                    ragEngine: data.settings?.rag_engine
+                } as WorkspaceDetail;
             }
             return null;
         } catch (err: unknown) {
@@ -163,16 +162,12 @@ export function useWorkspaces() {
     };
 
     const shareDocument = async (sourceName: string, targetWorkspaceId: string) => {
-        if (!currentWorkspace) return;
+        if (!currentWorkspace) return false;
         try {
-            // shareDocument endpoint doesn't seem to have a dedicated generated method in api object?
-            // Actually it was in WorkspacesApi. let's check.
-            // based on workspaces.py, it's @router.post("/{workspace_id}/share-document")
-            const response = await api.shareDocumentWorkspacesWorkspaceIdShareDocumentPost({
+            const response = await api.shareDocumentApiV1WorkspacesWorkspaceIdShareDocumentPost({
                 workspaceId: currentWorkspace.id,
-                // shareDocument payload is source_name and target_workspace_id
-                body: { source_name: sourceName, target_workspace_id: targetWorkspaceId }
-            } as { workspaceId: string; body: { source_name: string; target_workspace_id: string } });
+                requestBody: { source_name: sourceName, target_workspace_id: targetWorkspaceId }
+            });
             return response.success;
         } catch (err: unknown) {
             console.error('Failed to share document:', err);
@@ -184,14 +179,12 @@ export function useWorkspaces() {
         workspaces,
         currentWorkspace,
         isLoading,
-        error: null,
+        fetchWorkspaces,
         selectWorkspace,
-        switchWorkspace: selectWorkspace,
         createWorkspace,
         updateWorkspace,
         deleteWorkspace,
         getWorkspaceDetails,
-        shareDocument,
-        refreshWorkspaces: fetchWorkspaces
+        shareDocument
     };
 }

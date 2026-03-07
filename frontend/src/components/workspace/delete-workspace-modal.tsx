@@ -3,13 +3,13 @@
 import { useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Trash2 } from "lucide-react";
-import { Workspace } from "@/lib/api";
+import { Workspace } from "@/client/types.gen";
 import { cn } from "@/lib/utils";
 
 interface DeleteWorkspaceModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onConfirm: (vaultDelete: boolean) => void | Promise<void>;
+    onConfirm: (datasetDelete: boolean) => void | Promise<void>;
     workspace: Workspace | null;
 }
 
@@ -19,7 +19,7 @@ export function DeleteWorkspaceModal({
     onConfirm,
     workspace,
 }: DeleteWorkspaceModalProps) {
-    const [vaultDelete, setVaultDelete] = useState(false);
+    const [datasetDelete, setDatasetDelete] = useState(false);
 
     if (!workspace) return null;
 
@@ -43,26 +43,26 @@ export function DeleteWorkspaceModal({
                 <div className="flex flex-col gap-2">
                     <label className={cn(
                         "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors",
-                        !vaultDelete ? "bg-secondary text-foreground border-border" : "bg-transparent text-muted-foreground border-transparent hover:bg-secondary/50"
+                        !datasetDelete ? "bg-secondary text-foreground border-border" : "bg-transparent text-muted-foreground border-transparent hover:bg-secondary/50"
                     )}>
                         <input
                             type="radio"
                             className="accent-foreground"
-                            checked={!vaultDelete}
-                            onChange={() => setVaultDelete(false)}
+                            checked={!datasetDelete}
+                            onChange={() => setDatasetDelete(false)}
                         />
                         <span className="text-sm font-bold">Workspace only</span>
                     </label>
 
                     <label className={cn(
                         "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors",
-                        vaultDelete ? "bg-red-500/10 text-red-500 border-red-500/20" : "bg-transparent text-muted-foreground border-transparent hover:bg-secondary/50"
+                        datasetDelete ? "bg-red-500/10 text-red-500 border-red-500/20" : "bg-transparent text-muted-foreground border-transparent hover:bg-secondary/50"
                     )}>
                         <input
                             type="radio"
                             className="accent-red-500"
-                            checked={vaultDelete}
-                            onChange={() => setVaultDelete(true)}
+                            checked={datasetDelete}
+                            onChange={() => setDatasetDelete(true)}
                         />
                         <span className="text-sm font-bold">Workspace and its documents</span>
                     </label>
@@ -77,15 +77,15 @@ export function DeleteWorkspaceModal({
                     </button>
                     <button
                         onClick={() => {
-                            onConfirm(vaultDelete);
-                            setVaultDelete(false); // Reset state for next time
+                            onConfirm(datasetDelete);
+                            setDatasetDelete(false); // Reset state for next time
                         }}
                         className={cn(
                             "px-4 py-2 text-xs font-bold text-white rounded-lg transition-colors shadow-sm",
-                            vaultDelete ? "bg-red-500 hover:bg-red-600 shadow-red-500/20" : "bg-indigo-500 hover:bg-indigo-600 shadow-indigo-500/20"
+                            datasetDelete ? "bg-red-500 hover:bg-red-600 shadow-red-500/20" : "bg-indigo-500 hover:bg-indigo-600 shadow-indigo-500/20"
                         )}
                     >
-                        {vaultDelete ? "Delete workspace & documents" : "Delete workspace"}
+                        {datasetDelete ? "Delete workspace & documents" : "Delete workspace"}
                     </button>
                 </div>
             </div>

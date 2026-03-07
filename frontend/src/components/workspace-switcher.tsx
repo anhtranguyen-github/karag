@@ -44,6 +44,7 @@ export function WorkspaceSwitcher({
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className="flex items-center justify-between w-full p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all group"
+                title="Switch Workspace"
             >
                 <div className="flex items-center gap-2 overflow-hidden">
                     <div className="w-6 h-6 rounded-md bg-blue-600 flex items-center justify-center text-white text-tiny font-bold shrink-0">

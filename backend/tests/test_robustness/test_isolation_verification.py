@@ -92,7 +92,7 @@ class TestIsolationChecker:
                             "file": test_file,
                             "line": i,
                             "pattern": pattern,
-                            "issue": "Potential shared state detected",
+                            "issue": "Potential shared state detected",  # Original key was "issue"
                             "severity": "WARNING",
                             "context": line.strip(),
                         }
@@ -102,7 +102,7 @@ class TestIsolationChecker:
         has_db_ops = False
         has_cleanup = False
 
-        for i, line in enumerate(lines, 1):
+        for _, line in enumerate(lines, 1):
             for pattern in self.DATABASE_PATTERNS:
                 if pattern in line:
                     has_db_ops = True
@@ -116,7 +116,7 @@ class TestIsolationChecker:
                     "file": test_file,
                     "issue": "Database operations without cleanup fixtures",
                     "severity": "ERROR",
-                    "recommendation": "Add @pytest.fixture(autouse=True) or setUp/tearDown for cleanup",
+                    "recommendation": "Add @pytest.fixture(autouse=True) or cleanup fixtures",
                 }
             )
 

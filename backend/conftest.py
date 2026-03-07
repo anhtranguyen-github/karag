@@ -34,3 +34,41 @@ if not _FORCE_CLOUD:
     os.environ["OTEL_ENABLED"] = "false"
     os.environ["OTEL_TRACES_EXPORTER"] = "none"
     os.environ["OTEL_METRICS_EXPORTER"] = "none"
+    os.environ["TEST_MODE"] = "true"
+
+
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def mock_auth_globally(monkeypatch):
+    """
+    Globally override authentication dependencies for integration tests.
+    This ensures that tests using the real FastAPI app don't fail due to missing tokens.
+    """
+    from backend.app.api.deps import (
+        CurrentUser,
+        CurrentWorkspace,
+        get_current_user,
+        get_current_workspace,
+        get_optional_user,
+        get_optional_workspace,
+    )
+    from backend.app.main import app
+    
+    # Mock user
+    async def _mock_user():
+        return CurrentUser(id="api_test_user", email="test@example.com", is_admin=True)
+    
+    async def _mock_workspace(workspace_id: str = "default"):
+        return CurrentWorkspace(id=workspace_id, name="Test Workspace")
+
+    app.dependency_overrides[get_current_user] = _mock_user
+    app.dependency_overrides[get_current_workspace] = _mock_workspace
+    app.dependency_overrides[get_optional_user] = _mock_user
+    app.dependency_overrides[get_optional_workspace] = _mock_workspace
+    
+    yield
+    
+    # Clean up
+    app.dependency_overrides = {}

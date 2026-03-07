@@ -19,13 +19,13 @@ import {
     CardContent,
 } from "@/components/ui/card";
 
-export default function VaultPage() {
+export default function StoragePage() {
     return (
         <div className="space-y-8 max-w-6xl mx-auto">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Global Vault</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">Document Storage</h1>
                     <p className="text-muted-foreground mt-1 font-medium">Shared secure storage for all raw documents across workspaces.</p>
                 </div>
                 <Button className="h-10 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[11px] tracking-wide shadow-lg shadow-indigo-600/20">
@@ -38,7 +38,7 @@ export default function VaultPage() {
             <div className="relative group w-full">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-indigo-400 transition-colors" />
                 <Input
-                    placeholder="Search documents in vault by name, type or content..."
+                    placeholder="Search documents in storage by name, type or content..."
                     className="w-full h-12 pl-12 pr-6 rounded-2xl bg-card border border-border focus:border-indigo-500/30 transition-all font-medium"
                 />
             </div>
@@ -98,7 +98,7 @@ export default function VaultPage() {
                 <div className="flex items-center gap-4 flex-1">
                     <div className="w-2 h-12 bg-indigo-500 rounded-full" />
                     <div className="space-y-1">
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Vault Usage</p>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Storage Usage</p>
                         <p className="text-lg font-bold tracking-tight">12.4 GB / 50 GB</p>
                     </div>
                 </div>

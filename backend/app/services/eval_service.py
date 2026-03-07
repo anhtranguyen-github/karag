@@ -20,9 +20,7 @@ logger = structlog.get_logger(__name__)
 
 
 class EvalService:
-    async def create_dataset(
-        self, name: str, workspace_id: str, test_cases: list[dict[str, Any]]
-    ) -> str:
+    async def create_dataset(self, name: str, workspace_id: str, test_cases: list[dict[str, Any]]) -> str:
         db = mongodb_manager.get_async_database()
         dataset_id = str(uuid.uuid4())
         dataset = EvalDataset(
@@ -98,9 +96,7 @@ class EvalService:
                     answer=actual_answer,
                 )
 
-                faith_resp = await eval_llm.ainvoke(
-                    [HumanMessage(content=f"{faith_sys}\n\n{faith_user}")]
-                )
+                faith_resp = await eval_llm.ainvoke([HumanMessage(content=f"{faith_sys}\n\n{faith_user}")])
 
                 try:
                     faith_score = float(faith_resp.content.strip())

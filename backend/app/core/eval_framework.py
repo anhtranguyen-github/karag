@@ -335,9 +335,7 @@ class EvalFramework:
         return {
             "total_cases": len(results),
             "metrics_summary": summary,
-            "overall_score": sum(s["mean"] for s in summary.values()) / len(summary)
-            if summary
-            else 0,
+            "overall_score": sum(s["mean"] for s in summary.values()) / len(summary) if summary else 0,
             "detailed_results": results,
         }
 
@@ -373,18 +371,10 @@ def create_rag_evaluator(llm_client) -> EvalFramework:
     framework = EvalFramework()
 
     # LLM-based evaluators
-    framework.add_evaluator(
-        EvalMetric.RELEVANCE, LLMBasedEvaluator(llm_client, EvalMetric.RELEVANCE)
-    )
-    framework.add_evaluator(
-        EvalMetric.GROUNDEDNESS, LLMBasedEvaluator(llm_client, EvalMetric.GROUNDEDNESS)
-    )
-    framework.add_evaluator(
-        EvalMetric.COHERENCE, LLMBasedEvaluator(llm_client, EvalMetric.COHERENCE)
-    )
-    framework.add_evaluator(
-        EvalMetric.HELPFULNESS, LLMBasedEvaluator(llm_client, EvalMetric.HELPFULNESS)
-    )
+    framework.add_evaluator(EvalMetric.RELEVANCE, LLMBasedEvaluator(llm_client, EvalMetric.RELEVANCE))
+    framework.add_evaluator(EvalMetric.GROUNDEDNESS, LLMBasedEvaluator(llm_client, EvalMetric.GROUNDEDNESS))
+    framework.add_evaluator(EvalMetric.COHERENCE, LLMBasedEvaluator(llm_client, EvalMetric.COHERENCE))
+    framework.add_evaluator(EvalMetric.HELPFULNESS, LLMBasedEvaluator(llm_client, EvalMetric.HELPFULNESS))
 
     # Rule-based safety check
     def safety_check(query: str, response: str) -> float:
@@ -398,8 +388,6 @@ def create_rag_evaluator(llm_client) -> EvalFramework:
                 return 0.0
         return 1.0
 
-    framework.add_evaluator(
-        EvalMetric.SAFETY, RuleBasedEvaluator(EvalMetric.SAFETY, [safety_check])
-    )
+    framework.add_evaluator(EvalMetric.SAFETY, RuleBasedEvaluator(EvalMetric.SAFETY, [safety_check]))
 
     return framework

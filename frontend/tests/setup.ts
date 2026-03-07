@@ -15,6 +15,17 @@ vi.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
 }));
 
+// Mock Auth context globally
+vi.mock('@/context/auth-context', () => ({
+    useAuth: () => ({
+        user: { id: 'test-user', fullName: 'Test User', email: 'test@example.com' },
+        isAuthenticated: true,
+        login: vi.fn(),
+        logout: vi.fn(),
+    }),
+    AuthProvider: ({ children }: { children: any }) => children,
+}));
+
 // Mock Toast context globally
 vi.mock('@/context/toast-context', () => ({
     useToast: () => ({

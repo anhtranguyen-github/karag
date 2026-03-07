@@ -30,9 +30,7 @@ class DatasetService:
     DEFAULT_WORKSPACE_DATASET = "default"
 
     @classmethod
-    async def create_workspace_dataset(
-        cls, workspace_id: str, name: str, description: str | None = None
-    ) -> Dataset:
+    async def create_workspace_dataset(cls, workspace_id: str, name: str, description: str | None = None) -> Dataset:
         """Create a new workspace-scoped dataset."""
         db = mongodb_manager.get_async_database()
 
@@ -98,9 +96,7 @@ class DatasetService:
                 dataset_workspace=dataset.workspace_id,
                 requesting_workspace=workspace_id,
             )
-            raise AuthorizationError(
-                f"Workspace '{workspace_id}' does not have access to dataset '{dataset_id}'"
-            )
+            raise AuthorizationError(f"Workspace '{workspace_id}' does not have access to dataset '{dataset_id}'")
 
         return dataset
 
@@ -122,9 +118,7 @@ class DatasetService:
         """Get or create the default dataset for a workspace."""
         db = mongodb_manager.get_async_database()
 
-        dataset = await db.datasets.find_one(
-            {"workspace_id": workspace_id, "name": cls.DEFAULT_WORKSPACE_DATASET}
-        )
+        dataset = await db.datasets.find_one({"workspace_id": workspace_id, "name": cls.DEFAULT_WORKSPACE_DATASET})
 
         if dataset:
             return Dataset(**dataset)
@@ -136,9 +130,7 @@ class DatasetService:
         )
 
     @classmethod
-    async def delete_dataset(
-        cls, dataset_id: str, workspace_id: str, delete_contents: bool = False
-    ) -> bool:
+    async def delete_dataset(cls, dataset_id: str, workspace_id: str, delete_contents: bool = False) -> bool:
         """Delete (deactivate) a dataset."""
         db = mongodb_manager.get_async_database()
 

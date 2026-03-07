@@ -241,7 +241,7 @@ class LLMWithFallback:
                 ):
                     result = await self._execute_with_retry(
                         model,
-                        lambda: generate_fn(model),
+                        lambda m=model: generate_fn(m),
                     )
 
                     # Record fallback usage if not primary
@@ -275,9 +275,7 @@ class LLMWithFallback:
                 continue
 
         # All models failed
-        raise AllModelsFailedError(
-            f"All models exhausted. Primary: {self.primary}, Last error: {last_error}"
-        )
+        raise AllModelsFailedError(f"All models exhausted. Primary: {self.primary}, Last error: {last_error}")
 
 
 class AllModelsFailedError(LLMError):

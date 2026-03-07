@@ -218,9 +218,7 @@ class RAGService:
             return {
                 "answer": final_state.get("final_answer")
                 or (
-                    final_state.get("draft_answers")[0]
-                    if final_state.get("draft_answers")
-                    else "No answer generated."
+                    final_state.get("draft_answers")[0] if final_state.get("draft_answers") else "No answer generated."
                 ),
                 "context": final_state.get("final_context", ""),
                 "tracing": metadata,

@@ -29,9 +29,7 @@ class GraphStore(ABC):
         pass
 
     @abstractmethod
-    async def get_workspace_graph(
-        self, workspace_id: str, limit: int = 100
-    ) -> list[dict[str, Any]]:
+    async def get_workspace_graph(self, workspace_id: str, limit: int = 100) -> list[dict[str, Any]]:
         """
         Retrieves the general entity relationships for displaying the Knowledge Graph representation of a workspace.
         Expected output list of dicts:

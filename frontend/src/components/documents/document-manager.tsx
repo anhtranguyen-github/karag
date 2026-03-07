@@ -296,7 +296,7 @@ export function DocumentManager({ workspaceId }: DocumentManagerProps) {
                 onClose={() => setDocToDelete(null)}
                 onConfirm={confirmDelete}
                 doc={docToDelete}
-                isVault={!workspaceId}
+                isGlobal={!workspaceId}
             />
         </div>
     );
@@ -425,7 +425,7 @@ function DocumentDetailPanel({ doc, workspaceId, onClose }: { doc: Document, wor
                                             <Shield size={18} />
                                         </div>
                                         <div>
-                                            <p className="text-tiny font-bold text-white tracking-tight">{doc.workspace_name || 'Vault'}</p>
+                                            <p className="text-tiny font-bold text-white tracking-tight">{doc.workspace_name || 'Global Storage'}</p>
                                             <p className="text-[9px] text-gray-600 font-bold">{doc.workspace_id || 'SYSTEM_ROOT'}</p>
                                         </div>
                                     </div>
@@ -438,7 +438,7 @@ function DocumentDetailPanel({ doc, workspaceId, onClose }: { doc: Document, wor
                             <div className="p-6 rounded-3xl bg-indigo-500/5 border border-indigo-500/10 flex items-start gap-4">
                                 <Info size={18} className="text-indigo-400 shrink-0 mt-1" />
                                 <p className="text-tiny text-indigo-400/60 font-medium leading-relaxed">
-                                    This document is part of the workspace. Deletion here will only remove the workspace-specific embeddings unless executed via the Vault.
+                                    This document is part of the workspace. Deletion here will only remove the workspace-specific embeddings unless executed via Global Storage.
                                 </p>
                             </div>
                         </div>
@@ -472,9 +472,9 @@ function formatDate(dateStr: string) {
 }
 
 function DeleteDocumentModal({
-    isOpen, onClose, onConfirm, doc, isVault
+    isOpen, onClose, onConfirm, doc, isGlobal
 }: {
-    isOpen: boolean; onClose: () => void; onConfirm: () => void; doc: Document | null; isVault: boolean;
+    isOpen: boolean; onClose: () => void; onConfirm: () => void; doc: Document | null; isGlobal: boolean;
 }) {
     if (!doc) return null;
 
@@ -500,25 +500,25 @@ function DeleteDocumentModal({
                         </div>
                         <div className="space-y-1">
                             <h3 className="text-sm font-bold text-foreground">
-                                {isVault ? "Purge Document Globally" : "Remove from Workspace"}
+                                {isGlobal ? "Purge Document Globally" : "Remove from Workspace"}
                             </h3>
                             <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-black opacity-60">
-                                {isVault ? "This action may be irreversible" : "Safely Detach Document"}
+                                {isGlobal ? "This action may be irreversible" : "Safely Detach Document"}
                             </p>
                         </div>
                     </div>
 
-                    <div className="px-5">
+                     <div className="px-5">
                         <p className="text-xs text-muted-foreground leading-relaxed text-center">
-                            {isVault ? (
+                            {isGlobal ? (
                                 <>
-                                    You are about to permanently delete <span className="font-bold text-foreground">"{doc.filename}"</span> from the Vault.
+                                    You are about to permanently delete <span className="font-bold text-foreground">"{doc.filename}"</span> globally.
                                     This will wipe its underlying file and all vector data unless it's currently actively used in another workspace.
                                 </>
                             ) : (
                                 <>
                                     You are removing <span className="font-bold text-foreground">"{doc.filename}"</span> from this workspace.
-                                    Its specific vector indexes here will be dropped, but the file remains safely accessible in the global Vault.
+                                    Its specific vector indexes here will be dropped, but the file remains safely accessible in Global Storage.
                                 </>
                             )}
                         </p>

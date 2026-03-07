@@ -2,6 +2,10 @@ from backend.app.api.deps import CurrentWorkspace, get_current_workspace
 from backend.app.core.exceptions import NotFoundError, ValidationError
 from backend.app.schemas.base import AppResponse
 from backend.app.schemas.documents import (
+    DocumentInspectionResponse,
+    DocumentListItem,
+    DocumentResponse,
+    DocumentUploadResponse,
     DocumentWorkspaceUpdate,
     GitHubImportRequest,
     SitemapImportRequest,
@@ -15,7 +19,7 @@ from fastapi.encoders import jsonable_encoder
 router = APIRouter(tags=["documents"])
 
 
-@router.post("/upload", response_model=AppResponse)
+@router.post("/upload", response_model=AppResponse[DocumentUploadResponse])
 async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
@@ -24,27 +28,23 @@ async def upload_document(
     strategy: str | None = None,
 ):
     workspace_id = current_workspace.id
-    result = await document_service.upload(
-        file, workspace_id, dataset_id=dataset_id, strategy=strategy
-    )
+    result = await document_service.upload(file, workspace_id, dataset_id=dataset_id, strategy=strategy)
 
-    if result["status"] == "success":
+    if result.status == "success":
         background_tasks.add_task(
             document_service.run_ingestion,
-            result["task_id"],
-            result["filename"],
-            result["content"],
-            result["content_type"],
+            result.task_id,
+            result.filename,
+            result.content,
+            result.content_type,
             workspace_id,
             dataset_id,
         )
-        if "content" in result:
-            del result["content"]
 
-    return AppResponse.from_result(result)
+    return AppResponse.success_response(data=result)
 
 
-@router.post("/import-url", response_model=AppResponse)
+@router.post("/import-url", response_model=AppResponse[DocumentUploadResponse])
 async def import_url_document(
     background_tasks: BackgroundTasks,
     payload: UrlImportRequest,
@@ -54,23 +54,21 @@ async def import_url_document(
     url_str = str(payload.url)
     result = await document_service.import_url(url_str, workspace_id, strategy=payload.strategy)
 
-    if result["status"] == "success":
+    if result.status == "success":
         background_tasks.add_task(
             document_service.run_url_ingestion_background,
-            result["task_id"],
+            result.task_id,
             url_str,
-            result["filename"],
+            result.filename,
             workspace_id,
-            payload.dataset_id if hasattr(payload, "dataset_id") else None,
+            payload.dataset_id,
             payload.strategy,
         )
-        if "content" in result:
-            del result["content"]
 
-    return AppResponse.from_result(result)
+    return AppResponse.success_response(data=result)
 
 
-@router.post("/import-sitemap", response_model=AppResponse)
+@router.post("/import-sitemap", response_model=AppResponse[DocumentUploadResponse])
 async def import_sitemap_document(
     background_tasks: BackgroundTasks,
     payload: SitemapImportRequest,
@@ -79,17 +77,17 @@ async def import_sitemap_document(
     workspace_id = current_workspace.id
     url_str = str(payload.url)
     result = await document_service.import_sitemap(url_str, workspace_id)
-    if result["status"] == "success":
+    if result.status == "success":
         background_tasks.add_task(
             document_service.run_sitemap_background,
-            result["task_id"],
+            result.task_id,
             url_str,
             workspace_id,
         )
-    return AppResponse.from_result(result)
+    return AppResponse.success_response(data=result)
 
 
-@router.post("/import-github", response_model=AppResponse)
+@router.post("/import-github", response_model=AppResponse[DocumentUploadResponse])
 async def import_github_document(
     background_tasks: BackgroundTasks,
     payload: GitHubImportRequest,
@@ -98,18 +96,18 @@ async def import_github_document(
     workspace_id = current_workspace.id
     url_str = str(payload.url)
     result = await document_service.import_github(url_str, workspace_id, payload.branch)
-    if result["status"] == "success":
+    if result.status == "success":
         background_tasks.add_task(
             document_service.run_github_background,
-            result["task_id"],
+            result.task_id,
             url_str,
             payload.branch,
             workspace_id,
         )
-    return AppResponse.from_result(result)
+    return AppResponse.success_response(data=result)
 
 
-@router.post("/import-audio")
+@router.post("/import-audio", response_model=AppResponse[DocumentUploadResponse])
 async def import_audio_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
@@ -117,39 +115,30 @@ async def import_audio_document(
 ):
     workspace_id = current_workspace.id
     result = await document_service.import_audio(file, workspace_id)
-    if result["status"] == "success":
+    if result.status == "success":
         background_tasks.add_task(
             document_service.run_audio_background,
-            result["task_id"],
-            result["filename"],
-            result["content"],
+            result.task_id,
+            result.filename,
+            result.content,
             workspace_id,
         )
-        # Remove binary content from response
-        if "content" in result:
-            del result["content"]
 
-    return AppResponse.from_result(result)
+    return AppResponse.success_response(data=result)
 
 
-@router.get("/documents")
+@router.get("/documents", response_model=AppResponse[list[DocumentListItem]])
 async def list_documents(current_workspace: CurrentWorkspace = Depends(get_current_workspace)):
     docs = await document_service.list_by_workspace(current_workspace.id)
     return AppResponse.success_response(data=docs)
 
 
-@router.get("/documents-all")
-async def list_all_documents(current_workspace: dict = Depends(get_current_workspace)):
+@router.get("/documents-all", response_model=AppResponse[list[DocumentListItem]])
+async def list_all_documents(current_workspace: CurrentWorkspace = Depends(get_current_workspace)):
     docs = await document_service.list_all()
     return AppResponse.success_response(data=docs)
 
 
-@router.get("/vault")
-async def list_vault_documents(
-    current_workspace: dict = Depends(get_current_workspace),
-):
-    docs = await document_service.list_vault()
-    return AppResponse.success_response(data=docs)
 
 
 # --- Specific Document Sub-Resources (Must come before generic {name:path}) ---
@@ -159,17 +148,17 @@ async def list_vault_documents(
 async def get_document_chunks(
     document_id: str,
     limit: int = 100,
-    current_workspace: dict = Depends(get_current_workspace),
+    current_workspace: CurrentWorkspace = Depends(get_current_workspace),
 ):
     return await document_service.get_chunks(document_id, limit=limit)
 
 
-@router.post("/documents/{document_id}/index")
+@router.post("/documents/{document_id}/index", response_model=AppResponse[dict])
 async def index_document(
     background_tasks: BackgroundTasks,
     document_id: str,
     dataset_id: str | None = None,
-    current_workspace: dict = Depends(get_current_workspace),
+    current_workspace: CurrentWorkspace = Depends(get_current_workspace),
 ):
     workspace_id = current_workspace["id"]
     """Non-blocking indexing triggered by document ID."""
@@ -193,19 +182,17 @@ async def index_document(
     )
 
 
-@router.get("/documents/{document_id}/inspect")
-async def inspect_document(
-    document_id: str, current_workspace: dict = Depends(get_current_workspace)
-):
+@router.get("/documents/{document_id}/inspect", response_model=AppResponse[DocumentInspectionResponse])
+async def inspect_document(document_id: str, current_workspace: CurrentWorkspace = Depends(get_current_workspace)):
     results = await document_service.inspect(document_id)
     return AppResponse.success_response(data=results)
 
 
-@router.post("/documents/update-workspaces")
+@router.post("/documents/update-workspaces", response_model=AppResponse[dict])
 async def update_document_workspaces(
     background_tasks: BackgroundTasks,
     payload: DocumentWorkspaceUpdate,
-    current_workspace: dict = Depends(get_current_workspace),
+    current_workspace: CurrentWorkspace = Depends(get_current_workspace),
 ):
     """Workspace operations using internal IDs."""
     document_id = payload.document_id
@@ -235,14 +222,12 @@ async def update_document_workspaces(
         force_reindex,
     )
 
-    return AppResponse.success_response(
-        data={"task_id": task_id}, message=f"Document operation {action} started."
-    )
+    return AppResponse.success_response(data={"task_id": task_id}, message=f"Document operation {action} started.")
 
 
-@router.post("/documents/sync-workspaces")
+@router.post("/documents/sync-workspaces", response_model=AppResponse)
 async def sync_document_workspaces(
-    current_workspace: dict = Depends(get_current_workspace),
+    current_workspace: CurrentWorkspace = Depends(get_current_workspace),
 ):
     result = await document_service.sync_workspaces()
     return AppResponse.success_response(data=result)
@@ -251,8 +236,8 @@ async def sync_document_workspaces(
 # --- Generic Document Operations ---
 
 
-@router.get("/documents/{document_id}")
-async def get_document(document_id: str, current_workspace: dict = Depends(get_current_workspace)):
+@router.get("/documents/{document_id}", response_model=AppResponse[DocumentResponse])
+async def get_document(document_id: str, current_workspace: CurrentWorkspace = Depends(get_current_workspace)):
     from backend.app.core.config import karag_settings
     from backend.app.core.minio import minio_manager
 
@@ -260,18 +245,16 @@ async def get_document(document_id: str, current_workspace: dict = Depends(get_c
     if not doc:
         raise NotFoundError(f"Document '{document_id}' not found")
 
-    minio_path = doc.get("minio_path")
-    if minio_path:
+    if doc.minio_path:
         bucket_prefix = f"{karag_settings.MINIO_BUCKET}/"
-        object_name = minio_path
+        object_name = doc.minio_path
         if object_name.startswith(bucket_prefix):
             object_name = object_name[len(bucket_prefix) :]
 
-        doc["download_url"] = minio_manager.get_presigned_url(object_name)
+        doc.download_url = minio_manager.get_presigned_url(object_name)
 
-    content_type = doc.get("content_type", "application/octet-stream")
     is_binary = any(
-        t in content_type
+        t in doc.content_type
         for t in [
             "image/",
             "audio/",
@@ -282,19 +265,19 @@ async def get_document(document_id: str, current_workspace: dict = Depends(get_c
     )
 
     if is_binary:
-        doc["content"] = None
+        doc.content = None
     else:
         content_bytes = await document_service.get_content(document_id)
         if content_bytes:
             try:
-                doc["content"] = content_bytes.decode("utf-8")
+                doc.content = content_bytes.decode("utf-8")
             except UnicodeDecodeError:
-                doc["content"] = None
+                doc.content = None
 
-    return AppResponse.success_response(data=jsonable_encoder(doc))
+    return AppResponse.success_response(data=doc)
 
 
-@router.delete("/documents/{document_id}")
+@router.delete("/documents/{document_id}", response_model=AppResponse[dict])
 async def delete_document(
     document_id: str,
     dataset_delete: bool = False,

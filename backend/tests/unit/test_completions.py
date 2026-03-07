@@ -292,9 +292,7 @@ def run_tests():
     """Run all tests."""
     import subprocess
 
-    result = subprocess.run(
-        ["python", "-m", "pytest", __file__, "-v"], capture_output=True, text=True
-    )
+    result = subprocess.run(["python", "-m", "pytest", __file__, "-v"], capture_output=True, text=True)
     print(result.stdout)
     if result.stderr:
         print("STDERR:", result.stderr)

@@ -73,9 +73,7 @@ async def test_workspace_service_create(mocker):
         new=AsyncMock(),
     )
 
-    ws_result = await workspace_service.create(
-        {"name": "New Workspace", "description": "Description"}
-    )
+    ws_result = await workspace_service.create({"name": "New Workspace", "description": "Description"}, user_id="test-user")
     assert ws_result["status"] == "success"
     assert ws_result["data"]["name"] == "New Workspace"
     assert len(ws_result["data"]["id"]) == 8
@@ -98,9 +96,7 @@ async def test_document_service_delete(mocker):
         "backend.app.core.mongodb.mongodb_manager.get_async_database",
         return_value=mock_db,
     )
-    mock_minio = mocker.patch(
-        "backend.app.services.document.storage_service.minio_manager.delete_file"
-    )
+    mock_minio = mocker.patch("backend.app.services.document.storage_service.minio_manager.delete_file")
 
     # Mock VectorStore adapter
     mock_store = AsyncMock()
@@ -120,7 +116,7 @@ async def test_document_service_delete(mocker):
         return_value=(MagicMock(), mock_store),
     )
 
-    await document_service.delete("doc-123", "default", vault_delete=True)
+    await document_service.delete("doc-123", "default", dataset_delete=True)
 
     # Assertions should remain the same as they check the internal cleanup logic
     mock_minio.assert_called_once_with("ws/doc/v1/test.pdf")

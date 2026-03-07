@@ -10,9 +10,7 @@ from pydantic import BaseModel, Field
 class ReaderConfig(BaseModel):
     """Configuration for document readers."""
 
-    pdf_reader: str = Field(
-        default="pymupdf", description="PDF reader to use (e.g. pymupdf, unstructured)"
-    )
+    pdf_reader: str = Field(default="pymupdf", description="PDF reader to use (e.g. pymupdf, unstructured)")
     html_reader: str = Field(default="trafilatura", description="HTML reader to use")
     docx_reader: str = Field(default="python-docx", description="DOCX reader to use")
 
@@ -20,9 +18,7 @@ class ReaderConfig(BaseModel):
 class ChunkingConfig(BaseModel):
     """Configuration for text chunking."""
 
-    strategy: Literal["recursive", "semantic", "markdown", "code-aware"] = Field(
-        default="recursive"
-    )
+    strategy: Literal["recursive", "semantic", "markdown", "code-aware"] = Field(default="recursive")
     chunk_size: int = Field(default=1024, ge=100)
     chunk_overlap: int = Field(default=100, ge=0)
     metadata_extraction: bool = Field(default=True)
@@ -31,9 +27,7 @@ class ChunkingConfig(BaseModel):
 class EmbeddingConfig(BaseModel):
     """Configuration for embeddings."""
 
-    provider: Literal["openai", "huggingface", "sentence-transformers", "local"] = Field(
-        default="openai"
-    )
+    provider: Literal["openai", "huggingface", "sentence-transformers", "local"] = Field(default="openai")
     model: str = Field(default="text-embedding-3-small")
     dimension: int = Field(default=1536, ge=128)
     batch_size: int = Field(default=32, ge=1)
@@ -71,9 +65,7 @@ class SearchEngineConfig(BaseModel):
 
     multi_query: bool = Field(default=False, description="Enable multi-query generation")
     query_rewrite: bool = Field(default=False, description="Enable query rewriting")
-    self_query_retrieval: bool = Field(
-        default=False, description="Enable metadata filtering via self-query"
-    )
+    self_query_retrieval: bool = Field(default=False, description="Enable metadata filtering via self-query")
 
 
 class PipelineConfig(BaseModel):

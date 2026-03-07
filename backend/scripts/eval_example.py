@@ -298,9 +298,7 @@ async def example_5_metrics_only():
     query = "What is RAG?"
     answer = "RAG stands for Retrieval-Augmented Generation, combining retrieval with generation."
     contexts = ["RAG is a technique that retrieves documents before generating answers."]
-    reference = (
-        "Retrieval-Augmented Generation (RAG) combines retrieval systems with generative models."
-    )
+    reference = "Retrieval-Augmented Generation (RAG) combines retrieval systems with generative models."
 
     print("\nGeneration Metrics:")
     print(f"  Query: {query}")

@@ -13,9 +13,7 @@ class GitHubIngestionStrategy(BaseIngestionStrategy):
     def task_type(self) -> str:
         return "github_ingestion"
 
-    async def run(
-        self, task_id: str, workspace_id: str, metadata: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def run(self, task_id: str, workspace_id: str, metadata: dict[str, Any]) -> dict[str, Any]:
         from backend.app.rag.ingestion import ingestion_pipeline
 
         repo_url = metadata.get("repo_url")
@@ -57,9 +55,7 @@ class GitHubIngestionStrategy(BaseIngestionStrategy):
 
             if result.returncode != 0:
                 if "Remote branch" in result.stderr and branch == "main":
-                    await task_service.update_task(
-                        task_id, message="Main branch not found, trying master..."
-                    )
+                    await task_service.update_task(task_id, message="Main branch not found, trying master...")
                     result = subprocess.run(
                         [
                             git_path,
@@ -79,9 +75,7 @@ class GitHubIngestionStrategy(BaseIngestionStrategy):
             if result.returncode != 0:
                 raise Exception(f"Git clone failed: {result.stderr}")
 
-            await task_service.update_task(
-                task_id, progress=20, message="Processing repository files..."
-            )
+            await task_service.update_task(task_id, progress=20, message="Processing repository files...")
 
             from pathlib import Path
 

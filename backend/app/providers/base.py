@@ -100,9 +100,7 @@ class ToolCapable(Protocol):
             result = await provider.chat_with_tools(...)
     """
 
-    async def chat_with_tools(
-        self, messages: list[LLMMessage], tools: list[dict[str, Any]], **kwargs
-    ) -> LLMResponse:
+    async def chat_with_tools(self, messages: list[LLMMessage], tools: list[dict[str, Any]], **kwargs) -> LLMResponse:
         """Execute chat with tool calling support.
 
         Args:

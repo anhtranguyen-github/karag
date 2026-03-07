@@ -55,9 +55,7 @@ async def test_cross_workspace_share_document():
             "backend.app.services.task.task_service.task_service.is_cancelled",
             new=AsyncMock(return_value=False),
         ):
-            with patch(
-                "backend.app.services.task.task_service.task_service.update_task", new=AsyncMock()
-            ):
+            with patch("backend.app.services.task.task_service.task_service.update_task", new=AsyncMock()):
                 # Mock existing document - need more side_effects for multiple finds
                 mock_doc = {
                     "id": "doc_123",
@@ -98,9 +96,7 @@ async def test_cross_workspace_move_document():
             "backend.app.services.task.task_service.task_service.is_cancelled",
             new=AsyncMock(return_value=False),
         ):
-            with patch(
-                "backend.app.services.task.task_service.task_service.update_task", new=AsyncMock()
-            ):
+            with patch("backend.app.services.task.task_service.task_service.update_task", new=AsyncMock()):
                 # Mock existing document
                 mock_doc = {
                     "id": "doc_456",
@@ -116,9 +112,7 @@ async def test_cross_workspace_move_document():
                     "backend.app.services.document.document_ingestion_service.document_ingestion_service.index_document",
                     new=AsyncMock(),
                 ):
-                    with patch(
-                        "backend.app.rag.ingestion.ingestion_pipeline.get_ingestion_config"
-                    ) as mock_config:
+                    with patch("backend.app.rag.ingestion.ingestion_pipeline.get_ingestion_config") as mock_config:
                         mock_config.return_value = (MagicMock(), AsyncMock())
 
                         cross_ws_service = CrossWorkspaceDocumentService()
@@ -145,9 +139,7 @@ async def test_cross_workspace_link_document():
             "backend.app.services.task.task_service.task_service.is_cancelled",
             new=AsyncMock(return_value=False),
         ):
-            with patch(
-                "backend.app.services.task.task_service.task_service.update_task", new=AsyncMock()
-            ):
+            with patch("backend.app.services.task.task_service.task_service.update_task", new=AsyncMock()):
                 # Mock existing document in vault
                 mock_doc = {
                     "id": "doc_789",
@@ -284,13 +276,9 @@ async def test_run_workspace_op_background():
             "backend.app.services.task.task_service.task_service.is_cancelled",
             new=AsyncMock(return_value=False),
         ):
-            with patch(
-                "backend.app.services.task.task_service.task_service.update_task", new=AsyncMock()
-            ):
+            with patch("backend.app.services.task.task_service.task_service.update_task", new=AsyncMock()):
                 # Mock update_workspaces
-                with patch.object(
-                    CrossWorkspaceDocumentService, "update_workspaces", new=AsyncMock()
-                ):
+                with patch.object(CrossWorkspaceDocumentService, "update_workspaces", new=AsyncMock()):
                     cross_ws_service = CrossWorkspaceDocumentService()
 
                     # Call background method

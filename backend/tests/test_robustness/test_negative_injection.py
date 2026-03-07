@@ -243,9 +243,7 @@ class AssertionStrengthChecker:
 
         recommendations = []
         if weak_count > 0:
-            recommendations.append(
-                f"Replace {weak_count} weak assertion(s) with specific value checks"
-            )
+            recommendations.append(f"Replace {weak_count} weak assertion(s) with specific value checks")
         if "assert True" in test_source:
             recommendations.append("Remove assert True - it always passes")
 

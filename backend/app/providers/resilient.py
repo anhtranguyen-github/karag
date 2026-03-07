@@ -88,9 +88,7 @@ class ResilientProvider(LLMProvider, ToolCapable):
             )
             raise
 
-    async def chat_with_tools(
-        self, messages: list[LLMMessage], tools: list[dict[str, Any]], **kwargs
-    ) -> LLMResponse:
+    async def chat_with_tools(self, messages: list[LLMMessage], tools: list[dict[str, Any]], **kwargs) -> LLMResponse:
         """Execute chat with tools and fallback."""
 
         async def generate(model: str) -> LLMResponse:

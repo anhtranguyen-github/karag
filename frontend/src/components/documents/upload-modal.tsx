@@ -46,7 +46,7 @@ export function UploadModal({ isOpen, onClose, workspaceId, onUploadComplete }: 
     const handleUpload = async () => {
         setLoading(true);
         try {
-            const targetWorkspace = workspaceId && workspaceId !== "vault" ? workspaceId : workspaceId!;
+            const targetWorkspace = workspaceId!;
 
             if (mode === "file") {
                 if (!file) return;

@@ -236,9 +236,7 @@ def record_llm_usage(
 
     # Prometheus metrics
     LLM_TOKEN_USAGE.labels(provider=provider, model=model, token_type="prompt").inc(prompt_tokens)  # nosec B106
-    LLM_TOKEN_USAGE.labels(provider=provider, model=model, token_type="completion").inc(
-        completion_tokens
-    )  # nosec B106
+    LLM_TOKEN_USAGE.labels(provider=provider, model=model, token_type="completion").inc(completion_tokens)  # nosec B106
 
 
 def configure_logging(log_format: str = "json", log_level: str = "INFO") -> None:
@@ -266,9 +264,7 @@ def configure_logging(log_format: str = "json", log_level: str = "INFO") -> None
 
     structlog.configure(
         processors=shared_processors + [renderer],
-        wrapper_class=structlog.make_filtering_bound_logger(
-            getattr(logging, log_level.upper(), logging.INFO)
-        ),
+        wrapper_class=structlog.make_filtering_bound_logger(getattr(logging, log_level.upper(), logging.INFO)),
         context_class=dict,
         logger_factory=structlog.PrintLoggerFactory(),
         cache_logger_on_first_use=True,
@@ -560,7 +556,7 @@ def record_domain_metrics(
 
     # Deck/card operations
     if operation:
-        if "deck" in str(kwargs):
+        if domain == "deck":
             DECK_COUNT.labels(operation=operation, status="success").inc()
         else:
             CARD_COUNT.labels(operation=operation, status="success").inc()

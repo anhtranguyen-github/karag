@@ -4,7 +4,7 @@ import { Modal } from '@/components/ui/modal';
 import { cn } from '@/lib/utils';
 
 interface Source {
-    id: number;
+    id: string | number;
     name: string;
     content: string | null;
     download_url?: string;

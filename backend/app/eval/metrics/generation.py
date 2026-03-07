@@ -190,9 +190,7 @@ class GenerationMetrics:
             GenerationResult with faithfulness score
         """
         if not contexts:
-            return GenerationResult(
-                metric_name="faithfulness", score=0.0, details={"error": "no_contexts"}
-            )
+            return GenerationResult(metric_name="faithfulness", score=0.0, details={"error": "no_contexts"})
 
         if method == "claim_verification":
             return self._faithfulness_claim_verification(answer, contexts)
@@ -296,9 +294,7 @@ class GenerationMetrics:
             context_tokens.update(self._tokenize(ctx))
 
         if not answer_tokens:
-            return GenerationResult(
-                metric_name="faithfulness", score=1.0, details={"note": "empty_answer"}
-            )
+            return GenerationResult(metric_name="faithfulness", score=1.0, details={"note": "empty_answer"})
 
         overlap = len(answer_tokens & context_tokens)
         score = overlap / len(answer_tokens)

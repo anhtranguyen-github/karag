@@ -61,7 +61,7 @@ export function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean, setCo
         { icon: Database, label: "Datasets", href: "/dashboard/datasets" },
         { icon: GitBranch, label: "Pipelines", href: "/dashboard/pipelines" },
         { icon: Search, label: "Search", href: "/dashboard/search" },
-        { icon: FileText, label: "Vault", href: "/dashboard/vault" },
+        { icon: FileText, label: "Storage", href: "/dashboard/storage" },
     ];
 
     const infraItems = [

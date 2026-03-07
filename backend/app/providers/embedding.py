@@ -163,9 +163,7 @@ class LangChainEmbeddingAdapter(EmbeddingProvider):
                 # Fallback to sync method in thread pool
                 import asyncio
 
-                return await asyncio.get_event_loop().run_in_executor(
-                    None, self._embeddings.embed_documents, texts
-                )
+                return await asyncio.get_event_loop().run_in_executor(None, self._embeddings.embed_documents, texts)
         except Exception as e:
             logger.error(
                 "embed_documents_failed",
@@ -189,9 +187,7 @@ class LangChainEmbeddingAdapter(EmbeddingProvider):
                 # Fallback to sync method in thread pool
                 import asyncio
 
-                return await asyncio.get_event_loop().run_in_executor(
-                    None, self._embeddings.embed_query, text
-                )
+                return await asyncio.get_event_loop().run_in_executor(None, self._embeddings.embed_query, text)
         except Exception as e:
             logger.error(
                 "embed_query_failed",

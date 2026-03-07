@@ -27,9 +27,7 @@ class QdrantStore(VectorStore):
                 )
         self.client = AsyncQdrantClient(**client_kwargs)
 
-    async def get_document_chunks(
-        self, config: IngestionConfig, doc_id: str, limit: int = 100
-    ) -> list[dict[str, Any]]:
+    async def get_document_chunks(self, config: IngestionConfig, doc_id: str, limit: int = 100) -> list[dict[str, Any]]:
         collection_name = config.collection_name_override or f"knowledge_base_{config.vector_size}"
         workspace_id = config.workspace_id
         collection_name = await self._get_effective_collection(collection_name, workspace_id)
@@ -131,9 +129,7 @@ class QdrantStore(VectorStore):
         self._collection_cache[name] = exists
         return exists
 
-    async def _get_effective_collection(
-        self, desired_collection: str, workspace_id: str | None = None
-    ) -> str:
+    async def _get_effective_collection(self, desired_collection: str, workspace_id: str | None = None) -> str:
         if await self._collection_exists_cached(desired_collection):
             return desired_collection
 
@@ -167,9 +163,7 @@ class QdrantStore(VectorStore):
                     # Sparse Vector Config (for future expansion)
                     sparse_vectors_config = None
                     if config.sparse_enabled:
-                        sparse_vectors_config = {
-                            "sparse": qmodels.SparseVectorParams(modifier=qmodels.Modifier.NONE)
-                        }
+                        sparse_vectors_config = {"sparse": qmodels.SparseVectorParams(modifier=qmodels.Modifier.NONE)}
 
                     try:
                         await self.client.create_collection(
@@ -278,9 +272,7 @@ class QdrantStore(VectorStore):
         # Determine collection name based on vector dimension if not provided
         if not collection_name:
             dim = len(query_vector)
-            collection_name = await self._get_effective_collection(
-                f"knowledge_base_{dim}", workspace_id
-            )
+            collection_name = await self._get_effective_collection(f"knowledge_base_{dim}", workspace_id)
 
         limit = config.hybrid.top_k if config.hybrid.enabled else config.vector.top_k
 
@@ -319,9 +311,7 @@ class QdrantStore(VectorStore):
             if not text_filter.must:
                 text_filter.must = []
 
-            text_filter.must.append(
-                qmodels.FieldCondition(key="text", match=qmodels.MatchText(text=query_text))
-            )
+            text_filter.must.append(qmodels.FieldCondition(key="text", match=qmodels.MatchText(text=query_text)))
 
             text_results_response = await self.client.scroll(
                 collection_name=collection_name,
@@ -332,9 +322,7 @@ class QdrantStore(VectorStore):
             text_results = text_results_response[0]
 
             duration = time.perf_counter() - start
-            VECTOR_STORE_LATENCY.labels(operation="search", collection=collection_name).observe(
-                duration
-            )
+            VECTOR_STORE_LATENCY.labels(operation="search", collection=collection_name).observe(duration)
 
             span.set_attribute("qdrant.vector_hits", len(vector_results))
             span.set_attribute("qdrant.text_hits", len(text_results))
@@ -377,9 +365,7 @@ class QdrantStore(VectorStore):
             start = time.perf_counter()
 
             if workspace_id:
-                collection_name = await self._get_effective_collection(
-                    collection_name, workspace_id
-                )
+                collection_name = await self._get_effective_collection(collection_name, workspace_id)
                 await self.client.delete(
                     collection_name=collection_name,
                     points_selector=qmodels.Filter(
@@ -453,9 +439,7 @@ class QdrantStore(VectorStore):
                         "name": source,
                         "extension": point.payload.get("extension", "unknown"),
                         "chunks": 0,
-                        "shared": point.payload.get("workspace_id") != workspace_id
-                        if workspace_id
-                        else False,
+                        "shared": point.payload.get("workspace_id") != workspace_id if workspace_id else False,
                     }
                 if source:
                     docs[source]["chunks"] += 1
@@ -470,11 +454,7 @@ class QdrantStore(VectorStore):
         with tracer.start_as_current_span("qdrant.get_document_content"):
             filters = [qmodels.FieldCondition(key="doc_id", match=qmodels.MatchValue(value=doc_id))]
             if workspace_id:
-                filters.append(
-                    qmodels.FieldCondition(
-                        key="workspace_id", match=qmodels.MatchValue(value=workspace_id)
-                    )
-                )
+                filters.append(qmodels.FieldCondition(key="workspace_id", match=qmodels.MatchValue(value=workspace_id)))
 
             # Get chunks sorted by internal ID logic if chunk_index present
             chunks = []
@@ -506,11 +486,7 @@ class QdrantStore(VectorStore):
         with tracer.start_as_current_span("qdrant.get_document_centroids"):
             # Scroll to get vectors
             filter_query = qmodels.Filter(
-                must=[
-                    qmodels.FieldCondition(
-                        key="workspace_id", match=qmodels.MatchValue(value=workspace_id)
-                    )
-                ]
+                must=[qmodels.FieldCondition(key="workspace_id", match=qmodels.MatchValue(value=workspace_id))]
             )
 
             # Not fully optimized but reproduces current behavior
@@ -562,9 +538,7 @@ class QdrantStore(VectorStore):
 
             return results
 
-    async def sync_shared_with(
-        self, config: IngestionConfig, doc_id: str, shared_with: list[str]
-    ) -> bool:
+    async def sync_shared_with(self, config: IngestionConfig, doc_id: str, shared_with: list[str]) -> bool:
         collection_name = config.collection_name_override or f"knowledge_base_{config.vector_size}"
         workspace_id = config.workspace_id
         collection_name = await self._get_effective_collection(collection_name, workspace_id)
@@ -574,9 +548,7 @@ class QdrantStore(VectorStore):
                 collection_name=collection_name,
                 payload={"shared_with": shared_with},
                 points=qmodels.Filter(
-                    must=[
-                        qmodels.FieldCondition(key="doc_id", match=qmodels.MatchValue(value=doc_id))
-                    ]
+                    must=[qmodels.FieldCondition(key="doc_id", match=qmodels.MatchValue(value=doc_id))]
                 ),
             )
             return True

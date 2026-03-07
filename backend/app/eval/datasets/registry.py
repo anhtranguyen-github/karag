@@ -75,9 +75,7 @@ class DatasetRegistry:
             KeyError: If dataset is not registered
         """
         if name not in self._loaders:
-            raise KeyError(
-                f"Dataset '{name}' not registered. Available: {list(self._loaders.keys())}"
-            )
+            raise KeyError(f"Dataset '{name}' not registered. Available: {list(self._loaders.keys())}")
 
         # Return cached instance if no custom kwargs
         cache_key = f"{name}_{hash(str(sorted(kwargs.items())))}"
@@ -168,9 +166,7 @@ dataset_registry = DatasetRegistry()
 
 
 # Convenience functions for registration
-def register_dataset(
-    name: str, loader_class: type[BaseDatasetLoader], info: DatasetInfo | None = None
-) -> Callable:
+def register_dataset(name: str, loader_class: type[BaseDatasetLoader], info: DatasetInfo | None = None) -> Callable:
     """Decorator to register a dataset loader."""
     dataset_registry.register(name, loader_class, info)
     return loader_class

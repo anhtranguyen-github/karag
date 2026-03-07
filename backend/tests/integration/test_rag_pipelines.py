@@ -39,8 +39,8 @@ async def test_rag_get_embeddings():
     # Mock the provider factory
     with patch("backend.app.core.factory.ProviderFactory.get_embeddings") as mock_get:
         mock_provider = AsyncMock()
-        mock_provider.aembed_documents = AsyncMock(return_value=[[0.1] * 1536] * len(texts))
-        mock_provider.aembed_query = AsyncMock(return_value=[0.1] * 1536)
+        mock_provider.embed_documents = AsyncMock(return_value=[[0.1] * 1536] * len(texts))
+        mock_provider.embed_query = AsyncMock(return_value=[0.1] * 1536)
         mock_get.return_value = mock_provider
 
         embeddings = await rag_service.get_embeddings(texts, "default")
@@ -57,7 +57,7 @@ async def test_rag_search_basic():
         with patch("backend.app.core.factory.ProviderFactory.get_embeddings") as mock_embed:
             # Setup mocks
             mock_provider = AsyncMock()
-            mock_provider.aembed_query = AsyncMock(return_value=[0.1] * 1536)
+            mock_provider.embed_query = AsyncMock(return_value=[0.1] * 1536)
             mock_embed.return_value = mock_provider
 
             # Mock search results
@@ -81,9 +81,7 @@ async def test_rag_search_basic():
                 return_value=mock_settings,
             ):
                 # Execute search
-                results = await rag_service.search(
-                    query="test query", workspace_id="test_ws", limit=5
-                )
+                results = await rag_service.search(query="test query", workspace_id="test_ws", limit=5)
 
                 assert isinstance(results, list)
                 assert len(results) == 2
@@ -99,7 +97,7 @@ async def test_rag_search_with_reranking():
             with patch("backend.app.providers.reranker.get_reranker") as mock_reranker:
                 # Setup mocks
                 mock_provider = AsyncMock()
-                mock_provider.aembed_query = AsyncMock(return_value=[0.1] * 1536)
+                mock_provider.embed_query = AsyncMock(return_value=[0.1] * 1536)
                 mock_embed.return_value = mock_provider
 
                 mock_vector_store = AsyncMock()
@@ -178,8 +176,8 @@ async def test_ingestion_pipeline_process_text():
         with patch("backend.app.core.factory.ProviderFactory.get_embeddings") as mock_embed:
             # Setup mocks
             mock_provider = AsyncMock()
-            mock_provider.aembed_documents = AsyncMock(return_value=[[0.1] * 1536])
-            mock_provider.aembed_query = AsyncMock(return_value=[0.1] * 1536)
+            mock_provider.embed_documents = AsyncMock(return_value=[[0.1] * 1536])
+            mock_provider.embed_query = AsyncMock(return_value=[0.1] * 1536)
             mock_embed.return_value = mock_provider
 
             mock_vector_store = AsyncMock()
@@ -268,7 +266,7 @@ async def test_rag_advanced_search():
         with patch("backend.app.core.factory.ProviderFactory.get_embeddings") as mock_embed:
             # Setup mocks
             mock_provider = AsyncMock()
-            mock_provider.aembed_query = AsyncMock(return_value=[0.1] * 1536)
+            mock_provider.embed_query = AsyncMock(return_value=[0.1] * 1536)
             mock_embed.return_value = mock_provider
 
             mock_vector_store = AsyncMock()
@@ -298,10 +296,10 @@ async def test_rag_get_query_embedding():
     """Test query embedding generation."""
     with patch("backend.app.core.factory.ProviderFactory.get_embeddings") as mock_embed:
         mock_provider = AsyncMock()
-        mock_provider.aembed_query = AsyncMock(return_value=[0.1] * 1536)
+        mock_provider.embed_query = AsyncMock(return_value=[0.1] * 1536)
         mock_embed.return_value = mock_provider
 
         embedding = await rag_service.get_query_embedding("test query", "default")
 
         assert len(embedding) == 1536
-        mock_provider.aembed_query.assert_called_once_with("test query")
+        mock_provider.embed_query.assert_called_once_with("test query")

@@ -31,47 +31,23 @@ describe('WorkspaceHeader', () => {
         expect(elements.length).toBeGreaterThan(0);
     });
 
-    it('shows workspace ID', () => {
+    it('shows system status', () => {
         renderWithProvider(<WorkspaceHeader />);
 
-        expect(screen.getByText(/ID: test-workspace/)).toBeInTheDocument();
+        expect(screen.getByText(/System Operational/i)).toBeInTheDocument();
     });
 
-    it('displays document count', () => {
+    it('renders search bar', () => {
         renderWithProvider(<WorkspaceHeader />);
 
-        expect(screen.getByText(/10 docs/)).toBeInTheDocument();
+        expect(screen.getByText(/Search or jump to/i)).toBeInTheDocument();
     });
 
-    it('shows RAG engine type', () => {
+    it('renders user information', () => {
         renderWithProvider(<WorkspaceHeader />);
 
-        // Default is 'basic'
-        expect(screen.getByText(/BASIC/i)).toBeInTheDocument();
-    });
-
-    it('renders navigation links', () => {
-        renderWithProvider(<WorkspaceHeader />);
-
-        expect(screen.getByText(/Chat/i)).toBeInTheDocument();
-        expect(screen.getByText(/Documents/i)).toBeInTheDocument();
-        expect(screen.getByText(/Settings/i)).toBeInTheDocument();
-    });
-
-    it('has exit workspace link', () => {
-        renderWithProvider(<WorkspaceHeader />);
-
-        expect(screen.getByText('Exit')).toBeInTheDocument();
-    });
-
-    it('calls onWorkspaceClick when switcher button clicked', async () => {
-        const onWorkspaceClick = vi.fn();
-        renderWithProvider(<WorkspaceHeader onWorkspaceClick={onWorkspaceClick} />);
-
-        // Find the button with workspace name and click it
-        const switcherButton = screen.getByTitle('Switch Workspace');
-        fireEvent.click(switcherButton);
-
-        expect(onWorkspaceClick).toHaveBeenCalledTimes(1);
+        // User name from global mock in setup.ts
+        expect(screen.getByText('Test User')).toBeInTheDocument();
+        expect(screen.getByText('Admin')).toBeInTheDocument();
     });
 });

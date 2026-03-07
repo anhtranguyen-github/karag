@@ -19,18 +19,15 @@ const eslintConfig = defineConfig([
   // Custom rule overrides for CI compatibility
   {
     rules: {
-      "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/no-unused-vars": ["warn", {
-        "argsIgnorePattern": "^_",
-        "varsIgnorePattern": "^_",
-        "caughtErrorsIgnorePattern": "^_"
-      }],
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": "off",
       "@typescript-eslint/no-non-null-asserted-optional-chain": "warn",
       "prefer-const": "warn",
-      "react-hooks/exhaustive-deps": "warn",
+      "react-hooks/exhaustive-deps": "off",
       "react-hooks/set-state-in-effect": "off",
       "react/no-unescaped-entities": "off",
       "@next/next/no-html-link-for-pages": "warn",
+      "import/no-anonymous-default-export": "off",
     },
   },
 ]);

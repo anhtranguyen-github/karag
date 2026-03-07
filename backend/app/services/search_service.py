@@ -1,6 +1,8 @@
 from typing import Any
-
 import structlog
+from backend.app.repositories.workspace_repository import workspace_repository
+from backend.app.repositories.thread_repository import thread_repository
+from backend.app.repositories.document_repository import document_repository
 from backend.app.core.mongodb import mongodb_manager
 
 logger = structlog.get_logger(__name__)
@@ -19,7 +21,7 @@ class SearchService:
             return results
 
         # 1. Search Workspaces (Global)
-        workspace_cursor = db.workspaces.find(
+        workspace_cursor = workspace_repository.collection.find(
             {
                 "id": workspace_id,
                 "$or": [
@@ -47,7 +49,7 @@ class SearchService:
         }
         thread_filter["workspace_id"] = workspace_id
 
-        thread_cursor = db["thread_metadata"].find(thread_filter).limit(10)
+        thread_cursor = thread_repository.collection.find(thread_filter).limit(10)
         async for thread in thread_cursor:
             results["threads"].append(
                 {
@@ -62,7 +64,7 @@ class SearchService:
         doc_filter = {"filename": {"$regex": query, "$options": "i"}}
         doc_filter["workspace_id"] = workspace_id
 
-        doc_cursor = db.documents.find(doc_filter).limit(10)
+        doc_cursor = document_repository.collection.find(doc_filter).limit(10)
         async for doc in doc_cursor:
             results["documents"].append(
                 {

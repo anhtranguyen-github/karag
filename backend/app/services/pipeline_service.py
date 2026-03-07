@@ -21,9 +21,7 @@ class PipelineService:
     DEFAULT_PIPELINE_ID = "default_pipeline"
 
     @classmethod
-    async def create_pipeline(
-        cls, workspace_id: str, name: str, config_data: dict | None = None
-    ) -> PipelineConfig:
+    async def create_pipeline(cls, workspace_id: str, name: str, config_data: dict | None = None) -> PipelineConfig:
         """Create a new pipeline configuration."""
         db = mongodb_manager.get_async_database()
 
@@ -31,9 +29,7 @@ class PipelineService:
 
         # Use default values if no config_data provided
         if config_data:
-            pipeline = PipelineConfig(
-                id=pipeline_id, workspace_id=workspace_id, name=name, **config_data
-            )
+            pipeline = PipelineConfig(id=pipeline_id, workspace_id=workspace_id, name=name, **config_data)
         else:
             pipeline = PipelineConfig(id=pipeline_id, workspace_id=workspace_id, name=name)
 
@@ -49,24 +45,18 @@ class PipelineService:
         if pipeline_id == cls.DEFAULT_PIPELINE_ID:
             # Return a default config if the specific one is missing
             # (In a real system we'd seed the DB with it)
-            return PipelineConfig(
-                id=cls.DEFAULT_PIPELINE_ID, workspace_id=workspace_id, name="Default Pipeline"
-            )
+            return PipelineConfig(id=cls.DEFAULT_PIPELINE_ID, workspace_id=workspace_id, name="Default Pipeline")
 
         pipeline_doc = await db.pipelines.find_one({"id": pipeline_id})
         if not pipeline_doc:
             # Fallback to default if not found (graceful degradation)
-            return PipelineConfig(
-                id=cls.DEFAULT_PIPELINE_ID, workspace_id=workspace_id, name="Default Pipeline"
-            )
+            return PipelineConfig(id=cls.DEFAULT_PIPELINE_ID, workspace_id=workspace_id, name="Default Pipeline")
 
         pipeline = PipelineConfig(**pipeline_doc)
 
         # Isolation check
         if pipeline.workspace_id != workspace_id:
-            return PipelineConfig(
-                id=cls.DEFAULT_PIPELINE_ID, workspace_id=workspace_id, name="Default Pipeline"
-            )
+            return PipelineConfig(id=cls.DEFAULT_PIPELINE_ID, workspace_id=workspace_id, name="Default Pipeline")
 
         return pipeline
 

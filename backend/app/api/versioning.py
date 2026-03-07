@@ -146,9 +146,7 @@ class VersionRouter:
             return version_handlers[version]
 
         # Find best compatible version (same major, highest minor/patch)
-        compatible = [
-            v for v in version_handlers.keys() if v.is_compatible_with(version) and v <= version
-        ]
+        compatible = [v for v in version_handlers.keys() if v.is_compatible_with(version) and v <= version]
 
         if compatible:
             return version_handlers[max(compatible)]
@@ -249,23 +247,17 @@ def check_version_compatibility(
     if hasattr(handler, "_min_version") and handler._min_version:
         if request_version < handler._min_version:
             result["compatible"] = False
-            result["warnings"].append(
-                f"This endpoint requires API version {handler._min_version} or higher"
-            )
+            result["warnings"].append(f"This endpoint requires API version {handler._min_version} or higher")
 
     if hasattr(handler, "_max_version") and handler._max_version:
         if request_version > handler._max_version:
             result["compatible"] = False
-            result["warnings"].append(
-                f"This endpoint is not supported in API version {request_version}"
-            )
+            result["warnings"].append(f"This endpoint is not supported in API version {request_version}")
 
     if hasattr(handler, "_deprecated_in") and handler._deprecated_in:
         if request_version >= handler._deprecated_in:
             result["deprecated"] = True
-            result["warnings"].append(
-                f"This endpoint is deprecated as of version {handler._deprecated_in}"
-            )
+            result["warnings"].append(f"This endpoint is deprecated as of version {handler._deprecated_in}")
 
     if hasattr(handler, "_removed_in") and handler._removed_in:
         if request_version >= handler._removed_in:

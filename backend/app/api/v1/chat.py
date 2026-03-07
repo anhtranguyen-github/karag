@@ -22,7 +22,12 @@ from backend.app.api.pagination import (
     generate_link_header,
 )
 from backend.app.schemas.base import AppResponse
-from backend.app.schemas.chat import ChatStreamRequest, ThreadTitleUpdate
+from backend.app.schemas.chat import (
+    ChatMessage,
+    ChatStreamRequest,
+    ThreadMetadata,
+    ThreadTitleUpdate,
+)
 from backend.app.services.chat_service import chat_service
 from fastapi import APIRouter, Depends, Response
 from fastapi.responses import StreamingResponse
@@ -35,26 +40,19 @@ router = APIRouter(tags=["chat"])
 WorkspaceDep = Annotated[CurrentWorkspace, Depends(get_current_workspace)]
 
 
-@router.get("/history/{thread_id}", response_model=AppResponse)
+@router.get("/history/{thread_id}", response_model=AppResponse[list[ChatMessage]])
 async def get_chat_history(
     thread_id: str,
     workspace: WorkspaceDep,
 ) -> AppResponse:
     """
     Get chat history for a specific thread.
-
-    Args:
-        thread_id: The unique identifier of the chat thread
-        workspace: Current workspace context
-
-    Returns:
-        AppResponse containing the chat history
     """
     history = await chat_service.get_history(thread_id)
     return AppResponse.success_response(data=history)
 
 
-@router.get("/threads", response_model=AppResponse)
+@router.get("/threads", response_model=AppResponse[list[ThreadMetadata]])
 async def list_chat_threads(
     response: Response,
     pagination: Annotated[PaginationParams, Depends()],
@@ -62,17 +60,6 @@ async def list_chat_threads(
 ) -> AppResponse:
     """
     List chat threads with pagination support.
-
-    Args:
-        response: FastAPI response object for setting headers
-        pagination: Pagination parameters
-        workspace: Current workspace context
-
-    Returns:
-        Paginated list of chat threads
-
-    Headers:
-        Link: RFC 8288 compliant pagination links (HATEOAS)
     """
     all_threads = await chat_service.list_threads(workspace.id)
 
@@ -86,7 +73,7 @@ async def list_chat_threads(
     if link_header:
         response.headers["Link"] = link_header
 
-    return create_paginated_response(paginated, total, pagination)
+    return AppResponse.success_response(data=create_paginated_response(paginated, total, pagination))
 
 
 @router.patch("/threads/{thread_id}/title", response_model=AppResponse)
@@ -113,22 +100,18 @@ async def update_thread_title(
     )
 
 
-@router.get("/threads/{thread_id}", response_model=AppResponse)
+@router.get("/threads/{thread_id}", response_model=AppResponse[ThreadMetadata])
 async def get_thread(
     thread_id: str,
     workspace: WorkspaceDep,
 ) -> AppResponse:
     """
     Get a specific chat thread by ID.
-
-    Args:
-        thread_id: The unique identifier of the chat thread
-        workspace: Current workspace context
-
-    Returns:
-        AppResponse containing the thread details
     """
     thread = await chat_service.get_thread(thread_id)
+    if not thread:
+        from backend.app.core.exceptions import NotFoundError
+        raise NotFoundError(f"Thread {thread_id} not found")
     return AppResponse.success_response(data=thread)
 
 

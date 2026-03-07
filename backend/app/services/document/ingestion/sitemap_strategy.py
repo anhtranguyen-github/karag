@@ -10,9 +10,7 @@ class SitemapIngestionStrategy(BaseIngestionStrategy):
     def task_type(self) -> str:
         return "sitemap_ingestion"
 
-    async def run(
-        self, task_id: str, workspace_id: str, metadata: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def run(self, task_id: str, workspace_id: str, metadata: dict[str, Any]) -> dict[str, Any]:
         from backend.app.rag.ingestion import ingestion_pipeline
 
         sitemap_url = metadata.get("sitemap_url")
@@ -20,13 +18,9 @@ class SitemapIngestionStrategy(BaseIngestionStrategy):
         try:
             if await task_service.is_cancelled(task_id):
                 return {}
-            await task_service.update_task(
-                task_id, status="processing", progress=10, message="Loading sitemap..."
-            )
+            await task_service.update_task(task_id, status="processing", progress=10, message="Loading sitemap...")
 
-            num_chunks = await ingestion_pipeline.process_sitemap(
-                sitemap_url, metadata={"workspace_id": workspace_id}
-            )
+            num_chunks = await ingestion_pipeline.process_sitemap(sitemap_url, metadata={"workspace_id": workspace_id})
 
             await task_service.update_task(
                 task_id,

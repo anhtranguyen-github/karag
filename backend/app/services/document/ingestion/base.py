@@ -10,9 +10,7 @@ tracer = get_tracer(__name__)
 
 class BaseIngestionStrategy(ABC):
     @abstractmethod
-    async def run(
-        self, task_id: str, workspace_id: str, metadata: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def run(self, task_id: str, workspace_id: str, metadata: dict[str, Any]) -> dict[str, Any]:
         """Execute the ingestion strategy."""
         pass
 

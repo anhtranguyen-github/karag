@@ -30,9 +30,7 @@ def should_reason(state: AgentState):
     return "generate"
 
 
-workflow.add_conditional_edges(
-    "rerank", should_reason, {"reason": "reason", "generate": "generate"}
-)
+workflow.add_conditional_edges("rerank", should_reason, {"reason": "reason", "generate": "generate"})
 
 
 def should_continue(state: AgentState):

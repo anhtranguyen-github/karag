@@ -66,9 +66,7 @@ async def verify_workspace_access(user: CurrentUser, workspace_id: str) -> bool:
     return False
 
 
-def create_openai_error_response(
-    message: str, error_type: str, status_code: int = 400, code: str = None
-) -> Response:
+def create_openai_error_response(message: str, error_type: str, status_code: int = 400, code: str = None) -> Response:
     """Create a standardized OpenAI-style error response."""
     error = OpenAIError(message=message, type=error_type, code=code)
     return Response(
@@ -119,9 +117,7 @@ def extract_mode_from_messages(messages: list[OpenAIMessage]) -> str | None:
     return None
 
 
-def build_rag_context_with_citations(
-    search_results: list[dict[str, Any]], max_context_chars: int = 10000
-) -> str:
+def build_rag_context_with_citations(search_results: list[dict[str, Any]], max_context_chars: int = 10000) -> str:
     """
     Build RAG context from search results with direct document ID citations.
 
@@ -493,9 +489,7 @@ async def chat_completions(
             search_results = await rag_service.search(query, workspace_id)
             if search_results:
                 # Build context with embedded document IDs for citations
-                retrieved_context = build_rag_context_with_citations(
-                    search_results, max_context_chars=10000
-                )
+                retrieved_context = build_rag_context_with_citations(search_results, max_context_chars=10000)
                 has_documents = True
 
                 logger.info(
@@ -530,11 +524,7 @@ Do not use general knowledge."""
     # Preserve original message order and roles (skip system messages if we added our own)
     user_system_skipped = False
     for msg in payload.messages:
-        if (
-            msg.role == "system"
-            and (has_documents or mode in ("strict_rag", "qa"))
-            and not user_system_skipped
-        ):
+        if msg.role == "system" and (has_documents or mode in ("strict_rag", "qa")) and not user_system_skipped:
             # Skip the first system message as we replaced it
             user_system_skipped = True
             continue
@@ -560,9 +550,7 @@ Do not use general knowledge."""
 
         # Mode-specific parameter adjustments
         if mode == "strict_rag":
-            llm_kwargs["temperature"] = (
-                llm_kwargs.get("temperature", 0.7) * 0.5
-            )  # Lower temp for strict mode
+            llm_kwargs["temperature"] = llm_kwargs.get("temperature", 0.7) * 0.5  # Lower temp for strict mode
 
         if payload.stream:
 
@@ -700,9 +688,7 @@ Do not use general knowledge."""
     except Exception as e:
         error_str = str(e).lower()
         if "rate limit" in error_str or "quota" in error_str:
-            return create_openai_error_response(
-                str(e), "rate_limit_error", 429, code="rate_limit_exceeded"
-            )
+            return create_openai_error_response(str(e), "rate_limit_error", 429, code="rate_limit_exceeded")
 
         logger.error("openai_llm_call_failed", error=str(e), workspace_id=workspace_id)
         # Avoid leaking internal error details as per Failure Handling rules

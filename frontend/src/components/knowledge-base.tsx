@@ -101,7 +101,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
     const { showError } = useError();
     const toast = useToast();
     const { recentCompletedTasks } = useTasks();
-    const [activeSource, setActiveSource] = useState<{ id: number; name: string; content: string | null; download_url?: string } | null>(null);
+    const [activeSource, setActiveSource] = useState<{ id: string | number; name: string; content: string | null; type?: string; download_url?: string } | null>(null);
     const [shareTarget, setShareTarget] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [deletingDoc, setDeletingDoc] = useState<Document | null>(null);
@@ -115,9 +115,9 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         is_duplicate: boolean;
     } | null>(null);
     const [isLinking, setIsLinking] = useState(false);
-    const [isVaultBrowserOpen, setIsVaultBrowserOpen] = useState(false);
-    const [vaultDocuments, setVaultDocuments] = useState<Document[]>([]);
-    const [isVaultLoading, setIsVaultLoading] = useState(false);
+    const [isDatasetBrowserOpen, setIsDatasetBrowserOpen] = useState(false);
+    const [datasetDocuments, setDatasetDocuments] = useState<Document[]>([]);
+    const [isDatasetLoading, setIsDatasetLoading] = useState(false);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [uploadMode, setUploadMode] = useState<'file' | 'link'>('file');
     const [importUrl, setImportUrl] = useState('');
@@ -145,26 +145,31 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
     const fetchDocuments = React.useCallback(async () => {
         try {
             let payload;
+            const isGlobal = !workspaceId;
             if (isGlobal) {
-                payload = await api.listVaultDocumentsWorkspacesWorkspaceIdVaultGet({
-                    workspaceId: workspaceId!
+                payload = await api.listAllDocumentsApiV1WorkspacesWorkspaceIdDocumentsAllGet({
+                    workspaceId: 'system' // placeholder for global
                 });
             } else {
-                payload = await api.listDocumentsWorkspacesWorkspaceIdDocumentsGet({ workspaceId });
+                payload = await api.listDocumentsApiV1WorkspacesWorkspaceIdDocumentsGet({ workspaceId: workspaceId! });
             }
 
-            const data: BackendDocument[] = payload.data || [];
-            const mappedDocs = data.map((doc) => ({
-                ...doc,
+            const data = (payload.data || []) as any[];
+            const mappedDocs: Document[] = data.map((doc) => ({
+                id: doc.id,
                 name: doc.filename,
-                shared: !isGlobal && doc.workspace_id !== workspaceId,
-                workspace_name: doc.workspace_name || doc.workspace_id
+                extension: doc.filename.split('.').pop() || '',
+                chunks: doc.chunks || 0,
+                status: doc.status || 'uploaded',
+                workspace_id: doc.workspace_id,
+                size: doc.size,
+                shared: doc.workspace_id !== workspaceId
             }));
             setDocuments(mappedDocs);
         } catch (err) {
             console.error('Failed to fetch documents', err);
         }
-    }, [isGlobal, workspaceId]);
+    }, [workspaceId]);
 
     // Expose actions to parent (e.g. Vault header buttons)
     useEffect(() => {
@@ -173,45 +178,42 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                 openUpload: () => setIsUploadModalOpen(true),
             });
         }
-    }, [onActionsReady]); // fetchDocuments is stable via useCallback
+    }, [onActionsReady]);
 
-    const fetchVaultDocuments = async () => {
-        setIsVaultLoading(true);
+    const fetchDatasetDocuments = async () => {
+        if (!workspaceId) return;
+        setIsDatasetLoading(true);
         try {
-            const payload = await api.listVaultDocumentsWorkspacesWorkspaceIdVaultGet({
+            const payload = await api.listAllDocumentsApiV1WorkspacesWorkspaceIdDocumentsAllGet({
                 workspaceId: workspaceId!
             });
-            const data: BackendDocument[] = payload.data || [];
-            const mappedDocs = data.map((doc) => ({
-                ...doc,
-                name: doc.filename,
-                workspace_name: doc.workspace_name || doc.workspace_id
-            }));
-            // Filter out documents already in this workspace
-            const filtered = mappedDocs.filter(vd =>
-                !documents.some(d => d.name === vd.name)
-            );
-            setVaultDocuments(filtered);
-        } catch (err) {
-            console.error('Failed to fetch vault', err);
+            if (payload.success && payload.data) {
+                const mappedDocs = (payload.data as any[]).map(doc => ({
+                    ...doc,
+                    name: doc.filename
+                })) as Document[];
+                setDatasetDocuments(mappedDocs);
+            }
+        } catch (error) {
+            console.error('Failed to fetch dataset documents:', error);
         } finally {
-            setIsVaultLoading(false);
+            setIsDatasetLoading(false);
         }
     };
 
-    const handleLinkFromVault = async (doc: Document) => {
+    const handleLinkFromDataset = async (doc: Document) => {
         // Fire-and-forget: submit and close modal immediately
         try {
-            await api.updateDocumentWorkspacesWorkspacesWorkspaceIdDocumentsUpdateWorkspacesPost({
+            await api.updateDocumentWorkspacesApiV1WorkspacesWorkspaceIdDocumentsUpdateWorkspacesPost({
                 workspaceId,
-                documentWorkspaceUpdate: {
-                    documentId: doc.id!,
-                    targetWorkspaceId: workspaceId,
+                requestBody: {
+                    document_id: doc.id!,
+                    target_workspace_id: workspaceId,
                     action: 'link',
-                    forceReindex: false
+                    force_reindex: false
                 }
             });
-            setIsVaultBrowserOpen(false);
+            setIsDatasetBrowserOpen(false);
         } catch (_err) {
             showError("Network Error", "Transmission interrupted.");
         }
@@ -235,7 +237,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
     useEffect(() => {
         const fetchWorkspaces = async () => {
             try {
-                const payload = await api.listWorkspacesWorkspacesGet();
+                const payload = await api.listWorkspacesApiV1WorkspacesGet();
                 setWorkspaces(payload.data || []);
             } catch (err) {
                 console.error('Failed to fetch workspaces', err);
@@ -280,9 +282,9 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         formData.append('file', file);
 
         try {
-            const payload = await api.uploadDocumentWorkspacesWorkspaceIdUploadPost({
+            const payload = await api.uploadDocumentApiV1WorkspacesWorkspaceIdUploadPost({
                 workspaceId,
-                file: file
+                formData: { file }
             });
 
             // Handle duplicate detection redirect if supported by backend return types
@@ -290,7 +292,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
             setIsUploadModalOpen(false);
             toast.success('Document uploaded successfully');
         } catch (err: unknown) {
-            let title = "Upload Failed";
+            const title = "Upload Failed";
             let message = "Upload failed";
             try {
                 const response = (err as any).response;
@@ -331,19 +333,19 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         try {
             let payload;
             if (importUrl.includes('github.com')) {
-                payload = await api.importGithubDocumentWorkspacesWorkspaceIdImportGithubPost({
+                payload = await api.importGithubDocumentApiV1WorkspacesWorkspaceIdImportGithubPost({
                     workspaceId,
-                    gitHubImportRequest: { url: importUrl, branch: githubBranch }
+                    requestBody: { url: importUrl, branch: githubBranch }
                 });
             } else if (importUrl.toLowerCase().endsWith('.xml') || importUrl.toLowerCase().includes('sitemap')) {
-                payload = await api.importSitemapDocumentWorkspacesWorkspaceIdImportSitemapPost({
+                payload = await api.importSitemapDocumentApiV1WorkspacesWorkspaceIdImportSitemapPost({
                     workspaceId,
-                    sitemapImportRequest: { url: importUrl }
+                    requestBody: { url: importUrl }
                 });
             } else {
-                payload = await api.importUrlDocumentWorkspacesWorkspaceIdImportUrlPost({
+                payload = await api.importUrlDocumentApiV1WorkspacesWorkspaceIdImportUrlPost({
                     workspaceId,
-                    urlImportRequest: { url: importUrl }
+                    requestBody: { url: importUrl }
                 });
             }
 
@@ -374,13 +376,13 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         setDuplicateData(null); // Close modal immediately
 
         try {
-            await api.updateDocumentWorkspacesWorkspacesWorkspaceIdDocumentsUpdateWorkspacesPost({
+            await api.updateDocumentWorkspacesApiV1WorkspacesWorkspaceIdDocumentsUpdateWorkspacesPost({
                 workspaceId,
-                documentWorkspaceUpdate: {
-                    documentId: duplicateData.id,
-                    targetWorkspaceId: workspaceId,
+                requestBody: {
+                    document_id: duplicateData.id,
+                    target_workspace_id: workspaceId,
                     action: 'link',
-                    forceReindex: false
+                    force_reindex: false
                 }
             });
 
@@ -403,20 +405,20 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         }
     };
 
-    const handleDelete = async (id: string, vaultDelete: boolean = false) => {
+    const handleDelete = async (id: string, datasetDelete: boolean = false) => {
         const docName = deletingDoc?.name || "document";
-        const toastId = toast.loading(`${vaultDelete ? 'Purging' : 'Removing'} ${docName}...`);
+        const toastId = toast.loading(`${datasetDelete ? 'Purging' : 'Removing'} ${docName}...`);
         setDeletingDoc(null); // Close modal immediately
 
         try {
             const targetWs = deleteTargetWs || deletingDoc?.workspace_id || workspaceId;
-            await api.deleteDocumentWorkspacesWorkspaceIdDocumentsDocumentIdDelete({
+            await api.deleteDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdDelete({
+                workspaceId: workspaceId || '',
                 documentId: id,
-                workspaceId: targetWs,
-                vaultDelete
+                datasetDelete
             });
             toast.dismiss(toastId);
-            toast.success(`${docName} ${vaultDelete ? 'purged globally' : 'removed from workspace'}`);
+            toast.success(`${docName} ${datasetDelete ? 'purged globally' : 'removed from workspace'}`);
             setDocuments((prev) => prev.filter((d) => d.id !== id));
         } catch (err: unknown) {
             toast.dismiss(toastId);
@@ -438,16 +440,17 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
 
     const handleView = async (id: string, name: string) => {
         try {
-            const payload = await api.getDocumentWorkspacesWorkspaceIdDocumentsDocumentIdGet({
-                documentId: id,
-                workspaceId
+            const payload = await api.getDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdGet({
+                workspaceId: workspaceId || '',
+                documentId: id
             });
             const data = payload.data;
+            if (!data) return;
             setActiveSource({
-                id: 0,
-                name: data.filename || name,
-                content: data.content,
-                download_url: data.download_url
+                id: data.id,
+                name: data.filename,
+                type: data.content_type || 'text/plain',
+                content: data.content || ''
             });
             fetchDocuments(); // Refresh status/fragments after on-demand indexing
 
@@ -472,11 +475,13 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         if (showModal) setIsDetailsModalOpen(true);
         const docId = doc.id || doc.name;
         try {
-            const payload = await api.inspectDocumentWorkspacesWorkspaceIdDocumentsDocumentIdInspectGet({
-                documentId: docId,
-                workspaceId
+            const payload = await api.inspectDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdInspectGet({
+                workspaceId: workspaceId || '',
+                documentId: docId
             });
-            setDetailsDoc(payload.data);
+            if (payload.data) {
+                setDetailsDoc(payload.data as any);
+            }
         } catch (_err) {
             showError("Inspect Failed", "Could not retrieve document relationships.");
         } finally {
@@ -657,16 +662,16 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
             </Modal>
 
             <Modal
-                isOpen={isVaultBrowserOpen}
-                onClose={() => setIsVaultBrowserOpen(false)}
+                isOpen={isDatasetBrowserOpen}
+                onClose={() => setIsDatasetBrowserOpen(false)}
                 title={(
                     <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500 border border-indigo-500/20">
-                            <Database size={16} />
+                            <HardDrive size={16} />
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-sm font-bold text-foreground leading-none">Vault Browser</span>
-                            <span className="text-[9px] text-muted-foreground font-black tracking-widest mt-1 opacity-60">Global Asset Discovery</span>
+                            <span className="text-sm font-bold text-foreground leading-none">Dataset Browser</span>
+                            <span className="text-[9px] text-muted-foreground font-black tracking-widest mt-1 opacity-60">Global Dataset Discovery</span>
                         </div>
                     </div>
                 )}
@@ -675,23 +680,23 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
             >
                 <div className="flex flex-col h-[550px]">
                     <div className="flex-1 overflow-y-auto p-8 space-y-4 custom-scrollbar">
-                        {isVaultLoading ? (
+                        {isDatasetLoading ? (
                             <div className="flex flex-col items-center justify-center py-24 gap-6">
                                 <div className="w-20 h-20 rounded-[2rem] bg-indigo-500/5 flex items-center justify-center relative">
                                     <div className="absolute inset-0 rounded-[2rem] border border-indigo-500/20 animate-pulse" />
                                     <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
                                 </div>
-                                <span className="text-[10px] font-black text-muted-foreground tracking-[0.3em]">Mapping Cold Storage...</span>
+                                <span className="text-[10px] font-black text-muted-foreground tracking-[0.3em]">Mapping Datasets...</span>
                             </div>
-                        ) : vaultDocuments.length === 0 ? (
+                        ) : datasetDocuments.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-24 gap-6 opacity-20">
                                 <div className="w-20 h-20 rounded-[2rem] bg-secondary border border-border flex items-center justify-center">
-                                    <Database size={32} className="text-muted-foreground" />
+                                    <HardDrive size={32} className="text-muted-foreground" />
                                 </div>
-                                <span className="text-[10px] font-black text-muted-foreground tracking-[0.2em]">Matrix Empty</span>
+                                <span className="text-[10px] font-black text-muted-foreground tracking-[0.2em]">Dataset Empty</span>
                             </div>
                         ) : (
-                            vaultDocuments.map((doc) => (
+                            datasetDocuments.map((doc) => (
                                 <div key={doc.id} className="flex items-center justify-between p-5 rounded-[2rem] bg-secondary/30 border border-border hover:border-indigo-500/30 transition-all group overflow-hidden relative">
                                     <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/0 to-indigo-500/[0.02] opacity-0 group-hover:opacity-100 transition-opacity" />
                                     <div className="flex items-center gap-5 relative">
@@ -701,17 +706,17 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                         <div className="flex flex-col">
                                             <span className="text-xs font-black text-foreground tracking-tight group-hover:text-indigo-400 transition-colors">{doc.name}</span>
                                             <span className="text-[9px] text-muted-foreground font-black tracking-widest mt-0.5 opacity-60">
-                                                {doc.extension?.replace('.', '') || 'UNKNOWN'} • ORIGIN: {doc.workspace_name || 'SYSTEM'}
+                                                {doc.extension?.replace('.', '') || 'UNKNOWN'} • ORIGIN: {doc.workspace_name || 'GLOBAL'}
                                             </span>
                                         </div>
                                     </div>
                                     <button
-                                        onClick={() => handleLinkFromVault(doc)}
+                                        onClick={() => handleLinkFromDataset(doc)}
                                         disabled={isLinking}
                                         className="h-10 px-6 rounded-xl bg-foreground text-background hover:opacity-90 text-[10px] font-black tracking-[0.2em] transition-all active:scale-95 disabled:grayscale disabled:opacity-50 flex items-center gap-2 relative"
                                     >
                                         {isLinking ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
-                                        Deploy
+                                        Link
                                     </button>
                                 </div>
                             ))
@@ -740,7 +745,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                     <div className="space-y-3 px-4">
                         <p className="text-xs font-bold text-foreground tracking-widest">Duplicate Detected</p>
                         <p className="text-[11px] text-muted-foreground font-medium leading-relaxed">
-                            This artifact already exists within the <span className="text-indigo-500 font-bold">Global Knowledge Vault</span>.
+                            This artifact already exists within <span className="text-indigo-500 font-bold">Document Storage</span>.
                             Deploy the existing entry to this node instead of creating a redundant copy?
                         </p>
                     </div>
@@ -769,13 +774,13 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => {
-                                fetchVaultDocuments();
-                                setIsVaultBrowserOpen(true);
+                                fetchDatasetDocuments();
+                                setIsDatasetBrowserOpen(true);
                             }}
                             className="h-10 px-4 flex items-center gap-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 text-indigo-500 transition-all active:scale-95 text-xs font-bold"
                         >
-                            <Database size={14} />
-                            Add from Vault
+                            <HardDrive size={14} />
+                            Add from Dataset
                         </button>
                         <button
                             onClick={() => setIsUploadModalOpen(true)}
@@ -978,7 +983,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                                                 {isGlobal ? 'Uploaded' : (effectiveStatus === 'uploaded' ? 'Pending Index' : effectiveStatus)}
                                                             </span>
                                                         )}
-                                                        {isGlobal && doc.workspace_name && doc.workspace_name !== 'Unknown' && doc.workspace_name !== 'Unknown Workspace' && doc.workspace_id !== 'vault' && (
+                                                        {isGlobal && doc.workspace_name && doc.workspace_name !== 'Unknown' && doc.workspace_name !== 'Unknown Workspace' && doc.workspace_id !== 'default' && (
                                                             <>
                                                                 <span className="w-1 h-1 rounded-full bg-border" />
                                                                 <span className="text-[10px] text-muted-foreground font-bold tracking-tight">{doc.workspace_name}</span>
@@ -1017,7 +1022,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                     <button
                                         onClick={() => {
                                             setDeletingDoc(doc);
-                                            setDeleteTargetWs(workspaceId === 'vault' ? (doc.workspace_id || '') : workspaceId);
+                                            setDeleteTargetWs(workspaceId === 'default' ? (doc.workspace_id || '') : workspaceId);
                                         }}
                                         className="w-10 h-10 flex items-center justify-center rounded-xl text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-all"
                                         title="Delete"
@@ -1108,7 +1113,8 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                                                 ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-500"
                                                                 : "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
                                                         )}>
-                                                            {rel.is_primary ? <Database size={20} /> : <ArrowRightLeft size={20} />}
+                                                            <HardDrive size={18} />
+                                                            <span>Dataset Storage</span>
                                                         </div>
                                                         <div className="space-y-0.5">
                                                             <div className="text-xs font-black text-foreground tracking-tight">
@@ -1309,7 +1315,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
 
                             <div className="pt-4 border-t border-border/50">
                                 <p className="text-[9px] text-muted-foreground/40 font-black tracking-widest leading-tight">
-                                    Note: the file will remain safe in your vault.
+                                    Note: the file will remain safe in storage.
                                 </p>
                             </div>
                         </div>
@@ -1334,23 +1340,23 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
 
                                 try {
                                     if (isIndexing) {
-                                        await api.updateDocumentWorkspacesWorkspacesWorkspaceIdDocumentsUpdateWorkspacesPost({
+                                        await api.updateDocumentWorkspacesApiV1WorkspacesWorkspaceIdDocumentsUpdateWorkspacesPost({
                                             workspaceId: confirmingAction.workspace_id,
-                                            documentWorkspaceUpdate: {
-                                                documentId: managingDoc.id!,
-                                                targetWorkspaceId: confirmingAction.workspace_id,
+                                            requestBody: {
+                                                document_id: managingDoc.id!,
+                                                target_workspace_id: confirmingAction.workspace_id,
                                                 action: 'link',
-                                                forceReindex: true
+                                                force_reindex: true
                                             }
                                         });
                                         toast.dismiss(toastId);
                                         toast.success(`Indexing started for ${managingDoc.name} in ${confirmingAction.workspace_name}`);
                                         fetchDocuments();
                                     } else {
-                                        await api.deleteDocumentWorkspacesWorkspaceIdDocumentsDocumentIdDelete({
+                                        await api.deleteDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdDelete({
+                                            workspaceId: workspaceId || '',
                                             documentId: managingDoc.id!,
-                                            workspaceId: confirmingAction.workspace_id,
-                                            vaultDelete: false
+                                            datasetDelete: false
                                         });
                                         toast.dismiss(toastId);
                                         toast.success(`Removed ${managingDoc.name} from ${confirmingAction.workspace_name}`);
@@ -1413,7 +1419,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                             <div className="flex items-center justify-between">
                                 <div className="space-y-1">
                                     <span className="text-[9px] font-black text-muted-foreground tracking-[0.2em] block">Remove from workspace</span>
-                                    <span className="text-[10px] font-black text-indigo-500 tracking-widest">Keep in vault</span>
+                                    <span className="text-[10px] font-black text-indigo-500 tracking-widest">Keep in storage</span>
                                 </div>
                                 <div className="w-8 h-8 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-500 opacity-40 group-hover:opacity-100 transition-opacity">
                                     <Database size={14} />

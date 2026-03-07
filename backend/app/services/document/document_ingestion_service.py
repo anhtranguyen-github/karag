@@ -60,21 +60,18 @@ class DocumentIngestionService:
                 )
                 return 0
 
-            config, store = await ingestion_pipeline.get_ingestion_config(
-                workspace_id, dataset_id=dataset_id
-            )
+            config, store = await ingestion_pipeline.get_ingestion_config(workspace_id, dataset_id=dataset_id)
 
             # Phase 2a: Ensure collection and indices exist BEFORE operating on it
             # This prevents 400 errors from Qdrant when filtering on unindexed fields
             await ingestion_pipeline.initialize(workspace_id=workspace_id)
 
-            # Use adapter to delete old indexes for this document (re-indexing case)
             # MongoDB doc_id is the source of truth for chunks
             await store.delete_document(config, doc_id)
 
             content = minio_manager.get_file(doc["minio_path"])
             if not content:
-                raise ValueError("Source file missing in vault storage.")
+                raise ValueError("Source file missing in document storage.")
 
             extension = doc.get("extension", ".tmp")
             from backend.app.core.path_utils import get_safe_temp_path
@@ -201,9 +198,7 @@ class DocumentIngestionService:
             )
         except Exception as e:
             logger.error("background_index_failed", task_id=task_id, error=str(e), exc_info=True)
-            await task_service.fail_with_retry(
-                task_id, error_message=str(e), error_code="INDEXING_FAILED"
-            )
+            await task_service.fail_with_retry(task_id, error_message=str(e), error_code="INDEXING_FAILED")
 
 
 document_ingestion_service = DocumentIngestionService()

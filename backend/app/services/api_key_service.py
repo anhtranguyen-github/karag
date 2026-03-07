@@ -269,9 +269,7 @@ class APIKeyService:
         return True
 
     @classmethod
-    async def list_workspace_keys(
-        cls, workspace_id: str, include_inactive: bool = False
-    ) -> list[APIKey]:
+    async def list_workspace_keys(cls, workspace_id: str, include_inactive: bool = False) -> list[APIKey]:
         """
         List all API keys for a workspace.
 

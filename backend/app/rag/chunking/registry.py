@@ -13,15 +13,11 @@ from backend.app.schemas.chunking import (
 
 @runtime_checkable
 class Chunker(Protocol):
-    async def chunk(
-        self, text: str, config: ChunkingConfig, workspace_id: str = None
-    ) -> list[str]: ...
+    async def chunk(self, text: str, config: ChunkingConfig, workspace_id: str = None) -> list[str]: ...
 
 
 class RecursiveChunker:
-    async def chunk(
-        self, text: str, config: RecursiveChunkingConfig, workspace_id: str = None
-    ) -> list[str]:
+    async def chunk(self, text: str, config: RecursiveChunkingConfig, workspace_id: str = None) -> list[str]:
         from langchain_text_splitters import RecursiveCharacterTextSplitter
 
         splitter = RecursiveCharacterTextSplitter(
@@ -34,9 +30,7 @@ class RecursiveChunker:
 
 
 class SentenceChunker:
-    async def chunk(
-        self, text: str, config: SentenceChunkingConfig, workspace_id: str = None
-    ) -> list[str]:
+    async def chunk(self, text: str, config: SentenceChunkingConfig, workspace_id: str = None) -> list[str]:
         # Simple sentence splitter if nltk/spaCy not wanted immediately
         # LangChain doesn't have a direct 'SentenceOverlap' splitter easily used without NLTK usually
         # But we can use character splitter with newline/period separators if needed
@@ -54,9 +48,7 @@ class SentenceChunker:
 
 
 class TokenChunker:
-    async def chunk(
-        self, text: str, config: TokenChunkingConfig, workspace_id: str = None
-    ) -> list[str]:
+    async def chunk(self, text: str, config: TokenChunkingConfig, workspace_id: str = None) -> list[str]:
         from langchain_text_splitters import TokenTextSplitter
 
         splitter = TokenTextSplitter(
@@ -68,23 +60,17 @@ class TokenChunker:
 
 
 class SemanticChunkerImpl:
-    async def chunk(
-        self, text: str, config: SemanticChunkingConfig, workspace_id: str = None
-    ) -> list[str]:
+    async def chunk(self, text: str, config: SemanticChunkingConfig, workspace_id: str = None) -> list[str]:
         from backend.app.providers.embedding import get_embeddings
         from langchain_experimental.text_splitter import SemanticChunker
 
         provider = await get_embeddings(workspace_id)
-        splitter = SemanticChunker(
-            provider, breakpoint_threshold_amount=config.similarity_threshold
-        )
+        splitter = SemanticChunker(provider, breakpoint_threshold_amount=config.similarity_threshold)
         return splitter.split_text(text)
 
 
 class FixedLengthChunker:
-    async def chunk(
-        self, text: str, config: FixedLengthChunkingConfig, workspace_id: str = None
-    ) -> list[str]:
+    async def chunk(self, text: str, config: FixedLengthChunkingConfig, workspace_id: str = None) -> list[str]:
         from langchain_text_splitters import CharacterTextSplitter
 
         splitter = CharacterTextSplitter(
@@ -122,9 +108,7 @@ class ChunkingRegistry:
             "document": DocumentStructureChunker(),
         }
 
-    async def chunk_text(
-        self, text: str, config: ChunkingConfig, workspace_id: str = None
-    ) -> list[str]:
+    async def chunk_text(self, text: str, config: ChunkingConfig, workspace_id: str = None) -> list[str]:
         chunker = self._chunkers.get(config.strategy)
         if not chunker:
             raise ValueError(f"Unknown chunking strategy: {config.strategy}")

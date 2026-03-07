@@ -10,7 +10,7 @@ Following API design principles:
 """
 
 from datetime import datetime
-from enum import StrEnum
+from enum import Enum
 from typing import Any
 
 import structlog
@@ -22,7 +22,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 logger = structlog.get_logger(__name__)
 
 
-class ErrorSeverity(StrEnum):
+class ErrorSeverity(str, Enum):
     """Error severity levels."""
 
     WARNING = "warning"
@@ -341,6 +341,10 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
         """Handle unexpected exceptions."""
         request_id = getattr(request.state, "request_id", None)
 
+        print(f"DEBUG_UNHANDLED_EXCEPTION: {type(exc).__name__}: {exc}")
+        import traceback
+        traceback.print_exc()
+
         logger.exception(
             "unhandled_exception",
             exception_type=type(exc).__name__,
@@ -350,12 +354,12 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
         error_response = ErrorResponse(
             error={
                 "code": "INTERNAL_ERROR",
-                "message": "An unexpected error occurred",
+                "message": f"UNHANDLED: {type(exc).__name__}: {exc}",
                 "severity": ErrorSeverity.CRITICAL.value,
                 "request_id": request_id,
                 "timestamp": datetime.utcnow().isoformat() + "Z",
             },
-            help="Please contact support if this error persists",
+            help="Check logs for full traceback",
         )
 
         content = error_response.model_dump(exclude_none=True)

@@ -47,9 +47,7 @@ class IngestionPipeline:
                     chunking=pipeline.chunking,
                     collection_name_override=dataset.vector_store_config.collection_name,
                 )
-                store = await ProviderFactory.get_vector_store(
-                    workspace_id
-                )  # Should eventually be connector-aware
+                store = await ProviderFactory.get_vector_store(workspace_id)  # Should eventually be connector-aware
                 return config, store
             except Exception as e:
                 logger.warning(
@@ -75,9 +73,7 @@ class IngestionPipeline:
         await store.create_collection_if_not_exists(config)
         return config.collection_name_override or f"knowledge_base_{config.vector_size}"
 
-    async def process_file(
-        self, file_path_str: str, metadata: dict = None, dataset_id: str | None = None
-    ):
+    async def process_file(self, file_path_str: str, metadata: dict = None, dataset_id: str | None = None):
         """
         Process various file types: PDF, TXT, MD, DOCX, HTML.
         Automatically selects the appropriate loader based on extension.
@@ -126,9 +122,7 @@ class IngestionPipeline:
                 )
 
             if task_id:
-                await task_service.update_task(
-                    task_id, progress=20, message=f"Reading file: {filename}"
-                )
+                await task_service.update_task(task_id, progress=20, message=f"Reading file: {filename}")
 
             # --- Component 1: Load ---
             load_start = time.perf_counter()
@@ -234,9 +228,7 @@ class IngestionPipeline:
                     "minio_path": (metadata or {}).get("minio_path"),
                     "content_hash": (metadata or {}).get("content_hash"),
                 }
-                points.append(
-                    DocumentPoint(id=str(uuid.uuid4()), vector=embeddings[i], payload=payload)
-                )
+                points.append(DocumentPoint(id=str(uuid.uuid4()), vector=embeddings[i], payload=payload))
 
             await store.upsert_documents(config=config, points=points)
 
@@ -302,9 +294,7 @@ class IngestionPipeline:
                     "dataset_id": dataset_id,
                     "shared_with": (metadata or {}).get("shared_with", []),
                 }
-                points.append(
-                    DocumentPoint(id=str(uuid.uuid4()), vector=embeddings[i], payload=payload)
-                )
+                points.append(DocumentPoint(id=str(uuid.uuid4()), vector=embeddings[i], payload=payload))
 
             await store.upsert_documents(config=config, points=points)
 
@@ -367,9 +357,7 @@ class IngestionPipeline:
                     "workspace_id": workspace_id,
                     "dataset_id": dataset_id,
                 }
-                points.append(
-                    DocumentPoint(id=str(uuid.uuid4()), vector=embeddings[i], payload=payload)
-                )
+                points.append(DocumentPoint(id=str(uuid.uuid4()), vector=embeddings[i], payload=payload))
 
             await store.upsert_documents(config=config, points=points)
 

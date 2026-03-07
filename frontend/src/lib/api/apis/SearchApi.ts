@@ -1,5 +1,5 @@
 /* tslint:disable */
-/* eslint-disable */
+ 
 /**
  * Karag API
  * Modular RAG & Agentic Chatbot API

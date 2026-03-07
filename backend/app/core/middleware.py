@@ -274,7 +274,8 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
             path=request.url.path,
         )
 
-    def _normalize_path(self, path: str) -> str:
+    @classmethod
+    def _normalize_path(cls, path: str) -> str:
         """
         Replace dynamic path segments with placeholders for bounded cardinality.
 
@@ -304,7 +305,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
                 skip_next = False
                 continue
 
-            if part in self.DYNAMIC_PATH_SEGMENTS and i + 1 < len(parts):
+            if part in cls.DYNAMIC_PATH_SEGMENTS and i + 1 < len(parts):
                 normalized.append(part)
                 skip_next = True
             else:

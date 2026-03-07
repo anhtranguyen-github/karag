@@ -22,7 +22,5 @@ def create_access_token(subject: str | Any, expires_delta: timedelta = None) -> 
     else:
         expire = datetime.utcnow() + timedelta(minutes=karag_settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode = {"exp": expire, "sub": str(subject)}
-    encoded_jwt = jwt.encode(
-        to_encode, karag_settings.SECRET_KEY, algorithm=karag_settings.ALGORITHM
-    )
+    encoded_jwt = jwt.encode(to_encode, karag_settings.SECRET_KEY, algorithm=karag_settings.ALGORITHM)
     return encoded_jwt

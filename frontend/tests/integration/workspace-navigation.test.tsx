@@ -43,13 +43,13 @@ describe('Workspace Navigation Integration', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         (api.listWorkspacesWorkspacesGet as any).mockResolvedValue({ success: true, data: mockWorkspaces });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         (api.getSettingsMetadataWorkspacesWorkspaceIdSettingsMetadataGet as any).mockResolvedValue({ success: true, data: {} });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         (api.getGlobalSettingsMetadataAdminSettingsMetadataGet as any).mockResolvedValue({ success: true, data: {} });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         (api.getGlobalSettingsAdminSettingsGet as any).mockResolvedValue({ success: true, data: {} });
     });
 
@@ -69,7 +69,7 @@ describe('Workspace Navigation Integration', () => {
     });
 
     it('opens create modal and creates workspace', async () => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         (api.createWorkspaceWorkspacesPost as any).mockResolvedValue({ success: true, data: { id: 'new-ws', name: 'New Workspace' } });
 
         render(
@@ -112,7 +112,7 @@ describe('Workspace Navigation Integration', () => {
     });
 
     it('selects simple fields in create modal', async () => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         (api.createWorkspaceWorkspacesPost as any).mockResolvedValue({ success: true, data: { id: 'new-ws' } });
 
         render(

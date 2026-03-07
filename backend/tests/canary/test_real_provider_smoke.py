@@ -23,9 +23,7 @@ async def test_real_openai_smoke():
 
     # We use a very simple and cheap call
     try:
-        response = await llm.generate_chat(
-            messages=[{"role": "user", "content": "Say 'ok'"}], max_tokens=5
-        )
+        response = await llm.generate_chat(messages=[{"role": "user", "content": "Say 'ok'"}], max_tokens=5)
         assert "ok" in response.content.lower()
     except Exception as e:
         pytest.fail(f"Real LLM call failed: {str(e)}")

@@ -112,18 +112,22 @@ async def test_ingestion_progress_updates(mocker, mock_db_and_col):
     mocker.patch("os.path.exists", return_value=True)
     mocker.patch("builtins.open", mocker.mock_open())
 
-    mocker.patch("backend.app.rag.ingestion.ingestion_pipeline.initialize")
+    mocker.patch("backend.app.rag.ingestion.ingestion_pipeline.initialize", new_callable=AsyncMock)
     mocker.patch(
         "backend.app.rag.ingestion.ingestion_pipeline.get_ingestion_config",
-        return_value=(MagicMock(), MagicMock()),
+        new_callable=AsyncMock,
+        return_value=(MagicMock(), AsyncMock()),
     )
+
+    # Do NOT mock process_file so we can test its task updates
 
     mock_loader = MagicMock()
     mock_loader.load.return_value = [MagicMock(page_content="page1")]
     mocker.patch("backend.app.rag.ingestion.TextLoader", return_value=mock_loader)
-    mocker.patch("backend.app.rag.rag_service.rag_service.chunk_text", return_value=["chunk1"])
+    mocker.patch("backend.app.rag.rag_service.rag_service.chunk_text", new_callable=AsyncMock, return_value=["chunk1"])
     mocker.patch(
         "backend.app.rag.rag_service.rag_service.get_embeddings",
+        new_callable=AsyncMock,
         return_value=[[0.1] * 1536],
     )
 
@@ -140,6 +144,7 @@ async def test_ingestion_progress_updates(mocker, mock_db_and_col):
     mock_task.update_task = AsyncMock()
     mock_task.is_cancelled = AsyncMock(return_value=False)
     mocker.patch("backend.app.services.task.task_service.task_service", mock_task)
+    mocker.patch("backend.app.services.document.document_ingestion_service.task_service", mock_task)
 
     from backend.app.services.document.document_ingestion_service import (
         document_ingestion_service,

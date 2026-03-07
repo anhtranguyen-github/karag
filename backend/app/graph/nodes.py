@@ -84,9 +84,7 @@ async def rerank_node(state: AgentState) -> dict:
         }
 
     with tracer.start_as_current_span("graph.rerank_node") as span:
-        reranked = await reranker.rerank(
-            query=last_message, documents=raw_results, top_k=settings.rerank_top_k
-        )
+        reranked = await reranker.rerank(query=last_message, documents=raw_results, top_k=settings.rerank_top_k)
 
         context = []
         sources = []
@@ -135,9 +133,7 @@ async def reason_node(state: AgentState, config: RunnableConfig) -> dict:
 
         system_base = prompt_manager.get_prompt("rag_system.system", version="v1")
 
-        system_prompt = SystemMessage(
-            content=(f"{system_base}\n\n{summary_context}\n\n--- CONTEXT ---\n{context_str}")
-        )
+        system_prompt = SystemMessage(content=(f"{system_base}\n\n{summary_context}\n\n--- CONTEXT ---\n{context_str}"))
 
         logger.info("graph_reason_llm_invoke", workspace_id=workspace_id)
         messages = [system_prompt] + state["messages"]
@@ -273,17 +269,13 @@ async def summarize_node(state: AgentState) -> dict:
         existing_summary = state.get("summary", "")
         if existing_summary:
             summary_prompt_base = prompt_manager.get_prompt("summarizer.extend", version="v1")
-            summary_prompt = prompt_manager.format_prompt(
-                summary_prompt_base, existing_summary=existing_summary
-            )
+            summary_prompt = prompt_manager.format_prompt(summary_prompt_base, existing_summary=existing_summary)
         else:
             summary_prompt = prompt_manager.get_prompt("summarizer.create", version="v1")
 
         messages_to_summarize = messages[:-2]
 
-        response = await llm.ainvoke(
-            [SystemMessage(content=summary_prompt)] + messages_to_summarize
-        )
+        response = await llm.ainvoke([SystemMessage(content=summary_prompt)] + messages_to_summarize)
 
         # Record usage
         usage = getattr(response, "usage_metadata", {})
@@ -298,9 +290,7 @@ async def summarize_node(state: AgentState) -> dict:
             )
 
         new_summary = response.content
-        delete_messages = [
-            RemoveMessage(id=m.id) for m in messages_to_summarize if hasattr(m, "id")
-        ]
+        delete_messages = [RemoveMessage(id=m.id) for m in messages_to_summarize if hasattr(m, "id")]
 
         span.set_attribute("graph.summarized_messages", len(messages_to_summarize))
         span.set_attribute("graph.summary_length", len(new_summary))

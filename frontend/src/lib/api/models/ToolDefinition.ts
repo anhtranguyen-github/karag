@@ -1,5 +1,5 @@
 /* tslint:disable */
-/* eslint-disable */
+ 
 /**
  * Knowledge Bank API
  * Modular RAG & Agentic Chatbot API

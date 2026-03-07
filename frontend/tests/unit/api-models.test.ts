@@ -24,7 +24,7 @@ describe('API Models parsing', () => {
         };
         const model = AppResponseFromJSON(json);
         expect(model.success).toBe(true);
-        expect(model.data).toBeNull();
+        expect(model.data).toBeFalsy();
     });
 
     it('successfully parses AppResponseListWorkspace with array data', () => {

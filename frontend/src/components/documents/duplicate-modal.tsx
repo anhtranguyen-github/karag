@@ -28,7 +28,7 @@ export function DuplicateModal({ isOpen, onClose, onResolve, conflict, isProcess
             case 'name_collision':
                 return "A node with this identifier already exists, though the content payload differs.";
             case 'content_collision':
-                return `A content match was detected in the Global Vault (Origin: ${conflict.existing_doc?.workspace}).`;
+                return `A content match was detected in Global Storage (Origin: ${conflict.existing_doc?.workspace}).`;
             default:
                 return "A structural conflict was detected during ingestion.";
         }

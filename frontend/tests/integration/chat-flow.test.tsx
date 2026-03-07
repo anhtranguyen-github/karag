@@ -30,7 +30,7 @@ vi.mock('@/lib/api-client', () => ({
 // Mock fetch for SSE
 const mockFetchEventSource = vi.fn();
 vi.mock('@microsoft/fetch-event-source', () => ({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     fetchEventSource: (...args: any[]) => mockFetchEventSource(...args),
 }));
 
@@ -41,7 +41,7 @@ import { TaskProvider } from '@/context/task-context';
 describe('Chat Flow Integration', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         (useSearchParams as any).mockReturnValue(new URLSearchParams());
     });
 
@@ -98,14 +98,14 @@ describe('Chat Flow Integration', () => {
         ];
 
         // Re-mock to return history
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         (api.getChatHistoryWorkspacesWorkspaceIdChatHistoryThreadIdGet as any).mockResolvedValue({
             success: true,
             data: mockHistory
         });
 
         // We need a threadId in searchParams to trigger history fetch
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         (useSearchParams as any).mockReturnValue(
             new URLSearchParams('threadId=t1')
         );

@@ -68,9 +68,7 @@ def list_runners():
     print("\n=== Available Runners ===\n")
 
     for name, runner_class in RUNNERS.items():
-        print(
-            f"  - {name}: {runner_class.__doc__.split(chr(10))[0] if runner_class.__doc__ else 'N/A'}"
-        )
+        print(f"  - {name}: {runner_class.__doc__.split(chr(10))[0] if runner_class.__doc__ else 'N/A'}")
     print()
 
 

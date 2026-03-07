@@ -25,9 +25,7 @@ class Neo4jStore(GraphStore):
             logger.info("neo4j_driver_initialized", uri=karag_settings.NEO4J_URI)
         return self.driver
 
-    async def execute_query(
-        self, query: str, parameters: dict = None, workspace_id: str = "default"
-    ):
+    async def execute_query(self, query: str, parameters: dict = None, workspace_id: str = "default"):
         """Helper to execute raw Cypher queries internally."""
         driver = self.get_driver()
         async with driver.session(database="neo4j") as session:
@@ -72,9 +70,7 @@ class Neo4jStore(GraphStore):
         """
         await self.execute_query(cypher, {"entities": entities}, workspace_id=workspace_id)
 
-    async def get_workspace_graph(
-        self, workspace_id: str, limit: int = 100
-    ) -> list[dict[str, Any]]:
+    async def get_workspace_graph(self, workspace_id: str, limit: int = 100) -> list[dict[str, Any]]:
         cypher = """
         MATCH (n:Entity {workspace_id: $workspace_id})
         OPTIONAL MATCH (n)-[r]->(m:Entity {workspace_id: $workspace_id})

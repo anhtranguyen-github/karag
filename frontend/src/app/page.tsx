@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
 import { api } from "@/lib/api-client";
-import { Workspace } from "@/lib/api";
+import { Workspace } from "@/client/types.gen";
 import { WorkspaceWizard } from "@/components/workspace/WorkspaceWizard";
 import { DeleteWorkspaceModal } from "@/components/workspace/delete-workspace-modal";
 import { QuickViewWorkspaceModal } from "@/components/workspace/quick-view-modal";
@@ -33,7 +33,7 @@ export default function Home() {
 
   const fetchWorkspaces = async () => {
     try {
-      const response = await api.listWorkspacesWorkspacesGet();
+      const response = await api.listWorkspacesApiV1WorkspacesGet();
       const data = response.data || [];
       const mappedData = data.map((ws: Workspace & { llm_provider?: string, embedding_provider?: string, rag_engine?: string }) => ({
         ...ws,
@@ -49,18 +49,18 @@ export default function Home() {
     }
   };
 
-  const handleConfirmDelete = async (vaultDelete: boolean) => {
+  const handleConfirmDelete = async (datasetDelete: boolean) => {
     if (!workspaceToDelete) return;
 
     const wsName = workspaceToDelete.name;
-    const toastId = toast.loading(`${vaultDelete ? 'Purging' : 'Removing'} workspace ${wsName}...`);
+    const toastId = toast.loading(`${datasetDelete ? 'Purging' : 'Removing'} workspace ${wsName}...`);
 
     setWorkspaceToDelete(null); // Close modal immediately
 
     try {
-      await api.deleteWorkspaceWorkspacesWorkspaceIdDelete({ workspaceId: workspaceToDelete.id, vaultDelete });
+      await api.deleteWorkspaceApiV1WorkspacesWorkspaceIdDelete({ workspaceId: workspaceToDelete.id, datasetDelete });
       toast.dismiss(toastId);
-      toast.success(`Workspace ${wsName} successfully ${vaultDelete ? 'purged' : 'removed'}`);
+      toast.success(`Workspace ${wsName} successfully ${datasetDelete ? 'purged' : 'removed'}`);
       setWorkspaces(workspaces.filter(ws => ws.id !== workspaceToDelete.id));
     } catch (error) {
       toast.dismiss(toastId);
@@ -105,10 +105,10 @@ export default function Home() {
                 {user?.fullName || "Profile"}
               </button>
             </Link>
-            <Link href="/vault">
+            <Link href="/dashboard/storage">
               <button className="h-11 px-6 rounded-xl bg-secondary border border-border hover:bg-muted transition-all font-bold text-[11px] tracking-wide text-muted-foreground hover:text-foreground flex items-center gap-2 active:scale-95 group">
                 <Database size={16} />
-                Vault
+                Storage
               </button>
             </Link>
             <button

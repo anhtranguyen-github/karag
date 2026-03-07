@@ -62,13 +62,13 @@ async def create_api_keys_collection():
     print("✓ Created api_keys indexes")
 
 
-async def create_vaults_collection():
-    """Block 2: Create vaults collection with validation."""
+async def create_document_storages_collection():
+    """Block 2: Create document_storages collection with validation."""
     db = mongodb_manager.get_async_database()
 
     try:
         await db.create_collection(
-            "vaults",
+            "document_storages",
             {
                 "validator": {
                     "$jsonSchema": {
@@ -87,30 +87,28 @@ async def create_vaults_collection():
                 }
             },
         )
-        print("✓ Created vaults collection")
+        print("✓ Created document_storages collection")
     except Exception as e:
         if "already exists" in str(e):
-            print("✓ vaults collection already exists")
+            print("✓ document_storages collection already exists")
         else:
-            print(f"✗ Error creating vaults: {e}")
+            print(f"✗ Error creating document_storages: {e}")
 
     # Create indexes
-    await db.vaults.create_index("id", unique=True)
-    await db.vaults.create_index("owner_workspace_id")
-    await db.vaults.create_index("type")
-    await db.vaults.create_index([("owner_workspace_id", 1), ("name", 1)], unique=True)
-    print("✓ Created vaults indexes")
+    await db.document_storages.create_index("id", unique=True)
+    await db.document_storages.create_index("owner_workspace_id")
+    await db.document_storages.create_index("type")
+    await db.document_storages.create_index([("owner_workspace_id", 1), ("name", 1)], unique=True)
+    print("✓ Created document_storages indexes")
 
 
 async def update_documents_collection():
-    """Block 2: Add vault_id to existing documents collection."""
+    """Block 2: Add storage_id to existing documents collection."""
     db = mongodb_manager.get_async_database()
 
-    # Add vault_id field to existing documents without it
-    result = await db.documents.update_many(
-        {"vault_id": {"$exists": False}}, {"$set": {"vault_id": "default"}}
-    )
-    print(f"✓ Updated {result.modified_count} documents with vault_id")
+    # Add storage_id field to existing documents without it
+    result = await db.documents.update_many({"storage_id": {"$exists": False}}, {"$set": {"storage_id": "default"}})
+    print(f"✓ Updated {result.modified_count} documents with storage_id")
 
 
 async def create_system_config_collection():
@@ -178,7 +176,7 @@ async def create_usage_logs_collection():
 
 
 async def migrate_existing_workspaces():
-    """Create default vaults for existing workspaces."""
+    """Create default storage units for existing workspaces."""
     db = mongodb_manager.get_async_database()
 
     from datetime import datetime
@@ -186,23 +184,23 @@ async def migrate_existing_workspaces():
     async for workspace in db.workspaces.find():
         workspace_id = workspace["id"]
 
-        # Check if default vault exists
-        existing = await db.vaults.find_one({"owner_workspace_id": workspace_id, "name": "default"})
+        # Check if default storage exists
+        existing = await db.document_storages.find_one({"owner_workspace_id": workspace_id, "name": "default"})
 
         if existing:
-            print(f"  Workspace {workspace_id}: default vault already exists")
+            print(f"  Workspace {workspace_id}: default storage already exists")
             continue
 
-        # Create default vault
-        vault_id = f"vault_{workspace_id.replace('ws_', '')}"
+        # Create default storage
+        storage_id = f"store_{workspace_id.replace('ws_', '')}"
 
-        await db.vaults.insert_one(
+        await db.document_storages.insert_one(
             {
-                "id": vault_id,
+                "id": storage_id,
                 "type": "workspace",
                 "owner_workspace_id": workspace_id,
                 "name": "default",
-                "description": "Default vault for workspace",
+                "description": "Default storage for workspace",
                 "is_active": True,
                 "is_read_only": False,
                 "allowed_workspace_ids": [workspace_id],
@@ -227,10 +225,10 @@ async def migrate_existing_workspaces():
         # Update workspace
         await db.workspaces.update_one(
             {"id": workspace_id},
-            {"$set": {"vault_ids": [vault_id], "enabled_vaults": [vault_id]}},
+            {"$set": {"storage_ids": [storage_id], "enabled_storages": [storage_id]}},
         )
 
-        print(f"  Workspace {workspace_id}: created default vault")
+        print(f"  Workspace {workspace_id}: created default storage")
 
 
 async def main():
@@ -250,8 +248,8 @@ async def main():
         await create_api_keys_collection()
 
         # Block 2: Storage
-        print("\n[3/7] Block 2: Creating vaults collection...")
-        await create_vaults_collection()
+        print("\n[3/7] Block 2: Creating document_storages collection...")
+        await create_document_storages_collection()
 
         print("\n[4/7] Block 2: Updating documents collection...")
         await update_documents_collection()

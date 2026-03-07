@@ -82,15 +82,10 @@ class EndToEndRunner(BaseRunner):
                     break
 
                 count += 1
-                sample_result, intermediate = await self._evaluate_end_to_end(
-                    entry, rag_pipeline, config
-                )
+                sample_result, intermediate = await self._evaluate_end_to_end(entry, rag_pipeline, config)
                 sample_results.append(sample_result)
                 # Only store intermediate results if enabled and within limit
-                if (
-                    config.save_intermediate
-                    and len(intermediate_results) < config.max_intermediate_samples
-                ):
+                if config.save_intermediate and len(intermediate_results) < config.max_intermediate_samples:
                     intermediate_results.append(intermediate)
 
                 if sample_result.error:
@@ -167,9 +162,7 @@ class EndToEndRunner(BaseRunner):
 
             intermediate["timings"]["generation_ms"] = (time.time() - step_start) * 1000
             intermediate["steps"][2]["status"] = "completed"
-            intermediate["answer_length"] = (
-                len(sample_result.predicted_answer) if sample_result.predicted_answer else 0
-            )
+            intermediate["answer_length"] = len(sample_result.predicted_answer) if sample_result.predicted_answer else 0
 
             # Compute generation metrics
             if config.compute_generation_metrics and sample_result.predicted_answer:
@@ -179,9 +172,7 @@ class EndToEndRunner(BaseRunner):
                     contexts=contexts if contexts else entry.contexts,
                     reference_answer=entry.answer,
                 )
-                sample_result.generation_metrics = {
-                    k: v.score for k, v in generation_results.items()
-                }
+                sample_result.generation_metrics = {k: v.score for k, v in generation_results.items()}
 
             # Record total latency
             sample_result.latency_ms = (time.time() - start_time) * 1000
@@ -191,9 +182,7 @@ class EndToEndRunner(BaseRunner):
             sample_result.metadata.update(
                 {
                     "query_length": len(entry.query),
-                    "answer_length": len(sample_result.predicted_answer)
-                    if sample_result.predicted_answer
-                    else 0,
+                    "answer_length": len(sample_result.predicted_answer) if sample_result.predicted_answer else 0,
                     "context_count": len(contexts),
                     "retrieved_count": len(sample_result.retrieved_documents),
                 }
@@ -253,9 +242,7 @@ class EndToEndRunner(BaseRunner):
         # Calculate percentages
         total_time = sum(a["total_ms"] for a in analysis.values())
         for stage in analysis:
-            analysis[stage]["percentage"] = (
-                analysis[stage]["total_ms"] / total_time * 100 if total_time > 0 else 0
-            )
+            analysis[stage]["percentage"] = analysis[stage]["total_ms"] / total_time * 100 if total_time > 0 else 0
 
         # Identify bottleneck
         if analysis:

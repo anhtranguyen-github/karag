@@ -10,9 +10,7 @@ tracer = get_tracer(__name__)
 
 
 class RerankerProvider:
-    async def rerank(
-        self, query: str, documents: list[dict[str, Any]], top_k: int
-    ) -> list[dict[str, Any]]:
+    async def rerank(self, query: str, documents: list[dict[str, Any]], top_k: int) -> list[dict[str, Any]]:
         raise NotImplementedError
 
 
@@ -21,9 +19,7 @@ class CohereReranker(RerankerProvider):
         self.api_key = api_key
         self.model = model
 
-    async def rerank(
-        self, query: str, documents: list[dict[str, Any]], top_k: int
-    ) -> list[dict[str, Any]]:
+    async def rerank(self, query: str, documents: list[dict[str, Any]], top_k: int) -> list[dict[str, Any]]:
         if not documents:
             return []
 
@@ -70,9 +66,7 @@ class JinaReranker(RerankerProvider):
         self.api_key = api_key
         self.model = model
 
-    async def rerank(
-        self, query: str, documents: list[dict[str, Any]], top_k: int
-    ) -> list[dict[str, Any]]:
+    async def rerank(self, query: str, documents: list[dict[str, Any]], top_k: int) -> list[dict[str, Any]]:
         if not documents:
             return []
 
@@ -118,9 +112,7 @@ class LocalReranker(RerankerProvider):
 
         self.model = CrossEncoder(model_name)
 
-    async def rerank(
-        self, query: str, documents: list[dict[str, Any]], top_k: int
-    ) -> list[dict[str, Any]]:
+    async def rerank(self, query: str, documents: list[dict[str, Any]], top_k: int) -> list[dict[str, Any]]:
         if not documents:
             return []
 

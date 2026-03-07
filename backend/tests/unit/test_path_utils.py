@@ -67,5 +67,5 @@ def test_validate_safe_path_symlink_jailbreak(tmp_path):
 def test_validate_safe_path_null_byte():
     # Null byte injection attempt
     path = "test.txt\0.pdf"
-    with pytest.raises(ValueError):  # Pathlib or OS will likely complain
+    with pytest.raises(ValidationError):  # Pathlib or OS will likely complain
         validate_safe_path(path)

@@ -337,9 +337,7 @@ async def run_full_test(output_file: str = None):
     print("=" * 60)
 
     total_tests = len(report["tests"])
-    passed_tests = sum(
-        1 for t in report["tests"].values() if t.get("status") in ["completed", "passed"]
-    )
+    passed_tests = sum(1 for t in report["tests"].values() if t.get("status") in ["completed", "passed"])
 
     print(f"\nTotal Test Suites: {total_tests}")
     print(f"Passed: {passed_tests}")

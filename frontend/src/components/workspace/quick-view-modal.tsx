@@ -1,7 +1,7 @@
 "use client";
 
 import { Info, Brain, HardDrive, Cpu, Search, MessageSquare, Layers, Zap, Loader2, Sparkles } from "lucide-react";
-import { Workspace } from "@/lib/api";
+import { Workspace } from "@/client/types.gen";
 import { useSettings } from "@/hooks/use-settings";
 import { cn } from "@/lib/utils";
 import { Modal } from "@/components/ui/modal";
@@ -70,14 +70,14 @@ export function QuickViewWorkspaceModal({
                                             <MessageSquare size={16} className="text-blue-400" />
                                             <span className="text-[10px] font-bold text-foreground uppercase tracking-wider">Threads</span>
                                         </div>
-                                        <span className="text-xs font-black text-blue-400">{workspace.stats?.threadCount || 0}</span>
+                                        <span className="text-xs font-black text-blue-400">{workspace.stats?.thread_count || 0}</span>
                                     </div>
                                     <div className="p-4 rounded-xl bg-secondary border border-border flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                             <HardDrive size={16} className="text-emerald-400" />
                                             <span className="text-[10px] font-bold text-foreground uppercase tracking-wider">Documents</span>
                                         </div>
-                                        <span className="text-xs font-black text-emerald-400">{workspace.stats?.docCount || 0}</span>
+                                        <span className="text-xs font-black text-emerald-400">{workspace.stats?.doc_count || 0}</span>
                                     </div>
                                 </div>
                             </div>

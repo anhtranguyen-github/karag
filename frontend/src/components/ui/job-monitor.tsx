@@ -24,7 +24,7 @@ export function JobMonitor({ workspaceId }: { workspaceId?: string }) {
                 workspaceId: workspaceId!,
                 limit: 5
             });
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             
             setTasks((payload.data as any) || []);
         } catch (e) {
             console.error("Failed to fetch tasks", e);

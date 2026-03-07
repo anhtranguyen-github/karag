@@ -282,11 +282,7 @@ class BaseRunner(ABC):
 
         # Aggregate retrieval metrics
         for metric in retrieval_metrics:
-            values = [
-                sr.retrieval_metrics[metric]
-                for sr in sample_results
-                if metric in sr.retrieval_metrics
-            ]
+            values = [sr.retrieval_metrics[metric] for sr in sample_results if metric in sr.retrieval_metrics]
             if values:
                 aggregated["retrieval"][metric] = {
                     "mean": sum(values) / len(values),
@@ -297,11 +293,7 @@ class BaseRunner(ABC):
 
         # Aggregate generation metrics
         for metric in generation_metrics:
-            values = [
-                sr.generation_metrics[metric]
-                for sr in sample_results
-                if metric in sr.generation_metrics
-            ]
+            values = [sr.generation_metrics[metric] for sr in sample_results if metric in sr.generation_metrics]
             if values:
                 aggregated["generation"][metric] = {
                     "mean": sum(values) / len(values),

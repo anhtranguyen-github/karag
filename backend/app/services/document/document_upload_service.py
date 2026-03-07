@@ -6,7 +6,8 @@ from datetime import datetime
 from backend.app.core.error_codes import AppErrorCode
 from backend.app.core.exceptions import ValidationError
 from backend.app.core.minio import minio_manager
-from backend.app.core.mongodb import mongodb_manager
+from backend.app.repositories.document_repository import document_repository
+from backend.app.schemas.documents import DocumentUploadResponse
 from backend.app.services.document.base import logger, tracer
 from backend.app.services.task.task_service import task_service
 from fastapi import UploadFile
@@ -33,7 +34,7 @@ class DocumentUploadService:
         workspace_id: str,
         dataset_id: str | None = None,
         strategy: str | None = None,
-    ) -> dict:
+    ) -> DocumentUploadResponse:
         """Process and prepare a new document for ingestion."""
         with tracer.start_as_current_span(
             "document.upload",
@@ -44,9 +45,7 @@ class DocumentUploadService:
 
             content = await file.read()
             if len(content) > MAX_FILE_SIZE:
-                raise ValidationError(
-                    f"File size exceeds maximum limit of {MAX_FILE_SIZE // 1_000_000}MB"
-                )
+                raise ValidationError(f"File size exceeds maximum limit of {MAX_FILE_SIZE // 1_000_000}MB")
 
             file_hash = hashlib.sha256(content).hexdigest()
             file_type = file.content_type
@@ -57,21 +56,17 @@ class DocumentUploadService:
                     f"File extension '{ext}' is not allowed. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"
                 )
 
-            existing_local_name = await db.documents.find_one(
+            existing_local_name = await document_repository.collection.find_one(
                 {"workspace_id": workspace_id, "filename": original_filename}
             )
-            existing_vault_doc = await db.documents.find_one({"content_hash": file_hash})
+            existing_doc = await document_repository.find_by_hash(file_hash)
 
             conflict_type = None
-            if (
-                existing_local_name
-                and existing_vault_doc
-                and existing_local_name["id"] == existing_vault_doc["id"]
-            ):
+            if existing_local_name and existing_doc and existing_local_name["id"] == existing_doc.id:
                 conflict_type = "exact_duplicate"
             elif existing_local_name:
                 conflict_type = "name_collision"
-            elif existing_vault_doc:
+            elif existing_doc:
                 conflict_type = "content_collision"
 
             if conflict_type and not strategy:
@@ -80,29 +75,28 @@ class DocumentUploadService:
                     name, ext = os.path.splitext(original_filename)
                     suggested_name = f"{name} (1){ext}"
 
-                return {
-                    "status": "conflict",
-                    "code": "DUPLICATE_DETECTED",
-                    "message": f"Duplicate detected: {conflict_type}",
-                    "params": {
+                return DocumentUploadResponse(
+                    status="conflict",
+                    code="DUPLICATE_DETECTED",
+                    message=f"Duplicate detected: {conflict_type}",
+                    filename=original_filename,
+                    params={
                         "type": conflict_type,
                         "filename": original_filename,
                         "suggested_name": suggested_name,
                         "existing_doc": {
-                            "id": existing_vault_doc["id"]
-                            if existing_vault_doc
-                            else existing_local_name["id"],
-                            "filename": existing_vault_doc["filename"]
-                            if existing_vault_doc
+                            "id": existing_doc.id if existing_doc else existing_local_name["id"],
+                            "filename": existing_doc.filename
+                            if existing_doc
                             else existing_local_name["filename"],
-                            "workspace": existing_vault_doc["workspace_id"]
-                            if existing_vault_doc
+                            "workspace": existing_doc.workspace_id
+                            if existing_doc
                             else existing_local_name["workspace_id"],
                         }
-                        if (existing_vault_doc or existing_local_name)
+                        if (existing_doc or existing_local_name)
                         else None,
                     },
-                }
+                )
 
             target_filename = original_filename
             duplicate_info = {}
@@ -134,7 +128,7 @@ class DocumentUploadService:
             elif strategy == "overwrite" and existing_local_name:
                 await self.delete(existing_local_name["id"], workspace_id, dataset_delete=True)
 
-            task_type = "upload" if workspace_id == "vault" else "ingestion"
+            task_type = "ingestion"
             task_id = await task_service.create_task(
                 task_type,
                 {
@@ -145,16 +139,16 @@ class DocumentUploadService:
                 workspace_id=workspace_id,
             )
 
-            return {
-                "status": "success",
-                "task_id": task_id,
-                "content": content,
-                "filename": target_filename,
-                "content_type": file_type,
-                "duplicate_info": duplicate_info,
-            }
+            return DocumentUploadResponse(
+                status="success",
+                task_id=task_id,
+                filename=target_filename,
+                content_type=file_type,
+                duplicate_info=duplicate_info,
+                content=content,
+            )
 
-    async def import_url(self, url: str, workspace_id: str, strategy: str | None = None) -> dict:
+    async def import_url(self, url: str, workspace_id: str, strategy: str | None = None) -> DocumentUploadResponse:
         """Fetch content from a URL and prepare for ingestion."""
         with tracer.start_as_current_span(
             "document.import_url",
@@ -193,9 +187,9 @@ class DocumentUploadService:
                 workspace_id=workspace_id,
             )
 
-            return {"status": "success", "task_id": task_id, "filename": filename}
+            return DocumentUploadResponse(status="success", task_id=task_id, filename=filename)
 
-    async def import_sitemap(self, sitemap_url: str, workspace_id: str) -> dict:
+    async def import_sitemap(self, sitemap_url: str, workspace_id: str) -> DocumentUploadResponse:
         """Start a background task to process a sitemap."""
         with tracer.start_as_current_span(
             "document.import_sitemap",
@@ -207,11 +201,12 @@ class DocumentUploadService:
                 workspace_id=workspace_id,
             )
 
-            return {
-                "status": "success",
-                "task_id": task_id,
-                "message": f"Sitemap ingestion started for {sitemap_url}",
-            }
+            return DocumentUploadResponse(
+                status="success",
+                task_id=task_id,
+                filename=sitemap_url,
+                message=f"Sitemap ingestion started for {sitemap_url}",
+            )
 
     async def run_url_ingestion_background(
         self,
@@ -232,7 +227,7 @@ class DocumentUploadService:
             {"url": url, "filename": filename, "strategy": strategy, "dataset_id": dataset_id},
         )
 
-    async def import_github(self, repo_url: str, workspace_id: str, branch: str = "main") -> dict:
+    async def import_github(self, repo_url: str, workspace_id: str, branch: str = "main") -> DocumentUploadResponse:
         """Start a background task to process a GitHub repository."""
         with tracer.start_as_current_span(
             "document.import_github",
@@ -255,15 +250,14 @@ class DocumentUploadService:
                 workspace_id=workspace_id,
             )
 
-            return {
-                "status": "success",
-                "task_id": task_id,
-                "message": f"GitHub ingestion started for {repo_url} ({branch})",
-            }
+            return DocumentUploadResponse(
+                status="success",
+                task_id=task_id,
+                filename=repo_url,
+                message=f"GitHub ingestion started for {repo_url} ({branch})",
+            )
 
-    async def run_github_background(
-        self, task_id: str, repo_url: str, branch: str, workspace_id: str
-    ):
+    async def run_github_background(self, task_id: str, repo_url: str, branch: str, workspace_id: str):
         """Background runner for GitHub processing."""
         from backend.app.services.document.ingestion.github_strategy import GitHubIngestionStrategy
 
@@ -296,8 +290,7 @@ class DocumentUploadService:
             await task_service.update_task(
                 task_id,
                 status="processing",
-                progress=10,
-                message="Uploading to vault...",
+                message="Uploading to document storage...",
             )
 
             doc_id = str(uuid.uuid4())[:8]
@@ -316,23 +309,20 @@ class DocumentUploadService:
                 "minio_path": minio_path,
                 "content_hash": file_hash,
                 "status": "verifying",
-                "workspace_statuses": {workspace_id: "verifying"}
-                if workspace_id != "vault"
-                else {},
+                "workspace_statuses": {workspace_id: "verifying"},
                 "current_version": 1,
                 "shared_with": [],
                 "created_at": datetime.utcnow().isoformat(),
                 "updated_at": datetime.utcnow().isoformat(),
             }
-            await db.documents.insert_one(document_data)
+            await document_repository.create(document_data)
 
             if await task_service.is_cancelled(task_id):
                 await db.documents.delete_one({"id": doc_id})
                 return
 
             update_uploading = {"status": "uploading"}
-            if workspace_id != "vault":
-                update_uploading[f"workspace_statuses.{workspace_id}"] = "uploading"
+            update_uploading[f"workspace_statuses.{workspace_id}"] = "uploading"
 
             await db.documents.update_one(
                 {"id": doc_id},
@@ -341,9 +331,7 @@ class DocumentUploadService:
 
             import io
 
-            await minio_manager.upload_file(
-                minio_path, io.BytesIO(content), len(content), content_type
-            )
+            await minio_manager.upload_file(minio_path, io.BytesIO(content), len(content), content_type)
 
             if await task_service.is_cancelled(task_id):
                 await db.documents.delete_one({"id": doc_id})
@@ -353,43 +341,28 @@ class DocumentUploadService:
             await task_service.update_task(task_id, progress=50, message="Recording metadata...")
 
             update_reading = {"status": "reading"}
-            if workspace_id != "vault":
-                update_reading[f"workspace_statuses.{workspace_id}"] = "reading"
+            update_reading[f"workspace_statuses.{workspace_id}"] = "reading"
 
             await db.documents.update_one(
                 {"id": doc_id},
                 {"$set": update_reading},
             )
 
-            if workspace_id == "vault":
-                # Just store in vault, skip auto-indexing to save time/compute
-                await db.documents.update_one(
-                    {"id": doc_id},
-                    {
-                        "$set": {
-                            "status": "uploaded",
-                        }
-                    },
-                )
-                num_chunks = 0
-            else:
-                # AUTO-INDEX: Proceed to Phase 2 immediately for real workspaces
-                await task_service.update_task(task_id, progress=60, message="Indexing...")
-                from backend.app.services.document.document_ingestion_service import (
-                    document_ingestion_service,
-                )
+            # AUTO-INDEX: Proceed to Phase 2 immediately
+            await task_service.update_task(task_id, progress=60, message="Indexing...")
+            from backend.app.services.document.document_ingestion_service import (
+                document_ingestion_service,
+            )
 
-                num_chunks = await document_ingestion_service.index_document(
-                    doc_id, workspace_id, dataset_id=dataset_id, task_id=task_id
-                )
+            num_chunks = await document_ingestion_service.index_document(
+                doc_id, workspace_id, dataset_id=dataset_id, task_id=task_id
+            )
 
             await task_service.update_task(
                 task_id,
                 status="completed",
                 progress=100,
-                message=f"Storage complete: '{safe_filename}' saved to vault."
-                if workspace_id == "vault"
-                else f"Ingestion complete: '{safe_filename}' indexed ({num_chunks} chunks).",
+                message=f"Ingestion complete: '{safe_filename}' indexed ({num_chunks} chunks).",
                 result={
                     "doc_id": doc_id,
                     "filename": safe_filename,
@@ -403,11 +376,9 @@ class DocumentUploadService:
 
         except Exception as e:
             logger.error("ingestion_failed", task_id=task_id, error=str(e), exc_info=True)
-            await task_service.fail_with_retry(
-                task_id, error_message=str(e), error_code=AppErrorCode.INGEST_FAILED
-            )
+            await task_service.fail_with_retry(task_id, error_message=str(e), error_code=AppErrorCode.INGEST_FAILED)
 
-    async def import_audio(self, file: UploadFile, workspace_id: str) -> dict:
+    async def import_audio(self, file: UploadFile, workspace_id: str) -> DocumentUploadResponse:
         """Process an audio file for speech-to-text ingestion."""
         with tracer.start_as_current_span(
             "document.import_audio",
@@ -422,16 +393,13 @@ class DocumentUploadService:
                 workspace_id=workspace_id,
             )
 
-            return {
-                "status": "success",
-                "task_id": task_id,
-                "content": content,
-                "filename": filename,
-            }
+            return DocumentUploadResponse(
+                status="success",
+                task_id=task_id,
+                filename=filename,
+            )
 
-    async def run_audio_background(
-        self, task_id: str, filename: str, content: bytes, workspace_id: str
-    ):
+    async def run_audio_background(self, task_id: str, filename: str, content: bytes, workspace_id: str):
         """Background runner for Audio (Speech-to-Text) processing."""
         from backend.app.services.document.ingestion.audio_strategy import AudioIngestionStrategy
 

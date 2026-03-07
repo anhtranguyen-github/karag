@@ -48,8 +48,8 @@ export function useSettingsMetadata(workspaceId?: string) {
         setIsLoading(true);
         try {
             const payload = workspaceId
-                ? await api.getSettingsMetadataWorkspacesWorkspaceIdSettingsMetadataGet({ workspaceId })
-                : await api.getGlobalSettingsMetadataAdminSettingsMetadataGet();
+                ? await api.getSettingsMetadataApiV1WorkspacesWorkspaceIdSettingsMetadataGet({ workspaceId })
+                : await api.getGlobalSettingsMetadataApiV1AdminSettingsMetadataGet();
 
             if (payload.success) {
                 setMetadata(payload.data);
@@ -81,8 +81,8 @@ export function useSettings(workspaceId?: string) {
         setIsLoading(true);
         try {
             const payload = workspaceId
-                ? await api.getSettingsWorkspacesWorkspaceIdSettingsGet({ workspaceId })
-                : await api.getGlobalSettingsAdminSettingsGet();
+                ? await api.getSettingsApiV1WorkspacesWorkspaceIdSettingsGet({ workspaceId })
+                : await api.getGlobalSettingsApiV1AdminSettingsGet();
 
             if (payload.success && payload.data) {
                 setSettings(payload.data);
@@ -100,11 +100,11 @@ export function useSettings(workspaceId?: string) {
     const updateSettings = async (updates: Partial<AppSettings>) => {
         try {
             const payload = workspaceId
-                ? await api.updateSettingsWorkspacesWorkspaceIdSettingsPatch({
+                ? await api.updateSettingsApiV1WorkspacesWorkspaceIdSettingsPatch({
                     workspaceId,
                     requestBody: updates
                 })
-                : await api.updateGlobalSettingsAdminSettingsPatch({
+                : await api.updateGlobalSettingsApiV1AdminSettingsPatch({
                     requestBody: updates
                 });
 

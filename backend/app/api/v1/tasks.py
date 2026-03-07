@@ -1,27 +1,26 @@
 from backend.app.api.deps import CurrentWorkspace, get_current_workspace
 from backend.app.core.exceptions import NotFoundError
 from backend.app.schemas.base import AppResponse
+from backend.app.schemas.task import Task
 from backend.app.services.task.task_service import task_service
 from fastapi import APIRouter, BackgroundTasks, Depends
 
 router = APIRouter(tags=["tasks"])
 
 
-@router.get("/")
+@router.get("/", response_model=AppResponse[list[Task]])
 async def list_tasks(
     type: str = None,
     limit: int = 50,
     current_workspace: CurrentWorkspace = Depends(get_current_workspace),
 ):
     """List tasks for the current workspace."""
-    tasks = await task_service.list_tasks(
-        task_type=type, workspace_id=current_workspace.id, limit=limit
-    )
+    tasks = await task_service.list_tasks(task_type=type, workspace_id=current_workspace.id, limit=limit)
     return AppResponse.success_response(data=tasks)
 
 
-@router.get("/{task_id}")
-async def get_task_status(task_id: str, current_workspace: dict = Depends(get_current_workspace)):
+@router.get("/{task_id}", response_model=AppResponse[Task])
+async def get_task_status(task_id: str, current_workspace: CurrentWorkspace = Depends(get_current_workspace)):
     """Get the current status of a specific task."""
     task = await task_service.get_task(task_id)
     if not task:
@@ -33,26 +32,25 @@ async def get_task_status(task_id: str, current_workspace: dict = Depends(get_cu
 async def retry_task(
     task_id: str,
     background_tasks: BackgroundTasks,
-    current_workspace: dict = Depends(get_current_workspace),
+    current_workspace: CurrentWorkspace = Depends(get_current_workspace),
 ):
     """Mark a failed task as retryable and re-dispatch it to background workers."""
-    # Import locally to avoid circular dependencies if any exist in the future
     from backend.app.services.document_service import document_service
 
     task = await task_service.get_task(task_id)
     if not task:
         raise NotFoundError(f"Task '{task_id}' not found")
 
-    if task["status"] != "failed":
+    if task.status != "failed":
         return AppResponse.success_response(
             code="IGNORED",
             message="Only failed tasks can be retried.",
-            data={"current_status": task["status"]},
+            data={"current_status": task.status},
         )
 
-    task_type = task.get("type")
-    metadata = task.get("metadata", {})
-    workspace_id = task.get("workspace_id")
+    task_type = task.type
+    metadata = task.metadata
+    workspace_id = task.workspace_id
 
     # Dispatch logic based on task type
     if task_type == "ingestion":
@@ -64,9 +62,7 @@ async def retry_task(
 
     elif task_type == "indexing":
         if not metadata.get("filename"):
-            return AppResponse.business_failure(
-                code="METADATA_MISSING", message="Task metadata missing filename."
-            )
+            return AppResponse.business_failure(code="METADATA_MISSING", message="Task metadata missing filename.")
 
         await task_service.mark_retryable(task_id)
         background_tasks.add_task(
@@ -78,7 +74,6 @@ async def retry_task(
         )
 
     elif task_type == "workspace_op":
-        # metadata['workspace_id'] stored the TARGET workspace ID in create_task call
         if not metadata.get("filename") or not metadata.get("workspace_id"):
             return AppResponse.business_failure(
                 code="METADATA_MISSING",
@@ -96,39 +91,31 @@ async def retry_task(
         )
 
     else:
-        return AppResponse.business_failure(
-            code="UNKNOWN_TASK_TYPE", message=f"Unknown task type: {task_type}"
-        )
+        return AppResponse.business_failure(code="UNKNOWN_TASK_TYPE", message=f"Unknown task type: {task_type}")
 
     return AppResponse.success_response(data={"task_id": task_id}, message="Task retry initialized")
 
 
 @router.post("/{task_id}/cancel")
-async def cancel_task(task_id: str, current_workspace: dict = Depends(get_current_workspace)):
+async def cancel_task(task_id: str, current_workspace: CurrentWorkspace = Depends(get_current_workspace)):
     """Cancel a pending or processing task."""
     task = await task_service.get_task(task_id)
     if not task:
         raise NotFoundError(f"Task '{task_id}' not found")
 
-    if task["status"] in ["completed", "failed", "canceled"]:
+    if task.status in ["completed", "failed", "canceled"]:
         return AppResponse.success_response(
             code="IGNORED",
-            message=f"Task already {task['status']}.",
-            data={"current_status": task["status"]},
+            message=f"Task already {task.status}.",
+            data={"current_status": task.status},
         )
 
     await task_service.cancel_task(task_id)
-    return AppResponse.success_response(
-        data={"task_id": task_id}, message=f"Task {task_id} canceled"
-    )
+    return AppResponse.success_response(data={"task_id": task_id}, message=f"Task {task_id} canceled")
 
 
 @router.delete("/cleanup")
-async def cleanup_tasks(
-    older_than_hours: int = 24, current_workspace: dict = Depends(get_current_workspace)
-):
+async def cleanup_tasks(older_than_hours: int = 24, current_workspace: CurrentWorkspace = Depends(get_current_workspace)):
     """Remove completed/failed tasks older than the given number of hours."""
     await task_service.cleanup_old_tasks(older_than_hours)
-    return AppResponse.success_response(
-        data=None, message=f"Task logs pruned (older than {older_than_hours}h)"
-    )
+    return AppResponse.success_response(data=None, message=f"Task logs pruned (older than {older_than_hours}h)")

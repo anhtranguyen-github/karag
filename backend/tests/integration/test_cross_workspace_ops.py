@@ -53,9 +53,7 @@ async def test_link_document_starts_as_indexing(mocker):
         new=AsyncMock(return_value=5),
     )
 
-    await document_service.update_workspaces(
-        doc_id=doc_id, target_workspace_id="new-workspace", action="link"
-    )
+    await document_service.update_workspaces(doc_id=doc_id, target_workspace_id="new-workspace", action="link")
 
     # Verify new doc creation
     assert mock_col.insert_one.call_count == 1

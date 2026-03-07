@@ -121,9 +121,7 @@ class RetrievalMetrics:
             RetrievalResult with score between 0 and 1
         """
         if k == 0:
-            return RetrievalResult(
-                metric_name="precision", score=0.0, k=k, details={"error": "k_is_zero"}
-            )
+            return RetrievalResult(metric_name="precision", score=0.0, k=k, details={"error": "k_is_zero"})
 
         retrieved_k = set(retrieved_doc_ids[:k])
         relevant_set = set(relevant_doc_ids)
@@ -188,9 +186,7 @@ class RetrievalMetrics:
 
         # Calculate ideal DCG (IDCG)
         # Sort relevant docs by relevance and take top k
-        ideal_relevances = sorted(
-            [get_relevance(doc_id) for doc_id in relevant_doc_ids], reverse=True
-        )[:k]
+        ideal_relevances = sorted([get_relevance(doc_id) for doc_id in relevant_doc_ids], reverse=True)[:k]
 
         idcg = sum(rel / math.log2(i + 2) for i, rel in enumerate(ideal_relevances))
 
@@ -267,9 +263,7 @@ class RetrievalMetrics:
 
         hit = len(retrieved_k & relevant_set) > 0
 
-        return RetrievalResult(
-            metric_name="hit_rate", score=1.0 if hit else 0.0, k=k, details={"hit": hit}
-        )
+        return RetrievalResult(metric_name="hit_rate", score=1.0 if hit else 0.0, k=k, details={"hit": hit})
 
     def map_score(
         self,
@@ -290,9 +284,7 @@ class RetrievalMetrics:
             RetrievalResult with score between 0 and 1
         """
         if not relevant_doc_ids:
-            return RetrievalResult(
-                metric_name="map", score=0.0, details={"error": "no_relevant_documents"}
-            )
+            return RetrievalResult(metric_name="map", score=0.0, details={"error": "no_relevant_documents"})
 
         relevant_set = set(relevant_doc_ids)
         precisions = []

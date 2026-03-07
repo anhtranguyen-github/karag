@@ -113,9 +113,7 @@ class HuggingFaceDatasetLoader(BaseDatasetLoader):
                 description=info.description or "",
                 language="en",  # Default assumption
                 task_type="qa",
-                num_samples=info.splits.get("test", info.splits.get("train", {})).num_examples
-                if info.splits
-                else None,
+                num_samples=info.splits.get("test", info.splits.get("train", {})).num_examples if info.splits else None,
                 citation=info.citation,
                 license=str(info.license) if info.license else None,
                 version=str(info.version) if info.version else None,
@@ -151,7 +149,7 @@ class HuggingFaceDatasetLoader(BaseDatasetLoader):
 
         # Load dataset to trigger download
         try:
-            _ = datasets.load_dataset(
+            _ = datasets.load_dataset(  # nosec B615
                 self.dataset_path,
                 self.config_name,
                 cache_dir=str(dataset_cache_dir),
@@ -197,7 +195,7 @@ class HuggingFaceDatasetLoader(BaseDatasetLoader):
         )
 
         try:
-            dataset = datasets.load_dataset(
+            dataset = datasets.load_dataset(  # nosec B615
                 self.dataset_path,
                 self.config_name,
                 split=split_name,

@@ -60,29 +60,39 @@ class SettingsManager:
                 logger.error("settings_load_error", error=str(e))
 
         # Priority: Env Var > settings.json > defaults in config.py
-        # Check for environment overrides specifically
+        # Structured construction from environment variables
         env_overrides = {
-            "llm_provider": os.getenv("LLM_PROVIDER"),
-            "llm_model": os.getenv("LLM_MODEL"),
-            "embedding_provider": os.getenv("EMBEDDING_PROVIDER"),
-            "embedding_model": os.getenv("EMBEDDING_MODEL"),
-            "neo4j_uri": os.getenv("NEO4J_URI"),
-            "neo4j_user": os.getenv("NEO4J_USER"),
-            "neo4j_password": os.getenv("NEO4J_PASSWORD"),
+            "generation": {
+                "provider": os.getenv("LLM_PROVIDER") or karag_settings.LLM_PROVIDER,
+                "model": os.getenv("LLM_MODEL") or karag_settings.LLM_MODEL,
+            },
+            "embedding": {
+                "provider": os.getenv("EMBEDDING_PROVIDER") or karag_settings.EMBEDDING_PROVIDER,
+                "model": os.getenv("EMBEDDING_MODEL") or karag_settings.EMBEDDING_MODEL,
+            },
+            "neo4j_uri": os.getenv("NEO4J_URI") or karag_settings.NEO4J_URI,
+            "neo4j_user": os.getenv("NEO4J_USER") or karag_settings.NEO4J_USER,
+            "neo4j_password": os.getenv("NEO4J_PASSWORD") or karag_settings.NEO4J_PASSWORD,
         }
 
-        # Merge: settings_data has priority over config defaults, but env_overrides has highest priority
-        merged_data = {
-            "llm_provider": karag_settings.LLM_PROVIDER,
-            "llm_model": karag_settings.LLM_MODEL,
-            "embedding_provider": karag_settings.EMBEDDING_PROVIDER,
-            "embedding_model": karag_settings.EMBEDDING_MODEL,
-            "neo4j_uri": karag_settings.NEO4J_URI,
-            "neo4j_user": karag_settings.NEO4J_USER,
-            "neo4j_password": karag_settings.NEO4J_PASSWORD,
-        }
-        merged_data.update(settings_data)
-        merged_data.update({k: v for k, v in env_overrides.items() if v is not None})
+        # Filter out None values from env_overrides sub-dicts if they are empty or partially filled
+        def clean_nested(d):
+            if isinstance(d, dict):
+                cleaned = {k: clean_nested(v) for k, v in d.items() if v is not None}
+                return cleaned if cleaned else None
+            return d
+
+        cleaned_overrides = {k: v for k, v in env_overrides.items() if v is not None}
+        
+        # Merge: settings_data has priority over defaults, but env_overrides has highest priority
+        # We start with defaults (implicit in AppSettings), then apply settings_data, then env_overrides
+        # For simplicity, we just pass both to AppSettings which handles the merge via map_flat_fields/updates
+        merged_data = settings_data.copy()
+        for k, v in cleaned_overrides.items():
+            if isinstance(v, dict) and k in merged_data and isinstance(merged_data[k], dict):
+                merged_data[k].update(v)
+            else:
+                merged_data[k] = v
 
         return AppSettings(**merged_data)
 
@@ -91,7 +101,7 @@ class SettingsManager:
 
     async def get_settings(self, workspace_id: str | None = None) -> AppSettings:
         """Get settings for a specific workspace, falling back to global settings."""
-        if not workspace_id or workspace_id == "default" or workspace_id == "vault":
+        if not workspace_id or workspace_id == "default":
             return self._global_settings
 
         # Check cache first
@@ -102,9 +112,7 @@ class SettingsManager:
             db = mongodb_manager.get_async_database()
             # We store workspace settings in a separate collection or inside the workspace doc
             # Let's use a 'workspace_settings' collection for better isolation
-            ws_settings_doc = await db["workspace_settings"].find_one(
-                {"workspace_id": workspace_id}
-            )
+            ws_settings_doc = await db["workspace_settings"].find_one({"workspace_id": workspace_id})
 
             if not ws_settings_doc:
                 self._settings_cache[workspace_id] = self._global_settings
@@ -113,9 +121,7 @@ class SettingsManager:
             # Merge workspace settings over global ones
             merged_data = self._global_settings.model_dump()
             # Remove mongo _id and workspace_id from doc before merging
-            override_data = {
-                k: v for k, v in ws_settings_doc.items() if k not in ["_id", "workspace_id"]
-            }
+            override_data = {k: v for k, v in ws_settings_doc.items() if k not in ["_id", "workspace_id"]}
             merged_data.update(override_data)
 
             try:
@@ -240,9 +246,7 @@ class SettingsManager:
             d[parts[-1]] = value
         return nested
 
-    async def update_settings(
-        self, updates: dict[str, Any], workspace_id: str | None = None
-    ) -> AppSettings:
+    async def update_settings(self, updates: dict[str, Any], workspace_id: str | None = None) -> AppSettings:
         """Update settings for a workspace or global."""
 
         # 1. Audit: Prevent modification of core parameters based on schema metadata
@@ -285,18 +289,14 @@ class SettingsManager:
             AppSettings(**current_data)  # Dry run validation
 
             db = mongodb_manager.get_async_database()
-            await db["workspace_settings"].update_one(
-                {"workspace_id": workspace_id}, {"$set": updates}, upsert=True
-            )
+            await db["workspace_settings"].update_one({"workspace_id": workspace_id}, {"$set": updates}, upsert=True)
             # Invalidate cache
             if workspace_id in self._settings_cache:
                 del self._settings_cache[workspace_id]
 
             return await self.get_settings(workspace_id)
         except PydanticValidationError as e:
-            raise ValidationError(
-                message="Invalid settings configuration.", params={"errors": e.errors()}
-            )
+            raise ValidationError(message="Invalid settings configuration.", params={"errors": e.errors()})
 
 
 # Global singleton

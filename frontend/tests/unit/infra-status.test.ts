@@ -12,7 +12,7 @@ describe('Infrastructure Health Check', () => {
         };
 
         // Use vitest's mocked api (already set up in some other tests or we can do it here)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         vi.spyOn(api, 'rootGet').mockResolvedValue(mockResponse as any);
 
         const response = await api.rootGet();

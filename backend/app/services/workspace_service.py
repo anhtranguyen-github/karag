@@ -5,100 +5,46 @@ from typing import Any
 import structlog
 from backend.app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from backend.app.core.mongodb import mongodb_manager
+from backend.app.repositories.workspace_repository import workspace_repository
+from backend.app.schemas.workspace import Workspace, WorkspaceDetail, WorkspaceStats
+from backend.app.schemas.chat import ThreadMetadata
+from backend.app.schemas.documents import DocumentResponse
 
 logger = structlog.get_logger(__name__)
 
 
 class WorkspaceService:
     @staticmethod
-    async def list_all(user_id: str) -> list[dict]:
-        db = mongodb_manager.get_async_database()
-
-        # Optimized Aggregation Pipeline to avoid N+1 queries
-        pipeline = [
-            {"$match": {"owner_id": user_id}},
-            {
-                "$lookup": {
-                    "from": "documents",
-                    "localField": "id",
-                    "foreignField": "workspace_id",
-                    "as": "docs",
-                }
-            },
-            {
-                "$lookup": {
-                    "from": "thread_metadata",
-                    "localField": "id",
-                    "foreignField": "workspace_id",
-                    "as": "threads",
-                }
-            },
-            {
-                "$lookup": {
-                    "from": "workspace_settings",
-                    "localField": "id",
-                    "foreignField": "workspace_id",
-                    "as": "settings",
-                }
-            },
-            {"$addFields": {"settings_doc": {"$arrayElemAt": ["$settings", 0]}}},
-            {
-                "$project": {
-                    "id": 1,
-                    "name": 1,
-                    "description": 1,
-                    "created_at": 1,
-                    "updated_at": 1,
-                    "llm_provider": "$settings_doc.llm_provider",
-                    "embedding_provider": "$settings_doc.embedding_provider",
-                    "rag_engine": "$settings_doc.rag_engine",
-                    "stats": {
-                        "doc_count": {"$size": "$docs"},
-                        "thread_count": {"$size": "$threads"},
-                    },
-                }
-            },
-        ]
-
-        return await db.workspaces.aggregate(pipeline).to_list(1000)
+    async def list_all(user_id: str) -> list[Workspace]:
+        return await workspace_repository.list_by_owner(user_id)
 
     @staticmethod
-    async def create(data: dict[str, Any], user_id: str) -> dict[str, Any]:
+    async def create(data: dict[str, Any], user_id: str) -> Workspace:
         """Create a new workspace with specified RAG settings."""
         db = mongodb_manager.get_async_database()
         name = data.get("name", "").strip()
 
         if not name:
-            return {
-                "status": "error",
-                "code": "VALIDATION_ERROR",
-                "message": "Workspace name cannot be empty.",
-            }
+            raise ValidationError("Workspace name cannot be empty.")
 
         from backend.app.core.constants import WORKSPACE_NAME_FORBIDDEN
 
         found_chars = [char for char in WORKSPACE_NAME_FORBIDDEN if char in name]
         if found_chars:
-            return {
-                "status": "error",
-                "code": "INVALID_NAME",
-                "message": f"Workspace name contains invalid characters: {' '.join(found_chars)}. These are reserved for system safety.",
-                "params": {"found": found_chars, "illegal": WORKSPACE_NAME_FORBIDDEN},
-            }
+            raise ValidationError(
+                message=f"Workspace name contains invalid characters: {' '.join(found_chars)}.",
+                params={"found": found_chars},
+            )
 
         # Check for duplicate name
-        existing = await db.workspaces.find_one({"name": name})
+        existing = await workspace_repository.find_by_name(name)
         if existing:
-            return {
-                "status": "error",
-                "code": "DUPLICATE_NAME",
-                "message": f"A workspace with the name '{name}' already exists.",
-            }
+            raise ConflictError(f"A workspace with the name '{name}' already exists.")
 
         workspace_id = str(uuid.uuid4())[:8]
         timestamp = datetime.utcnow().isoformat()
 
-        workspace = {
+        workspace_data = {
             "id": workspace_id,
             "name": name,
             "description": data.get("description", ""),
@@ -107,64 +53,18 @@ class WorkspaceService:
             "updated_at": timestamp,
         }
 
-        await db.workspaces.insert_one(workspace)
+        workspace = await workspace_repository.create(workspace_data)
 
-        # Persist RAG settings via SettingsManager
-        # We include all possible fields from WorkspaceCreate to initialize the workspace config
-        rag_fields = [
-            # Grouped object fields from the schema
-            "embedding",
-            "retrieval",
-            "generation",
-            "chunking",
-            # Legacy fields
-            "rag_engine",
-            "embedding_provider",
-            "embedding_model",
-            "embedding_dim",
-            "chunk_size",
-            "chunk_overlap",
-            "neo4j_uri",
-            "neo4j_user",
-            "neo4j_password",
-            "owner_id",
-            "search_limit",
-            "recall_k",
-            "hybrid_alpha",
-            "graph_enabled",
-            "reranker_enabled",
-            "reranker_provider",
-            "rerank_top_k",
-            "agentic_enabled",
-            "llm_provider",
-            "llm_model",
-            "temperature",
-            "runtime_mode",
-            "runtime_stream_thoughts",
-            "runtime_trace_level",
-            "chunking_strategy",
-        ]
-        settings_to_apply = {k: data[k] for k in rag_fields if k in data and data[k] is not None}
+        # Persist all provided RAG settings to the database
+        core_metadata_fields = ["name", "description"]
+        settings_to_apply = {k: v for k, v in data.items() if k not in core_metadata_fields and v is not None}
 
-        # We bypass update_settings to avoid immutability check during initial creation
-        await db["workspace_settings"].insert_one(
-            {"workspace_id": workspace_id, **settings_to_apply}
-        )
+        await db["workspace_settings"].insert_one({"workspace_id": workspace_id, **settings_to_apply})
 
-        if "_id" in workspace:
-            workspace.pop("_id")
-
-        return {
-            "status": "success",
-            "code": "WORKSPACE_CREATED",
-            "message": f"Workspace '{name}' created successfully.",
-            "data": workspace,
-        }
+        return workspace
 
     @staticmethod
-    async def update(workspace_id: str, data: dict[str, Any]) -> dict[str, Any] | None:
-        db = mongodb_manager.get_async_database()
-
+    async def update(workspace_id: str, data: dict[str, Any]) -> Workspace:
         # Enforce Immutability of RAG Engine
         if "rag_engine" in data:
             del data["rag_engine"]
@@ -179,25 +79,20 @@ class WorkspaceService:
             found_chars = [char for char in WORKSPACE_NAME_FORBIDDEN if char in new_name]
             if found_chars:
                 raise ValidationError(
-                    message=f"Workspace name contains invalid characters: {' '.join(found_chars)}. These are reserved for system safety.",
+                    message=f"Workspace name contains invalid characters: {' '.join(found_chars)}.",
                     params={"found": found_chars},
                 )
 
-            existing = await db.workspaces.find_one({"name": new_name, "id": {"$ne": workspace_id}})
+            existing = await workspace_repository.collection.find_one({"name": new_name, "id": {"$ne": workspace_id}})
             if existing:
                 raise ConflictError(f"A workspace with the name '{new_name}' already exists.")
             data["name"] = new_name
 
         data["updated_at"] = datetime.utcnow().isoformat()
 
-        result = await db.workspaces.find_one_and_update(
-            {"id": workspace_id}, {"$set": data}, return_document=True
-        )
+        result = await workspace_repository.update(workspace_id, data)
         if not result:
             raise NotFoundError(f"Workspace {workspace_id} not found.")
-
-        if "_id" in result:
-            del result["_id"]
 
         return result
 
@@ -220,42 +115,39 @@ class WorkspaceService:
         await document_service.sync_workspaces()
 
     @staticmethod
-    async def get_details(workspace_id: str) -> dict | None:
-        db = mongodb_manager.get_async_database()
-        ws = await db.workspaces.find_one({"id": workspace_id})
+    async def get_details(workspace_id: str) -> WorkspaceDetail:
+        ws = await workspace_repository.get_by_id(workspace_id)
         if not ws:
-            return None
-        if "_id" in ws:
-            del ws["_id"]
+            raise NotFoundError(f"Workspace {workspace_id} not found")
 
-        threads = (
-            await db["thread_metadata"]
-            .find({"workspace_id": workspace_id})
-            .sort("last_active", -1)
-            .to_list(100)
-        )
-        for t in threads:
-            t["id"] = t.get("thread_id", str(t.get("_id", "")))
+        db = mongodb_manager.get_async_database()
+        
+        thread_docs = await db["thread_metadata"].find({"workspace_id": workspace_id}).sort("last_active", -1).to_list(100)
+        threads = []
+        for t in thread_docs:
             if "_id" in t:
-                del t["_id"]
+                t["id"] = str(t["_id"])
+            if "thread_id" not in t:
+                t["thread_id"] = t.get("id", "")
+            threads.append(ThreadMetadata.model_validate(t))
 
-        doc_cursor = db.documents.find({"workspace_id": workspace_id})
-        docs = await doc_cursor.to_list(length=100)
-        for d in docs:
+        doc_docs = await db.documents.find({"workspace_id": workspace_id}).to_list(length=100)
+        documents = []
+        for d in doc_docs:
             if "_id" in d:
                 d["_id"] = str(d["_id"])
-            d["name"] = d.get("filename")
-
-        ws["threads"] = threads
-        ws["documents"] = docs
-        ws["stats"] = {"thread_count": len(threads), "doc_count": len(docs)}
+            documents.append(DocumentResponse.model_validate(d))
 
         from backend.app.core.settings_manager import settings_manager
-
         settings = await settings_manager.get_settings(workspace_id)
-        ws["settings"] = settings.model_dump()
 
-        return ws
+        return WorkspaceDetail(
+            **ws.model_dump(exclude={"stats"}),
+            threads=threads,
+            documents=documents,
+            settings=settings.model_dump(),
+            stats=WorkspaceStats(thread_count=len(threads), doc_count=len(documents))
+        )
 
     @staticmethod
     async def get_graph_data(workspace_id: str) -> dict:
@@ -315,9 +207,7 @@ class WorkspaceService:
 
             try:
                 graph_store = await ProviderFactory.get_graph_store()
-                records = await graph_store.get_workspace_graph(
-                    workspace_id=workspace_id, limit=100
-                )
+                records = await graph_store.get_workspace_graph(workspace_id=workspace_id, limit=100)
                 entities = {}
                 for rec in records:
                     name = rec["name"]

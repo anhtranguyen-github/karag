@@ -140,9 +140,7 @@ class StandardQARunner(BaseRunner):
                     contexts=contexts if contexts else entry.contexts,
                     reference_answer=entry.answer,
                 )
-                sample_result.generation_metrics = {
-                    k: v.score for k, v in generation_results.items()
-                }
+                sample_result.generation_metrics = {k: v.score for k, v in generation_results.items()}
 
             # Record latency
             sample_result.latency_ms = (time.time() - start_time) * 1000
