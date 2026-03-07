@@ -4,12 +4,12 @@ from pathlib import Path
 from typing import Any, Literal
 
 import structlog
+from pydantic import ValidationError as PydanticValidationError
+from pydantic_core import PydanticUndefined
 from src.backend.app.core.config import karag_settings
 from src.backend.app.core.exceptions import ValidationError
 from src.backend.app.core.mongodb import mongodb_manager
 from src.backend.app.core.schemas import AppSettings
-from pydantic import ValidationError as PydanticValidationError
-from pydantic_core import PydanticUndefined
 
 logger = structlog.get_logger(__name__)
 
@@ -83,7 +83,7 @@ class SettingsManager:
             return d
 
         cleaned_overrides = {k: v for k, v in env_overrides.items() if v is not None}
-        
+
         # Merge: settings_data has priority over defaults, but env_overrides has highest priority
         # We start with defaults (implicit in AppSettings), then apply settings_data, then env_overrides
         # For simplicity, we just pass both to AppSettings which handles the merge via map_flat_fields/updates
@@ -301,5 +301,3 @@ class SettingsManager:
 
 # Global singleton
 settings_manager = SettingsManager()
-
-

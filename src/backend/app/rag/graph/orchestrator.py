@@ -1,3 +1,4 @@
+from langgraph.graph import END, StateGraph
 from src.backend.app.rag.graph.nodes import (
     analyze_intent,
     assemble_context,
@@ -13,7 +14,6 @@ from src.backend.app.rag.graph.nodes import (
 )
 from src.backend.app.rag.graph.state import GraphState
 from src.backend.app.schemas.execution import ExecutionMode
-from langgraph.graph import END, StateGraph
 
 
 def build_rag_graph():
@@ -97,4 +97,3 @@ def build_rag_graph():
 
 # Singleton instance
 rag_executor = build_rag_graph()
-

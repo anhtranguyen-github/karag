@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any
 
 import structlog
+from langchain_core.messages import HumanMessage, SystemMessage
 from src.backend.app.core.mongodb import mongodb_manager
 from src.backend.app.core.settings_manager import settings_manager
 from src.backend.app.core.telemetry import (
@@ -14,7 +15,6 @@ from src.backend.app.graph.builder import app as graph_app
 from src.backend.app.providers.llm import get_llm
 from src.backend.app.repositories.thread_repository import thread_repository
 from src.backend.app.schemas.chat import ChatMessage, ThreadMetadata
-from langchain_core.messages import HumanMessage, SystemMessage
 
 logger = structlog.get_logger(__name__)
 tracer = get_tracer(__name__)
@@ -531,4 +531,3 @@ class ChatService:
 
 
 chat_service = ChatService()
-

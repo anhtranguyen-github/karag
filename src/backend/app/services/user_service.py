@@ -51,4 +51,3 @@ class UserService:
 
 
 user_service = UserService()
-

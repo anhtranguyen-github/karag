@@ -34,15 +34,15 @@ vi.mock('next/navigation', () => ({
         push: vi.fn(),
         replace: vi.fn(),
     }),
-    useSearchParams: () => new URLSearchParams(),
+    useSearchParams: () => new URLSearchParams('workspaceId=test-workspace'),
 }));
 
-vi.mock('@/lib/api-client', () => ({
-    api: {
-        getThreadApiV1WorkspacesWorkspaceIdChatThreadsThreadIdGet: vi.fn().mockResolvedValue({ success: true, data: { workspace_id: 'test-workspace' } }),
-        getChatHistoryApiV1WorkspacesWorkspaceIdChatHistoryThreadIdGet: vi.fn().mockResolvedValue({ success: true, data: [] }),
-        listChatThreadsApiV1WorkspacesWorkspaceIdChatThreadsGet: vi.fn().mockResolvedValue({ success: true, data: [] }),
-    }
+vi.mock('@/sdk/chat', () => ({
+    chat: {
+        getThread: vi.fn().mockResolvedValue({ success: true, data: { workspace_id: 'test-workspace' } }),
+        getHistory: vi.fn().mockResolvedValue({ data: [] }),
+        listThreads: vi.fn().mockResolvedValue({ data: [] }),
+    },
 }));
 
 import ChatPage from '@/app/chats/[id]/page';

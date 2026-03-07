@@ -1,6 +1,8 @@
 import time
 
 import structlog
+from langchain_core.messages import AIMessage, RemoveMessage, SystemMessage
+from langchain_core.runnables import RunnableConfig
 from src.backend.app.core.telemetry import (
     LLM_REQUEST_COUNT,
     LLM_REQUEST_LATENCY,
@@ -9,8 +11,6 @@ from src.backend.app.core.telemetry import (
 from src.backend.app.graph.state import AgentState
 from src.backend.app.providers.llm import get_llm
 from src.backend.app.rag.rag_service import rag_service
-from langchain_core.messages import AIMessage, RemoveMessage, SystemMessage
-from langchain_core.runnables import RunnableConfig
 
 logger = structlog.get_logger(__name__)
 tracer = get_tracer(__name__)
@@ -302,4 +302,3 @@ async def summarize_node(state: AgentState) -> dict:
         )
 
         return {"summary": new_summary, "messages": delete_messages}
-

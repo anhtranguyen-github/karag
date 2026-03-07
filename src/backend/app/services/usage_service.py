@@ -413,4 +413,3 @@ class UsageService:
 
 # Singleton instance
 usage_service = UsageService()
-

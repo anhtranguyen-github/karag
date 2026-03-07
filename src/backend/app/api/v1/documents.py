@@ -1,3 +1,4 @@
+from fastapi import APIRouter, BackgroundTasks, Depends, File, UploadFile
 from src.backend.app.api.deps import CurrentWorkspace, get_current_workspace
 from src.backend.app.core.exceptions import NotFoundError, ValidationError
 from src.backend.app.schemas.base import AppResponse
@@ -13,7 +14,6 @@ from src.backend.app.schemas.documents import (
 )
 from src.backend.app.services.document_service import document_service
 from src.backend.app.services.task.task_service import task_service
-from fastapi import APIRouter, BackgroundTasks, Depends, File, UploadFile
 
 router = APIRouter(tags=["documents"])
 
@@ -136,8 +136,6 @@ async def list_documents(current_workspace: CurrentWorkspace = Depends(get_curre
 async def list_all_documents(current_workspace: CurrentWorkspace = Depends(get_current_workspace)):
     docs = await document_service.list_all()
     return AppResponse.success_response(data=docs)
-
-
 
 
 # --- Specific Document Sub-Resources (Must come before generic {name:path}) ---
@@ -287,4 +285,3 @@ async def delete_document(
         data={"id": document_id},
         message=f"Document '{document_id}' deleted successfully.",
     )
-

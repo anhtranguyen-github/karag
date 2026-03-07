@@ -18,13 +18,13 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from src.backend.app.core.config import karag_settings
-from src.backend.app.core.exceptions import AuthenticationError
-from src.backend.app.core.mongodb import mongodb_manager
 from fastapi import Depends, HTTPException, Query, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from pydantic import BaseModel
+from src.backend.app.core.config import karag_settings
+from src.backend.app.core.exceptions import AuthenticationError
+from src.backend.app.core.mongodb import mongodb_manager
 
 # JWT configuration
 JWT_SECRET_KEY = karag_settings.SECRET_KEY
@@ -95,6 +95,16 @@ async def get_current_workspace(
                 "code": "WORKSPACE_REQUIRED",
                 "message": "Workspace ID is required",
             },
+        )
+
+    # "vault" is a virtual global workspace used by cross-workspace document
+    # and chat flows. It is intentionally available even when no backing
+    # workspace document exists in MongoDB.
+    if ws_id == "vault":
+        return CurrentWorkspace(
+            id="vault",
+            name="Vault",
+            is_public=False,
         )
 
     # Validate workspace exists in database
@@ -397,4 +407,3 @@ OptionalUserDep = Annotated[CurrentUser | None, Depends(get_optional_user)]
 AdminDep = Annotated[CurrentUser, Depends(require_admin)]
 PaginationDep = Annotated[PaginationParams, Depends()]
 SearchDep = Annotated[SearchParams, Depends()]
-

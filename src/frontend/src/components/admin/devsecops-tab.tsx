@@ -16,7 +16,7 @@ export function DevSecOpsTab() {
                 <div className="bg-[#121214] border border-white/5 rounded-2xl p-6">
                     <h3 className="text-sm font-black tracking-wider uppercase mb-6 flex items-center gap-2">
                         <Package size={16} className="text-blue-400" />
-                        CI/CD Execution (Jenkins)
+                        Build and Deploy Status
                     </h3>
                     <div className="space-y-3">
                         {pipelines.map(pipe => (
@@ -41,7 +41,7 @@ export function DevSecOpsTab() {
                     <div className="flex items-center justify-between mb-6">
                         <h3 className="text-sm font-black tracking-wider uppercase flex items-center gap-2">
                             <Shield size={16} className="text-red-400" />
-                            Security Posture (Checkov/Sonar)
+                            Security and Quality Status
                         </h3>
                         <div className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500 text-[9px] font-black border border-emerald-500/20 uppercase tracking-widest">Compliant</div>
                     </div>
@@ -50,7 +50,7 @@ export function DevSecOpsTab() {
                         <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 space-y-3">
                             <div className="flex items-center gap-2 text-red-400">
                                 <Bug size={14} />
-                                <span className="text-[10px] font-black uppercase">Technical Debt</span>
+                                <span className="text-[10px] font-black uppercase">Code Quality</span>
                             </div>
                             <div className="text-2xl font-black">2.4%</div>
                             <div className="text-[9px] text-gray-600 font-medium">B Grade on SonarQube</div>
@@ -58,7 +58,7 @@ export function DevSecOpsTab() {
                         <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 space-y-3">
                             <div className="flex items-center gap-2 text-emerald-400">
                                 <FileCheck size={14} />
-                                <span className="text-[10px] font-black uppercase">IaC Audit</span>
+                                <span className="text-[10px] font-black uppercase">Infra Audit</span>
                             </div>
                             <div className="text-2xl font-black">Clean</div>
                             <div className="text-[9px] text-gray-600 font-medium">Zero High CVEs in Docker</div>
@@ -67,7 +67,7 @@ export function DevSecOpsTab() {
 
                     <div className="mt-6 p-4 rounded-xl bg-white/[0.02] border border-white/5 space-y-4">
                         <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest text-[9px]">Pipeline Compliance</span>
+                            <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest text-[9px]">Release Readiness</span>
                             <span className="text-[10px] font-black text-white px-2 py-0.5 rounded-lg bg-white/5">98.2%</span>
                         </div>
                         <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
@@ -95,4 +95,3 @@ export function DevSecOpsTab() {
         </div>
     );
 }
-

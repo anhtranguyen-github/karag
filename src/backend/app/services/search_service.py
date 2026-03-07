@@ -1,7 +1,6 @@
 from typing import Any
 
 import structlog
-from src.backend.app.core.mongodb import mongodb_manager
 from src.backend.app.repositories.document_repository import document_repository
 from src.backend.app.repositories.thread_repository import thread_repository
 from src.backend.app.repositories.workspace_repository import workspace_repository
@@ -15,7 +14,6 @@ class SearchService:
         """
         Global search across workspaces, threads, and documents.
         """
-        db = mongodb_manager.get_async_database()
         results = {"workspaces": [], "threads": [], "documents": []}
 
         if not query or len(query.strip()) < 2:
@@ -81,4 +79,3 @@ class SearchService:
 
 
 search_service = SearchService()
-

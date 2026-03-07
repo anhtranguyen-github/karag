@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta
 from typing import Any
 
-from src.backend.app.core.config import karag_settings
 from jose import jwt
 from passlib.context import CryptContext
+from src.backend.app.core.config import karag_settings
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
@@ -24,4 +24,3 @@ def create_access_token(subject: str | Any, expires_delta: timedelta = None) -> 
     to_encode = {"exp": expire, "sub": str(subject)}
     encoded_jwt = jwt.encode(to_encode, karag_settings.SECRET_KEY, algorithm=karag_settings.ALGORITHM)
     return encoded_jwt
-

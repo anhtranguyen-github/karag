@@ -1,9 +1,9 @@
 from typing import Any
 
 import structlog
+from neo4j import AsyncGraphDatabase
 from src.backend.app.core.config import karag_settings
 from src.backend.app.rag.store.graph_base import GraphStore
-from neo4j import AsyncGraphDatabase
 
 logger = structlog.get_logger(__name__)
 
@@ -84,4 +84,3 @@ class Neo4jStore(GraphStore):
             await self.driver.close()
             self.driver = None
             logger.info("neo4j_driver_closed")
-

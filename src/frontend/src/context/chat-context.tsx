@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
-import { sdk } from '@/sdk';
+import { chat } from '@/sdk/chat';
 import { useError } from '@/context/error-context';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 
@@ -55,7 +55,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         }
 
         try {
-            const payload = (await sdk.chat.getHistory({
+            const payload = (await chat.getHistory({
                 workspaceId: workspaceId!,
                 threadId: id
             })) as any;
@@ -71,7 +71,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     const fetchThreads = useCallback(async (workspaceId: string) => {
         setIsLoadingThreads(true);
         try {
-            const payload = (await sdk.chat.listThreads({
+            const payload = (await chat.listThreads({
                 workspaceId: workspaceId!
             })) as any;
             if (payload.success && payload.data) {
@@ -86,7 +86,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
     const deleteThread = useCallback(async (id: string, workspaceId: string) => {
         try {
-            const payload = (await sdk.chat.deleteThread({
+            const payload = (await chat.deleteThread({
                 workspaceId: workspaceId!,
                 threadId: id
             })) as any;

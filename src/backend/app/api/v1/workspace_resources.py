@@ -1,10 +1,10 @@
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel, Field
 from src.backend.app.api.deps import CurrentWorkspace, get_current_workspace
 from src.backend.app.schemas.base import AppResponse
 from src.backend.app.schemas.dataset import Dataset
 from src.backend.app.schemas.pipeline import PipelineConfig
 from src.backend.app.services.dataset_service import dataset_service
-from fastapi import APIRouter, Depends
-from pydantic import BaseModel, Field
 
 # Assuming we're attaching this router directly or importing into main
 router = APIRouter(tags=["workspace-resources"])
@@ -66,4 +66,3 @@ async def list_pipelines(workspace_id: str, current_workspace: CurrentWorkspace 
     # In a full implementation, PipelineConfigs would be stored in the DB alongside settings
     # We return an empty list or a default pipeline built from workspace config
     return AppResponse.success_response(data=[])
-

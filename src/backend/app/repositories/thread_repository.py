@@ -13,9 +13,11 @@ class ThreadRepository(BaseRepository[ThreadMetadata]):
         return self.model_class.model_validate(self.normalize_id(doc))
 
     async def list_by_workspace(self, workspace_id: str, limit: int = 100) -> list[ThreadMetadata]:
-        cursor = self.collection.find({"workspace_id": workspace_id}).sort([("updated_at", -1), ("_id", -1)]).limit(limit)
+        cursor = (
+            self.collection.find({"workspace_id": workspace_id}).sort([("updated_at", -1), ("_id", -1)]).limit(limit)
+        )
         docs = await cursor.to_list(length=limit)
         return [self.model_class.model_validate(self.normalize_id(doc)) for doc in docs]
 
-thread_repository = ThreadRepository()
 
+thread_repository = ThreadRepository()

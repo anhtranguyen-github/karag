@@ -126,6 +126,9 @@ importers:
       msw-storybook-addon:
         specifier: ^2.0.6
         version: 2.0.6(msw@2.12.9(@types/node@20.19.33)(typescript@5.9.3))
+      playwright:
+        specifier: ^1.58.2
+        version: 1.58.2
       tailwindcss:
         specifier: ^4
         version: 4.1.18
@@ -8385,15 +8388,13 @@ snapshots:
       mlly: 1.8.1
       pathe: 2.0.3
 
-  playwright-core@1.58.2:
-    optional: true
+  playwright-core@1.58.2: {}
 
   playwright@1.58.2:
     dependencies:
       playwright-core: 1.58.2
     optionalDependencies:
       fsevents: 2.3.2
-    optional: true
 
   pluralize@8.0.0: {}
 

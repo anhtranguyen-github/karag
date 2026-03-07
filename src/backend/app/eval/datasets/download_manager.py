@@ -11,6 +11,7 @@ from enum import Enum
 from pathlib import Path
 
 import structlog
+
 from src.backend.app.eval.datasets.registry import dataset_registry
 
 logger = structlog.get_logger(__name__)
@@ -242,4 +243,3 @@ class DownloadManager:
 
 # Global download manager instance
 download_manager = DownloadManager()
-

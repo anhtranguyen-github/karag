@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
-import { sdk } from "@/sdk";
 import type { Workspace } from "@/sdk/generated";
+import { workspaces as workspacesApi } from "@/sdk/workspaces";
 import { WorkspaceWizard } from "@/components/workspace/WorkspaceWizard";
 import { DeleteWorkspaceModal } from "@/components/workspace/delete-workspace-modal";
 import { QuickViewWorkspaceModal } from "@/components/workspace/quick-view-modal";
@@ -31,10 +31,10 @@ export default function Home() {
     fetchWorkspaces();
   }, []);
 
-  const fetchWorkspaces = async () => {
-    try {
-      const response = await sdk.workspaces.list();
-      const data = response.data || [];
+    const fetchWorkspaces = async () => {
+      try {
+      const response = await workspacesApi.list() as any;
+      const data = response?.data?.data || response?.data || [];
       const mappedData = data.map((ws: Workspace & { llm_provider?: string, embedding_provider?: string, rag_engine?: string }) => ({
         ...ws,
         llmProvider: ws.llm_provider,
@@ -58,7 +58,7 @@ export default function Home() {
     setWorkspaceToDelete(null); // Close modal immediately
 
     try {
-      await sdk.workspaces.delete({ workspaceId: workspaceToDelete.id, datasetDelete });
+      await workspacesApi.delete({ workspaceId: workspaceToDelete.id, datasetDelete });
       toast.dismiss(toastId);
       toast.success(`Workspace ${wsName} successfully ${datasetDelete ? 'purged' : 'removed'}`);
       setWorkspaces(workspaces.filter(ws => ws.id !== workspaceToDelete.id));

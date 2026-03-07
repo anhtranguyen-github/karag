@@ -1,3 +1,4 @@
+from fastapi import APIRouter
 from src.backend.app.api.v1 import (
     admin,
     auth,
@@ -14,7 +15,6 @@ from src.backend.app.api.v1 import (
     workspace_resources,
     workspaces,
 )
-from fastapi import APIRouter
 
 api_v1_router = APIRouter()
 
@@ -39,4 +39,3 @@ ws_router.include_router(settings.router, prefix="/settings")
 api_v1_router.include_router(ws_router)
 api_v1_router.include_router(eval.router, prefix="/eval", tags=["Evaluation"])
 api_v1_router.include_router(admin.router)
-

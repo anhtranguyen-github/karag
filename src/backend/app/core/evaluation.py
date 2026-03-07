@@ -72,4 +72,3 @@ class LLMEvaluator:
     2. LLM-as-judge (comprehensive)
     3. Statistical metrics (reference-based)
     """
-

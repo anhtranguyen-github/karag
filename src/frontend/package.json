@@ -8,12 +8,12 @@
     "build": "pnpm generate:api && next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest",
+    "test": "vitest run",
     "test:unit": "vitest run",
     "test:integration": "vitest run tests/integration",
     "test:contract": "vitest run tests/contract",
-    "generate:api": "openapi-ts -i ../../openapi/schema.json -o src/client -c legacy/fetch -p @hey-api/typescript @hey-api/sdk",
-    "generate-client": "openapi-ts -i ../../openapi/schema.json -o src/client -c legacy/fetch -p @hey-api/typescript @hey-api/sdk",
+    "generate:api": "openapi-ts -i ../../openapi/schema.json -o src/sdk/generated -c @hey-api/client-fetch",
+    "generate-client": "openapi-ts -i ../../openapi/schema.json -o src/sdk/generated -c @hey-api/client-fetch",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -58,6 +58,7 @@
     "jsdom": "^28.0.0",
     "msw": "^2.12.9",
     "msw-storybook-addon": "^2.0.6",
+    "playwright": "^1.58.2",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.0.18"

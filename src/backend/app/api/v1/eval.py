@@ -1,6 +1,6 @@
+from fastapi import APIRouter, Request
 from src.backend.app.schemas.base import AppResponse
 from src.backend.app.services.eval_service import eval_service
-from fastapi import APIRouter, Request
 
 router = APIRouter()
 
@@ -45,4 +45,3 @@ async def get_run(run_id: str):
     if "_id" in run:
         del run["_id"]
     return AppResponse.success_response(data=run)
-

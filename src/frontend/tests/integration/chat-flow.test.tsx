@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { api } from '@/lib/api-client';
+import { chat } from '@/sdk/chat';
 import { useSearchParams } from 'next/navigation';
 
 // Setup mocks
@@ -19,12 +19,12 @@ vi.mock('next/navigation', () => ({
     useSearchParams: vi.fn(() => new URLSearchParams()),
 }));
 
-vi.mock('@/lib/api-client', () => ({
-    api: {
-        getThreadApiV1WorkspacesWorkspaceIdChatThreadsThreadIdGet: vi.fn().mockResolvedValue({ success: true, data: { workspace_id: 'test-workspace' } }),
-        getChatHistoryApiV1WorkspacesWorkspaceIdChatHistoryThreadIdGet: vi.fn().mockResolvedValue({ success: true, data: [] }),
-        listChatThreadsApiV1WorkspacesWorkspaceIdChatThreadsGet: vi.fn().mockResolvedValue({ success: true, data: [] }),
-    }
+vi.mock('@/sdk/chat', () => ({
+    chat: {
+        getThread: vi.fn().mockResolvedValue({ success: true, data: { workspace_id: 'test-workspace' } }),
+        getHistory: vi.fn().mockResolvedValue({ data: [] }),
+        listThreads: vi.fn().mockResolvedValue({ data: [] }),
+    },
 }));
 
 // Mock fetch for SSE
@@ -99,10 +99,7 @@ describe('Chat Flow Integration', () => {
 
         // Re-mock to return history
          
-        (api.getChatHistoryApiV1WorkspacesWorkspaceIdChatHistoryThreadIdGet as any).mockResolvedValue({
-            success: true,
-            data: mockHistory
-        });
+        (chat.getHistory as any).mockResolvedValue({ data: mockHistory });
 
         // We need a threadId in searchParams to trigger history fetch
          

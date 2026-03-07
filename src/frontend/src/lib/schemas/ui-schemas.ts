@@ -204,7 +204,7 @@ export const RUNTIME_SCHEMAS: Record<string, FieldConfig[]> = {
         { name: 'runtime.think.reflection_depth', label: 'Reflection Depth', type: 'slider', min: 1, max: 5, step: 1, colSpan: 2, defaultValue: 2 },
     ],
     common: [
-        { name: 'runtime.stream_thoughts', label: 'Stream Thoughts', type: 'switch', description: 'See internal reasoning LIVE', colSpan: 1, defaultValue: true },
+        { name: 'runtime.stream_thoughts', label: 'Stream Thoughts', type: 'switch', description: 'See the step log live', colSpan: 1, defaultValue: true },
         {
             name: 'runtime.tracing.trace_level', label: 'Tracing Level', type: 'select',
             options: [

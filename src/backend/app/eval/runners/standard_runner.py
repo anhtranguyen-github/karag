@@ -11,6 +11,7 @@ from datetime import datetime
 from typing import Any
 
 import structlog
+
 from src.backend.app.eval.datasets.base import DatasetEntry
 from src.backend.app.eval.metrics.generation import GenerationMetrics
 from src.backend.app.eval.metrics.retrieval import RetrievalMetrics
@@ -154,4 +155,3 @@ class StandardQARunner(BaseRunner):
             sample_result.error = str(e)
 
         return sample_result
-

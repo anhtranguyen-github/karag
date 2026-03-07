@@ -6,6 +6,7 @@ LLMProvider interface.
 """
 
 import structlog
+
 from src.backend.app.core.telemetry import get_tracer
 from src.backend.app.providers.base import LLMProvider
 
@@ -36,4 +37,3 @@ async def get_llm(workspace_id: str | None = None) -> LLMProvider:
     from src.backend.app.core.factory import ProviderFactory
 
     return await ProviderFactory.get_llm(workspace_id)
-

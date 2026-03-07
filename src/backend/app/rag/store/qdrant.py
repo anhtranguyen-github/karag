@@ -2,13 +2,13 @@ import time
 from typing import Any
 
 import structlog
+from qdrant_client import AsyncQdrantClient
+from qdrant_client.http import models as qmodels
 from src.backend.app.core.config import karag_settings
 from src.backend.app.core.telemetry import VECTOR_STORE_LATENCY, get_tracer
 from src.backend.app.rag.store.base import DocumentPoint, SearchResult, VectorStore
 from src.backend.app.schemas.database import IngestionConfig
 from src.backend.app.schemas.retrieval import RetrievalConfig
-from qdrant_client import AsyncQdrantClient
-from qdrant_client.http import models as qmodels
 
 logger = structlog.get_logger(__name__)
 tracer = get_tracer(__name__)
@@ -552,4 +552,3 @@ class QdrantStore(VectorStore):
                 ),
             )
             return True
-

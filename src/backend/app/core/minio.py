@@ -1,10 +1,10 @@
 import io
 
 import structlog
-from src.backend.app.core.config import karag_settings
-from src.backend.app.core.telemetry import get_tracer
 from minio import Minio
 from minio.error import S3Error
+from src.backend.app.core.config import karag_settings
+from src.backend.app.core.telemetry import get_tracer
 
 logger = structlog.get_logger(__name__)
 tracer = get_tracer(__name__)
@@ -158,4 +158,3 @@ class MinioManager:
 
 
 minio_manager = MinioManager()
-

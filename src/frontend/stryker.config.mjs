@@ -39,7 +39,7 @@ export default {
     '!src/**/*.test.ts',
     '!src/**/*.test.tsx',
     '!src/tests/**/*',
-    '!src/client/**/*',  // Generated code
+    '!src/sdk/generated/**/*',  // Generated code
     '!src/mocks/**/*',
     '!src/**/*.d.ts',
   ],
@@ -52,7 +52,7 @@ export default {
     'build/',
     'coverage/',
     'reports/',
-    'src/client/**/*',
+    'src/sdk/generated/**/*',
   ],
   
   // Mutators to enable

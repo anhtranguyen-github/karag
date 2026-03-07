@@ -61,4 +61,3 @@ class WorkspaceRepository(BaseRepository[Workspace]):
 
 
 workspace_repository = WorkspaceRepository()
-

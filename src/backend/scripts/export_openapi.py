@@ -22,8 +22,8 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.backend.app.main import app
 from fastapi.openapi.utils import get_openapi
+from src.backend.app.main import app
 
 
 def export_openapi_schema(output_path: str | None = None) -> str:
@@ -73,5 +73,3 @@ if __name__ == "__main__":
     # Allow override via command line argument
     output_path = sys.argv[1] if len(sys.argv) > 1 else None
     export_openapi_schema(output_path)
-
-

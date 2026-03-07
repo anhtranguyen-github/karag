@@ -1,6 +1,7 @@
 'use client';
 
-import { sdk } from '@/sdk';
+import { documents as documentsApi } from '@/sdk/documents';
+import { workspaces as workspacesApi } from '@/sdk/workspaces';
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -147,11 +148,11 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
             let payload;
             const isGlobal = !workspaceId;
             if (isGlobal) {
-                payload = await sdk.documents.listAll({
+                payload = await documentsApi.listAll({
                     workspaceId: 'system' // placeholder for global
                 });
             } else {
-                payload = await sdk.documents.list({ workspaceId: workspaceId! });
+                payload = await documentsApi.list({ workspaceId: workspaceId! });
             }
 
             const data = (payload.data || []) as any[];
@@ -184,11 +185,12 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         if (!workspaceId) return;
         setIsDatasetLoading(true);
         try {
-            const payload = await sdk.documents.listAll({
+            const payload = await documentsApi.listAll({
                 workspaceId: workspaceId!
-            });
-            if (payload.success && payload.data) {
-                const mappedDocs = (payload.data as any[]).map(doc => ({
+            }) as any;
+            const data = payload?.data?.data || payload?.data;
+            if (payload?.data?.success || payload?.success) {
+                const mappedDocs = (data as any[]).map(doc => ({
                     ...doc,
                     name: doc.filename
                 })) as Document[];
@@ -204,7 +206,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
     const handleLinkFromDataset = async (doc: Document) => {
         // Fire-and-forget: submit and close modal immediately
         try {
-            await sdk.documents.updateWorkspaces({
+            await documentsApi.updateWorkspaces({
                 workspaceId,
                 requestBody: {
                     document_id: doc.id!,
@@ -237,8 +239,8 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
     useEffect(() => {
         const fetchWorkspaces = async () => {
             try {
-                const payload = await sdk.workspaces.list();
-                setWorkspaces(payload.data || []);
+                const payload = await workspacesApi.list() as any;
+                setWorkspaces(payload?.data?.data || payload?.data || []);
             } catch (err) {
                 console.error('Failed to fetch workspaces', err);
             }
@@ -282,7 +284,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         formData.append('file', file);
 
         try {
-            const payload = await sdk.documents.upload({
+            const payload = await documentsApi.upload({
                 workspaceId,
                 formData: { file }
             });
@@ -333,17 +335,17 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         try {
             let payload;
             if (importUrl.includes('github.com')) {
-                payload = await sdk.documents.importGithub({
+                payload = await documentsApi.importGithub({
                     workspaceId,
                     requestBody: { url: importUrl, branch: githubBranch }
                 });
             } else if (importUrl.toLowerCase().endsWith('.xml') || importUrl.toLowerCase().includes('sitemap')) {
-                payload = await sdk.documents.importSitemap({
+                payload = await documentsApi.importSitemap({
                     workspaceId,
                     requestBody: { url: importUrl }
                 });
             } else {
-                payload = await sdk.documents.importUrl({
+                payload = await documentsApi.importUrl({
                     workspaceId,
                     requestBody: { url: importUrl }
                 });
@@ -376,7 +378,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         setDuplicateData(null); // Close modal immediately
 
         try {
-            await sdk.documents.updateWorkspaces({
+            await documentsApi.updateWorkspaces({
                 workspaceId,
                 requestBody: {
                     document_id: duplicateData.id,
@@ -412,7 +414,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
 
         try {
             const targetWs = deleteTargetWs || deletingDoc?.workspace_id || workspaceId;
-            await sdk.documents.delete({
+            await documentsApi.delete({
                 workspaceId: workspaceId || '',
                 documentId: id,
                 datasetDelete
@@ -440,11 +442,11 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
 
     const handleView = async (id: string, name: string) => {
         try {
-            const payload = await sdk.documents.get({
+            const payload = await documentsApi.get({
                 workspaceId: workspaceId || '',
                 documentId: id
-            });
-            const data = payload.data;
+            }) as any;
+            const data = payload?.data?.data || payload?.data;
             if (!data) return;
             setActiveSource({
                 id: data.id,
@@ -475,7 +477,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
         if (showModal) setIsDetailsModalOpen(true);
         const docId = doc.id || doc.name;
         try {
-            const payload = await sdk.documents.inspect({
+            const payload = await documentsApi.inspect({
                 workspaceId: workspaceId || '',
                 documentId: docId
             });
@@ -1306,7 +1308,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                             </li>
                                             <li className="flex gap-4 text-[10px] text-red-500 font-bold leading-relaxed px-1">
                                                 <div className="shrink-0 text-red-500 mt-0.5"><AlertTriangle size={12} /></div>
-                                                Active RAG flows will lose access to this source artifact.
+                                                Active search flows will lose access to this source artifact.
                                             </li>
                                         </>
                                     )}
@@ -1340,7 +1342,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
 
                                 try {
                                     if (isIndexing) {
-                                        await sdk.documents.updateWorkspaces({
+                                        await documentsApi.updateWorkspaces({
                                             workspaceId: confirmingAction.workspace_id,
                                             requestBody: {
                                                 document_id: managingDoc.id!,
@@ -1353,7 +1355,7 @@ export function KnowledgeBase({ workspaceId: propWorkspaceId = "default", isSide
                                         toast.success(`Indexing started for ${managingDoc.name} in ${confirmingAction.workspace_name}`);
                                         fetchDocuments();
                                     } else {
-                                        await sdk.documents.delete({
+                                        await documentsApi.delete({
                                             workspaceId: workspaceId || '',
                                             documentId: managingDoc.id!,
                                             datasetDelete: false

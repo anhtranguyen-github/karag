@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CreateWorkspaceInput, CreateWorkspaceSchema } from '@/lib/schemas/workspaces';
-import { sdk } from '@/sdk';
+import { workspaces } from '@/sdk/workspaces';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -141,7 +141,7 @@ export function WorkspaceWizard({ isOpen, onClose }: WorkspaceWizardProps) {
                 chunking_strategy: data.chunking.strategy,
             };
 
-            const result = (await sdk.workspaces.create({ requestBody: payload })) as any;
+            const result = (await workspaces.create({ requestBody: payload })) as any;
 
             if (result.success) {
                 successToast(result.message || 'Workspace created successfully');

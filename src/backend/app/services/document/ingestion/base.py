@@ -19,4 +19,3 @@ class BaseIngestionStrategy(ABC):
     def task_type(self) -> str:
         """Return the task type string."""
         pass
-

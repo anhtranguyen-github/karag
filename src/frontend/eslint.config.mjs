@@ -13,8 +13,9 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     // Auto-generated API client (regenerated in CI)
-    "src/client/**",
     "src/generated/**",
+    "src/sdk/generated/**",
+    "public/mockServiceWorker.js",
   ]),
   // Custom rule overrides for CI compatibility
   {

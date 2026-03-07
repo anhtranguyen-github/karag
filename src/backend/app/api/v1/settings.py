@@ -1,9 +1,9 @@
 from typing import Any
 
+from fastapi import APIRouter, Depends
 from src.backend.app.api.deps import CurrentWorkspace, get_current_workspace
 from src.backend.app.core.settings_manager import settings_manager
 from src.backend.app.schemas.base import AppResponse
-from fastapi import APIRouter, Depends
 
 router = APIRouter(tags=["settings"])
 
@@ -31,4 +31,3 @@ async def update_settings(
     """Update settings for a specific workspace."""
     settings = await settings_manager.update_settings(updates, current_workspace.id)
     return AppResponse.success_response(data=settings.model_dump())
-

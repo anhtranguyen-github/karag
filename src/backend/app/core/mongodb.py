@@ -1,7 +1,7 @@
 import structlog
-from src.backend.app.core.config import karag_settings
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import MongoClient
+from src.backend.app.core.config import karag_settings
 
 logger = structlog.get_logger(__name__)
 
@@ -44,4 +44,3 @@ class MongoDBManager:
 
 
 mongodb_manager = MongoDBManager()
-

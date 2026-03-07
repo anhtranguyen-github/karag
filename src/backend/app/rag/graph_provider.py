@@ -120,4 +120,3 @@ class GraphProvider:
 
 
 graph_provider = GraphProvider()
-

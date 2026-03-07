@@ -15,7 +15,7 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
     'Retrieval Component': Search,
     'Embedding Component': Boxes,
     'Ingestion Component': Layout,
-    'Agentic Component': Shield,
+    'Tool Component': Shield,
     'Execution Mode': Activity,
     'Interface': Settings,
 };
@@ -45,7 +45,7 @@ export function SettingsTab({ settings, metadata, handleUpdate, isSaving }: Sett
                                 <h3 className="text-sm font-black tracking-[0.2em] text-white underline decoration-indigo-500/30 underline-offset-8">
                                     {category}
                                 </h3>
-                                <p className="text-[10px] text-gray-500 font-bold tracking-widest mt-1">Global System Parameters</p>
+                                <p className="text-[10px] text-gray-500 font-bold tracking-widest mt-1">Global system settings</p>
                             </div>
                         </div>
 

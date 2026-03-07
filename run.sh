@@ -36,6 +36,7 @@ log_warn()    { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error()   { echo -e "${RED}[ERR] ${NC} $1" >&2; }
 log_phase()   { echo -e "\n${CYAN}${BOLD}>>> $1${NC}"; }
 log_cmd()     { echo -e "${BOLD}$1${NC}"; }
+log_kv()      { printf "  %-18s %s\n" "$1" "$2"; }
 
 # =============================================================================
 # UTILITY FUNCTIONS
@@ -90,7 +91,8 @@ wait_for_service() {
     local max_retries=${3:-$MAX_RETRIES}
     local count=0
 
-    echo -n "Waiting for $name..."
+    log_info "Waiting for $name health endpoint: $health_url (timeout: ${max_retries}s)"
+    echo -n "  Progress"
     while ! curl -sf "$health_url" >/dev/null 2>&1; do
         echo -n "."
         sleep 1
@@ -111,7 +113,8 @@ wait_for_port() {
     local max_retries=${4:-$MAX_RETRIES}
     local count=0
 
-    echo -n "Waiting for $name..."
+    log_info "Waiting for $name TCP socket: ${host}:${port} (timeout: ${max_retries}s)"
+    echo -n "  Progress"
     while ! nc -zw 2 "$host" "$port" 2>/dev/null; do
         echo -n "."
         sleep 1
@@ -127,6 +130,8 @@ wait_for_port() {
 # Kill all application-related processes
 deep_cleanup() {
     log_info "Cleaning up environment..."
+    log_kv "Backend port" "$BACKEND_PORT"
+    log_kv "Frontend port" "$FRONTEND_PORT"
 
     # Kill known process patterns
     pkill -f "uvicorn.*backend.app.main:app" 2>/dev/null || true
@@ -149,11 +154,23 @@ load_env() {
         return 0
     fi
 
-    log_info "Loading environment from .env"
+    log_info "Loading environment from $(pwd)/.env"
     set -a
     # shellcheck source=/dev/null
     source .env
     set +a
+}
+
+print_runtime_flags() {
+    log_info "Runtime options:"
+    log_kv "Command" "$COMMAND"
+    log_kv "Skip verify" "$SKIP_VERIFY"
+    log_kv "Lax mode" "$LAX_MODE"
+    log_kv "Turbo mode" "$TURBO_MODE"
+    log_kv "Prod mode" "$PROD_MODE"
+    log_kv "Lite mode" "$LITE_MODE"
+    log_kv "Clear cloud" "$CLEAR_CLOUD"
+    log_kv "Clear local" "$CLEAR_LOCAL"
 }
 
 # =============================================================================
@@ -178,6 +195,7 @@ preflight() {
 
     # Detect Docker command
     DOCKER_CMD=$(detect_docker_command) || missing=true
+    [[ "$missing" == false ]] && log_kv "Docker command" "$DOCKER_CMD"
 
     # Check required tools
     local tools=("uv" "pnpm")
@@ -185,6 +203,8 @@ preflight() {
         if ! command -v "$tool" >/dev/null 2>&1; then
             log_error "Missing required tool: $tool"
             missing=true
+        else
+            log_kv "$tool" "$(command -v "$tool")"
         fi
     done
 
@@ -202,14 +222,17 @@ preflight() {
 
 verify_backend() {
     log_info "Verifying backend..."
+    log_kv "Project dir" "src/backend"
 
     cd src/backend
 
     log_info "Synchronizing dependencies..."
+    log_cmd "uv sync --quiet"
     uv sync --quiet
 
     log_info "Checking Python syntax..."
     mapfile -t py_files < <(find app -name "*.py" 2>/dev/null)
+    log_kv "Python files" "${#py_files[@]}"
     if [[ ${#py_files[@]} -gt 0 ]]; then
         if ! uv run python3 -m py_compile "${py_files[@]}" 2>/tmp/py_compile.err; then
             log_error "Python syntax errors detected:"
@@ -218,11 +241,9 @@ verify_backend() {
         fi
     fi
 
-    log_info "Running static analysis (Ruff)..."
-    uv run ruff check . --quiet 2>/dev/null || log_warn "Linting issues found"
-
-    log_info "Checking code formatting..."
-    uv run ruff format --check . 2>/dev/null || log_warn "Formatting issues found"
+    log_info "Running backend tests..."
+    log_cmd "uv run pytest ../../tests/unit/backend ../../tests/integration/contracts/test_backend_api_contracts.py ../../tests/integration/contracts/test_backend_llm_contracts.py --ignore=../../tests/unit/backend/core/test_path_security.py --junitxml=results-unit.xml"
+    uv run pytest ../../tests/unit/backend ../../tests/integration/contracts/test_backend_api_contracts.py ../../tests/integration/contracts/test_backend_llm_contracts.py --ignore=../../tests/unit/backend/core/test_path_security.py --junitxml=results-unit.xml 2>/dev/null || log_warn "Backend tests failed"
 
     cd - >/dev/null
     log_success "Backend verification complete"
@@ -230,29 +251,30 @@ verify_backend() {
 
 verify_frontend() {
     log_info "Verifying frontend..."
+    log_kv "Project dir" "src/frontend"
 
     cd src/frontend
 
     if [[ ! -d "node_modules" ]]; then
         log_info "Installing dependencies..."
+        log_cmd "pnpm install --silent"
         pnpm install --silent
     fi
 
     log_info "Generating API client..."
+    log_cmd "pnpm run generate-client"
     pnpm run generate-client >/dev/null 2>&1 || true
 
-    log_info "Checking TypeScript..."
-    if ! pnpm exec tsc --noEmit 2>/tmp/tsc.err; then
-        log_warn "TypeScript errors detected"
+    log_info "Running frontend unit tests (Vitest)..."
+    log_cmd "pnpm run test:unit"
+    if ! pnpm run test:unit 2>/tmp/vitest.err; then
+        log_warn "Frontend unit tests failed"
         [[ "$LAX_MODE" == "true" ]] || {
-            log_error "Type errors blocking start (use --lax to override):"
-            head -n 15 /tmp/tsc.err
+            log_error "Vitest errors blocking start (use --lax to override):"
+            head -n 15 /tmp/vitest.err
             exit 1
         }
     fi
-
-    log_info "Running ESLint..."
-    pnpm run lint 2>/dev/null || log_warn "ESLint issues found"
 
     cd - >/dev/null
     log_success "Frontend verification complete"
@@ -302,11 +324,12 @@ boot_infra() {
     log_phase "INFRASTRUCTURE"
 
     local services="minio"
-    local local_services=()
+    log_info "Evaluating cloud vs local providers"
 
     # Determine which services need local containers
     if check_cloud_qdrant; then
         log_info "Using Qdrant Cloud"
+        log_kv "Qdrant URL" "${QDRANT_URL:-unset}"
     else
         if [[ -n "${QDRANT_URL:-}" ]] && [[ "$QDRANT_URL" != *"localhost"* ]] && [[ "$QDRANT_URL" != *"127.0.0.1"* ]]; then
             log_warn "Qdrant Cloud unreachable, falling back to local Qdrant"
@@ -320,6 +343,7 @@ boot_infra() {
 
     if check_cloud_mongo; then
         log_info "Using MongoDB Atlas"
+        log_kv "Mongo URI" "${MONGO_URI:-unset}"
     else
         if [[ -n "${MONGO_URI:-}" ]] && [[ "$MONGO_URI" != *"localhost"* ]] && [[ "$MONGO_URI" != *"127.0.0.1"* ]]; then
             log_warn "MongoDB Atlas unreachable, falling back to local MongoDB"
@@ -332,6 +356,7 @@ boot_infra() {
 
     if check_cloud_neo4j; then
         log_info "Using Neo4j Aura"
+        log_kv "Neo4j URI" "${NEO4J_URI:-unset}"
     else
         if [[ -n "${NEO4J_URI:-}" ]] && [[ "$NEO4J_URI" != *"localhost"* ]] && [[ "$NEO4J_URI" != *"127.0.0.1"* ]]; then
             log_warn "Neo4j Cloud unreachable, falling back to local Neo4j"
@@ -351,6 +376,13 @@ boot_infra() {
 
     # Start containers
     log_info "Starting services: $services"
+    if [[ "${LITE_MODE:-}" == "true" ]]; then
+        log_kv "Docker mode" "base services only"
+        log_cmd "$DOCKER_CMD up -d $services"
+    else
+        log_kv "Docker mode" "local-models + devops profiles"
+        log_cmd "$DOCKER_CMD --profile local-models --profile devops up -d $services"
+    fi
     if [[ "${LITE_MODE:-}" == "true" ]]; then
         # shellcheck disable=SC2086
         $DOCKER_CMD up -d $services
@@ -386,10 +418,14 @@ launch_backend() {
     export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}."
 
     log_info "Starting FastAPI server..."
+    log_kv "Port" "$BACKEND_PORT"
+    log_kv "Log file" "logs/backend.log"
+    log_cmd "uv run --project src/backend python src/backend/app/main.py"
     nohup uv run --project src/backend python src/backend/app/main.py > logs/backend.log 2>&1 &
     local pid=$!
 
-    echo -n "Waiting for API..."
+    log_info "Waiting for API health check: http://localhost:${BACKEND_PORT}/"
+    echo -n "  Progress"
     local count=0
     while ! curl -sf "http://localhost:${BACKEND_PORT}/" >/dev/null 2>&1; do
         echo -n "."
@@ -418,11 +454,13 @@ launch_frontend() {
 
     if [[ ! -d "node_modules" ]]; then
         log_info "Installing dependencies..."
+        log_cmd "pnpm install --silent"
         pnpm install --silent
     fi
 
     if [[ ! -d "src/lib/api" ]] || [[ -z "$(ls -A src/lib/api 2>/dev/null)" ]]; then
         log_info "Generating API client..."
+        log_cmd "pnpm run generate-client"
         pnpm run generate-client >/dev/null 2>&1 || true
     fi
 
@@ -431,19 +469,27 @@ launch_frontend() {
         log_info "Starting production server..."
         if [[ ! -d ".next" ]]; then
             log_warn "No build found. Building first..."
+            log_cmd "pnpm run build"
             pnpm run build
         fi
+        log_kv "Port" "$FRONTEND_PORT"
+        log_kv "Log file" "logs/frontend.log"
+        log_cmd "pnpm run start"
         nohup pnpm run start > ../logs/frontend.log 2>&1 &
         pid=$!
     else
         log_info "Starting development server..."
+        log_kv "Port" "$FRONTEND_PORT"
+        log_kv "Log file" "logs/frontend.log"
+        log_cmd "pnpm run dev"
         nohup pnpm run dev > ../logs/frontend.log 2>&1 &
         pid=$!
     fi
 
     cd - >/dev/null
 
-    echo -n "Waiting for UI..."
+    log_info "Waiting for UI health check: http://127.0.0.1:${FRONTEND_PORT}"
+    echo -n "  Progress"
     local count=0
     while ! curl -sf "http://127.0.0.1:${FRONTEND_PORT}" >/dev/null 2>&1; do
         echo -n "."
@@ -471,6 +517,7 @@ launch_frontend() {
 
 cmd_up() {
     load_env
+    print_runtime_flags
     preflight
     deep_cleanup
 
@@ -651,7 +698,7 @@ cmd_test() {
     log_phase "TEST"
 
     log_info "Running backend tests..."
-    (cd src/backend && uv run pytest tests/unit tests/integration 2>/dev/null) || log_warn "Backend tests failed"
+    (cd src/backend && uv run pytest ../../tests/unit/backend ../../tests/integration/contracts/test_backend_api_contracts.py ../../tests/integration/contracts/test_backend_llm_contracts.py --ignore=../../tests/unit/backend/core/test_path_security.py 2>/dev/null) || log_warn "Backend tests failed"
 
     log_info "Running frontend tests..."
     (cd src/frontend && pnpm run test:unit 2>/dev/null) || log_warn "Frontend tests failed"
@@ -861,4 +908,3 @@ case "$COMMAND" in
         exit 1
         ;;
 esac
-

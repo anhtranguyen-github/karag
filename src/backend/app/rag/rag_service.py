@@ -6,12 +6,12 @@ from src.backend.app.observability import (
     EMBEDDING_REQUEST_LATENCY,
     get_tracer,
 )
-from src.backend.app.rag.runtime import rag_pipeline_resolver
 from src.backend.app.rag.advanced_retrieval import (
     ContextualCompressor,
     MultiQueryRetriever,
     RetrievalResult,
 )
+from src.backend.app.rag.runtime import rag_pipeline_resolver
 
 logger = structlog.get_logger(__name__)
 tracer = get_tracer(__name__)

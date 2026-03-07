@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { sdk } from "@/sdk";
+import { documents } from "@/sdk/documents";
 import { UploadCloud, Link as LinkIcon, FileText, Globe, Github } from "lucide-react";
 
 // Standard Tab style for premium modals
@@ -50,24 +50,24 @@ export function UploadModal({ isOpen, onClose, workspaceId, onUploadComplete }: 
 
             if (mode === "file") {
                 if (!file) return;
-                (await sdk.documents.upload({
+                (await documents.upload({
                     workspaceId: targetWorkspace,
                     formData: { file }
                 })) as any;
             } else if (mode === "link") {
                 if (!url) return;
                 if (url.includes('github.com')) {
-                    (await sdk.documents.importGithub({
+                    (await documents.importGithub({
                         workspaceId: targetWorkspace,
                         requestBody: { url: url as any, branch }
                     })) as any;
                 } else if (url.toLowerCase().endsWith('.xml') || url.toLowerCase().includes('sitemap')) {
-                    (await sdk.documents.importSitemap({
+                    (await documents.importSitemap({
                         workspaceId: targetWorkspace,
                         requestBody: { url: url as any }
                     })) as any;
                 } else {
-                    (await sdk.documents.importUrl({
+                    (await documents.importUrl({
                         workspaceId: targetWorkspace,
                         requestBody: { url: url as any }
                     })) as any;

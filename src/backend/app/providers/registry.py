@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import structlog
+
 from src.backend.app.core.config import karag_settings
 from src.backend.app.core.settings_manager import settings_manager
 

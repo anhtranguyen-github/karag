@@ -11,10 +11,10 @@ import secrets
 from datetime import datetime, timedelta
 
 import structlog
+from passlib.context import CryptContext
 from src.backend.app.core.exceptions import AuthenticationError, NotFoundError
 from src.backend.app.core.mongodb import mongodb_manager
 from src.backend.app.schemas.baas import APIKey, APIKeyCreateResponse, IsolationContext
-from passlib.context import CryptContext
 
 logger = structlog.get_logger(__name__)
 
@@ -349,4 +349,3 @@ class APIKeyService:
 
 # Singleton instance
 api_key_service = APIKeyService()
-

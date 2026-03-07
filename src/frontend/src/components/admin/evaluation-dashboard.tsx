@@ -12,7 +12,7 @@ export function EvaluationDashboard() {
     ];
 
     const suites = [
-        { id: 'rag-faithfulness', name: 'RAG Faithfulness', passed: 42, total: 45, status: 'passing' },
+        { id: 'rag-faithfulness', name: 'Answer Grounding', passed: 42, total: 45, status: 'passing' },
         { id: 'context-relevance', name: 'Context Relevance', passed: 38, total: 40, status: 'passing' },
         { id: 'answer-correctness', name: 'Answer Correctness', passed: 18, total: 25, status: 'failing' },
     ];
@@ -86,7 +86,7 @@ export function EvaluationDashboard() {
                     <div className="p-5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-center">
                         <div className="text-tiny font-black text-indigo-400 uppercase mb-2">Detailed Report Available</div>
                         <p className="text-[10px] text-indigo-300/60 font-medium mb-4">
-                            Full regression analysis including failing prompt inputs and context retrieval misses.
+                            Full regression analysis including failing prompt inputs and missing source matches.
                         </p>
                         <button className="w-full py-2 rounded-xl bg-indigo-500 text-black font-black text-[10px] uppercase hover:bg-indigo-400 transition-all flex items-center justify-center gap-2">
                             Open HTML Report <ExternalLink size={12} />
@@ -97,4 +97,3 @@ export function EvaluationDashboard() {
         </div>
     );
 }
-

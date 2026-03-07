@@ -1,4 +1,5 @@
-
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 from src.backend.app.api.deps import (
     CurrentUser,
     CurrentWorkspace,
@@ -8,8 +9,6 @@ from src.backend.app.api.deps import (
 from src.backend.app.core.exceptions import NotFoundError, ValidationError
 from src.backend.app.schemas.base import AppResponse
 from src.backend.app.services.workspace_service import workspace_service
-from fastapi import APIRouter, Depends
-from pydantic import BaseModel
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
 
@@ -73,6 +72,7 @@ class ShareDocumentPayload(BaseModel):
     source_name: str
     target_workspace_id: str
 
+
 @router.post("/{workspace_id}/share-document", response_model=AppResponse[dict])
 async def share_document(
     workspace_id: str,
@@ -95,4 +95,3 @@ async def share_document(
 async def get_workspace_graph(workspace_id: str, current_workspace: CurrentWorkspace = Depends(get_current_workspace)):
     graph_data = await workspace_service.get_graph_data(workspace_id)
     return AppResponse.success_response(data=graph_data)
-

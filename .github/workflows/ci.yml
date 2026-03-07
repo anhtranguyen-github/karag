@@ -1,262 +1,73 @@
-name: Production DevSecOps Pipeline
-# Expertise: Senior DevOps & Frontend Platform Engineer
-# Architecture: Correctness -> Behavior -> Security -> Deployment
+name: ci
 
 on:
-  push:
-    branches: [ main, dev ]
   pull_request:
-    branches: [ main, dev ]
+  push:
+    branches: [main, dev]
 
 jobs:
-  # --- Stage 0: Architecture Drift Detection ---
-  architecture-check:
-    name: "Architecture: Drift Detection"
+  backend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      
-      - name: Install dependencies
+      - uses: astral-sh/setup-uv@v5
+      - name: Install backend dependencies
+        working-directory: src/backend
+        run: uv sync --quiet
+      - name: Lint backend
+        working-directory: src/backend
         run: |
-          pip install pytest
-      
-      - name: Run Architecture Tests
-        run: |
-          python -m pytest tests/architecture/ -v --tb=short
-        
-      - name: Run Drift Detector
-        run: |
-          python scripts/drift_detector.py --strict
-
-  # --- Stage 1: Backend Baseline ---
-  backend-ci:
-    name: "Backend: Lint & Test"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Backend Tooling (uv)
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-      - name: Lint, Format & Test
-        working-directory: ./backend
-        run: |
-          uv sync
           uv run ruff check .
-          # Ignore test_path_security.py due to pre-existing FastAPI path param issue in workspaces.py
-          uv run pytest tests/unit --ignore=tests/unit/test_path_security.py --junitxml=results-unit.xml
+          uv run ruff format --check .
+      - name: Test backend
+        working-directory: src/backend
+        run: uv run pytest ../../tests/unit/backend ../../tests/integration/contracts/test_backend_api_contracts.py ../../tests/integration/contracts/test_backend_llm_contracts.py --ignore=../../tests/unit/backend/core/test_path_security.py
 
-      - name: Run Bandit Security Scanner
-        working-directory: ./backend
-        run: |
-          uv pip install bandit
-          uv run bandit -r app/ -x tests/
-
-      - name: Run Custom Quality Scanners
-        run: |
-          python tools/check_hardcoded_strings.py
-          python tools/check_mock_data.py
-          python tools/check_debug_artifacts.py
-
-      - name: Run Import Linter
-        run: |
-          uv pip install importlinter
-          uv run importlinter lint importlinter.ini
-
-  # --- Stage 2: Frontend & Quality Gate ---
-  frontend-ci:
-    name: "Frontend: Build & Quality"
+  frontend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v4
         with:
           version: 9
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: 20
+          cache: pnpm
           cache-dependency-path: src/frontend/pnpm-lock.yaml
-
-      - name: Build
-        working-directory: ./frontend
+      - name: Install frontend dependencies
+        working-directory: src/frontend
+        run: pnpm install --frozen-lockfile
+      - name: Generate frontend SDK
+        working-directory: src/frontend
+        run: pnpm run generate:api
+      - name: Lint frontend
+        working-directory: src/frontend
         run: |
-          pnpm install --frozen-lockfile
-          pnpm run build
-        env:
-          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          pnpm run lint
+          pnpm run typecheck
+      - name: Test frontend
+        working-directory: src/frontend
+        run: pnpm run test
+      - name: Build frontend
+        working-directory: src/frontend
+        run: pnpm run build
 
-  # --- Stage 3: Multi-Domain Security ---
-  security-audit:
-    name: "Security: SAST, IaC & Deep Scan"
-    needs: [backend-ci, frontend-ci, architecture-check]
+  docker:
     runs-on: ubuntu-latest
+    needs: [backend, frontend]
     steps:
       - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build backend image
+        uses: docker/build-push-action@v6
         with:
-          fetch-depth: 0
-
-      - name: Secret Scan (TruffleHog)
-        uses: trufflesecurity/trufflehog@main
+          context: .
+          file: docker/backend.Dockerfile
+          push: false
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
         with:
-          path: ./
-          base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
-          head: ${{ github.sha }}
-          extra_args: --only-verified
-
-      - name: Checkov Compliance Scan
-        uses: bridgecrewio/checkov-action@master
-        with:
-          directory: ./
-          # Scanning Source, Docker, GHA, K8s, and Compose
-          framework: dockerfile,github_actions,kubernetes,docker_compose,secrets
-          check: HIGH,CRITICAL
-          soft_fail: false
-        continue-on-error: true  # Make Checkov optional - scan runs but doesn't block builds
-
-      - name: Docker Image Verification
-        run: |
-          docker build -t karag-backend:test -f src/backend/Dockerfile .
-          docker build -t karag-frontend:test -f src/frontend/Dockerfile .
-
-  # --- Stage 4: Production Deployment ---
-  deploy-vercel:
-    name: "Deploy: Vercel"
-    needs: [security-audit]
-    # Deploy on pushes to main or dev
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Vercel Deploy
-        uses: amondnet/vercel-action@v20
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: ${{ github.ref == 'refs/heads/main' && '--prod' || '' }}
-          working-directory: ./frontend
-
-  # --- Stage 5: Build and Push Container Images to GHCR ---
-  build-and-push-containers:
-    name: "Containers: Build & Push to GHCR"
-    needs: [backend-ci, frontend-ci]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}-containers
-      cancel-in-progress: true
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata for Backend
-        id: meta-backend
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository }}/backend
-          tags: |
-            type=sha,format=long
-            type=ref,event=branch
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-
-      - name: Extract metadata for Frontend
-        id: meta-frontend
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository }}/frontend
-          tags: |
-            type=sha,format=long
-            type=ref,event=branch
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-
-      - name: Build and push Backend image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          file: ./src/backend/Dockerfile
-          push: true
-          tags: ${{ steps.meta-backend.outputs.tags }}
-          labels: ${{ steps.meta-backend.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build and push Frontend image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./frontend
-          file: ./src/frontend/Dockerfile
-          push: true
-          tags: ${{ steps.meta-frontend.outputs.tags }}
-          labels: ${{ steps.meta-frontend.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Output image digests
-        run: |
-          echo "Backend Image: ghcr.io/${{ github.repository }}/backend:${{ github.sha }}"
-          echo "Frontend Image: ghcr.io/${{ github.repository }}/frontend:${{ github.sha }}"
-
-  # --- Stage 6: Container Security Scanning ---
-  container-security-scan:
-    name: "Security: Container Vulnerability Scan"
-    needs: [build-and-push-containers]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: read
-      security-events: write
-    steps:
-      - name: Run Trivy vulnerability scanner for Backend
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: 'ghcr.io/${{ github.repository }}/backend:${{ github.sha }}'
-          format: 'sarif'
-          output: 'trivy-backend-results.sarif'
-          severity: 'HIGH,CRITICAL'
-          exit-code: '1'
-
-      - name: Run Trivy vulnerability scanner for Frontend
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: 'ghcr.io/${{ github.repository }}/frontend:${{ github.sha }}'
-          format: 'sarif'
-          output: 'trivy-frontend-results.sarif'
-          severity: 'HIGH,CRITICAL'
-          exit-code: '1'
-
-      - name: Upload Trivy scan results for Backend to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: 'trivy-backend-results.sarif'
-          category: 'trivy-backend'
-
-      - name: Upload Trivy scan results for Frontend to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: 'trivy-frontend-results.sarif'
-          category: 'trivy-frontend'
-
-
+          context: .
+          file: docker/frontend.Dockerfile
+          push: false

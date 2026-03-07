@@ -72,4 +72,3 @@ class PipelineService:
 
 
 pipeline_service = PipelineService()
-

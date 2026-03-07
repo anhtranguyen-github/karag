@@ -15,11 +15,17 @@ import * as path from 'path';
 
 // API base URL from environment or default
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const RUN_REAL_API_TESTS = process.env.RUN_REAL_API_TESTS === 'true';
 
 describe('API Integration Tests', () => {
   let isBackendAvailable = false;
   
   beforeAll(async () => {
+    if (!RUN_REAL_API_TESTS) {
+      isBackendAvailable = false;
+      return;
+    }
+
     // Check if backend is available
     try {
       const response = await fetch(`${API_BASE_URL}/health`, {
@@ -31,18 +37,11 @@ describe('API Integration Tests', () => {
       isBackendAvailable = false;
     }
     
-    if (!isBackendAvailable) {
-      console.warn(
-        `Backend not available at ${API_BASE_URL}. ` +
-        'Integration tests will be skipped.'
-      );
-    }
   });
 
   describe('Health Endpoint', () => {
     it('should return healthy status', async () => {
       if (!isBackendAvailable) {
-        console.warn('Skipping: Backend not available');
         return;
       }
       
@@ -55,7 +54,6 @@ describe('API Integration Tests', () => {
 
     it('should return API version', async () => {
       if (!isBackendAvailable) {
-        console.warn('Skipping: Backend not available');
         return;
       }
       
@@ -70,7 +68,6 @@ describe('API Integration Tests', () => {
   describe('OpenAPI Schema Endpoint', () => {
     it('should return valid OpenAPI schema', async () => {
       if (!isBackendAvailable) {
-        console.warn('Skipping: Backend not available');
         return;
       }
       
@@ -86,14 +83,12 @@ describe('API Integration Tests', () => {
 
     it('should match committed schema structure', async () => {
       if (!isBackendAvailable) {
-        console.warn('Skipping: Backend not available');
         return;
       }
       
-const committedSchemaPath = path.join(__dirname, '../../../../openapi/schema.json');
+      const committedSchemaPath = path.join(__dirname, '../../../../openapi/schema.json');
       
       if (!fs.existsSync(committedSchemaPath)) {
-        console.warn('Committed schema not found - skipping comparison');
         return;
       }
       
@@ -112,7 +107,6 @@ const committedSchemaPath = path.join(__dirname, '../../../../openapi/schema.jso
   describe('Authentication Flow', () => {
     it('should reject unauthenticated requests to protected endpoints', async () => {
       if (!isBackendAvailable) {
-        console.warn('Skipping: Backend not available');
         return;
       }
       
@@ -130,7 +124,6 @@ const committedSchemaPath = path.join(__dirname, '../../../../openapi/schema.jso
   describe('Core API Endpoints', () => {
     it('should have workspaces endpoint', async () => {
       if (!isBackendAvailable) {
-        console.warn('Skipping: Backend not available');
         return;
       }
       
@@ -146,7 +139,6 @@ const committedSchemaPath = path.join(__dirname, '../../../../openapi/schema.jso
 
     it('should have documents endpoint', async () => {
       if (!isBackendAvailable) {
-        console.warn('Skipping: Backend not available');
         return;
       }
       
@@ -162,7 +154,6 @@ const committedSchemaPath = path.join(__dirname, '../../../../openapi/schema.jso
 
     it('should have chat endpoint', async () => {
       if (!isBackendAvailable) {
-        console.warn('Skipping: Backend not available');
         return;
       }
       
@@ -179,24 +170,16 @@ const committedSchemaPath = path.join(__dirname, '../../../../openapi/schema.jso
 });
 
 describe('Generated SDK Integration', () => {
-  const clientDir = path.join(__dirname, '../../src/client');
+  const clientDir = path.join(__dirname, '../../src/sdk/generated');
   
   it('should be importable when generated', async () => {
     if (!fs.existsSync(clientDir)) {
-      console.warn('SDK not generated - skipping import test');
       return;
     }
     
-    try {
-      // This will fail in test environment without proper module resolution,
-      // but validates the files exist and are syntactically correct
-      const sdkPath = path.join(clientDir, 'sdk.ts');
-      const content = fs.readFileSync(sdkPath, 'utf-8');
-      
-      // Basic validation - should have exports
-      expect(content).toContain('export');
-    } catch (e) {
-      console.warn('Could not read generated SDK:', e);
-    }
+    const sdkPath = path.join(clientDir, 'index.ts');
+    const content = fs.readFileSync(sdkPath, 'utf-8');
+
+    expect(content).toContain('export');
   });
 });

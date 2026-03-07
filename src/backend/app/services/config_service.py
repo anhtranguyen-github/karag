@@ -374,4 +374,3 @@ class ConfigService:
 
 # Singleton instance
 config_service = ConfigService()
-

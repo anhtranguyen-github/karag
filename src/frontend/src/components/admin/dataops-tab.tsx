@@ -90,7 +90,7 @@ export function DataOpsTab({ vectorStatus, parseMetric }: DataOpsTabProps) {
                     <div className="bg-[#121214] border border-white/5 rounded-2xl p-6">
                         <h3 className="text-sm font-black tracking-wider mb-5 flex items-center gap-2">
                             <Activity size={16} className="text-emerald-400" />
-                            Ingestion Pipeline
+                            Document Processing
                         </h3>
                         <div className="space-y-6">
                             {[
@@ -112,10 +112,10 @@ export function DataOpsTab({ vectorStatus, parseMetric }: DataOpsTabProps) {
                     <div className="p-5 rounded-2xl bg-amber-600/5 border border-amber-500/10">
                         <div className="flex items-center gap-3 mb-2">
                             <AlertTriangle size={18} className="text-amber-400" />
-                            <span className="text-tiny font-black text-amber-100">Ops Guardrail</span>
+                            <span className="text-tiny font-black text-amber-100">Usage Note</span>
                         </div>
                         <p className="text-[10px] text-amber-200/50 leading-relaxed font-medium">
-                            Bulk re-indexing across multi-collections consumes intensive I/O. Schedule after hours or use canary collections.
+                            Bulk reindexing across multiple collections uses heavy disk and network I/O. Schedule it after hours or run it on a smaller test collection first.
                         </p>
                     </div>
                 </div>
@@ -123,4 +123,3 @@ export function DataOpsTab({ vectorStatus, parseMetric }: DataOpsTabProps) {
         </div>
     );
 }
-

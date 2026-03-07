@@ -12,6 +12,7 @@ from collections.abc import AsyncIterator
 from typing import Any
 
 import structlog
+
 from src.backend.app.core.llm_cache import llm_cache
 from src.backend.app.core.llm_resilience import APIError, RateLimitError
 
@@ -344,4 +345,3 @@ class LangChainAdapter(LLMProvider, ToolCapable, LangGraphCompatible):
         self._check_test_mode()
         async for chunk in self._llm.astream(input, config=config, **kwargs):
             yield chunk
-

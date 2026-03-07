@@ -46,7 +46,7 @@ export default function LoginPage() {
                         <Database className="w-10 h-10 text-indigo-500" />
                     </div>
                     <h1 className="text-4xl font-extrabold tracking-tight mb-2">Karag</h1>
-                    <p className="text-muted-foreground font-medium">Elevate your second brain</p>
+                    <p className="text-muted-foreground font-medium">Sign in to manage your documents and search services</p>
                 </div>
 
                 <div className="bg-card border border-border/60 p-10 rounded-[2.5rem] shadow-2xl shadow-indigo-500/5 backdrop-blur-xl relative group">
@@ -56,12 +56,13 @@ export default function LoginPage() {
                     <form onSubmit={handleSubmit} className="space-y-8 relative z-10">
                         <div className="space-y-6">
                             <div className="relative group/field">
-                                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground ml-4 mb-2 block">
+                                <label htmlFor="login-email" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground ml-4 mb-2 block">
                                     Email Address
                                 </label>
                                 <div className="relative">
                                     <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within/field:text-indigo-400 transition-colors" />
                                     <input
+                                        id="login-email"
                                         type="email"
                                         required
                                         className="w-full h-16 pl-16 pr-6 rounded-2xl bg-secondary/50 border border-border focus:border-indigo-500/30 transition-all outline-none font-bold text-base text-foreground placeholder:text-muted-foreground/40 focus:bg-muted"
@@ -73,12 +74,13 @@ export default function LoginPage() {
                             </div>
 
                             <div className="relative group/field">
-                                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground ml-4 mb-2 block">
+                                <label htmlFor="login-password" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground ml-4 mb-2 block">
                                     Password
                                 </label>
                                 <div className="relative">
                                     <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within/field:text-indigo-400 transition-colors" />
                                     <input
+                                        id="login-password"
                                         type="password"
                                         required
                                         className="w-full h-16 pl-16 pr-6 rounded-2xl bg-secondary/50 border border-border focus:border-indigo-500/30 transition-all outline-none font-bold text-base text-foreground placeholder:text-muted-foreground/40 focus:bg-muted"

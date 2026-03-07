@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
-import { sdk } from '@/sdk';
+import { chat } from '@/sdk/chat';
 import { useError } from '@/context/error-context';
 
 export interface Message {
@@ -39,7 +39,7 @@ export function useChat(workspaceId: string = "vault") {
 
     const fetchHistory = useCallback(async (id: string) => {
         try {
-            const payload = (await sdk.chat.getHistory({
+            const payload = (await chat.getHistory({
                 workspaceId: workspaceId,
                 threadId: id
             })) as any;
@@ -152,7 +152,7 @@ export function useChat(workspaceId: string = "vault") {
                         });
                     } else if (data.type === 'error') {
                         setIsLoading(false);
-                        showError("Architect Execution Error", data.message || "An unexpected error occurred in the reasoning engine.");
+                        showError("Execution Error", data.message || "An unexpected error occurred while processing the request.");
                     }
                 },
                 onclose() {
@@ -161,7 +161,7 @@ export function useChat(workspaceId: string = "vault") {
                 onerror(err) {
                     console.error('SSE Error:', err);
                     setIsLoading(false);
-                    showError("Sync Stream Interrupted", "The connection to the AI reasoning engine was lost. Please try again.", "SSE Fatal Connection Error");
+                    showError("Sync Stream Interrupted", "The connection to the AI service was lost. Please try again.", "SSE Fatal Connection Error");
                     throw err;
                 },
             });

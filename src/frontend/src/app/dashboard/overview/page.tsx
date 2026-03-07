@@ -45,7 +45,7 @@ export default function OverviewPage() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Overview</h1>
-                    <p className="text-muted-foreground mt-1 font-medium">Monitoring your RAG infrastructure in real-time.</p>
+                    <p className="text-muted-foreground mt-1 font-medium">Monitor your document search stack in real time.</p>
                 </div>
                 <div className="flex gap-3">
                     <Button variant="outline" size="sm" className="h-9 px-4 rounded-xl font-bold text-[11px] tracking-wide">

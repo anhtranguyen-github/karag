@@ -30,10 +30,9 @@ class DocumentInspectionService:
         ws_map = {ws.id: ws.name for ws in workspaces}
 
         for d in docs:
-            d.source = ws_map.get(d.workspace_id, "Unknown Workspace") # reusing source field or adding extra?
+            d.source = ws_map.get(d.workspace_id, "Unknown Workspace")  # reusing source field or adding extra?
             # actually DocumentResponse doesn't have workspace_name, maybe I should add it or use source
         return docs
-
 
     async def get_by_id(self, doc_id: str) -> DocumentResponse | None:
         """Find a document by its unique internal ID."""
@@ -56,6 +55,7 @@ class DocumentInspectionService:
         doc = await self.get_by_id(doc_id)
         if not doc:
             from src.backend.app.core.exceptions import NotFoundError
+
             raise NotFoundError(f"Document {doc_id} not found")
 
         content_hash = getattr(doc, "content_hash", None)
@@ -87,6 +87,7 @@ class DocumentInspectionService:
                 zombies_found = True
 
             from src.backend.app.core.settings_manager import settings_manager
+
             settings = await settings_manager.get_settings(ws_id)
 
             relationships.append(
@@ -145,9 +146,8 @@ class DocumentInspectionService:
 
         ws_cursor = db.workspaces.find({}, {"id": 1})
         valid_ws_ids = {ws["id"] for ws in await ws_cursor.to_list(1000)}
-        result_direct = await db.documents.delete_many(
-            {"workspace_id": {"$nin": list(valid_ws_ids)}}
-        )
+        valid_ws_ids.add("vault")
+        result_direct = await db.documents.delete_many({"workspace_id": {"$nin": list(valid_ws_ids)}})
 
         cursor = db.documents.find({"shared_with": {"$exists": True, "$ne": []}})
         async for doc in cursor:
@@ -157,7 +157,6 @@ class DocumentInspectionService:
                 await db.documents.update_one({"_id": doc["_id"]}, {"$set": {"shared_with": valid_shared}})
 
         return {
-            "repaired_direct": result_direct.modified_count,
+            "repaired_direct": result_direct.deleted_count,
             "status": "synchronized",
         }
-

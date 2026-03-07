@@ -11,6 +11,7 @@ from datetime import datetime
 from typing import Any
 
 import structlog
+
 from src.backend.app.eval.datasets.base import DatasetEntry
 from src.backend.app.eval.metrics.retrieval import RetrievalMetrics
 from src.backend.app.eval.runners.base import (
@@ -178,4 +179,3 @@ class RetrievalRunner(BaseRunner):
             "max_position": max(positions),
             "positions": positions[:20],  # First 20 for detail
         }
-

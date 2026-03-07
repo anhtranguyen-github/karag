@@ -11,6 +11,7 @@ from datetime import datetime
 from typing import Any
 
 import structlog
+
 from src.backend.app.eval.datasets.base import DatasetEntry
 from src.backend.app.eval.metrics.generation import GenerationMetrics
 from src.backend.app.eval.metrics.retrieval import RetrievalMetrics
@@ -253,4 +254,3 @@ class EndToEndRunner(BaseRunner):
             }
 
         return analysis
-

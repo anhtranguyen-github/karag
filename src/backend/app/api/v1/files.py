@@ -1,11 +1,11 @@
 from datetime import datetime
 from typing import Annotated
 
+from fastapi import APIRouter, Depends, File, Form, UploadFile
 from src.backend.app.api.deps import CurrentUser, get_current_user
 from src.backend.app.api.v1.completions import create_openai_error_response, verify_workspace_access
-from src.backend.app.services.document_service import document_service
 from src.backend.app.schemas.openai import FileObject, FilesResponse
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from src.backend.app.services.document_service import document_service
 
 router = APIRouter(prefix="/v1", tags=["openai"])
 

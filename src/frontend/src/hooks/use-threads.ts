@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { sdk } from '@/sdk';
+import { chat } from '@/sdk/chat';
 import { useError } from '@/context/error-context';
 
 export interface Thread {
@@ -18,7 +18,7 @@ export function useThreads(workspaceId: string) {
     const fetchThreads = useCallback(async () => {
         setIsLoading(true);
         try {
-            const payload = (await sdk.chat.listThreads({
+            const payload = (await chat.listThreads({
                 workspaceId: workspaceId
             })) as any;
             if (payload.success && payload.data) {
@@ -38,7 +38,7 @@ export function useThreads(workspaceId: string) {
         }
 
         try {
-            const payload = (await sdk.chat.updateTitle({
+            const payload = (await chat.updateTitle({
                 workspaceId: workspaceId,
                 threadId: id,
                 requestBody: { title }
@@ -57,7 +57,7 @@ export function useThreads(workspaceId: string) {
 
     const deleteThread = async (id: string) => {
         try {
-            const payload = (await sdk.chat.deleteThread({
+            const payload = (await chat.deleteThread({
                 workspaceId: workspaceId,
                 threadId: id
             })) as any;

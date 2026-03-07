@@ -3,14 +3,15 @@ import os
 import uuid
 from datetime import datetime
 
+from fastapi import UploadFile
 from src.backend.app.core.error_codes import AppErrorCode
 from src.backend.app.core.exceptions import ValidationError
 from src.backend.app.core.minio import minio_manager
+from src.backend.app.core.mongodb import mongodb_manager
 from src.backend.app.repositories.document_repository import document_repository
 from src.backend.app.schemas.documents import DocumentUploadResponse
 from src.backend.app.services.document.base import logger, tracer
 from src.backend.app.services.task.task_service import task_service
-from fastapi import UploadFile
 
 MAX_FILE_SIZE = 50_000_000  # 50MB
 ALLOWED_EXTENSIONS = {".pdf", ".txt", ".md", ".docx", ".html", ".csv", ".json"}
@@ -86,9 +87,7 @@ class DocumentUploadService:
                         "suggested_name": suggested_name,
                         "existing_doc": {
                             "id": existing_doc.id if existing_doc else existing_local_name["id"],
-                            "filename": existing_doc.filename
-                            if existing_doc
-                            else existing_local_name["filename"],
+                            "filename": existing_doc.filename if existing_doc else existing_local_name["filename"],
                             "workspace": existing_doc.workspace_id
                             if existing_doc
                             else existing_local_name["workspace_id"],
@@ -384,7 +383,7 @@ class DocumentUploadService:
             "document.import_audio",
             attributes={"workspace_id": workspace_id, "filename": file.filename},
         ):
-            content = await file.read()
+            await file.read()
             filename = file.filename or "audio_file"
 
             task_id = await task_service.create_task(
@@ -408,4 +407,3 @@ class DocumentUploadService:
 
 
 document_upload_service = DocumentUploadService()
-

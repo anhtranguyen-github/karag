@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { sdk } from '@/sdk';
+import { documents as documentsApi } from '@/sdk/documents';
 import Link from 'next/link';
 
 interface InspectedPoint {
@@ -62,7 +62,7 @@ export default function DocumentsPage() {
         try {
             const [points, contentPayload] = await Promise.all([
                 inspectDocument(doc.name, doc.workspace_id),
-                sdk.documents.get({
+                documentsApi.get({
                     documentId: doc.name,
                     workspaceId: doc.workspace_id
                 }) as any
@@ -130,7 +130,7 @@ export default function DocumentsPage() {
                         </Link>
                         <div>
                             <h1 className="text-h1 font-black tracking-tight">Knowledge Bank</h1>
-                            <p className="text-gray-500 mt-1">Global document assets and cross-workspace orchestration.</p>
+                            <p className="text-gray-500 mt-1">Global document assets shared across workspaces.</p>
                         </div>
                     </div>
 

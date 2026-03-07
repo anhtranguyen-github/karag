@@ -391,4 +391,3 @@ def create_rag_evaluator(llm_client) -> EvalFramework:
     framework.add_evaluator(EvalMetric.SAFETY, RuleBasedEvaluator(EvalMetric.SAFETY, [safety_check]))
 
     return framework
-

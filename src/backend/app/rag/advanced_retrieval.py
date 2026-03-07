@@ -401,4 +401,3 @@ def create_advanced_retriever(
         components.append(ContextualCompressor(llm_client))
 
     return components
-

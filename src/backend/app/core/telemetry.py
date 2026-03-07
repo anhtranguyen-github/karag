@@ -20,7 +20,6 @@ from pathlib import Path
 from typing import Any
 
 import structlog
-from src.backend.app.core.config import karag_settings
 from opentelemetry import trace
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource
 from opentelemetry.sdk.trace import TracerProvider
@@ -28,6 +27,7 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.trace.sampling import TraceIdRatioBased
 from opentelemetry.trace import StatusCode
 from prometheus_client import Counter, Gauge, Histogram
+from src.backend.app.core.config import karag_settings
 
 # ---------------------------------------------------------------------------
 # Context Variables — thread-safe correlation across async tasks
@@ -662,4 +662,3 @@ def traced_domain(
         return wrapper
 
     return decorator
-

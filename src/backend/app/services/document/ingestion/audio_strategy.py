@@ -70,4 +70,3 @@ class AudioIngestionStrategy(BaseIngestionStrategy):
         finally:
             if tmp_path and os.path.exists(tmp_path):
                 os.unlink(tmp_path)
-

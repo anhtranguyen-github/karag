@@ -429,4 +429,3 @@ def setup_middleware(
 
     if enable_timing:
         app.add_middleware(RequestTimingMiddleware)
-

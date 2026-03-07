@@ -21,7 +21,7 @@ export default defineConfig({
   input: '../../openapi/schema.json',
   
   // Output directory for generated code
-  output: 'src/client',
+  output: 'src/sdk/generated',
   
   // Plugins for generating different parts of the SDK
   plugins: [

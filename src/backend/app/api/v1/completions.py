@@ -6,6 +6,8 @@ from collections.abc import AsyncGenerator
 from typing import Annotated, Any
 
 import structlog
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.responses import StreamingResponse
 from src.backend.app.api.deps import CurrentUser, get_current_user
 from src.backend.app.core.mongodb import mongodb_manager
 from src.backend.app.providers.base import LLMMessage
@@ -23,8 +25,6 @@ from src.backend.app.schemas.openai import (
     OpenAIErrorResponse,
     OpenAIMessage,
 )
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from fastapi.responses import StreamingResponse
 
 logger = structlog.get_logger(__name__)
 
@@ -839,4 +839,3 @@ async def get_model(model_id: str, user: UserDep):
             "server_error",
             500,
         )
-

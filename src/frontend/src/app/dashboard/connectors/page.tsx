@@ -55,7 +55,7 @@ export default function ConnectorsPage() {
         { name: "Notion", icon: Globe, category: "Productivity", description: "Sync your Notion workspace databases and pages." },
         { name: "Google Drive", icon: Cloud, category: "Productivity", description: "Sync PDF, Word, and Excel files from Google Drive folder." },
         { name: "Qdrant", icon: Database, category: "Vector Store", description: "Advanced vector database connectivity and inspection.", status: "connected" },
-        { name: "Neo4j", icon: GitBranch, category: "Graph DB", description: "Knowledge graph storage for relational RAG pipelines.", status: "connected" },
+        { name: "Neo4j", icon: GitBranch, category: "Graph DB", description: "Graph storage for relationship-aware search flows.", status: "connected" },
     ];
 
     return (
@@ -64,7 +64,7 @@ export default function ConnectorsPage() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Connectors</h1>
-                    <p className="text-muted-foreground mt-1 font-medium">Link external data sources and infrastructure to your RAG environment.</p>
+                    <p className="text-muted-foreground mt-1 font-medium">Link external data sources and infrastructure to your workspace.</p>
                 </div>
                 <div className="flex gap-2">
                     <Button size="sm" className="h-10 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[11px] tracking-wide shadow-lg shadow-indigo-600/20">

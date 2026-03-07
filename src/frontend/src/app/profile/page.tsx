@@ -71,7 +71,7 @@ export default function ProfilePage() {
                             <div className="w-32 h-32 rounded-3xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center mb-6 shadow-2xl shadow-indigo-500/20">
                                 <User className="w-16 h-16 text-indigo-500" />
                             </div>
-                            <h2 className="text-2xl font-black tracking-tight text-center">{user.fullName || "User"}</h2>
+                            <h2 className="text-2xl font-black tracking-tight text-center">{user.full_name || "User"}</h2>
                             <p className="text-muted-foreground text-sm font-medium mb-6">{user.email}</p>
 
                             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[10px] font-bold uppercase tracking-widest">
@@ -120,14 +120,14 @@ export default function ProfilePage() {
                                     <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground ml-1">Full Name</label>
                                     <div className="h-14 flex items-center px-5 rounded-2xl bg-secondary/50 border border-border font-bold">
                                         <User className="w-4 h-4 mr-3 text-indigo-500" />
-                                        {user.fullName || "Not specified"}
+                                        {user.full_name || "Not specified"}
                                     </div>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground ml-1">Account Role</label>
                                     <div className="h-14 flex items-center px-5 rounded-2xl bg-secondary/50 border border-border font-bold capitalize">
                                         <Shield className="w-4 h-4 mr-3 text-indigo-500" />
-                                        {user.isSuperuser ? "Administrator" : "User"}
+                                        {user.is_superuser ? "Administrator" : "User"}
                                     </div>
                                 </div>
                                 <div className="space-y-2">

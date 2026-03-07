@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { sdk } from "@/sdk";
+import { tasks as tasksApi } from "@/sdk/tasks";
 import { cn } from "@/lib/utils";
 import { Loader2, CheckCircle2, ChevronDown } from "lucide-react";
 
@@ -20,7 +20,7 @@ export function JobMonitor({ workspaceId }: { workspaceId?: string }) {
 
     const fetchTasks = async () => {
         try {
-            const payload = (await sdk.tasks.list({
+            const payload = (await tasksApi.list({
                 workspaceId: workspaceId!,
                 limit: 5
             })) as any;

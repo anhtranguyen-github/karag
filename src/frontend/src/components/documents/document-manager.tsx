@@ -6,7 +6,7 @@ import {
     Shield, Database, HardDrive, Calendar,
     CheckCircle2, AlertCircle, X, Info
 } from 'lucide-react';
-import { sdk } from '@/sdk';
+import { documents as documentsApi } from '@/sdk/documents';
 import { useError } from '@/context/error-context';
 import { useToast } from '@/context/toast-context';
 import { cn } from '@/lib/utils';
@@ -47,7 +47,7 @@ export function DocumentManager({ workspaceId }: DocumentManagerProps) {
     const fetchDocuments = useCallback(async () => {
         setIsLoading(true);
         try {
-            const payload = (await sdk.documents.listAll({
+            const payload = (await documentsApi.listAll({
                 workspaceId: workspaceId!
             })) as any;
             if (payload.success && payload.data) {
@@ -71,7 +71,7 @@ export function DocumentManager({ workspaceId }: DocumentManagerProps) {
         setIsUploading(true);
 
         try {
-            const payload = (await sdk.documents.upload({
+            const payload = (await documentsApi.upload({
                 workspaceId: workspaceId!,
                 formData: { file }
             })) as any;
@@ -98,7 +98,7 @@ export function DocumentManager({ workspaceId }: DocumentManagerProps) {
         setDocToDelete(null); // Close modal immediately
 
         try {
-            const payload = (await sdk.documents.delete({
+            const payload = (await documentsApi.delete({
                 workspaceId: workspaceId!,
                 documentId: docToDelete.filename, // Using filename as identifier for now based on legacy logic, check if id is better
                 datasetDelete: !workspaceId
@@ -311,7 +311,7 @@ function DocumentDetailPanel({ doc, workspaceId, onClose }: { doc: Document, wor
         const fetchContent = async () => {
             setIsLoading(true);
             try {
-                const payload = (await sdk.documents.get({
+                const payload = (await documentsApi.get({
                     workspaceId: workspaceId!,
                     documentId: doc.id
                 })) as any;

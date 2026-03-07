@@ -47,4 +47,3 @@ class URLIngestionStrategy(BaseIngestionStrategy):
             logger.error("url_ingestion_failed", task_id=task_id, error=str(e), exc_info=True)
             await task_service.fail_with_retry(task_id, error_message=str(e), error_code=AppErrorCode.URL_FETCH_FAILED)
             raise e
-

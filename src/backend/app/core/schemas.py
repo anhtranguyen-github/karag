@@ -1,5 +1,6 @@
 from typing import Any, Literal
 
+from pydantic import BaseModel, Field, model_validator
 from src.backend.app.schemas.chunking import ChunkingConfig, RecursiveChunkingConfig
 from src.backend.app.schemas.embedding import (
     EmbeddingConfig,
@@ -10,7 +11,6 @@ from src.backend.app.schemas.generation import (
     OpenAIGenerationConfig,
 )
 from src.backend.app.schemas.retrieval import RetrievalConfig
-from pydantic import BaseModel, Field, model_validator
 
 
 class AppSettings(BaseModel):
@@ -36,7 +36,7 @@ class AppSettings(BaseModel):
 
         # First expand any dot-notation fields
         data = cls._expand_flat_dict(data)
-        
+
         # We now expect a structured dict, but we'll still do basic initialization if nodes are missing or empty
         # Pydantic unions with discriminators fail on empty dicts.
         if not data.get("embedding"):
@@ -47,7 +47,7 @@ class AppSettings(BaseModel):
             data["chunking"] = {"strategy": "recursive"}
         if not data.get("retrieval"):
             data["retrieval"] = {}
-            
+
         return data
 
     # --- 1. Embedding Node (Immutable) ---
@@ -129,7 +129,7 @@ class AppSettings(BaseModel):
         """Sync high-level strategies with nested configs."""
         # Sync RAG Engine
         self.retrieval.graph.enabled = self.rag_engine == "graph"
-        
+
         self.show_reasoning = self.runtime.stream_thoughts
         return self
 
@@ -183,4 +183,3 @@ class DocumentMetadata(BaseModel):
     created_at: str
     updated_at: str
     shared_with: list[str] = []
-

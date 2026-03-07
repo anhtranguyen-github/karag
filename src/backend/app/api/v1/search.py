@@ -1,7 +1,7 @@
+from fastapi import APIRouter, Depends, Query
 from src.backend.app.api.deps import CurrentWorkspace, get_current_workspace
 from src.backend.app.schemas.base import AppResponse
 from src.backend.app.services.search_service import search_service
-from fastapi import APIRouter, Depends, Query
 
 router = APIRouter(tags=["search"])
 
@@ -31,4 +31,3 @@ async def vector_search(
 
     results = await rag_service.search(q, current_workspace.id, dataset_id=dataset_id)
     return AppResponse.success_response(data=results)
-

@@ -94,7 +94,9 @@ class StorageService:
                 # For now, let's just pull it from shared_with if it's there.
                 pass
             else:
-                await document_repository.collection.update_one({"id": doc_id}, {"$pull": {"shared_with": workspace_id}})
+                await document_repository.collection.update_one(
+                    {"id": doc_id}, {"$pull": {"shared_with": workspace_id}}
+                )
 
             from src.backend.app.rag.ingestion import ingestion_pipeline
 
@@ -122,4 +124,3 @@ class StorageService:
 
             store = await ProviderFactory.get_vector_store()
             await store.purge_workspace(workspace_id)
-

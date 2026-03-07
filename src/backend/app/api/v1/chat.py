@@ -15,6 +15,8 @@ from __future__ import annotations
 from typing import Annotated
 
 import structlog
+from fastapi import APIRouter, Depends, Response
+from fastapi.responses import StreamingResponse
 from src.backend.app.api.deps import CurrentWorkspace, get_current_workspace
 from src.backend.app.api.pagination import (
     PaginationParams,
@@ -29,8 +31,6 @@ from src.backend.app.schemas.chat import (
     ThreadTitleUpdate,
 )
 from src.backend.app.services.chat_service import chat_service
-from fastapi import APIRouter, Depends, Response
-from fastapi.responses import StreamingResponse
 
 logger = structlog.get_logger(__name__)
 
@@ -73,7 +73,8 @@ async def list_chat_threads(
     if link_header:
         response.headers["Link"] = link_header
 
-    return AppResponse.success_response(data=create_paginated_response(paginated, total, pagination))
+    paginated_response = create_paginated_response(paginated, total, pagination)
+    return AppResponse.success_response(data=paginated_response["items"])
 
 
 @router.patch("/threads/{thread_id}/title", response_model=AppResponse)
@@ -111,6 +112,7 @@ async def get_thread(
     thread = await chat_service.get_thread(thread_id)
     if not thread:
         from src.backend.app.core.exceptions import NotFoundError
+
         raise NotFoundError(f"Thread {thread_id} not found")
     return AppResponse.success_response(data=thread)
 
@@ -182,4 +184,3 @@ async def chat_stream(
             "X-Accel-Buffering": "no",  # Disable nginx buffering
         },
     )
-

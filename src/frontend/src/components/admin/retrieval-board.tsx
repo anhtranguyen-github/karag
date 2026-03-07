@@ -72,7 +72,7 @@ export function RetrievalBoard({ parseMetric, settings }: RetrievalBoardProps) {
                 <div className="bg-[#121214] border border-white/5 rounded-2xl p-6">
                     <h3 className="text-sm font-black tracking-wider mb-6 flex items-center gap-2">
                         <Settings2 size={16} className="text-amber-400" />
-                        Active Protocol
+                        Active Settings
                     </h3>
                     <div className="space-y-4">
                         <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/10 space-y-3">
@@ -86,11 +86,11 @@ export function RetrievalBoard({ parseMetric, settings }: RetrievalBoardProps) {
                                 </span>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-bold text-amber-200/50">Search Horizon</span>
+                                <span className="text-[10px] font-bold text-amber-200/50">Search Limit</span>
                                 <span className="text-white font-black text-xs">{settings?.search_limit} Chunks</span>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-bold text-amber-200/50">Rerank Top N</span>
+                                <span className="text-[10px] font-bold text-amber-200/50">Rerank Top Results</span>
                                 <span className="text-white font-black text-xs">{settings?.rerank_top_k}</span>
                             </div>
                         </div>
@@ -98,7 +98,7 @@ export function RetrievalBoard({ parseMetric, settings }: RetrievalBoardProps) {
                         <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/10 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <Network size={18} className="text-blue-400" />
-                                <span className="text-[10px] font-black text-white tracking-widest">Graph Reasoning</span>
+                                <span className="text-[10px] font-black text-white tracking-widest">Graph Search</span>
                             </div>
                             <span className="text-[9px] font-black px-2 py-0.5 rounded bg-white/5 text-gray-500 tracking-tighter">Enterprise Only</span>
                         </div>

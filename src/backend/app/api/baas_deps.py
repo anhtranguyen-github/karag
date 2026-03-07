@@ -13,11 +13,11 @@ ISOLATION: Every request resolves to exactly one workspace.
 from typing import Annotated
 
 import structlog
+from fastapi import Depends, HTTPException, Request, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from src.backend.app.core.exceptions import AuthenticationError
 from src.backend.app.schemas.baas import IsolationContext
 from src.backend.app.services.api_key_service import api_key_service
-from fastapi import Depends, HTTPException, Request, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 logger = structlog.get_logger(__name__)
 
@@ -220,4 +220,3 @@ def get_isolation_context_from_state(request: Request) -> IsolationContext | Non
         IsolationContext or None if not set
     """
     return getattr(request.state, "isolation_context", None)
-

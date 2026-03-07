@@ -147,4 +147,3 @@ class CrossWorkspaceDocumentService:
             await store.sync_shared_with(config, res["id"], updated_doc.get("shared_with", []))
         else:
             raise ValidationError(f"Invalid action: {action}")
-

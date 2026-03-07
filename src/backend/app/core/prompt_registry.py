@@ -379,4 +379,3 @@ class PromptTemplate:
 
 # Global registry instance
 prompt_registry = PromptRegistry()
-

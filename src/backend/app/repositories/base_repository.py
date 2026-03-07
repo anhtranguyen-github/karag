@@ -1,8 +1,8 @@
 from typing import Any, Generic, TypeVar
 
-from src.backend.app.core.mongodb import mongodb_manager
 from motor.motor_asyncio import AsyncIOMotorCollection
 from pydantic import BaseModel
+from src.backend.app.core.mongodb import mongodb_manager
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -51,9 +51,7 @@ class BaseRepository(Generic[T]):
 
     async def update(self, id_value: Any, data: dict[str, Any], id_field: str = "id") -> T | None:
         """Update a document by its custom ID field."""
-        result = await self.collection.find_one_and_update(
-            {id_field: id_value}, {"$set": data}, return_document=True
-        )
+        result = await self.collection.find_one_and_update({id_field: id_value}, {"$set": data}, return_document=True)
         if not result:
             return None
         return self.model_class.model_validate(self.normalize_id(result))
@@ -62,4 +60,3 @@ class BaseRepository(Generic[T]):
         """Delete a document by its custom ID field."""
         result = await self.collection.delete_one({id_field: id_value})
         return result.deleted_count > 0
-

@@ -388,8 +388,8 @@ export function SettingsManager({ onClose, workspaceId, workspaceName }: { onClo
                                                     {renderSettingRow('llm_provider', 'Chat provider', 'The AI service used for chat.')}
                                                     {renderSettingRow('llm_model', 'Model', 'The specific AI model used.')}
                                                     {renderSettingRow('runtime_mode', 'Response mode', 'Execution strategy (auto, fast, think, deep).')}
-                                                    {renderSettingRow('runtime_stream_thoughts', 'Show thinking', 'Stream the agents internal reasoning LIVE to the chat.')}
-                                                    {renderSettingRow('runtime_trace_level', 'Detailed tracing', 'Depth of observability and logging for RAG operations.')}
+                                                    {renderSettingRow('runtime_stream_thoughts', 'Show thinking', 'Stream the model step log live in chat.')}
+                                                    {renderSettingRow('runtime_trace_level', 'Detailed tracing', 'Depth of observability and logging for search and answer requests.')}
                                                     {renderSettingRow('temperature', 'Creativity', 'Controls how creative or literal the responses are.')}
                                                     {renderSettingRow('system_prompt', 'Instructions', 'Core guide defining the assistant behavior.')}
                                                 </div>

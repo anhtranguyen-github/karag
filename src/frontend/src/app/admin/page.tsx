@@ -7,7 +7,7 @@ import {
     Target, Terminal, Shield, FileText, Search, BrainCircuit
 } from 'lucide-react';
 import { useSettings, useSettingsMetadata } from '@/hooks/use-settings';
-import { sdk } from '@/sdk';
+import { admin } from '@/sdk/admin';
 import { cn } from '@/lib/utils';
 import { OverviewTab } from '@/components/admin/overview-tab';
 import { LLMOpsTab } from '@/components/admin/llmops-tab';
@@ -19,19 +19,21 @@ import { DevSecOpsTab } from '@/components/admin/devsecops-tab';
 import { SettingsTab } from '@/components/admin/settings-tab';
 import { ObservabilityTab } from '@/components/admin/observability-tab';
 import { EvaluationDashboard } from '@/components/admin/evaluation-dashboard';
+import { DeploymentTab } from '@/components/admin/deployment-tab';
 
-type AdminTab = 'overview' | 'llmops' | 'retrieval' | 'agentic' | 'dataops' | 'promptops' | 'devsecops' | 'settings' | 'observability' | 'evaluation';
+type AdminTab = 'overview' | 'llmops' | 'retrieval' | 'agentic' | 'dataops' | 'promptops' | 'devsecops' | 'deployment' | 'settings' | 'observability' | 'evaluation';
 
 const TABS: { id: AdminTab; label: string; icon: React.ElementType; description: string }[] = [
     { id: 'overview', label: 'Overview', icon: ShieldCheck, description: 'System health and quick stats' },
-    { id: 'llmops', label: 'LLM Ops', icon: Cpu, description: 'Generation metrics and token usage' },
-    { id: 'retrieval', label: 'Retrieval Board', icon: Search, description: 'Search efficiency and strategy' },
-    { id: 'agentic', label: 'Agent Board', icon: BrainCircuit, description: 'Reasoning loops and tool execution' },
-    { id: 'dataops', label: 'Data Ops', icon: Database, description: 'Vector store and ingestion pipeline' },
-    { id: 'promptops', label: 'Prompt Ops', icon: FileText, description: 'Prompt registry and versions' },
-    { id: 'devsecops', label: 'DevSecOps', icon: Shield, description: 'CI/CD and infrastructure security' },
+    { id: 'llmops', label: 'Model Usage', icon: Cpu, description: 'Generation metrics and token usage' },
+    { id: 'retrieval', label: 'Search', icon: Search, description: 'Search performance and retrieval settings' },
+    { id: 'agentic', label: 'Tool Use', icon: BrainCircuit, description: 'Tool execution and multi-step runs' },
+    { id: 'dataops', label: 'Storage', icon: Database, description: 'Vector storage and document processing' },
+    { id: 'promptops', label: 'Prompts', icon: FileText, description: 'Prompt library and version history' },
+    { id: 'devsecops', label: 'Release Checks', icon: Shield, description: 'Build, deploy and security status' },
+    { id: 'deployment', label: 'Deployment', icon: Database, description: 'Provider credentials, service bootstrap and setup checks' },
     { id: 'observability', label: 'Observability', icon: Activity, description: 'Logs, metrics and traces' },
-    { id: 'evaluation', label: 'Evaluation', icon: Target, description: 'RAG quality and regression' },
+    { id: 'evaluation', label: 'Evaluation', icon: Target, description: 'Answer quality and regression checks' },
     { id: 'settings', label: 'Global Config', icon: Sliders, description: 'Low-level system parameters' },
 ];
 
@@ -41,7 +43,7 @@ export default function AdminConsolePage() {
     const { metadata, refreshSettings: refreshMetadata } = useSettingsMetadata();
     const [isSaving, setIsSaving] = useState<string | null>(null);
 
-    // Operational Data State
+    // Metrics state
     const [rawMetrics, setRawMetrics] = useState('');
     const [metricsError, setMetricsError] = useState<string | null>(null);
     const [vectorStatus, setVectorStatus] = useState<VectorStatus | null>(null);
@@ -51,9 +53,9 @@ export default function AdminConsolePage() {
     const fetchData = useCallback(async () => {
         try {
             const [overview, vectorStat, prompts] = (await Promise.all([
-                sdk.admin.getOpsOverview(),
-                sdk.admin.getVectorStatus(),
-                sdk.admin.getPrompts()
+                admin.getOpsOverview(),
+                admin.getVectorStatus(),
+                admin.getPrompts()
             ])) as any[];
 
             // Handling raw metrics (if overview returns prometheus-style text or a payload containing it)
@@ -70,8 +72,8 @@ export default function AdminConsolePage() {
             setLastSync(new Date());
             setMetricsError(null);
         } catch (err) {
-            console.error('Operational data sync failed:', err);
-            setMetricsError('Operational data sync failed.');
+            console.error('Metrics sync failed:', err);
+            setMetricsError('Metrics sync failed.');
         } finally {
             // Loading state removed
         }
@@ -114,10 +116,10 @@ export default function AdminConsolePage() {
                             <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400">
                                 <Terminal size={24} />
                             </div>
-                            <h1 className="text-3xl font-black tracking-tighter">Ops Center</h1>
+                            <h1 className="text-3xl font-black tracking-tighter">Admin Console</h1>
                         </div>
                         <p className="text-sm text-gray-500 font-medium">
-                            Internal Platform Engineering. ScienChan Operational Control Plane.
+                            Configure services, monitor system health, and manage deployment settings.
                         </p>
                     </div>
 
@@ -188,6 +190,7 @@ export default function AdminConsolePage() {
                             {activeTab === 'dataops' && <DataOpsTab vectorStatus={vectorStatus} parseMetric={parseMetric} />}
                             {activeTab === 'promptops' && <PromptOpsTab registry={promptsRegistry} />}
                             {activeTab === 'devsecops' && <DevSecOpsTab />}
+                            {activeTab === 'deployment' && <DeploymentTab />}
                             {activeTab === 'settings' && <SettingsTab settings={settings} metadata={metadata} handleUpdate={handleSettingUpdate} isSaving={isSaving} />}
                             {activeTab === 'observability' && <ObservabilityTab rawMetrics={rawMetrics} metricsError={metricsError} />}
                             {activeTab === 'evaluation' && <EvaluationDashboard />}
@@ -198,10 +201,6 @@ export default function AdminConsolePage() {
         </div>
     );
 }
-
-
-
-
 
 
 

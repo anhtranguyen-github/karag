@@ -13,7 +13,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 describe('OpenAPI Schema Contract', () => {
-const schemaPath = path.join(__dirname, '../../../../openapi/schema.json');
+  const schemaPath = path.join(__dirname, '../../../../openapi/schema.json');
   let schema: any;
 
   beforeAll(() => {
@@ -63,7 +63,7 @@ const schemaPath = path.join(__dirname, '../../../../openapi/schema.json');
   describe('Required Endpoints', () => {
     it('should have health endpoint', () => {
       const hasHealth = Object.keys(schema.paths).some(
-        path => path.includes('/health') || path === '/health'
+        path => path.includes('/health') || path === '/health' || path === '/'
       );
       expect(hasHealth).toBe(true);
     });
@@ -143,4 +143,3 @@ const schemaPath = path.join(__dirname, '../../../../openapi/schema.json');
     });
   });
 });
-

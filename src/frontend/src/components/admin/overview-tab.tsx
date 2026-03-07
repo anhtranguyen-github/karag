@@ -41,14 +41,14 @@ export function OverviewTab({ parseMetric, settings }: OverviewTabProps) {
                     </div>
                     <h3 className="text-sm font-black tracking-wider mb-6 flex items-center gap-2">
                         <Package size={16} className="text-indigo-400" />
-                        Infrastructure Manifest
+                        Deployment Summary
                     </h3>
                     <div className="space-y-4">
                         {[
-                            { label: 'Deployment Strategy', value: 'Rolling Update / Canary Ready', status: 'Healthy' },
-                            { label: 'Security Enforcement', value: 'Checkov High/Critical Pass', status: 'Standard' },
-                            { label: 'RAG Pipeline', value: 'Hybrid (Vector + Keyword) + RRF', status: 'Active' },
-                            { label: 'Vault Storage', value: 'MinIO (S3) Versioned', status: 'Versioned' },
+                            { label: 'Deployment Strategy', value: 'Rolling update / staged release', status: 'Healthy' },
+                            { label: 'Security Checks', value: 'High and critical checks passing', status: 'Standard' },
+                            { label: 'Search Mode', value: 'Hybrid search with reranking', status: 'Active' },
+                            { label: 'Document Storage', value: 'MinIO (S3) with versioning', status: 'Versioned' },
                         ].map((item) => (
                             <div key={item.label} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5">
                                 <div>

@@ -104,6 +104,7 @@ class TaskService:
         cursor = task_repository.collection.find(query).sort([("priority", -1), ("created_at", -1)]).limit(limit)
         docs = await cursor.to_list(length=limit)
         return [Task.model_validate(task_repository.normalize_id(doc)) for doc in docs]
+
     # note: task_repository.list_all doesn't support complex sorting/querying yet so we use collection directly
 
     # ── Cleanup ─────────────────────────────────────────────
@@ -211,4 +212,3 @@ class TaskService:
 
 
 task_service = TaskService()
-

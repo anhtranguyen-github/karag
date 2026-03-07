@@ -1,6 +1,7 @@
 import uuid
 from typing import Annotated
 
+from fastapi import APIRouter, Depends
 from src.backend.app.api.deps import CurrentUser, get_current_user
 from src.backend.app.api.v1.completions import create_openai_error_response, parse_model_name, verify_workspace_access
 from src.backend.app.core.mongodb import mongodb_manager
@@ -11,7 +12,6 @@ from src.backend.app.schemas.openai import (
     EmbeddingResponseData,
     EmbeddingUsage,
 )
-from fastapi import APIRouter, Depends
 
 router = APIRouter(prefix="/v1", tags=["openai"])
 

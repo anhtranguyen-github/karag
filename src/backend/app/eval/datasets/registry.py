@@ -8,6 +8,7 @@ easy access to loaders for both English and Vietnamese datasets.
 from collections.abc import Callable
 
 import structlog
+
 from src.backend.app.eval.datasets.base import BaseDatasetLoader, DatasetInfo
 
 logger = structlog.get_logger(__name__)
@@ -170,4 +171,3 @@ def register_dataset(name: str, loader_class: type[BaseDatasetLoader], info: Dat
     """Decorator to register a dataset loader."""
     dataset_registry.register(name, loader_class, info)
     return loader_class
-

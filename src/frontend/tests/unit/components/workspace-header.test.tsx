@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { WorkspaceHeader } from '@/components/layout/workspace-header';
 import { WorkspaceProvider } from '@/context/workspace-context';
 
@@ -34,7 +34,7 @@ describe('WorkspaceHeader', () => {
     it('shows system status', () => {
         renderWithProvider(<WorkspaceHeader />);
 
-        expect(screen.getByText(/System Operational/i)).toBeInTheDocument();
+        expect(screen.getByText(/System Online/i)).toBeInTheDocument();
     });
 
     it('renders search bar', () => {

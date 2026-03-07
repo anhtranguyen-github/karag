@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
+from pydantic import BaseModel
 from src.backend.app.schemas.database import IngestionConfig
 from src.backend.app.schemas.retrieval import RetrievalConfig
-from pydantic import BaseModel
 
 
 class DocumentPoint(BaseModel):
@@ -86,4 +86,3 @@ class VectorStore(ABC):
     async def get_system_info(self) -> dict[str, Any]:
         """Get system info / status of the vector store."""
         pass
-

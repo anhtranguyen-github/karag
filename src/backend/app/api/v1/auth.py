@@ -1,13 +1,13 @@
 from datetime import timedelta
 from typing import Any
 
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
 from src.backend.app.api.deps import get_current_user
 from src.backend.app.core.auth import create_access_token
 from src.backend.app.schemas.base import AppResponse
 from src.backend.app.schemas.users import Token, User, UserCreate
 from src.backend.app.services.user_service import user_service
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import OAuth2PasswordRequestForm
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -58,4 +58,3 @@ async def read_user_me(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
-

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { sdk } from '@/sdk';
+import { admin } from '@/sdk/admin';
+import { workspaces } from '@/sdk/workspaces';
 import { useError } from '@/context/error-context';
 
 export interface AppSettings {
@@ -48,8 +49,8 @@ export function useSettingsMetadata(workspaceId?: string) {
         setIsLoading(true);
         try {
             const payload = (workspaceId
-                ? (await sdk.workspaces.getSettingsMetadata({ workspaceId }))
-                : (await sdk.admin.getGlobalSettingsMetadata())) as any;
+                ? (await workspaces.getSettingsMetadata({ workspaceId }))
+                : (await admin.getGlobalSettingsMetadata())) as any;
 
             if (payload.success) {
                 setMetadata(payload.data);
@@ -81,8 +82,8 @@ export function useSettings(workspaceId?: string) {
         setIsLoading(true);
         try {
             const payload = (workspaceId
-                ? (await sdk.workspaces.getSettings({ workspaceId }))
-                : (await sdk.admin.getGlobalSettings())) as any;
+                ? (await workspaces.getSettings({ workspaceId }))
+                : (await admin.getGlobalSettings())) as any;
 
             if (payload.success && payload.data) {
                 setSettings(payload.data);
@@ -100,11 +101,11 @@ export function useSettings(workspaceId?: string) {
     const updateSettings = async (updates: Partial<AppSettings>) => {
         try {
             const payload = (workspaceId
-                ? (await sdk.workspaces.updateSettings({
+                ? (await workspaces.updateSettings({
                     workspaceId,
                     requestBody: updates as any
                 }))
-                : (await sdk.admin.updateGlobalSettings({
+                : (await admin.updateGlobalSettings({
                     requestBody: updates as any
                 }))) as any;
 

@@ -34,4 +34,3 @@ class GraphState(TypedDict):
 
     # Metadata for Tracing
     execution_metadata: dict
-

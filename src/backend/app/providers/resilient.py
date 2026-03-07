@@ -12,6 +12,7 @@ from collections.abc import AsyncIterator
 from typing import Any
 
 import structlog
+
 from src.backend.app.core.factory import ProviderFactory
 from src.backend.app.core.llm_resilience import (
     LLMWithFallback,
@@ -156,4 +157,3 @@ class ResilientProviderFactory:
             workspace_id=workspace_id,
             fallback_client=fallback_client,
         )
-

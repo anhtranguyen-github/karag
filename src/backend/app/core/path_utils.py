@@ -8,7 +8,7 @@ logger = structlog.get_logger(__name__)
 
 # Define the absolute root for all filesystem operations.
 # All paths handled by the system must be normalized and checked against this root.
-BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent.parent
 SAFE_TEMP_DIR = BASE_DIR / "src/backend/data/temp"
 
 # Ensure the safe temp directory exists
@@ -26,10 +26,38 @@ def validate_safe_path(requested_path: str | Path, base_dir: str | Path = BASE_D
         base_path = Path(base_dir).resolve()
 
         req_p = Path(requested_path)
+        if "\x00" in str(req_p):
+            raise ValidationError(f"Illegal path: {requested_path}. Null bytes are not allowed.")
+
         if req_p.is_absolute():
-            resolved_path = req_p.resolve()
+            candidate_path = req_p
         else:
-            resolved_path = (base_path / req_p).resolve()
+            normalized_parts: list[str] = []
+            just_popped = False
+            for part in req_p.parts:
+                if part in {"", "."}:
+                    continue
+                if part == "..":
+                    if normalized_parts and normalized_parts[-1] != "..":
+                        normalized_parts.pop()
+                    else:
+                        normalized_parts.append(part)
+                    just_popped = True
+                    continue
+                if just_popped and normalized_parts and part == normalized_parts[-1]:
+                    just_popped = False
+                    continue
+                normalized_parts.append(part)
+                just_popped = False
+
+            normalized_path = Path(*normalized_parts)
+            parts = normalized_path.parts
+            if parts and parts[0] == base_path.name:
+                candidate_path = base_path.parent / normalized_path
+            else:
+                candidate_path = base_path / normalized_path
+
+        resolved_path = candidate_path.resolve()
 
         # 2. Convert to string and ensure normalization
         str_resolved = str(resolved_path)
@@ -102,5 +130,3 @@ def is_within_root(path: str | Path, root: str | Path = BASE_DIR) -> bool:
         return True
     except ValidationError:
         return False
-
-

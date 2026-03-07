@@ -1,0 +1,137 @@
+{
+    "embedding": {
+        "dense": {
+            "provider": "openai",
+            "model": "text-embedding-3-small",
+            "batch_size": 32,
+            "timeout_ms": 30000,
+            "retry_limit": 3,
+            "api_key_ref": null,
+            "dimensions": 1536
+        },
+        "sparse": {
+            "method": "bm25",
+            "language": "en",
+            "on_the_fly": true
+        }
+    },
+    "distance_metric": "cosine",
+    "embedding_normalization": true,
+    "rag_engine": "basic",
+    "retrieval": {
+        "vector": {
+            "enabled": true,
+            "embedding_model_ref": null,
+            "top_k": 5,
+            "similarity_metric": "cosine",
+            "score_threshold": null,
+            "enable_score_normalization": true
+        },
+        "sparse": {
+            "enabled": false,
+            "bm25_k1": 1.5,
+            "bm25_b": 0.75,
+            "top_k": 5,
+            "min_term_match": 1
+        },
+        "hybrid": {
+            "enabled": false,
+            "dense_weight": 0.5,
+            "sparse_weight": 0.5,
+            "fusion_strategy": "weighted_sum",
+            "top_k": 5,
+            "normalize_scores": true
+        },
+        "rerank": {
+            "enabled": false,
+            "provider": "local",
+            "model": "bge-reranker-large",
+            "top_n": 3,
+            "rerank_batch_size": 16,
+            "rerank_threshold": 0.0,
+            "score_normalization": true
+        },
+        "graph": {
+            "enabled": false,
+            "graph_type": "knowledge",
+            "max_hops": 2,
+            "edge_types": [],
+            "node_score_decay": 0.5,
+            "merge_graph_with_vector": true,
+            "graph_confidence_threshold": 0.3
+        },
+        "advanced": {
+            "query_embedding_batch_size": 1,
+            "max_query_tokens": 512,
+            "enable_query_expansion": false,
+            "pm125_mode": "off"
+        }
+    },
+    "generation": {
+        "temperature": 0.7,
+        "top_p": 1.0,
+        "max_output_tokens": 2048,
+        "streaming": true,
+        "stop_sequences": [],
+        "provider": "openai",
+        "model": "gpt-4o",
+        "presence_penalty": 0.0,
+        "frequency_penalty": 0.0
+    },
+    "system_prompt": "You are an advanced reasoning assistant. Use the provided context to answer the user's question.",
+    "agentic_enabled": true,
+    "agent_max_iterations": 5,
+    "chunking_strategy": "recursive",
+    "chunking": {
+        "strategy": "recursive",
+        "max_chunk_size": 800,
+        "min_chunk_size": 100,
+        "chunk_overlap": 150,
+        "separators": [
+            "\n\n",
+            "\n",
+            ". ",
+            " "
+        ],
+        "keep_separator": true,
+        "trim_whitespace": true,
+        "fallback_to_sentence": false
+    },
+    "runtime": {
+        "mode": "auto",
+        "auto": {
+            "max_loops": 3,
+            "timeout_ms": 60000
+        },
+        "fast": {
+            "max_loops": 1,
+            "enable_reflection": false,
+            "timeout_ms": 30000
+        },
+        "think": {
+            "max_loops": 5,
+            "reflection_depth": 3,
+            "confidence_threshold": 0.7,
+            "timeout_ms": 90000
+        },
+        "deep": {
+            "max_loops": 10,
+            "multi_query_limit": 5,
+            "backtracking_enabled": true,
+            "timeout_ms": 180000
+        },
+        "tracing": {
+            "tracing_enabled": true,
+            "trace_level": "detailed",
+            "store_intermediate_results": true,
+            "explainability_mode": true,
+            "debug_node_outputs": false
+        },
+        "stream_thoughts": true
+    },
+    "job_concurrency": 3,
+    "show_reasoning": true,
+    "neo4j_uri": "bolt://localhost:7687",
+    "neo4j_user": "neo4j",
+    "neo4j_password": "neo4j_password"
+}

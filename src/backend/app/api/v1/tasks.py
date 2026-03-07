@@ -1,9 +1,9 @@
+from fastapi import APIRouter, BackgroundTasks, Depends
 from src.backend.app.api.deps import CurrentWorkspace, get_current_workspace
 from src.backend.app.core.exceptions import NotFoundError
 from src.backend.app.schemas.base import AppResponse
 from src.backend.app.schemas.task import Task
 from src.backend.app.services.task.task_service import task_service
-from fastapi import APIRouter, BackgroundTasks, Depends
 
 router = APIRouter(tags=["tasks"])
 
@@ -115,8 +115,9 @@ async def cancel_task(task_id: str, current_workspace: CurrentWorkspace = Depend
 
 
 @router.delete("/cleanup")
-async def cleanup_tasks(older_than_hours: int = 24, current_workspace: CurrentWorkspace = Depends(get_current_workspace)):
+async def cleanup_tasks(
+    older_than_hours: int = 24, current_workspace: CurrentWorkspace = Depends(get_current_workspace)
+):
     """Remove completed/failed tasks older than the given number of hours."""
     await task_service.cleanup_old_tasks(older_than_hours)
     return AppResponse.success_response(data=None, message=f"Task logs pruned (older than {older_than_hours}h)")
-

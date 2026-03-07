@@ -21,7 +21,7 @@ export function AgentBoard({ parseMetric, settings }: AgentBoardProps) {
                         <div className="flex items-center justify-between mb-8">
                             <h3 className="text-sm font-black tracking-wider uppercase flex items-center gap-2">
                                 <Terminal size={16} className="text-indigo-400" />
-                                Autonomous Execution Loop
+                                Tool Execution
                             </h3>
                             <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
                                 <Activity size={12} className="text-emerald-500 animate-pulse" />
@@ -31,7 +31,7 @@ export function AgentBoard({ parseMetric, settings }: AgentBoardProps) {
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                             <div className="space-y-1">
-                                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Active Reasoning Threads</div>
+                                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Active Tool Runs</div>
                                 <div className="text-4xl font-black text-white">{activeStreams}</div>
                             </div>
                             <div className="space-y-1">
@@ -49,7 +49,7 @@ export function AgentBoard({ parseMetric, settings }: AgentBoardProps) {
                                 <BrainCircuit size={20} className="text-indigo-400" />
                                 <div>
                                     <div className="text-[10px] font-black text-white uppercase tracking-widest">Execution Strategy</div>
-                                    <div className="text-xs text-gray-500 font-bold capitalize">Plan-and-Execute with ReAct</div>
+                                    <div className="text-xs text-gray-500 font-bold capitalize">Multi-step tool flow</div>
                                 </div>
                             </div>
                             <div className="text-right">
@@ -64,16 +64,16 @@ export function AgentBoard({ parseMetric, settings }: AgentBoardProps) {
                     <div className="bg-[#121214] border border-white/5 rounded-2xl p-6">
                         <h3 className="text-sm font-black tracking-wider uppercase mb-5 flex items-center gap-2">
                             <Cpu size={16} className="text-amber-400" />
-                            Agentic Config
+                            Tool Settings
                         </h3>
                         <div className="space-y-4">
                             <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5">
-                                <span className="text-[10px] font-black text-gray-400 uppercase">Agent Mode</span>
+                                <span className="text-[10px] font-black text-gray-400 uppercase">Run Mode</span>
                                 <span className={cn(
                                     "px-2 py-0.5 rounded text-[9px] font-black uppercase",
                                     settings?.agentic_enabled ? "bg-emerald-500 text-black" : "bg-white/5 text-gray-500"
                                 )}>
-                                    {settings?.agentic_enabled ? 'Autonomous' : 'Linear'}
+                                    {settings?.agentic_enabled ? 'Multi-step' : 'Single-step'}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5">
@@ -86,10 +86,10 @@ export function AgentBoard({ parseMetric, settings }: AgentBoardProps) {
                     <div className="p-6 rounded-2xl bg-indigo-600/10 border border-indigo-500/20">
                         <div className="flex items-center gap-2 mb-3">
                             <Sparkles size={16} className="text-indigo-400" />
-                            <span className="text-[10px] font-black text-white uppercase tracking-widest">Deep Research</span>
+                            <span className="text-[10px] font-black text-white uppercase tracking-widest">Extended Search</span>
                         </div>
                         <p className="text-[10px] text-indigo-200/50 leading-relaxed font-medium mb-4">
-                            Deep research mode utilizes recursive agent loops to navigate complex graph structures and multi-document synthesis.
+                            Extended search uses repeated tool calls to inspect more sources and build a longer answer.
                         </p>
                         <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
                             <motion.div
@@ -110,8 +110,8 @@ export function AgentBoard({ parseMetric, settings }: AgentBoardProps) {
                 <div className="space-y-1">
                     <h5 className="text-xs font-black text-rose-200 uppercase tracking-wider">Operational Boundary</h5>
                     <p className="text-[10px] text-rose-200/40 font-medium leading-relaxed">
-                        High iteration depths ( &gt; 10) significantly increase latency and token consumption on secondary reasoning sub-chains.
-                        Monitor Token Allocation in LLM Ops before increasing global limits.
+                        High iteration limits ( &gt; 10) significantly increase latency and token usage on follow-up tool calls.
+                        Monitor token usage in Model Usage before increasing global limits.
                     </p>
                 </div>
             </div>

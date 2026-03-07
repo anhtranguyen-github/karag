@@ -43,8 +43,8 @@ export default function PipelinesPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">RAG Pipelines</h1>
-                    <p className="text-muted-foreground mt-1 font-medium">Design and deploy custom retrieval-augmented generation strategies.</p>
+                    <h1 className="text-3xl font-bold tracking-tight">Search Pipelines</h1>
+                    <p className="text-muted-foreground mt-1 font-medium">Design and deploy custom document search and answer flows.</p>
                 </div>
                 <div className="flex gap-2">
                     <Button variant="outline" className="h-10 rounded-xl border-border bg-card gap-2 font-bold text-xs">

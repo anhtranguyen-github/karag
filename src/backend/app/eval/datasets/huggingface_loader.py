@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import structlog
+
 from src.backend.app.eval.datasets.base import (
     BaseDatasetLoader,
     DatasetEntry,
@@ -341,4 +342,3 @@ class HuggingFaceDatasetLoader(BaseDatasetLoader):
                         docs.append(doc_id)
                 return docs
         return []
-

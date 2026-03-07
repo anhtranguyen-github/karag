@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { sdk } from "@/sdk";
+import { datasets as datasetsApi } from "@/sdk/datasets";
 import { useParams } from "next/navigation";
 import { useToast } from "@/context/toast-context";
 
@@ -32,7 +32,7 @@ export default function DatasetsPage() {
     const fetchDatasets = async () => {
         try {
             setLoading(true);
-            const response = (await sdk.datasets.list({ workspaceId })) as any;
+            const response = (await datasetsApi.list()) as any;
             setDatasets(response.data || []);
         } catch (error) {
             console.error("Failed to fetch datasets:", error);

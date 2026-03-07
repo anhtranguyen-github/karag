@@ -6,7 +6,7 @@ import { fetchEventSource } from "@microsoft/fetch-event-source";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { sdk } from "@/sdk";
+import { chat } from "@/sdk/chat";
 import { Send, Loader2, Brain } from "lucide-react";
 import { CitationModal } from "./citation-modal";
 import { ChatMessage } from "@/components/chat-message";
@@ -94,7 +94,7 @@ export function ChatInterface({
             setMessages([]); // Clear while loading existing thread
 
             try {
-                const histRes = (await sdk.chat.getHistory({
+                const histRes = (await chat.getHistory({
                     threadId: propThreadId,
                     workspaceId: workspaceId!
                 })) as any;
@@ -281,7 +281,7 @@ export function ChatInterface({
                         </div>
                         <h2 className="text-xl font-bold text-foreground mb-3 tracking-tight">Ask anything about your documents</h2>
                         <p className="text-sm text-muted-foreground max-w-sm text-center font-medium leading-relaxed">
-                            I can help you analyze, summarize, or extract key insights from your knowledge base.
+                            I can help you analyze, summarize, or extract key insights from your documents.
                         </p>
                     </div>
                 )}

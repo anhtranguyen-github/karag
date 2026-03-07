@@ -4,11 +4,20 @@ import path from 'path';
 
 export default defineConfig({
     plugins: [react()],
+    server: {
+        fs: {
+            allow: [path.resolve(__dirname, '../..')],
+        },
+    },
     test: {
         environment: 'jsdom',
         globals: true,
         setupFiles: ['./tests/setup.ts'],
-        include: ['tests/unit/**/*.test.{ts,tsx}', 'tests/integration/**/*.test.{ts,tsx}'],
+        include: [
+            './tests/unit/**/*.test.{ts,tsx}',
+            './tests/integration/**/*.test.{ts,tsx}',
+            './tests/contract/**/*.test.{ts,tsx}',
+        ],
     },
     resolve: {
         alias: {
@@ -16,4 +25,3 @@ export default defineConfig({
         },
     },
 });
-

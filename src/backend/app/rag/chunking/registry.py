@@ -61,8 +61,8 @@ class TokenChunker:
 
 class SemanticChunkerImpl:
     async def chunk(self, text: str, config: SemanticChunkingConfig, workspace_id: str = None) -> list[str]:
-        from src.backend.app.providers.embedding import get_embeddings
         from langchain_experimental.text_splitter import SemanticChunker
+        from src.backend.app.providers.embedding import get_embeddings
 
         provider = await get_embeddings(workspace_id)
         splitter = SemanticChunker(provider, breakpoint_threshold_amount=config.similarity_threshold)
@@ -116,4 +116,3 @@ class ChunkingRegistry:
 
 
 chunking_registry = ChunkingRegistry()
-

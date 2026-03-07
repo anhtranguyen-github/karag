@@ -35,10 +35,10 @@ export function ExecutionSettings({ form }: ExecutionSettingsProps) {
     const currentMode = watch('runtime.mode');
 
     const modes = [
-        { id: 'auto', label: 'Auto', icon: Activity, desc: 'Balanced reasoning with automatic depth' },
-        { id: 'fast', label: 'Fast', icon: Zap, desc: 'Least loop possible for direct answers' },
-        { id: 'think', label: 'Think', icon: Brain, desc: 'Reasoning and planning for complex tasks' },
-        { id: 'deep', label: 'Deep', icon: Microscope, desc: 'Detailed research and long report-style responses' },
+        { id: 'auto', label: 'Auto', icon: Activity, desc: 'Balanced mode with automatic depth' },
+        { id: 'fast', label: 'Fast', icon: Zap, desc: 'Shortest path for direct answers' },
+        { id: 'think', label: 'Think', icon: Brain, desc: 'Extra planning for complex tasks' },
+        { id: 'deep', label: 'Deep', icon: Microscope, desc: 'Broader search and longer report-style responses' },
     ];
 
     const sectionClass = "p-5 rounded-2xl bg-card border border-border shadow-sm mb-6";
@@ -53,7 +53,7 @@ export function ExecutionSettings({ form }: ExecutionSettingsProps) {
                     </div>
                     <div>
                         <h3 className="text-sm font-bold text-foreground">Execution Engine</h3>
-                        <p className="text-[10px] text-muted-foreground font-medium">Select the primary reasoning mode for this workspace</p>
+                        <p className="text-[10px] text-muted-foreground font-medium">Select the primary response mode for this workspace</p>
                     </div>
                 </div>
 

@@ -103,4 +103,3 @@ class GitHubIngestionStrategy(BaseIngestionStrategy):
         finally:
             if os.path.exists(tmp_dir):
                 shutil.rmtree(tmp_dir)
-

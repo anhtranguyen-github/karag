@@ -1,3 +1,4 @@
+import "./client";
 import {
     registerApiV1AuthRegisterPost,
     loginAccessTokenApiV1AuthLoginPost,
@@ -7,11 +8,20 @@ import {
 } from "./generated";
 
 export const auth = {
-    register(data: RegisterApiV1AuthRegisterPostData) {
-        return registerApiV1AuthRegisterPost(data);
+    register(data: RegisterApiV1AuthRegisterPostData | { body?: unknown; requestBody?: unknown } | Record<string, unknown>) {
+        return registerApiV1AuthRegisterPost({
+            body: (data as any)?.body ?? (data as any)?.requestBody ?? data,
+        });
     },
-    login(data: LoginAccessTokenApiV1AuthLoginPostData) {
-        return loginAccessTokenApiV1AuthLoginPost(data);
+    login(
+        data:
+            | LoginAccessTokenApiV1AuthLoginPostData
+            | { body?: unknown; formData?: unknown; requestBody?: unknown }
+            | Record<string, unknown>,
+    ) {
+        return loginAccessTokenApiV1AuthLoginPost({
+            body: (data as any)?.body ?? (data as any)?.formData ?? (data as any)?.requestBody ?? data,
+        });
     },
     me() {
         return readUserMeApiV1AuthMeGet();

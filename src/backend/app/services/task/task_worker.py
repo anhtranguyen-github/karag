@@ -64,11 +64,11 @@ class TaskWorker:
         tasks = await task_service.list_tasks(include_completed=False, limit=10)
 
         for task in tasks:
-            if task["status"] != "pending":
+            if task.status != "pending":
                 continue
 
             # Check next_retry_at
-            next_retry = task.get("metadata", {}).get("next_retry_at")
+            next_retry = getattr(task.metadata, "next_retry_at", None)
             if next_retry:
                 next_retry_dt = datetime.fromisoformat(next_retry)
                 if next_retry_dt > datetime.utcnow():
@@ -83,10 +83,10 @@ class TaskWorker:
     async def _dispatch_task(self, task):
         from src.backend.app.services.document_service import document_service
 
-        task_id = task["id"]
-        task_type = task["type"]
-        metadata = task["metadata"] or {}
-        workspace_id = task["workspace_id"]
+        task_id = task.id
+        task_type = task.type
+        metadata = task.metadata
+        workspace_id = task.workspace_id
 
         logger.info("task_worker_dispatching", task_id=task_id, type=task_type)
 
@@ -99,36 +99,34 @@ class TaskWorker:
                 # So we can only recover if it's already uploaded or we have a way to get it
                 pass
             elif task_type == "url_ingestion":
-                if "url" in metadata:
+                if metadata.url:
                     asyncio.create_task(
                         document_service.run_url_ingestion_background(
                             task_id,
-                            metadata["url"],
-                            metadata.get("filename", "index.html"),
+                            metadata.url,
+                            metadata.filename or "index.html",
                             workspace_id,
-                            metadata.get("strategy"),
+                            getattr(metadata, "strategy", None),
                         )
                     )
             elif task_type == "sitemap_ingestion":
-                if "sitemap_url" in metadata:
+                if metadata.sitemap_url:
                     asyncio.create_task(
-                        document_service.run_sitemap_background(task_id, metadata["sitemap_url"], workspace_id)
+                        document_service.run_sitemap_background(task_id, metadata.sitemap_url, workspace_id)
                     )
             elif task_type == "github_ingestion":
-                if "repo_url" in metadata:
+                if metadata.repo_url:
                     asyncio.create_task(
                         document_service.run_github_background(
                             task_id,
-                            metadata["repo_url"],
-                            metadata.get("branch", "main"),
+                            metadata.repo_url,
+                            metadata.branch or "main",
                             workspace_id,
                         )
                     )
             elif task_type == "indexing":
-                if "filename" in metadata:
-                    asyncio.create_task(
-                        document_service.run_index_background(task_id, metadata["filename"], workspace_id)
-                    )
+                if metadata.doc_id:
+                    asyncio.create_task(document_service.run_index_background(task_id, metadata.doc_id, workspace_id))
             # Audio ingestion requires content bytes which are not in metadata (persisted in MinIO usually)
             # For now, audio is a manual re-upload, but we handle the status.
         except Exception as e:
@@ -136,4 +134,3 @@ class TaskWorker:
 
 
 task_worker = TaskWorker()
-

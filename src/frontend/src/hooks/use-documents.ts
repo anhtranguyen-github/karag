@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { sdk } from '@/sdk';
+import { documents as documentsApi } from '@/sdk/documents';
 import { useError } from '@/context/error-context';
 
 export interface DocumentPoint {
@@ -34,12 +34,24 @@ export function useDocuments() {
     const fetchDocuments = useCallback(async () => {
         try {
             setIsLoading(true);
-            const payload = (await sdk.documents.listAll({
+            const payload = (await documentsApi.listAll({
                 workspaceId: "vault" // Global view uses vault context
             })) as any;
 
             if (payload.success && payload.data) {
-                setDocuments(payload.data);
+                const normalizedDocuments = (payload.data as Partial<Document>[]).map((doc) => {
+                    const filename = doc.filename || doc.name || "";
+                    const extension = doc.extension || (filename.includes(".") ? `.${filename.split(".").pop()}` : "");
+                    return {
+                        ...doc,
+                        filename,
+                        name: doc.name || filename,
+                        extension,
+                        status: doc.status || "uploaded",
+                        shared_with: doc.shared_with || [],
+                    } as Document;
+                });
+                setDocuments(normalizedDocuments);
             }
         } catch (err) {
             console.error('Failed to fetch all documents:', err);
@@ -55,7 +67,7 @@ export function useDocuments() {
 
     const deleteDocument = async (name: string, workspaceId: string, vaultDelete: boolean = false) => {
         try {
-            const payload = (await sdk.documents.delete({
+            const payload = (await documentsApi.delete({
                 documentId: name,
                 workspaceId: workspaceId,
                 datasetDelete: vaultDelete
@@ -80,7 +92,7 @@ export function useDocuments() {
 
     const updateWorkspaceAction = async (name: string, workspaceId: string, targetWorkspaceId: string, action: 'move' | 'share' | 'unshare', forceReindex: boolean = false) => {
         try {
-            const payload = (await sdk.documents.updateWorkspaces({
+            const payload = (await documentsApi.updateWorkspaces({
                 workspaceId: workspaceId,
                 requestBody: {
                     document_id: name,
@@ -113,7 +125,7 @@ export function useDocuments() {
 
     const inspectDocument = async (name: string, workspaceId: string) => {
         try {
-            const payload = (await sdk.documents.inspect({
+            const payload = (await documentsApi.inspect({
                 documentId: name,
                 workspaceId
             })) as any;

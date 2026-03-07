@@ -38,4 +38,3 @@ class SitemapIngestionStrategy(BaseIngestionStrategy):
                 error_code=AppErrorCode.SITEMAP_FETCH_FAILED,
             )
             raise e
-

@@ -126,7 +126,7 @@ pipeline {
                         echo "Auditing API contracts for common security pitfalls..."
                         sh '''
                             # Check for uncontrolled path parameters in OpenAPI spec
-                            if grep -q ":path}" src/frontend/src/lib/api/openapi.json; then
+                            if grep -q ":path}" openapi/schema.json; then
                                 echo "ERROR: Path traversal vulnerability surface detected in openapi.json!"
                                 exit 1
                             fi
@@ -156,7 +156,7 @@ pipeline {
                 stage('Artifact: Docker Build') {
                     steps {
                         echo "Proving the application can be containerized..."
-                        sh "docker build --no-cache -t ${env.APP_NAME}:${env.BUILD_ID} -f src/backend/Dockerfile ."
+                        sh "docker build --no-cache -t ${env.APP_NAME}:${env.BUILD_ID} -f docker/backend.Dockerfile ."
                     }
                 }
             }
@@ -212,4 +212,3 @@ pipeline {
         }
     }
 }
-

@@ -25,8 +25,11 @@ export const base64 = (str: string): string => {
 	try {
 		return btoa(str);
 	} catch (err) {
-		// @ts-ignore
-		return Buffer.from(str).toString('base64');
+		const bufferCtor = globalThis.Buffer;
+		if (bufferCtor) {
+			return bufferCtor.from(str).toString('base64');
+		}
+		throw err;
 	}
 };
 
@@ -102,6 +105,7 @@ export const getFormData = (options: ApiRequestOptions): FormData | undefined =>
 };
 
 type Resolver<T> = (options: ApiRequestOptions<T>) => Promise<T>;
+type HeaderMap = Record<string, string>;
 
 export const resolve = async <T>(options: ApiRequestOptions<T>, resolver?: T | Resolver<T>): Promise<T | undefined> => {
 	if (typeof resolver === 'function') {
@@ -112,14 +116,10 @@ export const resolve = async <T>(options: ApiRequestOptions<T>, resolver?: T | R
 
 export const getHeaders = async <T>(config: OpenAPIConfig, options: ApiRequestOptions<T>): Promise<Headers> => {
 	const [token, username, password, additionalHeaders] = await Promise.all([
-		// @ts-ignore
-		resolve(options, config.TOKEN),
-		// @ts-ignore
-		resolve(options, config.USERNAME),
-		// @ts-ignore
-		resolve(options, config.PASSWORD),
-		// @ts-ignore
-		resolve(options, config.HEADERS),
+		resolve<string>(options as ApiRequestOptions<string>, config.TOKEN),
+		resolve<string>(options as ApiRequestOptions<string>, config.USERNAME),
+		resolve<string>(options as ApiRequestOptions<string>, config.PASSWORD),
+		resolve<HeaderMap>(options as ApiRequestOptions<HeaderMap>, config.HEADERS as HeaderMap | Resolver<HeaderMap> | undefined),
 	]);
 
 	const headers = Object.entries({
@@ -214,7 +214,8 @@ export const getResponseHeader = (response: Response, responseHeader?: string): 
 export const getResponseBody = async (response: Response): Promise<unknown> => {
 	if (response.status !== 204) {
 		try {
-			const contentType = response.headers.get('Content-Type');
+			const headers = response.headers;
+			const contentType = headers?.get?.('Content-Type') ?? headers?.get?.('content-type');
 			if (contentType) {
 				const binaryTypes = ['application/octet-stream', 'application/pdf', 'application/zip', 'audio/', 'image/', 'video/'];
 				if (contentType.includes('application/json') || contentType.includes('+json')) {
@@ -226,6 +227,14 @@ export const getResponseBody = async (response: Response): Promise<unknown> => {
 				} else if (contentType.includes('text/')) {
 					return await response.text();
 				}
+			}
+
+			if (typeof response.json === 'function') {
+				return await response.json();
+			}
+
+			if (typeof response.text === 'function') {
+				return await response.text();
 			}
 		} catch (error) {
 			console.error(error);

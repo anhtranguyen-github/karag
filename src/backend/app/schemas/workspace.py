@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import Literal
 
+from pydantic import BaseModel, Field, field_validator
 from src.backend.app.schemas.chat import ThreadMetadata
 from src.backend.app.schemas.documents import DocumentResponse
-from pydantic import BaseModel, Field, field_validator
 
 
 class WorkspaceStats(BaseModel):
@@ -56,4 +56,3 @@ class WorkspaceCreate(BaseModel):
 class WorkspaceUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
-

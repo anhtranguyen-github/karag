@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/modal";
-import { sdk } from "@/sdk";
+import { documents as documentsApi } from "@/sdk/documents";
 import { Check, Database, Loader2, FileText, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -38,7 +38,7 @@ export function StorageSelector({
     const fetchStorage = async () => {
         setLoading(true);
         try {
-            const payload = (await sdk.documents.listAll({
+            const payload = (await documentsApi.listAll({
                 workspaceId: workspaceId!
             })) as any;
 
@@ -61,7 +61,7 @@ export function StorageSelector({
         setLoading(true);
         try {
             const promises = Array.from(selectedIds).map(docId =>
-                sdk.documents.updateWorkspaces({
+                documentsApi.updateWorkspaces({
                     workspaceId: workspaceId,
                     requestBody: {
                         document_id: docId,

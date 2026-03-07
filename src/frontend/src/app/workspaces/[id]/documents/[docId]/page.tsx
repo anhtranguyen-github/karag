@@ -7,7 +7,7 @@ import {
     HardDrive, Hash, Download, Loader2, AlertCircle,
     Copy, Check, ChevronRight, ExternalLink, FolderOpen
 } from 'lucide-react';
-import { sdk } from '@/sdk';
+import { documents } from '@/sdk/documents';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -76,7 +76,7 @@ export default function DocumentDetailPage() {
         const fetchDocument = async () => {
             setIsLoading(true);
             try {
-                const payload = (await sdk.documents.get({
+                const payload = (await documents.get({
                     workspaceId,
                     documentId: docId
                 })) as any;
@@ -94,7 +94,7 @@ export default function DocumentDetailPage() {
         if (chunks.length > 0) return;
         setChunksLoading(true);
         try {
-            const payload = (await sdk.documents.getChunks({
+            const payload = (await documents.getChunks({
                 workspaceId,
                 documentId: docId
             })) as any;
@@ -109,7 +109,7 @@ export default function DocumentDetailPage() {
     const fetchInspect = useCallback(async () => {
         if (inspectData) return;
         try {
-            const payload = (await sdk.documents.inspect({
+            const payload = (await documents.inspect({
                 workspaceId,
                 documentId: docId
             })) as any;

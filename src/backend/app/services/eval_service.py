@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any
 
 import structlog
+from langchain_core.messages import HumanMessage
 from src.backend.app.core.mongodb import mongodb_manager
 from src.backend.app.graph.builder import app as graph_app
 from src.backend.app.providers.llm import get_llm
@@ -14,7 +15,6 @@ from src.backend.app.schemas.eval import (
     EvalStatus,
     TestCase,
 )
-from langchain_core.messages import HumanMessage
 
 logger = structlog.get_logger(__name__)
 
@@ -155,4 +155,3 @@ class EvalService:
 
 
 eval_service = EvalService()
-

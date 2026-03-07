@@ -85,7 +85,7 @@ export default function KeysPage() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">API Keys</h1>
-                    <p className="text-muted-foreground mt-1 font-medium">Securely access the KARAG BaaS platform via REST API and SDKs.</p>
+                    <p className="text-muted-foreground mt-1 font-medium">Securely access your workspace through the REST API and SDKs.</p>
                 </div>
                 <Button className="h-10 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[11px] tracking-wide shadow-lg shadow-indigo-600/20">
                     <Plus size={16} className="mr-2" />

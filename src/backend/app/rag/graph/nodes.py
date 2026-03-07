@@ -1,12 +1,12 @@
 import time
 from typing import Any
 
+from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.runnables import RunnableConfig
 from src.backend.app.core.factory import ProviderFactory
 from src.backend.app.rag.graph.state import GraphState
 from src.backend.app.rag.rag_service import rag_service
 from src.backend.app.schemas.execution import ExecutionMode
-from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_core.runnables import RunnableConfig
 
 
 async def init_execution(state: GraphState) -> dict[str, Any]:
@@ -399,4 +399,3 @@ async def synthesize_answer(state: GraphState, config: RunnableConfig) -> dict[s
     if state.get("final_answer"):
         return {"final_answer": state["final_answer"]}
     return {"final_answer": "Processing complete but no content generated."}
-

@@ -1,8 +1,8 @@
 from datetime import datetime
 from typing import Literal
 
-from src.backend.app.schemas.baas import FileStoreConfig, VectorStoreConfig
 from pydantic import BaseModel, Field
+from src.backend.app.schemas.baas import FileStoreConfig, VectorStoreConfig
 
 # =============================================================================
 # DATASET AND CONNECTORS CONFIGURATION
@@ -56,4 +56,3 @@ class Dataset(BaseModel):
     document_count: int = Field(0, ge=0)
     total_chunks: int = Field(0, ge=0)
     total_size_bytes: int = Field(0, ge=0)
-

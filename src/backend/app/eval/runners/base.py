@@ -12,6 +12,7 @@ from enum import Enum
 from typing import Any
 
 import structlog
+
 from src.backend.app.eval.datasets.base import DatasetEntry
 
 logger = structlog.get_logger(__name__)
@@ -303,4 +304,3 @@ class BaseRunner(ABC):
                 }
 
         return aggregated
-

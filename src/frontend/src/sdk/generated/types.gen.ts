@@ -1645,464 +1645,748 @@ export type WorkspaceUsageStats = {
 };
 
 export type RegisterApiV1AuthRegisterPostData = {
-    requestBody: UserCreate;
+    body: UserCreate;
 };
 
 export type RegisterApiV1AuthRegisterPostResponse = (AppResponse_User_);
 
+export type RegisterApiV1AuthRegisterPostError = (HTTPValidationError);
+
 export type LoginAccessTokenApiV1AuthLoginPostData = {
-    formData: Body_login_access_token_api_v1_auth_login_post;
+    body: Body_login_access_token_api_v1_auth_login_post;
 };
 
 export type LoginAccessTokenApiV1AuthLoginPostResponse = (Token);
 
+export type LoginAccessTokenApiV1AuthLoginPostError = (HTTPValidationError);
+
 export type ReadUserMeApiV1AuthMeGetResponse = (User);
+
+export type ReadUserMeApiV1AuthMeGetError = unknown;
 
 export type ListWorkspacesApiV1WorkspacesGetResponse = (AppResponse_list_Workspace__);
 
+export type ListWorkspacesApiV1WorkspacesGetError = unknown;
+
 export type CreateWorkspaceApiV1WorkspacesPostData = {
-    requestBody: WorkspaceCreate;
+    body: WorkspaceCreate;
 };
 
 export type CreateWorkspaceApiV1WorkspacesPostResponse = (AppResponse_Workspace_);
 
+export type CreateWorkspaceApiV1WorkspacesPostError = (HTTPValidationError);
+
 export type ListWorkspacesApiV1WorkspacesGet1Response = (AppResponse_list_Workspace__);
 
+export type ListWorkspacesApiV1WorkspacesGet1Error = unknown;
+
 export type CreateWorkspaceApiV1WorkspacesPost1Data = {
-    requestBody: WorkspaceCreate;
+    body: WorkspaceCreate;
 };
 
 export type CreateWorkspaceApiV1WorkspacesPost1Response = (AppResponse_Workspace_);
 
+export type CreateWorkspaceApiV1WorkspacesPost1Error = (HTTPValidationError);
+
 export type UpdateWorkspaceApiV1WorkspacesWorkspaceIdPatchData = {
-    requestBody: WorkspaceUpdate;
-    workspaceId: (string | null);
+    body: WorkspaceUpdate;
+    path: {
+        workspace_id: (string | null);
+    };
 };
 
 export type UpdateWorkspaceApiV1WorkspacesWorkspaceIdPatchResponse = (AppResponse_Workspace_);
 
+export type UpdateWorkspaceApiV1WorkspacesWorkspaceIdPatchError = (HTTPValidationError);
+
 export type DeleteWorkspaceApiV1WorkspacesWorkspaceIdDeleteData = {
-    datasetDelete?: boolean;
-    workspaceId: (string | null);
+    path: {
+        workspace_id: (string | null);
+    };
+    query?: {
+        dataset_delete?: boolean;
+    };
 };
 
 export type DeleteWorkspaceApiV1WorkspacesWorkspaceIdDeleteResponse = (AppResponse_dict_);
 
+export type DeleteWorkspaceApiV1WorkspacesWorkspaceIdDeleteError = (HTTPValidationError);
+
 export type GetWorkspaceDetailsApiV1WorkspacesWorkspaceIdDetailsGetData = {
-    workspaceId: (string | null);
+    path: {
+        workspace_id: (string | null);
+    };
 };
 
 export type GetWorkspaceDetailsApiV1WorkspacesWorkspaceIdDetailsGetResponse = (AppResponse_WorkspaceDetail_);
 
+export type GetWorkspaceDetailsApiV1WorkspacesWorkspaceIdDetailsGetError = (HTTPValidationError);
+
 export type ShareDocumentApiV1WorkspacesWorkspaceIdShareDocumentPostData = {
-    requestBody: ShareDocumentPayload;
-    workspaceId: (string | null);
+    body: ShareDocumentPayload;
+    path: {
+        workspace_id: (string | null);
+    };
 };
 
 export type ShareDocumentApiV1WorkspacesWorkspaceIdShareDocumentPostResponse = (AppResponse_dict_);
 
+export type ShareDocumentApiV1WorkspacesWorkspaceIdShareDocumentPostError = (HTTPValidationError);
+
 export type GetWorkspaceGraphApiV1WorkspacesWorkspaceIdGraphGetData = {
-    workspaceId: (string | null);
+    path: {
+        workspace_id: (string | null);
+    };
 };
 
 export type GetWorkspaceGraphApiV1WorkspacesWorkspaceIdGraphGetResponse = (unknown);
 
+export type GetWorkspaceGraphApiV1WorkspacesWorkspaceIdGraphGetError = (HTTPValidationError);
+
 export type GetDocumentForCitationApiV1V1DocumentsDocumentIdGetData = {
-    documentId: string;
-    workspaceId: string;
+    path: {
+        document_id: string;
+    };
+    query: {
+        workspace_id: string;
+    };
 };
 
 export type GetDocumentForCitationApiV1V1DocumentsDocumentIdGetResponse = (DocumentCitationResponse);
 
+export type GetDocumentForCitationApiV1V1DocumentsDocumentIdGetError = (HTTPValidationError);
+
 export type ChatCompletionsApiV1V1ChatCompletionsPostData = {
-    requestBody: ChatCompletionRequest;
+    body: ChatCompletionRequest;
 };
 
 export type ChatCompletionsApiV1V1ChatCompletionsPostResponse = (unknown);
 
+export type ChatCompletionsApiV1V1ChatCompletionsPostError = (HTTPValidationError);
+
 export type ListModelsApiV1V1ModelsGetResponse = (ModelsResponse);
 
+export type ListModelsApiV1V1ModelsGetError = unknown;
+
 export type GetModelApiV1V1ModelsModelIdGetData = {
-    modelId: string;
+    path: {
+        model_id: string;
+    };
 };
 
 export type GetModelApiV1V1ModelsModelIdGetResponse = (unknown);
 
+export type GetModelApiV1V1ModelsModelIdGetError = (HTTPValidationError);
+
 export type CreateApiKeyApiV1AdminBaasWorkspacesWorkspaceIdApiKeysPostData = {
-    expiresDays?: (number | null);
-    permissions?: Array<(string)>;
-    workspaceId: string;
+    path: {
+        workspace_id: string;
+    };
+    query?: {
+        expires_days?: (number | null);
+        permissions?: Array<(string)>;
+    };
 };
 
 export type CreateApiKeyApiV1AdminBaasWorkspacesWorkspaceIdApiKeysPostResponse = (AppResponse_APIKeyCreateResponse_);
 
+export type CreateApiKeyApiV1AdminBaasWorkspacesWorkspaceIdApiKeysPostError = (HTTPValidationError);
+
 export type ListWorkspaceApiKeysApiV1AdminBaasWorkspacesWorkspaceIdApiKeysGetData = {
-    includeInactive?: boolean;
-    workspaceId: string;
+    path: {
+        workspace_id: string;
+    };
+    query?: {
+        include_inactive?: boolean;
+    };
 };
 
 export type ListWorkspaceApiKeysApiV1AdminBaasWorkspacesWorkspaceIdApiKeysGetResponse = (AppResponse_list_APIKey__);
 
+export type ListWorkspaceApiKeysApiV1AdminBaasWorkspacesWorkspaceIdApiKeysGetError = (HTTPValidationError);
+
 export type RevokeApiKeyApiV1AdminBaasApiKeysKeyIdDeleteData = {
-    keyId: string;
-    reason?: (string | null);
+    path: {
+        key_id: string;
+    };
+    query?: {
+        reason?: (string | null);
+    };
 };
 
 export type RevokeApiKeyApiV1AdminBaasApiKeysKeyIdDeleteResponse = (AppResponse);
 
+export type RevokeApiKeyApiV1AdminBaasApiKeysKeyIdDeleteError = (HTTPValidationError);
+
 export type GetSystemConfigApiV1AdminBaasSystemConfigGetResponse = (AppResponse_SystemConfig_);
 
+export type GetSystemConfigApiV1AdminBaasSystemConfigGetError = unknown;
+
 export type UpdateSystemConfigApiV1AdminBaasSystemConfigPutData = {
-    requestBody: {
+    body: {
         [key: string]: unknown;
     };
 };
 
 export type UpdateSystemConfigApiV1AdminBaasSystemConfigPutResponse = (AppResponse_SystemConfig_);
 
+export type UpdateSystemConfigApiV1AdminBaasSystemConfigPutError = (HTTPValidationError);
+
 export type GetWorkspaceConfigApiV1AdminBaasWorkspacesWorkspaceIdConfigGetData = {
-    workspaceId: string;
+    path: {
+        workspace_id: string;
+    };
 };
 
 export type GetWorkspaceConfigApiV1AdminBaasWorkspacesWorkspaceIdConfigGetResponse = (AppResponse_WorkspaceConfig_);
 
+export type GetWorkspaceConfigApiV1AdminBaasWorkspacesWorkspaceIdConfigGetError = (HTTPValidationError);
+
 export type UpdateWorkspaceConfigApiV1AdminBaasWorkspacesWorkspaceIdConfigPutData = {
-    requestBody: {
+    body: {
         [key: string]: unknown;
     };
-    workspaceId: string;
+    path: {
+        workspace_id: string;
+    };
 };
 
 export type UpdateWorkspaceConfigApiV1AdminBaasWorkspacesWorkspaceIdConfigPutResponse = (AppResponse_WorkspaceConfig_);
 
+export type UpdateWorkspaceConfigApiV1AdminBaasWorkspacesWorkspaceIdConfigPutError = (HTTPValidationError);
+
 export type QueryUsageLogsApiV1AdminBaasUsageLogsGetData = {
-    endpoint?: (string | null);
-    limit?: number;
-    offset?: number;
-    statusCode?: (number | null);
-    workspaceId?: (string | null);
+    query?: {
+        endpoint?: (string | null);
+        limit?: number;
+        offset?: number;
+        status_code?: (number | null);
+        workspace_id?: (string | null);
+    };
 };
 
 export type QueryUsageLogsApiV1AdminBaasUsageLogsGetResponse = (AppResponse_list_UsageLog__);
 
+export type QueryUsageLogsApiV1AdminBaasUsageLogsGetError = (HTTPValidationError);
+
 export type GetWorkspaceUsageStatsApiV1AdminBaasUsageWorkspacesWorkspaceIdStatsGetData = {
-    days?: number;
-    workspaceId: string;
+    path: {
+        workspace_id: string;
+    };
+    query?: {
+        days?: number;
+    };
 };
 
 export type GetWorkspaceUsageStatsApiV1AdminBaasUsageWorkspacesWorkspaceIdStatsGetResponse = (AppResponse_WorkspaceUsageStats_);
 
+export type GetWorkspaceUsageStatsApiV1AdminBaasUsageWorkspacesWorkspaceIdStatsGetError = (HTTPValidationError);
+
 export type GetChatHistoryApiV1WorkspacesWorkspaceIdChatHistoryThreadIdGetData = {
-    threadId: string;
-    workspaceId: (string | null);
+    path: {
+        thread_id: string;
+        workspace_id: (string | null);
+    };
 };
 
 export type GetChatHistoryApiV1WorkspacesWorkspaceIdChatHistoryThreadIdGetResponse = (AppResponse_list_ChatMessage__);
 
+export type GetChatHistoryApiV1WorkspacesWorkspaceIdChatHistoryThreadIdGetError = (HTTPValidationError);
+
 export type ListChatThreadsApiV1WorkspacesWorkspaceIdChatThreadsGetData = {
-    /**
-     * Items per page (max 100)
-     */
-    limit?: number;
-    /**
-     * Page number (1-indexed)
-     */
-    page?: number;
-    workspaceId: (string | null);
+    path: {
+        workspace_id: (string | null);
+    };
+    query?: {
+        /**
+         * Items per page (max 100)
+         */
+        limit?: number;
+        /**
+         * Page number (1-indexed)
+         */
+        page?: number;
+    };
 };
 
 export type ListChatThreadsApiV1WorkspacesWorkspaceIdChatThreadsGetResponse = (AppResponse_list_ThreadMetadata__);
 
+export type ListChatThreadsApiV1WorkspacesWorkspaceIdChatThreadsGetError = (HTTPValidationError);
+
 export type UpdateThreadTitleApiV1WorkspacesWorkspaceIdChatThreadsThreadIdTitlePatchData = {
-    requestBody: ThreadTitleUpdate;
-    threadId: string;
-    workspaceId: (string | null);
+    body: ThreadTitleUpdate;
+    path: {
+        thread_id: string;
+        workspace_id: (string | null);
+    };
 };
 
 export type UpdateThreadTitleApiV1WorkspacesWorkspaceIdChatThreadsThreadIdTitlePatchResponse = (AppResponse);
 
+export type UpdateThreadTitleApiV1WorkspacesWorkspaceIdChatThreadsThreadIdTitlePatchError = (HTTPValidationError);
+
 export type GetThreadApiV1WorkspacesWorkspaceIdChatThreadsThreadIdGetData = {
-    threadId: string;
-    workspaceId: (string | null);
+    path: {
+        thread_id: string;
+        workspace_id: (string | null);
+    };
 };
 
 export type GetThreadApiV1WorkspacesWorkspaceIdChatThreadsThreadIdGetResponse = (AppResponse_ThreadMetadata_);
 
+export type GetThreadApiV1WorkspacesWorkspaceIdChatThreadsThreadIdGetError = (HTTPValidationError);
+
 export type DeleteThreadApiV1WorkspacesWorkspaceIdChatThreadsThreadIdDeleteData = {
-    threadId: string;
-    workspaceId: (string | null);
+    path: {
+        thread_id: string;
+        workspace_id: (string | null);
+    };
 };
 
 export type DeleteThreadApiV1WorkspacesWorkspaceIdChatThreadsThreadIdDeleteResponse = (AppResponse);
 
+export type DeleteThreadApiV1WorkspacesWorkspaceIdChatThreadsThreadIdDeleteError = (HTTPValidationError);
+
 export type ChatStreamApiV1WorkspacesWorkspaceIdChatStreamPostData = {
-    requestBody: ChatStreamRequest;
-    workspaceId: (string | null);
+    body: ChatStreamRequest;
+    path: {
+        workspace_id: (string | null);
+    };
 };
 
 export type ChatStreamApiV1WorkspacesWorkspaceIdChatStreamPostResponse = (unknown);
 
+export type ChatStreamApiV1WorkspacesWorkspaceIdChatStreamPostError = (HTTPValidationError);
+
 export type ListDatasetsApiV1WorkspacesWorkspaceIdDatasetsGetData = {
-    workspaceId: (string | null);
+    path: {
+        workspace_id: (string | null);
+    };
 };
 
 export type ListDatasetsApiV1WorkspacesWorkspaceIdDatasetsGetResponse = (AppResponse_list_Dataset__);
 
+export type ListDatasetsApiV1WorkspacesWorkspaceIdDatasetsGetError = (HTTPValidationError);
+
 export type CreateDatasetApiV1WorkspacesWorkspaceIdDatasetsPostData = {
-    requestBody: DatasetCreate;
-    workspaceId: (string | null);
+    body: DatasetCreate;
+    path: {
+        workspace_id: (string | null);
+    };
 };
 
 export type CreateDatasetApiV1WorkspacesWorkspaceIdDatasetsPostResponse = (AppResponse_Dataset_);
 
+export type CreateDatasetApiV1WorkspacesWorkspaceIdDatasetsPostError = (HTTPValidationError);
+
 export type GetDatasetApiV1WorkspacesWorkspaceIdDatasetsDatasetIdGetData = {
-    datasetId: string;
-    workspaceId: (string | null);
+    path: {
+        dataset_id: string;
+        workspace_id: (string | null);
+    };
 };
 
 export type GetDatasetApiV1WorkspacesWorkspaceIdDatasetsDatasetIdGetResponse = (AppResponse_Dataset_);
 
+export type GetDatasetApiV1WorkspacesWorkspaceIdDatasetsDatasetIdGetError = (HTTPValidationError);
+
 export type DeleteDatasetApiV1WorkspacesWorkspaceIdDatasetsDatasetIdDeleteData = {
-    datasetId: string;
-    deleteContents?: boolean;
-    workspaceId: (string | null);
+    path: {
+        dataset_id: string;
+        workspace_id: (string | null);
+    };
+    query?: {
+        delete_contents?: boolean;
+    };
 };
 
 export type DeleteDatasetApiV1WorkspacesWorkspaceIdDatasetsDatasetIdDeleteResponse = (AppResponse_bool_);
 
+export type DeleteDatasetApiV1WorkspacesWorkspaceIdDatasetsDatasetIdDeleteError = (HTTPValidationError);
+
 export type ListPipelinesApiV1WorkspacesWorkspaceIdPipelinesGetData = {
-    workspaceId: (string | null);
+    path: {
+        workspace_id: (string | null);
+    };
 };
 
 export type ListPipelinesApiV1WorkspacesWorkspaceIdPipelinesGetResponse = (AppResponse_list_PipelineConfig__);
 
+export type ListPipelinesApiV1WorkspacesWorkspaceIdPipelinesGetError = (HTTPValidationError);
+
 export type UploadDocumentApiV1WorkspacesWorkspaceIdUploadPostData = {
-    datasetId?: (string | null);
-    formData: Body_upload_document_api_v1_workspaces__workspace_id__upload_post;
-    strategy?: (string | null);
-    workspaceId: (string | null);
+    body: Body_upload_document_api_v1_workspaces__workspace_id__upload_post;
+    path: {
+        workspace_id: (string | null);
+    };
+    query?: {
+        dataset_id?: (string | null);
+        strategy?: (string | null);
+    };
 };
 
 export type UploadDocumentApiV1WorkspacesWorkspaceIdUploadPostResponse = (AppResponse_DocumentUploadResponse_);
 
+export type UploadDocumentApiV1WorkspacesWorkspaceIdUploadPostError = (HTTPValidationError);
+
 export type ImportUrlDocumentApiV1WorkspacesWorkspaceIdImportUrlPostData = {
-    requestBody: UrlImportRequest;
-    workspaceId: (string | null);
+    body: UrlImportRequest;
+    path: {
+        workspace_id: (string | null);
+    };
 };
 
 export type ImportUrlDocumentApiV1WorkspacesWorkspaceIdImportUrlPostResponse = (AppResponse_DocumentUploadResponse_);
 
+export type ImportUrlDocumentApiV1WorkspacesWorkspaceIdImportUrlPostError = (HTTPValidationError);
+
 export type ImportSitemapDocumentApiV1WorkspacesWorkspaceIdImportSitemapPostData = {
-    requestBody: SitemapImportRequest;
-    workspaceId: (string | null);
+    body: SitemapImportRequest;
+    path: {
+        workspace_id: (string | null);
+    };
 };
 
 export type ImportSitemapDocumentApiV1WorkspacesWorkspaceIdImportSitemapPostResponse = (AppResponse_DocumentUploadResponse_);
 
+export type ImportSitemapDocumentApiV1WorkspacesWorkspaceIdImportSitemapPostError = (HTTPValidationError);
+
 export type ImportGithubDocumentApiV1WorkspacesWorkspaceIdImportGithubPostData = {
-    requestBody: GitHubImportRequest;
-    workspaceId: (string | null);
+    body: GitHubImportRequest;
+    path: {
+        workspace_id: (string | null);
+    };
 };
 
 export type ImportGithubDocumentApiV1WorkspacesWorkspaceIdImportGithubPostResponse = (AppResponse_DocumentUploadResponse_);
 
+export type ImportGithubDocumentApiV1WorkspacesWorkspaceIdImportGithubPostError = (HTTPValidationError);
+
 export type ImportAudioDocumentApiV1WorkspacesWorkspaceIdImportAudioPostData = {
-    formData: Body_import_audio_document_api_v1_workspaces__workspace_id__import_audio_post;
-    workspaceId: (string | null);
+    body: Body_import_audio_document_api_v1_workspaces__workspace_id__import_audio_post;
+    path: {
+        workspace_id: (string | null);
+    };
 };
 
 export type ImportAudioDocumentApiV1WorkspacesWorkspaceIdImportAudioPostResponse = (AppResponse_DocumentUploadResponse_);
 
+export type ImportAudioDocumentApiV1WorkspacesWorkspaceIdImportAudioPostError = (HTTPValidationError);
+
 export type ListDocumentsApiV1WorkspacesWorkspaceIdDocumentsGetData = {
-    workspaceId: (string | null);
+    path: {
+        workspace_id: (string | null);
+    };
 };
 
 export type ListDocumentsApiV1WorkspacesWorkspaceIdDocumentsGetResponse = (AppResponse_list_DocumentListItem__);
 
+export type ListDocumentsApiV1WorkspacesWorkspaceIdDocumentsGetError = (HTTPValidationError);
+
 export type ListAllDocumentsApiV1WorkspacesWorkspaceIdDocumentsAllGetData = {
-    workspaceId: (string | null);
+    path: {
+        workspace_id: (string | null);
+    };
 };
 
 export type ListAllDocumentsApiV1WorkspacesWorkspaceIdDocumentsAllGetResponse = (AppResponse_list_DocumentListItem__);
 
+export type ListAllDocumentsApiV1WorkspacesWorkspaceIdDocumentsAllGetError = (HTTPValidationError);
+
 export type GetDocumentChunksApiV1WorkspacesWorkspaceIdDocumentsDocumentIdChunksGetData = {
-    documentId: string;
-    limit?: number;
-    workspaceId: (string | null);
+    path: {
+        document_id: string;
+        workspace_id: (string | null);
+    };
+    query?: {
+        limit?: number;
+    };
 };
 
 export type GetDocumentChunksApiV1WorkspacesWorkspaceIdDocumentsDocumentIdChunksGetResponse = (unknown);
 
+export type GetDocumentChunksApiV1WorkspacesWorkspaceIdDocumentsDocumentIdChunksGetError = (HTTPValidationError);
+
 export type IndexDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdIndexPostData = {
-    datasetId?: (string | null);
-    documentId: string;
-    workspaceId: (string | null);
+    path: {
+        document_id: string;
+        workspace_id: (string | null);
+    };
+    query?: {
+        dataset_id?: (string | null);
+    };
 };
 
 export type IndexDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdIndexPostResponse = (AppResponse_dict_);
 
+export type IndexDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdIndexPostError = (HTTPValidationError);
+
 export type InspectDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdInspectGetData = {
-    documentId: string;
-    workspaceId: (string | null);
+    path: {
+        document_id: string;
+        workspace_id: (string | null);
+    };
 };
 
 export type InspectDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdInspectGetResponse = (AppResponse_DocumentInspectionResponse_);
 
+export type InspectDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdInspectGetError = (HTTPValidationError);
+
 export type UpdateDocumentWorkspacesApiV1WorkspacesWorkspaceIdDocumentsUpdateWorkspacesPostData = {
-    requestBody: DocumentWorkspaceUpdate;
-    workspaceId: (string | null);
+    body: DocumentWorkspaceUpdate;
+    path: {
+        workspace_id: (string | null);
+    };
 };
 
 export type UpdateDocumentWorkspacesApiV1WorkspacesWorkspaceIdDocumentsUpdateWorkspacesPostResponse = (AppResponse_dict_);
 
+export type UpdateDocumentWorkspacesApiV1WorkspacesWorkspaceIdDocumentsUpdateWorkspacesPostError = (HTTPValidationError);
+
 export type SyncDocumentWorkspacesApiV1WorkspacesWorkspaceIdDocumentsSyncWorkspacesPostData = {
-    workspaceId: (string | null);
+    path: {
+        workspace_id: (string | null);
+    };
 };
 
 export type SyncDocumentWorkspacesApiV1WorkspacesWorkspaceIdDocumentsSyncWorkspacesPostResponse = (AppResponse);
 
+export type SyncDocumentWorkspacesApiV1WorkspacesWorkspaceIdDocumentsSyncWorkspacesPostError = (HTTPValidationError);
+
 export type GetDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdGetData = {
-    documentId: string;
-    workspaceId: (string | null);
+    path: {
+        document_id: string;
+        workspace_id: (string | null);
+    };
 };
 
 export type GetDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdGetResponse = (AppResponse_DocumentResponse_);
 
+export type GetDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdGetError = (HTTPValidationError);
+
 export type DeleteDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdDeleteData = {
-    datasetDelete?: boolean;
-    documentId: string;
-    workspaceId: (string | null);
+    path: {
+        document_id: string;
+        workspace_id: (string | null);
+    };
+    query?: {
+        dataset_delete?: boolean;
+    };
 };
 
 export type DeleteDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdDeleteResponse = (AppResponse_dict_);
 
+export type DeleteDocumentApiV1WorkspacesWorkspaceIdDocumentsDocumentIdDeleteError = (HTTPValidationError);
+
 export type GlobalSearchApiV1WorkspacesWorkspaceIdSearchGetData = {
-    /**
-     * Search query
-     */
-    q: string;
-    workspaceId: (string | null);
+    path: {
+        workspace_id: (string | null);
+    };
+    query: {
+        /**
+         * Search query
+         */
+        q: string;
+    };
 };
 
 export type GlobalSearchApiV1WorkspacesWorkspaceIdSearchGetResponse = (AppResponse);
 
+export type GlobalSearchApiV1WorkspacesWorkspaceIdSearchGetError = (HTTPValidationError);
+
 export type VectorSearchApiV1WorkspacesWorkspaceIdSearchVectorGetData = {
-    /**
-     * Specific dataset ID to search within
-     */
-    datasetId?: (string | null);
-    /**
-     * Search query
-     */
-    q: string;
-    workspaceId: (string | null);
+    path: {
+        workspace_id: (string | null);
+    };
+    query: {
+        /**
+         * Specific dataset ID to search within
+         */
+        dataset_id?: (string | null);
+        /**
+         * Search query
+         */
+        q: string;
+    };
 };
 
 export type VectorSearchApiV1WorkspacesWorkspaceIdSearchVectorGetResponse = (AppResponse);
 
+export type VectorSearchApiV1WorkspacesWorkspaceIdSearchVectorGetError = (HTTPValidationError);
+
 export type ListTasksApiV1WorkspacesWorkspaceIdTasksGetData = {
-    limit?: number;
-    type?: string;
-    workspaceId: (string | null);
+    path: {
+        workspace_id: (string | null);
+    };
+    query?: {
+        limit?: number;
+        type?: string;
+    };
 };
 
 export type ListTasksApiV1WorkspacesWorkspaceIdTasksGetResponse = (AppResponse_list_Task__);
 
+export type ListTasksApiV1WorkspacesWorkspaceIdTasksGetError = (HTTPValidationError);
+
 export type GetTaskStatusApiV1WorkspacesWorkspaceIdTasksTaskIdGetData = {
-    taskId: string;
-    workspaceId: (string | null);
+    path: {
+        task_id: string;
+        workspace_id: (string | null);
+    };
 };
 
 export type GetTaskStatusApiV1WorkspacesWorkspaceIdTasksTaskIdGetResponse = (AppResponse_Task_);
 
+export type GetTaskStatusApiV1WorkspacesWorkspaceIdTasksTaskIdGetError = (HTTPValidationError);
+
 export type RetryTaskApiV1WorkspacesWorkspaceIdTasksTaskIdRetryPostData = {
-    taskId: string;
-    workspaceId: (string | null);
+    path: {
+        task_id: string;
+        workspace_id: (string | null);
+    };
 };
 
 export type RetryTaskApiV1WorkspacesWorkspaceIdTasksTaskIdRetryPostResponse = (unknown);
 
+export type RetryTaskApiV1WorkspacesWorkspaceIdTasksTaskIdRetryPostError = (HTTPValidationError);
+
 export type CancelTaskApiV1WorkspacesWorkspaceIdTasksTaskIdCancelPostData = {
-    taskId: string;
-    workspaceId: (string | null);
+    path: {
+        task_id: string;
+        workspace_id: (string | null);
+    };
 };
 
 export type CancelTaskApiV1WorkspacesWorkspaceIdTasksTaskIdCancelPostResponse = (unknown);
 
+export type CancelTaskApiV1WorkspacesWorkspaceIdTasksTaskIdCancelPostError = (HTTPValidationError);
+
 export type CleanupTasksApiV1WorkspacesWorkspaceIdTasksCleanupDeleteData = {
-    olderThanHours?: number;
-    workspaceId: (string | null);
+    path: {
+        workspace_id: (string | null);
+    };
+    query?: {
+        older_than_hours?: number;
+    };
 };
 
 export type CleanupTasksApiV1WorkspacesWorkspaceIdTasksCleanupDeleteResponse = (unknown);
 
+export type CleanupTasksApiV1WorkspacesWorkspaceIdTasksCleanupDeleteError = (HTTPValidationError);
+
 export type GetSettingsApiV1WorkspacesWorkspaceIdSettingsGetData = {
-    workspaceId: (string | null);
+    path: {
+        workspace_id: (string | null);
+    };
 };
 
 export type GetSettingsApiV1WorkspacesWorkspaceIdSettingsGetResponse = (unknown);
 
+export type GetSettingsApiV1WorkspacesWorkspaceIdSettingsGetError = (HTTPValidationError);
+
 export type UpdateSettingsApiV1WorkspacesWorkspaceIdSettingsPatchData = {
-    requestBody: {
+    body: {
         [key: string]: unknown;
     };
-    workspaceId: (string | null);
+    path: {
+        workspace_id: (string | null);
+    };
 };
 
 export type UpdateSettingsApiV1WorkspacesWorkspaceIdSettingsPatchResponse = (unknown);
 
+export type UpdateSettingsApiV1WorkspacesWorkspaceIdSettingsPatchError = (HTTPValidationError);
+
 export type GetSettingsMetadataApiV1WorkspacesWorkspaceIdSettingsMetadataGetData = {
-    workspaceId: (string | null);
+    path: {
+        workspace_id: (string | null);
+    };
 };
 
 export type GetSettingsMetadataApiV1WorkspacesWorkspaceIdSettingsMetadataGetResponse = (unknown);
 
+export type GetSettingsMetadataApiV1WorkspacesWorkspaceIdSettingsMetadataGetError = (HTTPValidationError);
+
 export type CreateDatasetApiV1EvalDatasetsPostData = {
-    workspaceId?: string;
+    query?: {
+        workspace_id?: string;
+    };
 };
 
 export type CreateDatasetApiV1EvalDatasetsPostResponse = (unknown);
 
+export type CreateDatasetApiV1EvalDatasetsPostError = (HTTPValidationError);
+
 export type ListDatasetsApiV1EvalDatasetsGetData = {
-    workspaceId?: string;
+    query?: {
+        workspace_id?: string;
+    };
 };
 
 export type ListDatasetsApiV1EvalDatasetsGetResponse = (unknown);
 
+export type ListDatasetsApiV1EvalDatasetsGetError = (HTTPValidationError);
+
 export type RunEvaluationApiV1EvalRunsPostData = {
-    workspaceId?: string;
+    query?: {
+        workspace_id?: string;
+    };
 };
 
 export type RunEvaluationApiV1EvalRunsPostResponse = (unknown);
 
+export type RunEvaluationApiV1EvalRunsPostError = (HTTPValidationError);
+
 export type ListRunsApiV1EvalRunsGetData = {
-    workspaceId?: string;
+    query?: {
+        workspace_id?: string;
+    };
 };
 
 export type ListRunsApiV1EvalRunsGetResponse = (unknown);
 
+export type ListRunsApiV1EvalRunsGetError = (HTTPValidationError);
+
 export type GetRunApiV1EvalRunsRunIdGetData = {
-    runId: string;
+    path: {
+        run_id: string;
+    };
 };
 
 export type GetRunApiV1EvalRunsRunIdGetResponse = (unknown);
 
+export type GetRunApiV1EvalRunsRunIdGetError = (HTTPValidationError);
+
 export type GetPromptsApiV1AdminPromptsGetResponse = (unknown);
+
+export type GetPromptsApiV1AdminPromptsGetError = unknown;
 
 export type GetVectorStatusApiV1AdminVectorStatusGetResponse = (unknown);
 
+export type GetVectorStatusApiV1AdminVectorStatusGetError = unknown;
+
 export type GetOpsOverviewApiV1AdminOpsOverviewGetResponse = (unknown);
+
+export type GetOpsOverviewApiV1AdminOpsOverviewGetError = unknown;
 
 export type GetGlobalSettingsApiV1AdminSettingsGetResponse = (unknown);
 
+export type GetGlobalSettingsApiV1AdminSettingsGetError = unknown;
+
 export type UpdateGlobalSettingsApiV1AdminSettingsPatchData = {
-    requestBody: {
+    body: {
         [key: string]: unknown;
     };
 };
 
 export type UpdateGlobalSettingsApiV1AdminSettingsPatchResponse = (unknown);
 
+export type UpdateGlobalSettingsApiV1AdminSettingsPatchError = (HTTPValidationError);
+
 export type GetGlobalSettingsMetadataApiV1AdminSettingsMetadataGetResponse = (unknown);
 
+export type GetGlobalSettingsMetadataApiV1AdminSettingsMetadataGetError = unknown;
+
 export type HealthCheckGetResponse = (HealthCheckResponse);
+
+export type HealthCheckGetError = unknown;

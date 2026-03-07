@@ -63,7 +63,7 @@ export default function SettingsPage() {
                         </div>
                         <div className="space-y-2">
                             <label className="text-[10px] font-bold text-muted-foreground uppercase opacity-60">Description</label>
-                            <textarea className="w-full h-24 bg-secondary border border-border rounded-xl px-4 py-3 text-sm font-medium focus:ring-1 focus:ring-indigo-500/30 outline-none transition-all resize-none" defaultValue="Primary workspace for all company documents and internal RAG operations." />
+                            <textarea className="w-full h-24 bg-secondary border border-border rounded-xl px-4 py-3 text-sm font-medium focus:ring-1 focus:ring-indigo-500/30 outline-none transition-all resize-none" defaultValue="Primary workspace for company documents and document search requests." />
                         </div>
                         <div className="pt-4 flex justify-end">
                             <Button className="h-10 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[11px] tracking-wide shadow-lg shadow-indigo-600/20">
@@ -80,13 +80,13 @@ export default function SettingsPage() {
                         System Preferences
                     </h3>
                     <Card className="bg-card/50 border-border rounded-3xl overflow-hidden divide-y divide-border">
-                        <SettingsRow title="Advanced Reasoning" description="Enable multi-step planning and reflection for complex queries.">
+                        <SettingsRow title="Extended Search" description="Enable multi-step search for complex queries.">
                             <Switch defaultChecked />
                         </SettingsRow>
                         <SettingsRow title="Automatic Sync" description="Periodically poll connected data sources for new documents.">
                             <Switch defaultChecked />
                         </SettingsRow>
-                        <SettingsRow title="Detailed Tracing" description="Capture full internal traces for RAG operations (impacts latency slightly).">
+                        <SettingsRow title="Detailed Tracing" description="Capture detailed traces for search and answer requests (impacts latency slightly).">
                             <Switch defaultChecked />
                         </SettingsRow>
                         <SettingsRow title="Public API Access" description="Allow external requests via API keys to this workspace.">

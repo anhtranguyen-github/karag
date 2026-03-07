@@ -47,7 +47,7 @@ export function WorkspaceHeader() {
                 <div className="hidden lg:flex items-center gap-4 border-l border-border pl-6">
                     <div className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">System Operational</span>
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">System Online</span>
                     </div>
                 </div>
             </div>
@@ -78,7 +78,7 @@ export function WorkspaceHeader() {
 
                 <div className="flex items-center gap-3 pl-2">
                     <div className="flex flex-col items-end hidden sm:flex">
-                        <span className="text-xs font-bold leading-none">{user?.fullName || "User"}</span>
+                        <span className="text-xs font-bold leading-none">{user?.full_name || "User"}</span>
                         <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest mt-1">Admin</span>
                     </div>
                     <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20 border border-white/10 active:scale-95 transition-all cursor-pointer">

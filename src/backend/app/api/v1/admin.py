@@ -1,9 +1,11 @@
 from typing import Any
 
+from fastapi import APIRouter
 from src.backend.app.core.prompt_manager import prompt_manager
 from src.backend.app.core.settings_manager import settings_manager
 from src.backend.app.schemas.base import AppResponse
-from fastapi import APIRouter
+from src.backend.app.schemas.deployment import DeploymentConfigUpdate
+from src.backend.app.services.deployment_service import deployment_service
 
 router = APIRouter(prefix="/admin", tags=["AdminOps"])
 
@@ -60,3 +62,28 @@ async def update_global_settings(updates: dict[str, Any]):
     settings = await settings_manager.update_settings(updates, workspace_id="default")
     return AppResponse.success_response(data=settings.model_dump())
 
+
+@router.get("/deployment/config")
+async def get_deployment_config():
+    """Return deployment configuration with secrets redacted."""
+    return AppResponse.success_response(data=deployment_service.get_public_config().model_dump())
+
+
+@router.patch("/deployment/config")
+async def update_deployment_config(update: DeploymentConfigUpdate):
+    """Persist deployment configuration and apply runtime environment overrides."""
+    return AppResponse.success_response(data=deployment_service.update_config(update).model_dump())
+
+
+@router.get("/deployment/detect")
+async def detect_local_deployment():
+    """Detect common locally hosted dependencies used for local deployments."""
+    result = await deployment_service.detect_local_services()
+    return AppResponse.success_response(data=result.model_dump())
+
+
+@router.post("/deployment/verify")
+async def verify_deployment():
+    """Verify configured cloud/local deployment services and provider credentials."""
+    result = await deployment_service.verify_config()
+    return AppResponse.success_response(data=result.model_dump())

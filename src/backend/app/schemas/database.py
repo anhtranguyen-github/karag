@@ -1,5 +1,5 @@
-from src.backend.app.schemas.chunking import ChunkingConfig
 from pydantic import BaseModel
+from src.backend.app.schemas.chunking import ChunkingConfig
 
 
 class IngestionConfig(BaseModel):
@@ -11,4 +11,3 @@ class IngestionConfig(BaseModel):
 
     # We can pass model refs for dense/sparse embedding here if needed,
     # but initially they are fetched from settings.
-

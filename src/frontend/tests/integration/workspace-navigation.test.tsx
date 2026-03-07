@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
-import { api } from '@/lib/api-client';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { workspaces } from '@/sdk/workspaces';
 
 // Setup mocks
 const mockRouterPush = vi.fn();
@@ -20,16 +20,17 @@ vi.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
 }));
 
-vi.mock('@/lib/api-client', () => ({
-    api: {
-        listWorkspacesApiV1WorkspacesGet: vi.fn(),
-        getSettingsMetadataApiV1WorkspacesWorkspaceIdSettingsMetadataGet: vi.fn(),
-        getGlobalSettingsMetadataApiV1AdminSettingsMetadataGet: vi.fn(),
-        getSettingsApiV1WorkspacesWorkspaceIdSettingsGet: vi.fn(),
-        getGlobalSettingsApiV1AdminSettingsGet: vi.fn(),
-        getWorkspaceDetailsApiV1WorkspacesWorkspaceIdDetailsGet: vi.fn(),
-        createWorkspaceApiV1WorkspacesPost: vi.fn(),
-    }
+vi.mock('@/sdk/workspaces', () => ({
+    workspaces: {
+        list: vi.fn(),
+        create: vi.fn(),
+        delete: vi.fn(),
+        getDetails: vi.fn(),
+        getGraph: vi.fn(),
+        getSettings: vi.fn(),
+        updateSettings: vi.fn(),
+        getSettingsMetadata: vi.fn(),
+    },
 }));
 
 import HomePage from '@/app/page';
@@ -44,13 +45,7 @@ describe('Workspace Navigation Integration', () => {
     beforeEach(() => {
         vi.clearAllMocks();
 
-        (api.listWorkspacesApiV1WorkspacesGet as any).mockResolvedValue({ success: true, data: mockWorkspaces });
-
-        (api.getSettingsMetadataApiV1WorkspacesWorkspaceIdSettingsMetadataGet as any).mockResolvedValue({ success: true, data: {} });
-
-        (api.getGlobalSettingsMetadataApiV1AdminSettingsMetadataGet as any).mockResolvedValue({ success: true, data: {} });
-
-        (api.getGlobalSettingsApiV1AdminSettingsGet as any).mockResolvedValue({ success: true, data: {} });
+        (workspaces.list as any).mockResolvedValue({ data: mockWorkspaces });
     });
 
     it('navigates to workspace when card clicked', async () => {
@@ -70,7 +65,11 @@ describe('Workspace Navigation Integration', () => {
 
     it('opens create modal and creates workspace', async () => {
 
-        (api.createWorkspaceApiV1WorkspacesPost as any).mockResolvedValue({ success: true, data: { id: 'new-ws', name: 'New Workspace' } });
+        (workspaces.create as any).mockResolvedValue({
+            success: true,
+            message: 'Workspace created successfully',
+            data: { id: 'new-ws', name: 'New Workspace' }
+        });
 
         render(
             <ErrorProvider>
@@ -95,7 +94,7 @@ describe('Workspace Navigation Integration', () => {
         fireEvent.click(submitButton);
 
         await waitFor(() => {
-            expect(api.createWorkspaceApiV1WorkspacesPost).toHaveBeenCalledWith(expect.objectContaining({
+            expect(workspaces.create).toHaveBeenCalledWith(expect.objectContaining({
                 requestBody: expect.objectContaining({
                     name: 'New Workspace'
                 })
@@ -107,13 +106,17 @@ describe('Workspace Navigation Integration', () => {
         }, { timeout: 3000 });
 
         await waitFor(() => {
-            expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining('/workspaces/new-ws'));
+            expect(mockRouterPush).toHaveBeenCalledWith('/workspaces/new-ws');
         }, { timeout: 3000 });
     });
 
     it('selects simple fields in create modal', async () => {
 
-        (api.createWorkspaceApiV1WorkspacesPost as any).mockResolvedValue({ success: true, data: { id: 'new-ws' } });
+        (workspaces.create as any).mockResolvedValue({
+            success: true,
+            message: 'Workspace created successfully',
+            data: { id: 'new-ws' }
+        });
 
         render(
             <ErrorProvider>
@@ -136,7 +139,7 @@ describe('Workspace Navigation Integration', () => {
         fireEvent.click(submitButton);
 
         await waitFor(() => {
-            expect(api.createWorkspaceApiV1WorkspacesPost).toHaveBeenCalledWith(expect.objectContaining({
+            expect(workspaces.create).toHaveBeenCalledWith(expect.objectContaining({
                 requestBody: expect.objectContaining({
                     name: 'Custom WS'
                 })

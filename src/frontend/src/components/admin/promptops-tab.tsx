@@ -81,7 +81,7 @@ export function PromptOpsTab({ registry }: PromptOpsTabProps) {
                     <div className="lg:col-span-2 flex items-center justify-center p-20 border border-dashed border-white/5 rounded-3xl">
                         <div className="flex flex-col items-center gap-4 text-center">
                             <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
-                            <div className="text-tiny font-black text-gray-600 uppercase tracking-widest">Loading Prompt Registry Manifest...</div>
+                            <div className="text-tiny font-black text-gray-600 uppercase tracking-widest">Loading prompt library...</div>
                         </div>
                     </div>
                 )}
@@ -92,16 +92,15 @@ export function PromptOpsTab({ registry }: PromptOpsTabProps) {
                     <History size={24} />
                 </div>
                 <div className="max-w-md">
-                    <h3 className="text-tiny font-black uppercase tracking-wider text-indigo-100">Hot-Reload & Rollback</h3>
+                    <h3 className="text-tiny font-black uppercase tracking-wider text-indigo-100">Version Updates and Rollback</h3>
                     <p className="text-[11px] text-indigo-300/60 font-medium leading-relaxed mt-1">
-                        Prompt versions are defined in Git but managed as code. Version mismatches during canary deploys are detected via regression evaluation.
+                        Prompt versions are tracked in Git. Version mismatches during staged releases are detected through regression checks.
                     </p>
                 </div>
                 <button className="px-6 py-2.5 rounded-xl bg-indigo-500 text-black font-black text-[11px] uppercase hover:bg-indigo-400 transition-all">
-                    Initialize A/B Experiment
+                    Start Variant Test
                 </button>
             </div>
         </div>
     );
 }
-

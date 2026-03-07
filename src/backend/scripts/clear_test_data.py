@@ -14,4 +14,3 @@ async def clear_db():
 
 if __name__ == "__main__":
     asyncio.run(clear_db())
-

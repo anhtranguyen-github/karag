@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { sdk } from '@/sdk';
+import { tasks as tasksApi } from '@/sdk/tasks';
 import { useToast } from '@/context/toast-context';
 
 export interface TaskItem {
@@ -82,7 +82,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     const fetchTasks = useCallback(async (workspaceId?: string) => {
         if (!workspaceId) return;
         try {
-            const payload = (await sdk.tasks.list({
+            const payload = (await tasksApi.list({
                 workspaceId: workspaceId
             })) as any;
             if (payload.success && payload.data) {
@@ -139,7 +139,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     const retryTask = useCallback(async (taskId: string, workspaceId?: string) => {
         if (!workspaceId) return;
         try {
-            const payload = (await sdk.tasks.retry({
+            const payload = (await tasksApi.retry({
                 workspaceId,
                 taskId
             })) as any;
@@ -160,7 +160,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     const cancelTask = useCallback(async (taskId: string, workspaceId?: string) => {
         if (!workspaceId) return;
         try {
-            const payload = (await sdk.tasks.cancel({
+            const payload = (await tasksApi.cancel({
                 workspaceId,
                 taskId
             })) as any;

@@ -1,338 +1,69 @@
 services:
-  qdrant:
-    image: qdrant/qdrant:latest
-    container_name: karag-qdrant
-    ports:
-      - "6333:6333"
-      - "6334:6334"
-    volumes:
-      - ./qdrant_storage:/qdrant/storage:z
-    restart: unless-stopped
-    networks:
-      - karag_network
-    healthcheck:
-      test: ["CMD-SHELL", "/bin/sh -c 'if [ -d /dev/tcp ]; then echo > /dev/tcp/localhost/6333; else true; fi'"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
   mongodb:
-    image: mongo:latest
-    container_name: karag-mongodb
+    image: mongo:7
     ports:
       - "27017:27017"
     volumes:
-      - ./mongo_data:/data/db:z
-    restart: unless-stopped
-    networks:
-      - karag_network
-    healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+      - ./mongo_data:/data/db
+
+  qdrant:
+    image: qdrant/qdrant:v1.13.2
+    ports:
+      - "6333:6333"
+    volumes:
+      - ./qdrant_storage:/qdrant/storage
 
   minio:
     image: minio/minio:latest
-    container_name: karag-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
     ports:
       - "9000:9000"
       - "9001:9001"
     volumes:
-      - ./minio_data:/data:z
+      - ./minio_data:/data
+
+  neo4j:
+    image: neo4j:5
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
-    command: server /data --console-address ":9001"
-    restart: unless-stopped
-    networks:
-      - karag_network
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  ollama:
-    image: ollama/ollama:latest
-    container_name: karag-ollama
-    profiles: ["local-models", "gpu"]
+      NEO4J_AUTH: ${NEO4J_AUTH:-neo4j/neo4j_password}
     ports:
-      - "11434:11434"
+      - "7474:7474"
+      - "7687:7687"
     volumes:
-      - ./ollama_data:/root/.ollama:z
-    restart: unless-stopped
-    networks:
-      - karag_network
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [ gpu ]
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:11434/api/tags" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "3"
-
-  vllm:
-    image: vllm/vllm-openai:latest
-    container_name: karag-vllm
-    profiles: ["local-models", "gpu"]
-    ports:
-      - "8008:8000"
-    volumes:
-      - ./model_cache:/root/.cache/huggingface:z
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [ gpu ]
-    networks:
-      - karag_network
-    command: >
-      --model ${VLLM_MODEL:-Qwen/Qwen2.5-0.5B-Instruct} --max-model-len 4096 --disable-log-requests --enforce-eager
-    restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "3"
-
-  llama-cpp:
-    image: ghcr.io/ggml-org/llama.cpp:server
-    container_name: karag-llamacpp
-    profiles: ["local-models"]
-    ports:
-      - "8081:8080"
-    volumes:
-      - ./models:/models:z
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [ gpu ]
-    networks:
-      - karag_network
-    command: >
-      -m /models/${LLAMACPP_MODEL:-qwen2.5-0.5b-instruct.gguf} --host 0.0.0.0 --port 8080 -c 4096 --embedding -ngl 99
-    restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  nginx:
-    image: nginx:alpine
-    container_name: karag-nginx
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - backend
-      - frontend
-    networks:
-      - karag_network
+      - ./neo4j_data:/data
+      - ./neo4j_logs:/logs
 
   backend:
     build:
       context: .
-      dockerfile: src/backend/Dockerfile
-    container_name: karag-backend
+      dockerfile: docker/backend.Dockerfile
+    env_file:
+      - .env
+    environment:
+      MONGO_URI: mongodb://mongodb:27017
+      QDRANT_URL: http://qdrant:6333
+      MINIO_ENDPOINT: minio:9000
+      NEO4J_URI: bolt://neo4j:7687
+    depends_on:
+      - mongodb
+      - qdrant
+      - minio
+      - neo4j
     ports:
       - "8000:8000"
-    environment:
-      - OTEL_ENABLED=true
-      - OTEL_SERVICE_NAME=karag-backend
-      - OTEL_EXPORTER_ENDPOINT=http://jaeger:4317
-      - METRICS_ENABLED=true
-      - MONGO_URI=mongodb://karag-mongodb:27017
-      - QDRANT_URL=http://karag-qdrant:6333
-      - MINIO_ENDPOINT=karag-minio:9000
-      - NEO4J_URI=bolt://karag-neo4j:7687
-      - OLLAMA_BASE_URL=http://karag-ollama:11434
-      - VLLM_BASE_URL=http://karag-vllm:8000/v1
-      - LLAMACPP_BASE_URL=http://karag-llamacpp:8080/v1
-      - LOG_FORMAT=json
-      - LOG_LEVEL=INFO
-    depends_on:
-      mongodb:
-        condition: service_healthy
-      qdrant:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-      jaeger:
-        condition: service_started
-    networks:
-      - karag_network
 
   frontend:
     build:
       context: .
-      dockerfile: src/frontend/Dockerfile
-    container_name: karag-frontend
+      dockerfile: docker/frontend.Dockerfile
+    env_file:
+      - .env
+    environment:
+      NEXT_PUBLIC_API_URL: http://backend:8000
     depends_on:
       - backend
-    networks:
-      - karag_network
-
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: karag-prometheus
-    restart: unless-stopped
     ports:
-      - "9090:9090"
-    volumes:
-      - ./src/backend/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    networks:
-      - karag_network
-
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    container_name: karag-jaeger
-    restart: unless-stopped
-    ports:
-      - "16686:16686" # UI
-      - "4317:4317" # OTLP gRPC
-      - "4318:4318" # OTLP HTTP
-    environment:
-      - COLLECTOR_OTLP_ENABLED=true
-    networks:
-      - karag_network
-
-  neo4j:
-    image: neo4j:latest
-    container_name: karag-neo4j
-    ports:
-      - "7474:7474" # HTTP
-      - "7687:7687" # Bolt
-    volumes:
-      - ./neo4j_data:/data:z
-      - ./neo4j_logs:/logs:z
-    environment:
-      - NEO4J_AUTH=neo4j/neo4j_password
-      - NEO4J_PLUGINS=["apoc"]
-    restart: unless-stopped
-    networks:
-      - karag_network
-    healthcheck:
-      test: [ "CMD", "cypher-shell", "-u", "neo4j", "-p", "neo4j_password", "RETURN 1" ]
-      interval: 20s
-      timeout: 10s
-      retries: 5
-
-  jenkins:
-    image: jenkins/jenkins:lts
-    container_name: karag-jenkins
-    profiles: ["devops"]
-    user: root
-    ports:
-      - "8080:8080"
-      - "50000:50000"
-    volumes:
-      - ./jenkins_home:/var/jenkins_home:z
-      - /var/run/docker.sock:/var/run/docker.sock:z
-      - .:/workspace/karag:ro
-    environment:
-      - JAVA_OPTS=-Dhudson.net.HeaderBufferBytes=32768 -Djenkins.install.runSetupWizard=false -Dhudson.plugins.git.GitSCM.ALLOW_LOCAL_CHECKOUT=true
-    restart: unless-stopped
-    networks:
-      - karag_network
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  sonarqube_db:
-    image: postgres:15
-    container_name: karag-sonarqube-db
-    profiles: ["devops"]
-    environment:
-      - POSTGRES_USER=sonar
-      - POSTGRES_PASSWORD=sonar
-      - POSTGRES_DB=sonarqube
-    volumes:
-      - ./sonar_db_data:/var/lib/postgresql/data:z
-    networks:
-      - karag_network
-    restart: unless-stopped
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U sonar" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  sonarqube:
-    image: sonarqube:lts-community
-    container_name: karag-sonarqube
-    profiles: ["devops"]
-    ports:
-      - "9005:9000"
-    environment:
-      - SONAR_JDBC_URL=jdbc:postgresql://sonarqube_db:5432/sonarqube
-      - SONAR_JDBC_USERNAME=sonar
-      - SONAR_JDBC_PASSWORD=sonar
-    depends_on:
-      sonarqube_db:
-        condition: service_healthy
-    volumes:
-      - ./sonar_data:/opt/sonarqube/data:z
-      - ./sonar_extensions:/opt/sonarqube/extensions:z
-      - ./sonar_logs:/opt/sonarqube/logs:z
-    networks:
-      - karag_network
-    restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-networks:
-  karag_network:
-    driver: bridge
-
+      - "3000:3000"

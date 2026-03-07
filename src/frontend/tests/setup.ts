@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { vi, beforeAll, afterEach, afterAll } from 'vitest';
+import { server } from './mocks/server';
 
-// Mock Next.js router
 vi.mock('next/navigation', () => ({
     useRouter: () => ({
         push: vi.fn(),
@@ -15,10 +15,9 @@ vi.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
 }));
 
-// Mock Auth context globally
 vi.mock('@/context/auth-context', () => ({
     useAuth: () => ({
-        user: { id: 'test-user', fullName: 'Test User', email: 'test@example.com' },
+        user: { id: 'test-user', full_name: 'Test User', email: 'test@example.com' },
         isAuthenticated: true,
         login: vi.fn(),
         logout: vi.fn(),
@@ -26,7 +25,6 @@ vi.mock('@/context/auth-context', () => ({
     AuthProvider: ({ children }: { children: any }) => children,
 }));
 
-// Mock Toast context globally
 vi.mock('@/context/toast-context', () => ({
     useToast: () => ({
         success: vi.fn(),
@@ -38,19 +36,10 @@ vi.mock('@/context/toast-context', () => ({
     ToastProvider: ({ children }: { children: any }) => children,
 }));
 
-import { server } from '../src/mocks/server';
-
-// Establish API mocking before all tests.
 beforeAll(() => server.listen());
-
-// Reset any request handlers that we may add during the tests,
-// so they don't affect other tests.
 afterEach(() => server.resetHandlers());
-
-// Clean up after the tests are finished.
 afterAll(() => server.close());
 
-// Mock ResizeObserver
 class ResizeObserverMock {
     observe = vi.fn();
     unobserve = vi.fn();

@@ -5,21 +5,21 @@ from pathlib import Path
 from typing import Any
 
 import structlog
+from langchain_community.document_loaders import (
+    Docx2txtLoader,
+    PyPDFLoader,
+    TextLoader,
+)
 from src.backend.app.core.factory import ProviderFactory
 from src.backend.app.observability import (
     DOCUMENT_INGESTION_COUNT,
     DOCUMENT_INGESTION_LATENCY,
     get_tracer,
 )
-from src.backend.app.rag.runtime import rag_pipeline_resolver
 from src.backend.app.rag.rag_service import rag_service
+from src.backend.app.rag.runtime import rag_pipeline_resolver
 from src.backend.app.rag.store.base import DocumentPoint
 from src.backend.app.schemas.database import IngestionConfig
-from langchain_community.document_loaders import (
-    Docx2txtLoader,
-    PyPDFLoader,
-    TextLoader,
-)
 
 logger = structlog.get_logger(__name__)
 tracer = get_tracer(__name__)
@@ -52,8 +52,8 @@ class IngestionPipeline:
         INTERNAL ONLY: file_path_str must be a trusted internal path (e.g. from tempfile or storage).
         Validated against workspace sandbox roots.
         """
-        from src.backend.app.core.path_utils import validate_safe_path
         from langchain_community.document_loaders import BSHTMLLoader
+        from src.backend.app.core.path_utils import validate_safe_path
 
         # Canonicalize and validate path
         file_path = validate_safe_path(file_path_str)

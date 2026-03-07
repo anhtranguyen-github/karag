@@ -18,9 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-    vectorSearchApiV1WorkspacesWorkspaceIdSearchVectorGet as vectorSearch,
-} from "@/sdk/generated";
+import { search } from "@/sdk/search";
 import { useParams } from "next/navigation";
 import { useToast } from "@/context/toast-context";
 import { useWorkspaces } from "@/hooks/use-workspaces";
@@ -41,7 +39,7 @@ export default function SearchPage() {
         try {
             setLoading(true);
             const startTime = performance.now();
-            const response = await vectorSearch({ workspaceId, q: query });
+            const response = await search.vector({ workspaceId, q: query });
             const endTime = performance.now();
 
             const data = (response.data as any) || [];
@@ -60,8 +58,8 @@ export default function SearchPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Search Playground</h1>
-                    <p className="text-muted-foreground mt-1 font-medium">Test your RAG pipelines and inspect retrieval quality.</p>
+                    <h1 className="text-3xl font-bold tracking-tight">Search Tester</h1>
+                    <p className="text-muted-foreground mt-1 font-medium">Run test queries and inspect search quality.</p>
                 </div>
                 <div className="flex gap-2">
                     <Button variant="outline" className="h-10 rounded-xl border-border bg-card gap-2 font-bold text-xs">
@@ -79,7 +77,7 @@ export default function SearchPage() {
                         <input
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
-                            placeholder="Ask anything about your knowledge base..."
+                            placeholder="Search your documents..."
                             className="flex-1 h-14 bg-transparent border-none outline-none px-6 text-xl font-medium placeholder:text-muted-foreground/50"
                         />
                         <Button
@@ -104,7 +102,7 @@ export default function SearchPage() {
                         </div>
                         <div className="flex items-center gap-2 cursor-pointer hover:text-indigo-400 transition-colors ml-auto">
                             <Sparkles size={12} className="text-indigo-400" />
-                            <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">AI Reasoning Off</span>
+                            <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Tool Use Off</span>
                         </div>
                     </div>
                 </CardContent>
@@ -125,7 +123,7 @@ export default function SearchPage() {
                         </div>
                         <h3 className="text-lg font-bold text-muted-foreground">Ready for your query</h3>
                         <p className="max-w-xs mx-auto text-sm text-muted-foreground/60 mt-1 font-medium">
-                            Enter a search term above to begin inspecting your retrieval pipeline.
+                            Enter a search term above to inspect your results.
                         </p>
                     </div>
                 ) : (

@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { sdk, type Workspace, type WorkspaceCreate, type WorkspaceUpdate, type WorkspaceDetail as APIWorkspaceDetail } from '@/sdk';
+import type { Workspace, WorkspaceCreate, WorkspaceUpdate, WorkspaceDetail as APIWorkspaceDetail } from '@/sdk/generated';
+import { datasets as datasetsApi } from '@/sdk/datasets';
+import { workspaces as workspacesApi } from '@/sdk/workspaces';
 import { useError } from '@/context/error-context';
 
 export type { Workspace, WorkspaceCreate, WorkspaceUpdate };
@@ -32,7 +34,7 @@ export function useWorkspaces() {
     const fetchWorkspaces = useCallback(async () => {
         setIsLoading(true);
         try {
-            const payload = (await sdk.workspaces.list()) as any;
+            const payload = (await workspacesApi.list()) as any;
 
             if (!payload.success || !payload.data) {
                 showError(payload.code || "Error", payload.message || "Failed to load workspaces.");
@@ -76,7 +78,7 @@ export function useWorkspaces() {
 
     const createWorkspace = async (payload: WorkspaceCreate) => {
         try {
-            const appResponse = (await sdk.workspaces.create({
+            const appResponse = (await workspacesApi.create({
                 requestBody: payload
             })) as any;
 
@@ -104,7 +106,7 @@ export function useWorkspaces() {
     const updateWorkspace = async (id: string, name: string, description?: string) => {
         try {
             const updatePayload: WorkspaceUpdate = { name, description };
-            const appResponse = (await sdk.workspaces.update({
+            const appResponse = (await workspacesApi.update({
                 workspaceId: id,
                 requestBody: updatePayload
             })) as any;
@@ -122,7 +124,7 @@ export function useWorkspaces() {
 
     const deleteWorkspace = async (id: string, datasetDelete: boolean = false) => {
         try {
-            const appResponse = (await sdk.workspaces.delete({
+            const appResponse = (await workspacesApi.delete({
                 workspaceId: id,
                 datasetDelete: datasetDelete
             })) as any;
@@ -143,7 +145,7 @@ export function useWorkspaces() {
 
     const getWorkspaceDetails = async (id: string): Promise<WorkspaceDetail | null> => {
         try {
-            const result = (await sdk.workspaces.getDetails({
+            const result = (await workspacesApi.getDetails({
                 workspaceId: id
             })) as any;
             if (result.success && result.data) {
@@ -163,7 +165,7 @@ export function useWorkspaces() {
     const shareDocument = async (sourceName: string, targetWorkspaceId: string) => {
         if (!currentWorkspace) return false;
         try {
-            const response = (await sdk.datasets.shareDocument({
+            const response = (await datasetsApi.shareDocument({
                 workspaceId: currentWorkspace.id,
                 requestBody: { source_name: sourceName, target_workspace_id: targetWorkspaceId }
             })) as any;

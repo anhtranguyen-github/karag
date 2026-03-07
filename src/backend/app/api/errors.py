@@ -10,7 +10,7 @@ Following API design principles:
 """
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 import structlog
@@ -22,7 +22,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 logger = structlog.get_logger(__name__)
 
 
-class ErrorSeverity(str, Enum):
+class ErrorSeverity(StrEnum):
     """Error severity levels."""
 
     WARNING = "warning"
@@ -343,6 +343,7 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
 
         print(f"DEBUG_UNHANDLED_EXCEPTION: {type(exc).__name__}: {exc}")
         import traceback
+
         traceback.print_exc()
 
         logger.exception(

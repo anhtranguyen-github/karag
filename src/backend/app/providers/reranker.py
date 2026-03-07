@@ -2,6 +2,7 @@ from typing import Any
 
 import httpx
 import structlog
+
 from src.backend.app.core.config import karag_settings
 from src.backend.app.core.telemetry import get_tracer
 
@@ -161,4 +162,3 @@ async def get_reranker(
         return LocalReranker(model_name=config.model)
     else:
         return None
-

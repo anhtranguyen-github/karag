@@ -121,8 +121,10 @@ class WorkspaceService:
             raise NotFoundError(f"Workspace {workspace_id} not found")
 
         db = mongodb_manager.get_async_database()
-        
-        thread_docs = await db["thread_metadata"].find({"workspace_id": workspace_id}).sort("last_active", -1).to_list(100)
+
+        thread_docs = (
+            await db["thread_metadata"].find({"workspace_id": workspace_id}).sort("last_active", -1).to_list(100)
+        )
         threads = []
         for t in thread_docs:
             if "_id" in t:
@@ -139,6 +141,7 @@ class WorkspaceService:
             documents.append(DocumentResponse.model_validate(d))
 
         from src.backend.app.core.settings_manager import settings_manager
+
         settings = await settings_manager.get_settings(workspace_id)
 
         return WorkspaceDetail(
@@ -146,7 +149,7 @@ class WorkspaceService:
             threads=threads,
             documents=documents,
             settings=settings.model_dump(),
-            stats=WorkspaceStats(thread_count=len(threads), doc_count=len(documents))
+            stats=WorkspaceStats(thread_count=len(threads), doc_count=len(documents)),
         )
 
     @staticmethod
@@ -240,4 +243,3 @@ class WorkspaceService:
 
 
 workspace_service = WorkspaceService()
-

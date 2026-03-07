@@ -53,10 +53,10 @@ export function LLMOpsTab({ parseMetric, settings }: LLMOpsTabProps) {
                     <div className="flex items-center justify-between mb-6">
                         <h3 className="text-sm font-black tracking-wider flex items-center gap-2">
                             <Zap size={16} className="text-yellow-400" />
-                            Token Allocation & Cost
+                            Token Usage and Cost
                         </h3>
                         <div className="text-[10px] font-black text-gray-500 bg-white/5 px-2 py-1 rounded border border-white/5">
-                            Real-time from Instrumentation
+                            Real-time service data
                         </div>
                     </div>
 
@@ -78,7 +78,7 @@ export function LLMOpsTab({ parseMetric, settings }: LLMOpsTabProps) {
                         <div className="flex items-center gap-3">
                             <Cpu size={20} className="text-indigo-400" />
                             <div>
-                                <div className="text-tiny font-black text-white">Primary Delivery Model</div>
+                                <div className="text-tiny font-black text-white">Primary Model</div>
                                 <div className="text-[11px] font-bold text-indigo-300/60">{settings?.llm_model || 'Loading...'}</div>
                             </div>
                         </div>

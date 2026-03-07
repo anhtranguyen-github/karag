@@ -11,6 +11,7 @@ ACCESS: Operator/Admin only
 
 from datetime import datetime
 
+from fastapi import APIRouter, HTTPException, Query, status
 from src.backend.app.api.baas_deps import AdminPermDep
 from src.backend.app.schemas.baas import (
     APIKey,
@@ -24,7 +25,6 @@ from src.backend.app.schemas.base import AppResponse
 from src.backend.app.services.api_key_service import api_key_service
 from src.backend.app.services.config_service import config_service
 from src.backend.app.services.usage_service import usage_service
-from fastapi import APIRouter, HTTPException, Query, status
 
 router = APIRouter(prefix="/admin/baas", tags=["BaaS Admin"])
 
@@ -240,4 +240,3 @@ async def get_workspace_usage_stats(
     period_start = datetime.utcnow() - __import__("datetime").timedelta(days=days)
     stats = await usage_service.get_workspace_usage_stats(workspace_id=workspace_id, period_start=period_start)
     return AppResponse.success_response(data=stats)
-

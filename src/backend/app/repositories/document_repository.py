@@ -1,4 +1,3 @@
-
 from src.backend.app.repositories.base_repository import BaseRepository
 from src.backend.app.schemas.documents import DocumentResponse
 
@@ -12,7 +11,6 @@ class DocumentRepository(BaseRepository[DocumentResponse]):
         docs = await doc_cursor.to_list(length=limit)
         return [self.model_class.model_validate(self.normalize_id(doc)) for doc in docs]
 
-
     async def find_by_hash(self, content_hash: str) -> DocumentResponse | None:
         doc = await self.collection.find_one({"content_hash": content_hash})
         if not doc:
@@ -21,4 +19,3 @@ class DocumentRepository(BaseRepository[DocumentResponse]):
 
 
 document_repository = DocumentRepository()
-

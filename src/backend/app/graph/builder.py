@@ -1,3 +1,4 @@
+from langgraph.graph import END, START, StateGraph
 from src.backend.app.graph.nodes import (
     generate_node,
     reason_node,
@@ -6,7 +7,6 @@ from src.backend.app.graph.nodes import (
     summarize_node,
 )
 from src.backend.app.graph.state import AgentState
-from langgraph.graph import END, START, StateGraph
 
 # 1. Initialize Graph
 workflow = StateGraph(AgentState)
@@ -60,9 +60,9 @@ _app = None
 def get_graph_app():
     global _app
     if _app is None:
+        from langgraph.checkpoint.mongodb import MongoDBSaver
         from src.backend.app.core.config import karag_settings
         from src.backend.app.core.mongodb import mongodb_manager
-        from langgraph.checkpoint.mongodb import MongoDBSaver
 
         # Compile with Persistence
         checkpointer = MongoDBSaver(mongodb_manager.client, db_name=karag_settings.MONGO_DB)
@@ -82,4 +82,3 @@ class AppProxy:
 
 
 app = AppProxy()
-

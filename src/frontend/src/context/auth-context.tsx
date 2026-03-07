@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { sdk, type User, type UserCreate } from "@/sdk";
+import type { User, UserCreate } from "@/sdk/generated";
+import { auth } from "@/sdk/auth";
 
 interface AuthContextType {
     user: User | null;
@@ -36,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (storedToken) {
                 setToken(storedToken);
                 try {
-                    const profile = (await sdk.auth.me()) as any;
+                    const profile = (await auth.me()) as any;
                     setUser(profile);
                 } catch (error) {
                     console.error("Failed to fetch user profile:", error);
@@ -51,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const login = async (email: string, password: string) => {
         setIsLoading(true);
         try {
-            const tokenData = (await sdk.auth.login({
+            const tokenData = (await auth.login({
                 formData: {
                     username: email,
                     password: password
@@ -62,7 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setToken(tokenData.access_token);
             // Fetch user profile after login
             try {
-                const profile = (await sdk.auth.me()) as any;
+                const profile = (await auth.me()) as any;
                 setUser(profile);
             } catch {
                 // Profile fetch is optional at login time
@@ -78,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const register = async (data: UserCreate) => {
         setIsLoading(true);
         try {
-            (await sdk.auth.register({ requestBody: data })) as any;
+            (await auth.register({ requestBody: data })) as any;
             // After registration, user needs to login
             router.push("/login");
         } catch (error) {
