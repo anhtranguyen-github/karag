@@ -212,8 +212,9 @@ function isWorkspaceSection(value: string | undefined): value is WorkspaceSectio
   return Boolean(value && workspaceSectionKeys.has(value));
 }
 
-export function buildOrgPath(_orgId?: string) {
-  return "/dashboard";
+
+export function buildOrgPath(orgId?: string) {
+  return orgId ? `/dashboard/org/${encodePathSegment(orgId)}` : "/dashboard/org";
 }
 
 export function generateProjectUrl(projectId: string, section: ProjectSection = "overview") {

@@ -68,75 +68,122 @@ export function Topbar({ onOpenSearch }: { onOpenSearch: () => void }) {
   const currentWorkspaceSection: WorkspaceSection =
     route.scope === "workspace" ? route.section : "overview";
 
+  // Breadcrumb-style selectors
+  let leftContent = null;
+  if (route.scope === "dashboard") {
+    // Org scope: only org selector
+    leftContent = (
+      <Selector
+        ariaLabel="Switch organization"
+        onChange={(nextOrgId) => {
+          if (!nextOrgId) return;
+          setOrganizationId(nextOrgId);
+          router.push("/dashboard");
+        }}
+        options={organizations.map((organization) => ({
+          label: organization.name,
+          value: organization.id
+        }))}
+        placeholder="Organization"
+        value={tenant.organizationId ?? ""}
+      />
+    );
+  } else if (route.scope === "project") {
+    // Project scope: org / project
+    leftContent = (
+      <div className="flex items-center gap-2">
+        <Selector
+          ariaLabel="Switch organization"
+          onChange={(nextOrgId) => {
+            if (!nextOrgId) return;
+            setOrganizationId(nextOrgId);
+            router.push("/dashboard");
+          }}
+          options={organizations.map((organization) => ({
+            label: organization.name,
+            value: organization.id
+          }))}
+          placeholder="Organization"
+          value={tenant.organizationId ?? ""}
+        />
+        <span className="mx-1 text-slate-400">/</span>
+        <Selector
+          ariaLabel="Switch project"
+          disabled={!projects.length}
+          onChange={(nextProjectId) => {
+            if (!nextProjectId) return;
+            setProjectId(nextProjectId);
+            router.push(generateProjectUrl(nextProjectId, currentProjectSection));
+          }}
+          options={projects.map((project) => ({
+            label: project.name,
+            value: project.id
+          }))}
+          placeholder="Project"
+          value={tenant.projectId ?? ""}
+        />
+      </div>
+    );
+  } else if (route.scope === "workspace") {
+    // Workspace scope: org / project / workspace
+    leftContent = (
+      <div className="flex items-center gap-2">
+        <Selector
+          ariaLabel="Switch organization"
+          onChange={(nextOrgId) => {
+            if (!nextOrgId) return;
+            setOrganizationId(nextOrgId);
+            router.push("/dashboard");
+          }}
+          options={organizations.map((organization) => ({
+            label: organization.name,
+            value: organization.id
+          }))}
+          placeholder="Organization"
+          value={tenant.organizationId ?? ""}
+        />
+        <span className="mx-1 text-slate-400">/</span>
+        <Selector
+          ariaLabel="Switch project"
+          disabled={!projects.length}
+          onChange={(nextProjectId) => {
+            if (!nextProjectId) return;
+            setProjectId(nextProjectId);
+            router.push(generateProjectUrl(nextProjectId));
+          }}
+          options={projects.map((project) => ({
+            label: project.name,
+            value: project.id
+          }))}
+          placeholder="Project"
+          value={tenant.projectId ?? ""}
+        />
+        <span className="mx-1 text-slate-400">/</span>
+        <Selector
+          ariaLabel="Switch workspace"
+          disabled={!workspaces.length}
+          onChange={(nextWorkspaceId) => {
+            if (!nextWorkspaceId) return;
+            setWorkspaceId(nextWorkspaceId);
+            router.push(generateWorkspaceUrl(nextWorkspaceId, currentWorkspaceSection));
+          }}
+          options={workspaces.map((workspace) => ({
+            label: workspace.name,
+            value: workspace.id
+          }))}
+          placeholder="Workspace"
+          value={tenant.workspaceId ?? ""}
+        />
+      </div>
+    );
+  }
+
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-background/95">
       <div className="mx-auto flex h-14 max-w-[1600px] items-center justify-between gap-3 px-4 lg:px-6 xl:px-8">
         <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto pb-1 pt-1">
-          <Selector
-            ariaLabel="Switch organization"
-            onChange={(nextOrgId) => {
-              if (!nextOrgId) {
-                return;
-              }
-
-              setOrganizationId(nextOrgId);
-              router.push(buildOrgPath(nextOrgId));
-            }}
-            options={organizations.map((organization) => ({
-              label: organization.name,
-              value: organization.id
-            }))}
-            placeholder="Organization"
-            value={tenant.organizationId ?? ""}
-          />
-          <Selector
-            ariaLabel="Switch project"
-            disabled={!projects.length}
-            onChange={(nextProjectId) => {
-              if (!nextProjectId) {
-                return;
-              }
-
-              setProjectId(nextProjectId);
-              if (route.scope === "project") {
-                router.push(generateProjectUrl(nextProjectId, currentProjectSection));
-                return;
-              }
-
-              router.push(generateProjectUrl(nextProjectId));
-            }}
-            options={projects.map((project) => ({
-              label: project.name,
-              value: project.id
-            }))}
-            placeholder="Project"
-            value={tenant.projectId ?? ""}
-          />
-          <Selector
-            ariaLabel="Switch workspace"
-            disabled={!workspaces.length}
-            onChange={(nextWorkspaceId) => {
-              if (!nextWorkspaceId) {
-                return;
-              }
-
-              setWorkspaceId(nextWorkspaceId);
-              if (route.scope === "workspace") {
-                router.push(generateWorkspaceUrl(nextWorkspaceId, currentWorkspaceSection));
-                return;
-              }
-
-              router.push(generateWorkspaceUrl(nextWorkspaceId));
-            }}
-            options={workspaces.map((workspace) => ({
-              label: workspace.name,
-              value: workspace.id
-            }))}
-            placeholder="Workspace"
-            value={tenant.workspaceId ?? ""}
-          />
+          {leftContent}
         </div>
-
         <div className="flex shrink-0 items-center gap-2">
           <Button
             className="min-w-[180px] justify-between"
@@ -152,7 +199,6 @@ export function Topbar({ onOpenSearch }: { onOpenSearch: () => void }) {
               <Command className="h-3 w-3" />K
             </span>
           </Button>
-
           <div className="inline-flex items-center gap-2 rounded-md border border-border bg-white px-3 py-1.5 shadow-sm">
             <UserCircle2 className="h-5 w-5 text-slate-500" />
             <span className="text-sm font-medium text-slate-900">

@@ -11,9 +11,12 @@ import { platformApi } from "@/lib/api/platform";
 import { formatCount, formatDate } from "@/lib/utils";
 import { useTenant } from "@/providers/tenant-provider";
 
+import { useState, useMemo } from "react";
+
 export default function ProjectOverviewPageView() {
 	const { tenant, projects, workspaces } = useTenant();
 	const selectedProject = projects.find((project) => project.id === tenant.projectId);
+	const [search, setSearch] = useState("");
 
 	const datasetQueries = useQueries({
 		queries: workspaces.map((workspace) => ({
@@ -45,79 +48,79 @@ export default function ProjectOverviewPageView() {
 		(event) => !event.workspace_id || workspaces.some((workspace) => workspace.id === event.workspace_id)
 	);
 
+	const filteredWorkspaces = useMemo(
+		() =>
+			workspaces.filter((workspace) =>
+				[workspace.name, workspace.id]
+					.join(" ")
+					.toLowerCase()
+					.includes(search.toLowerCase())
+			),
+		[workspaces, search]
+	);
+
 	return (
 		<ProjectGuard>
-			<div className="grid gap-6">
-				<PageHeader
-					description="This is the main functional unit of the platform. Manage project storage, integrations, workspaces, and operations from here, then drop into a workspace only when you want to operate a specific assistant."
-					eyebrow="Project"
-					title={selectedProject?.name ?? "Project overview"}
-				/>
-
-				<section className="grid gap-4 md:grid-cols-4">
-					<MetricCard label="Workspaces" value={workspaces.length} />
-					<MetricCard label="Datasets" value={datasets.length} />
-					<MetricCard label="Documents" value={formatCount(datasets.reduce((sum, dataset) => sum + dataset.document_count, 0))} />
-					<MetricCard label="Models" value={modelsQuery.data?.length ?? 0} />
-				</section>
-
-				<section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
-					<DataTable
-						columns={[
-							{
-								key: "workspace",
-								header: "Workspace",
-								render: (row) => (
-									<div className="space-y-1">
-										<div className="font-medium text-slate-900">{row.name}</div>
-										<div className="text-xs text-muted-foreground">{row.id}</div>
+			<div className="min-h-screen bg-[#18181b] px-0 py-0">
+				<div className="mx-auto w-full max-w-6xl pt-10">
+					<div className="flex items-center justify-between mb-8">
+						<h1 className="text-2xl font-bold text-white">Workspaces</h1>
+						<button
+							className="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-green-700 transition"
+							onClick={() => {
+								// Open a modal or scroll to create form (for now, scroll)
+								document.getElementById('create-workspace-form')?.scrollIntoView({ behavior: 'smooth' });
+							}}
+						>
+							+ New workspace
+						</button>
+					</div>
+					<div className="mb-6 flex items-center gap-3">
+						<input
+							className="w-full max-w-xs rounded-md border border-slate-700 bg-[#232329] px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-green-600 focus:outline-none"
+							placeholder="Search for a workspace"
+							value={search}
+							onChange={e => setSearch(e.target.value)}
+						/>
+						<span className="text-slate-400 text-sm">Status</span>
+						<span className="text-slate-400 text-sm">Sorted by name</span>
+					</div>
+					<div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+						{filteredWorkspaces.length === 0 ? (
+							<div className="col-span-full rounded-xl border border-dashed border-slate-700 bg-[#232329] p-10 text-center text-slate-400">
+								No workspaces found.
+							</div>
+						) : (
+							filteredWorkspaces.map((workspace) => (
+								<div
+									key={workspace.id}
+									className="rounded-xl border border-slate-700 bg-[#232329] p-6 shadow hover:shadow-lg transition cursor-pointer flex flex-col justify-between min-h-[160px]"
+									// TODO: Replace with correct navigation for workspace
+									// onClick={() => router.push(generateWorkspaceUrl(workspace.id))}
+								>
+									<div>
+										<div className="flex items-center justify-between mb-2">
+											<span className="text-lg font-semibold text-white">{workspace.name}</span>
+											<span className="inline-flex items-center rounded-full bg-green-900/30 px-3 py-1 text-xs font-medium text-green-400 border border-green-800">ACTIVE</span>
+										</div>
+										<div className="text-xs text-slate-400 mb-1">Workspace</div>
+										<div className="text-xs text-slate-500">{workspace.id}</div>
 									</div>
-								)
-							},
-							{
-								key: "datasets",
-								header: "Datasets",
-								render: (row) => datasets.filter((dataset) => dataset.workspace_id === row.id).length
-							},
-							{
-								key: "documents",
-								header: "Documents",
-								render: (row) =>
-									formatCount(
-										datasets
-											.filter((dataset) => dataset.workspace_id === row.id)
-											.reduce((sum, dataset) => sum + dataset.document_count, 0)
-									)
-							},
-							{
-								key: "created",
-								header: "Created",
-								render: (row) => formatDate(row.created_at)
-							}
-						]}
-						description="Project workspaces."
-						rows={workspaces}
-						title="Workspaces"
-					/>
-
-					<Card>
-						<CardHeader>
-							<CardTitle>Recent activity</CardTitle>
-							<CardDescription>
-								Event stream entries touching this project or one of its workspaces.
-							</CardDescription>
-						</CardHeader>
-						<CardContent className="space-y-3">
-							{projectEvents.slice(0, 8).map((event) => (
-								<div className="rounded-xl border border-border/70 bg-white/70 p-4" key={`${event.event_type}-${event.occurred_at}-${event.resource_id}`}>
-									<div className="font-medium text-slate-900">{event.event_type}</div>
-									<div className="mt-1 text-xs text-muted-foreground">{event.resource_id}</div>
-									<div className="mt-2 text-xs text-muted-foreground">{formatDate(event.occurred_at)}</div>
+									<div className="mt-4 flex gap-2">
+										<span className="inline-flex items-center rounded-full bg-slate-800/60 px-2 py-0.5 text-xs font-medium text-slate-300 border border-slate-700">NANO</span>
+									</div>
 								</div>
-							))}
-						</CardContent>
-					</Card>
-				</section>
+							))
+						)}
+					</div>
+					<div className="mt-12 max-w-md mx-auto" id="create-workspace-form">
+						<div className="rounded-xl border border-slate-700 bg-[#232329] p-8">
+							<h2 className="text-lg font-semibold text-white mb-4">Create new workspace</h2>
+							{/* TODO: Add workspace creation form here */}
+							<div className="text-slate-400 text-sm">Workspace creation coming soon.</div>
+						</div>
+					</div>
+				</div>
 			</div>
 		</ProjectGuard>
 	);
