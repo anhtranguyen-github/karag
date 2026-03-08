@@ -11,7 +11,7 @@ class KnowledgeDatasetCreate(BaseModel):
     workspace_id: str
     name: str
     description: str | None = None
-    embedding_model: str = "nomic-embed-text"
+    embedding_model: str = "text-embedding-3-small"
     chunk_strategy: str = "word-window"
 
 

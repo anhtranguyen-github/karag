@@ -44,7 +44,7 @@ services:
       POSTGRES_USER: karag
       POSTGRES_PASSWORD: karag
     ports:
-      - "5432:5432"
+      - "54321:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     profiles: ["cpu"]

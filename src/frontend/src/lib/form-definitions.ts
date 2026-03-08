@@ -1,3 +1,4 @@
+import { nanoid } from "nanoid";
 import { z } from "zod";
 
 import type { ConfigFormDefinition } from "@/components/config/types";
@@ -11,12 +12,11 @@ const organizationFormSchema = z.object({
 export const organizationFormDefinition: ConfigFormDefinition<typeof organizationFormSchema> = {
   schema: organizationFormSchema,
   defaultValues: {
-    id: "",
+    id: nanoid(),
     name: "",
     description: ""
   },
   fields: [
-    { name: "id", label: "Organization ID", placeholder: "org-acme", required: true },
     { name: "name", label: "Organization name", placeholder: "Acme", required: true },
     {
       name: "description",
@@ -37,12 +37,11 @@ const projectFormSchema = z.object({
 export const projectFormDefinition: ConfigFormDefinition<typeof projectFormSchema> = {
   schema: projectFormSchema,
   defaultValues: {
-    id: "",
+    id: nanoid(),
     name: "",
     description: ""
   },
   fields: [
-    { name: "id", label: "Project ID", placeholder: "project-rag", required: true },
     { name: "name", label: "Project name", placeholder: "RAG Platform", required: true },
     {
       name: "description",
@@ -63,12 +62,11 @@ const workspaceFormSchema = z.object({
 export const workspaceFormDefinition: ConfigFormDefinition<typeof workspaceFormSchema> = {
   schema: workspaceFormSchema,
   defaultValues: {
-    id: "",
+    id: nanoid(),
     name: "",
     description: ""
   },
   fields: [
-    { name: "id", label: "Workspace ID", placeholder: "workspace-prod", required: true },
     { name: "name", label: "Workspace name", placeholder: "Production", required: true },
     {
       name: "description",
@@ -310,7 +308,7 @@ export const pipelineFormDefinition: ConfigFormDefinition<typeof pipelineFormSch
     {
       name: "enabled",
       label: "Pipeline enabled",
-      component: "toggle"
+      component: "switch"
     }
   ],
   submitLabel: "Save pipeline"
@@ -467,7 +465,7 @@ export const settingsFormDefinition: ConfigFormDefinition<typeof settingsFormSch
     {
       name: "promptRedaction",
       label: "Redact prompts by default",
-      component: "toggle"
+      component: "switch"
     }
   ],
   submitLabel: "Save workspace settings"
@@ -611,10 +609,20 @@ export const workspaceRagRetrievalFormDefinition: ConfigFormDefinition<typeof wo
   },
   fields: [
     { name: "top_k", label: "Top K", component: "number", min: 1, max: 20 },
-    { name: "score_threshold", label: "Score threshold", component: "number", min: 0, max: 1, step: 0.01 },
-    { name: "hybrid_search", label: "Hybrid search", component: "toggle" },
-    { name: "reranker_model", label: "Reranker model", placeholder: "cross-encoder-mini" },
-    { name: "chunk_size", label: "Chunk size", component: "number", min: 64, max: 4096 },
+    { name: "score_threshold", label: "Score threshold", component: "slider", min: 0, max: 1, step: 0.01 },
+    { name: "hybrid_search", label: "Hybrid search", component: "switch" },
+    {
+      name: "reranker_model",
+      label: "Reranker model",
+      component: "select",
+      options: [
+        { label: "Disabled", value: "none" },
+        { label: "BGE Reranker v2", value: "bge-reranker-v2-m3" },
+        { label: "Cross Encoder Small", value: "cross-encoder-mini" },
+        { label: "Cohere Rerank", value: "cohere-rerank" }
+      ]
+    },
+    { name: "chunk_size", label: "Chunk size", component: "slider", min: 64, max: 2048, step: 64 },
     { name: "chunk_overlap", label: "Chunk overlap", component: "number", min: 0, max: 1024 }
   ],
   submitLabel: "Save retrieval"
@@ -642,13 +650,24 @@ export const workspaceRagEmbeddingFormDefinition: ConfigFormDefinition<typeof wo
       component: "select",
       options: [
         { label: "OpenAI", value: "openai" },
+        { label: "OpenRouter", value: "openrouter" },
         { label: "Ollama", value: "ollama" },
         { label: "vLLM", value: "vllm" }
       ]
     },
-    { name: "embedding_model", label: "Embedding model", placeholder: "text-embedding-3-small" },
-    { name: "embedding_dimension", label: "Embedding dimension", component: "number", min: 0, max: 8192 },
-    { name: "embedding_batch_size", label: "Batch size", component: "number", min: 1, max: 512 }
+    {
+      name: "embedding_model",
+      label: "Embedding model",
+      component: "select",
+      options: [
+        { label: "text-embedding-3-small", value: "text-embedding-3-small" },
+        { label: "text-embedding-3-large", value: "text-embedding-3-large" },
+        { label: "nomic-embed-text", value: "nomic-embed-text" },
+        { label: "bge-m3", value: "bge-m3" }
+      ]
+    },
+    { name: "embedding_dimension", label: "Embedding dimension", component: "number", min: 0, max: 8192, placeholder: "Auto-detect" },
+    { name: "embedding_batch_size", label: "Batch size", component: "slider", min: 1, max: 128, step: 1 }
   ],
   submitLabel: "Save embedding"
 };
@@ -692,7 +711,16 @@ export const workspaceRagVectorStoreFormDefinition: ConfigFormDefinition<typeof 
         { label: "L2", value: "l2" }
       ]
     },
-    { name: "index_type", label: "Index type", placeholder: "hnsw" }
+    {
+      name: "index_type",
+      label: "Index type",
+      component: "select",
+      options: [
+        { label: "HNSW", value: "hnsw" },
+        { label: "Flat", value: "flat" },
+        { label: "IVF-Flat", value: "ivf_flat" }
+      ]
+    }
   ],
   submitLabel: "Save vector store"
 };
@@ -713,8 +741,8 @@ export const workspaceRagReadingFormDefinition: ConfigFormDefinition<typeof work
     context_formatting_template: "[{index}] {text}"
   },
   fields: [
-    { name: "max_context_tokens", label: "Max context tokens", component: "number", min: 128, max: 64000 },
-    { name: "context_compression", label: "Context compression", component: "toggle" },
+    { name: "max_context_tokens", label: "Max context tokens", component: "slider", min: 512, max: 16000, step: 512 },
+    { name: "context_compression", label: "Context compression", component: "switch" },
     {
       name: "citation_mode",
       label: "Citation mode",
@@ -760,15 +788,26 @@ export const workspaceRagLlmFormDefinition: ConfigFormDefinition<typeof workspac
       component: "select",
       options: [
         { label: "OpenAI", value: "openai" },
+        { label: "OpenRouter", value: "openrouter" },
         { label: "Ollama", value: "ollama" },
         { label: "vLLM", value: "vllm" },
         { label: "Anthropic", value: "anthropic" }
       ]
     },
-    { name: "model", label: "Model name", placeholder: "gpt-4o-mini" },
-    { name: "temperature", label: "Temperature", component: "slider", min: 0, max: 2, step: 0.05 },
-    { name: "max_tokens", label: "Max tokens", component: "number", min: 1, max: 32000 },
-    { name: "streaming", label: "Streaming", component: "toggle" }
+    {
+      name: "model",
+      label: "Model name",
+      component: "select",
+      options: [
+        { label: "gpt-4o-mini", value: "gpt-4o-mini" },
+        { label: "gpt-4o", value: "gpt-4o" },
+        { label: "llama3.1:8b", value: "llama3.1:8b" },
+        { label: "claude-3-5-sonnet", value: "claude-3-5-sonnet-latest" }
+      ]
+    },
+    { name: "temperature", label: "Temperature", component: "slider", min: 0, max: 1, step: 0.05 },
+    { name: "max_tokens", label: "Max tokens", component: "number", min: 1, max: 4096 },
+    { name: "streaming", label: "Streaming", component: "switch" }
   ],
   submitLabel: "Save generation"
 };

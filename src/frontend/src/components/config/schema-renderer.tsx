@@ -19,7 +19,10 @@ import { SliderInput } from "@/components/inputs/slider-input";
 import { TextInput } from "@/components/inputs/text-input";
 import { TextareaInput } from "@/components/inputs/textarea-input";
 import { ToggleSwitch } from "@/components/inputs/toggle-switch";
-import type { ConfigFieldComponent, ConfigFormDefinition } from "@/components/config/types";
+import { KeyValueEditor } from "@/components/inputs/key-value-editor";
+import { FieldShell } from "@/components/inputs/field-shell";
+import { Button } from "@/components/ui/button";
+import type { ConfigFieldConfig, ConfigFieldComponent, ConfigFormDefinition } from "@/components/config/types";
 
 function getError(errors: FieldErrors, path: string) {
   const entry = errors[path];
@@ -51,6 +54,7 @@ function unwrapSchema(fieldSchema: z.ZodTypeAny | undefined): z.ZodTypeAny | und
 }
 
 function inferComponent(
+  fieldName: string,
   fieldSchema: z.ZodTypeAny | undefined,
   explicit?: ConfigFieldComponent
 ): ConfigFieldComponent {
@@ -59,57 +63,81 @@ function inferComponent(
   }
 
   const schema = unwrapSchema(fieldSchema);
+  const name = fieldName.toLowerCase();
 
   if (!schema) {
     return "text";
   }
 
-  if (schema instanceof z.ZodBoolean) {
-    return "toggle";
+  // Heuristics based on field name
+  if (name.includes("password") || name.includes("secret") || name.includes("api_key") || name.includes("apikey")) {
+    return "secret";
   }
+
+  if (name.includes("description") || name.includes("template") || name.includes("prompt") || name.includes("notes")) {
+    return "textarea";
+  }
+
+  if (name.includes("enabled") || name.includes("active") || name.includes("is_")) {
+    if (schema instanceof z.ZodBoolean) return "switch";
+  }
+
+  if (schema instanceof z.ZodBoolean) {
+    return "switch";
+  }
+
   if (schema instanceof z.ZodNumber) {
+    // If it looks like a probability or temperature, default to slider if it's 0-1 or 0-2
     return "number";
   }
+
   if (schema instanceof z.ZodEnum || schema instanceof z.ZodNativeEnum) {
     return "select";
   }
+
   if (schema instanceof z.ZodArray) {
     return "multiselect";
   }
+
   if (schema instanceof z.ZodObject || schema instanceof z.ZodRecord) {
     return "json";
   }
+
   return "text";
 }
 
 type SchemaRendererProps<TSchema extends z.AnyZodObject> = {
   definition: ConfigFormDefinition<TSchema>;
   form: UseFormReturn<z.infer<TSchema>>;
+  overrides?: Partial<Record<string, Partial<ConfigFieldConfig<TSchema>>>>;
 };
 
 export function SchemaRenderer<TSchema extends z.AnyZodObject>({
   definition,
-  form
+  form,
+  overrides
 }: SchemaRendererProps<TSchema>) {
   const shape = definition.schema.shape as Record<string, z.ZodTypeAny>;
 
   return (
     <>
       {definition.fields.map((field) => {
-        const component = inferComponent(shape[field.name], field.component);
-        const error = getError(form.formState.errors, field.name);
+        const fieldOverride = overrides?.[field.name];
+        const mergedField = { ...field, ...fieldOverride };
+        const component = inferComponent(mergedField.name, shape[mergedField.name], mergedField.component);
+        const error = getError(form.formState.errors, mergedField.name);
 
         return (
           <Controller
             control={form.control}
-            key={field.name}
-            name={field.name as Path<z.infer<TSchema>>}
+            key={mergedField.name}
+            name={mergedField.name as Path<z.infer<TSchema>>}
             render={({ field: controlledField }) => {
               const common = {
-                label: field.label,
-                description: field.description,
+                label: mergedField.label,
+                description: mergedField.description,
                 error,
-                required: field.required
+                required: mergedField.required
               };
 
               switch (component) {
@@ -118,8 +146,8 @@ export function SchemaRenderer<TSchema extends z.AnyZodObject>({
                     <TextareaInput
                       {...common}
                       onChange={controlledField.onChange}
-                      placeholder={field.placeholder}
-                      rows={field.rows ?? 4}
+                      placeholder={mergedField.placeholder}
+                      rows={mergedField.rows ?? 4}
                       value={(controlledField.value as string) ?? ""}
                     />
                   );
@@ -128,11 +156,12 @@ export function SchemaRenderer<TSchema extends z.AnyZodObject>({
                     <SelectDropdown
                       {...common}
                       onChange={(event) => controlledField.onChange(event.target.value)}
-                      options={field.options ?? []}
-                      placeholder={field.placeholder}
+                      options={mergedField.options ?? []}
+                      placeholder={mergedField.placeholder}
                       value={(controlledField.value as string) ?? ""}
                     />
                   );
+                case "switch":
                 case "toggle":
                   return (
                     <ToggleSwitch
@@ -145,15 +174,15 @@ export function SchemaRenderer<TSchema extends z.AnyZodObject>({
                   return (
                     <NumberInput
                       {...common}
-                      max={field.max}
-                      min={field.min}
+                      max={mergedField.max}
+                      min={mergedField.min}
                       onChange={(event) =>
                         controlledField.onChange(
                           event.target.value === "" ? undefined : Number(event.target.value)
                         )
                       }
-                      placeholder={field.placeholder}
-                      step={field.step}
+                      placeholder={mergedField.placeholder}
+                      step={mergedField.step}
                       value={controlledField.value as number | undefined}
                     />
                   );
@@ -161,12 +190,12 @@ export function SchemaRenderer<TSchema extends z.AnyZodObject>({
                   return (
                     <SliderInput
                       {...common}
-                      max={field.max}
-                      min={field.min}
+                      max={mergedField.max}
+                      min={mergedField.min}
                       onChange={(event) => controlledField.onChange(Number(event.target.value))}
-                      step={field.step}
-                      value={Number(controlledField.value ?? field.min ?? 0)}
-                      valueLabel={String(controlledField.value ?? field.min ?? 0)}
+                      step={mergedField.step}
+                      value={Number(controlledField.value ?? mergedField.min ?? 0)}
+                      valueLabel={String(controlledField.value ?? mergedField.min ?? 0)}
                     />
                   );
                 case "checkbox":
@@ -182,16 +211,17 @@ export function SchemaRenderer<TSchema extends z.AnyZodObject>({
                     <MultiSelect
                       {...common}
                       onChange={controlledField.onChange}
-                      options={field.options ?? []}
+                      options={mergedField.options ?? []}
                       value={(controlledField.value as string[]) ?? []}
                     />
                   );
+                case "password":
                 case "secret":
                   return (
                     <SecretInput
                       {...common}
                       onChange={controlledField.onChange}
-                      placeholder={field.placeholder}
+                      placeholder={mergedField.placeholder}
                       value={(controlledField.value as string) ?? ""}
                     />
                   );
@@ -199,7 +229,7 @@ export function SchemaRenderer<TSchema extends z.AnyZodObject>({
                   return (
                     <FileUpload
                       {...common}
-                      accept={field.accept}
+                      accept={mergedField.accept}
                       onChange={controlledField.onChange}
                       value={(controlledField.value as File | null) ?? null}
                     />
@@ -212,12 +242,36 @@ export function SchemaRenderer<TSchema extends z.AnyZodObject>({
                       value={(controlledField.value as Record<string, unknown>) ?? {}}
                     />
                   );
+                case "keyvalue":
+                  return (
+                    <KeyValueEditor
+                      {...common}
+                      onChange={controlledField.onChange}
+                      value={(controlledField.value as Record<string, string>) ?? {}}
+                    />
+                  );
+                case "button":
+                  return (
+                    <FieldShell {...common}>
+                      <Button
+                        className="w-full"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          mergedField.onClick?.();
+                        }}
+                        type="button"
+                        variant="outline"
+                      >
+                        {mergedField.actionLabel ?? mergedField.label}
+                      </Button>
+                    </FieldShell>
+                  );
                 default:
                   return (
                     <TextInput
                       {...common}
                       onChange={controlledField.onChange}
-                      placeholder={field.placeholder}
+                      placeholder={mergedField.placeholder}
                       value={(controlledField.value as string) ?? ""}
                     />
                   );

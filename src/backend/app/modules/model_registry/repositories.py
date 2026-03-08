@@ -83,21 +83,27 @@ class ModelRegistryRepository:
             )
         return model
 
-    def list_models(self, tenant: TenantContext) -> list[ModelSummary]:
+    def list_models(self, tenant: TenantContext | None) -> list[ModelSummary]:
         with self.database.session() as session:
-            rows = session.scalars(
-                select(ModelRow).where(ModelRow.organization_id == tenant.organization_id)
-            ).all()
+            stmt = select(ModelRow)
+            if tenant:
+                stmt = stmt.where(
+                    (ModelRow.organization_id == tenant.organization_id) |
+                    (ModelRow.organization_id == "org-public")
+                )
+            else:
+                stmt = stmt.where(ModelRow.organization_id == "org-public")
+            rows = session.scalars(stmt).all()
         return [_model_to_schema(row) for row in rows]
 
     def get_model(self, tenant: TenantContext, model_id: str) -> ModelSummary | None:
         with self.database.session() as session:
-            row = session.scalar(
-                select(ModelRow).where(
-                    ModelRow.id == model_id,
-                    ModelRow.organization_id == tenant.organization_id,
-                )
+            stmt = select(ModelRow).where(ModelRow.id == model_id)
+            stmt = stmt.where(
+                (ModelRow.organization_id == tenant.organization_id) |
+                (ModelRow.organization_id == "org-public")
             )
+            row = session.scalar(stmt)
         return _model_to_schema(row) if row else None
 
     def create_version(self, version: ModelVersionSummary) -> ModelVersionSummary:

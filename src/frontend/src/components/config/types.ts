@@ -12,7 +12,11 @@ export type ConfigFieldComponent =
   | "multiselect"
   | "secret"
   | "file"
-  | "json";
+  | "json"
+  | "keyvalue"
+  | "password"
+  | "switch"
+  | "button";
 
 export type ConfigFieldOption = {
   label: string;
@@ -32,6 +36,8 @@ export type ConfigFieldConfig<TSchema extends z.AnyZodObject> = {
   rows?: number;
   required?: boolean;
   accept?: string;
+  onClick?: () => void;
+  actionLabel?: string;
 };
 
 export type ConfigFormDefinition<TSchema extends z.AnyZodObject> = {
