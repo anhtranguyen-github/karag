@@ -22,6 +22,11 @@ export type WorkspaceSection =
   | "chat"
   | "context-docs"
   | "rag"
+  | "rag-retrieval"
+  | "rag-embedding"
+  | "rag-vector-store"
+  | "rag-llm"
+  | "rag-strategy"
   | "settings"
   | "models"
   | "providers"
@@ -112,8 +117,33 @@ const workspaceSections: Record<WorkspaceSection, { label: string; description: 
     icon: Files
   },
   rag: {
-    label: "RAG Settings",
-    description: "RAG runtime settings",
+    label: "RAG Overview",
+    description: "RAG summary",
+    icon: SlidersHorizontal
+  },
+  "rag-retrieval": {
+    label: "Retrieval",
+    description: "Search settings",
+    icon: SlidersHorizontal
+  },
+  "rag-embedding": {
+    label: "Embedding",
+    description: "Model settings",
+    icon: SlidersHorizontal
+  },
+  "rag-vector-store": {
+    label: "Vector Store",
+    description: "Database settings",
+    icon: SlidersHorizontal
+  },
+  "rag-llm": {
+    label: "Generation",
+    description: "LLM settings",
+    icon: SlidersHorizontal
+  },
+  "rag-strategy": {
+    label: "Strategy",
+    description: "Prompts & context",
     icon: SlidersHorizontal
   },
   settings: {
@@ -363,7 +393,31 @@ export function buildSidebarSections(args: {
       {
         id: "workspace",
         title: "Workspace",
-        items: (["overview", "chat", "context-docs", "rag", "settings"] as WorkspaceSection[]).map(
+        items: (["overview", "chat", "context-docs"] as WorkspaceSection[]).map(
+          (section) => ({
+            href: generateWorkspaceUrl(workspaceId, section),
+            label: workspaceSections[section].label,
+            description: workspaceSections[section].description,
+            icon: workspaceSections[section].icon
+          })
+        )
+      },
+      {
+        id: "workspace-rag",
+        title: "RAG Settings",
+        items: (["rag", "rag-retrieval", "rag-embedding", "rag-vector-store", "rag-llm", "rag-strategy"] as WorkspaceSection[]).map(
+          (section) => ({
+            href: generateWorkspaceUrl(workspaceId, section),
+            label: workspaceSections[section].label,
+            description: workspaceSections[section].description,
+            icon: workspaceSections[section].icon
+          })
+        )
+      },
+      {
+        id: "workspace-system",
+        title: "System",
+        items: (["settings"] as WorkspaceSection[]).map(
           (section) => ({
             href: generateWorkspaceUrl(workspaceId, section),
             label: workspaceSections[section].label,

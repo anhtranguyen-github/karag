@@ -6,7 +6,7 @@ import { useForm, type DefaultValues } from "react-hook-form";
 import type { z } from "zod";
 
 import { SchemaRenderer } from "@/components/config/schema-renderer";
-import type { ConfigFormDefinition } from "@/components/config/types";
+import type { ConfigFieldConfig, ConfigFormDefinition } from "@/components/config/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +18,7 @@ type ConfigFormProps<TSchema extends z.AnyZodObject> = {
   className?: string;
   resetOnSubmit?: boolean;
   initialValues?: Partial<z.input<TSchema>>;
+  overrides?: Partial<Record<string, Partial<ConfigFieldConfig<TSchema>>>>;
 };
 
 export function ConfigForm<TSchema extends z.AnyZodObject>({
@@ -27,7 +28,8 @@ export function ConfigForm<TSchema extends z.AnyZodObject>({
   loading,
   className,
   resetOnSubmit = false,
-  initialValues
+  initialValues,
+  overrides
 }: ConfigFormProps<TSchema>) {
   const mergedDefaults = useMemo(
     () =>
@@ -57,7 +59,7 @@ export function ConfigForm<TSchema extends z.AnyZodObject>({
         }
       })}
     >
-      <SchemaRenderer definition={definition} form={form} />
+      <SchemaRenderer definition={definition} form={form} overrides={overrides} />
       <div className="flex justify-end">
         <Button disabled={loading || form.formState.isSubmitting} type="submit">
           {loading || form.formState.isSubmitting

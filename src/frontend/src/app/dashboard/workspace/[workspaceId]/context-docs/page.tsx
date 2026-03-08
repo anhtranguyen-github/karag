@@ -1,5 +1,5 @@
-import WorkspaceContextDocumentsPageView from "@/components/pages/workspace-context-documents-page-view";
+import WorkspaceContextDocumentsPage from "@/components/pages/workspace/context/documents/page";
 
 export default function WorkspaceContextDocsPage() {
-  return <WorkspaceContextDocumentsPageView />;
+  return <WorkspaceContextDocumentsPage />;
 }

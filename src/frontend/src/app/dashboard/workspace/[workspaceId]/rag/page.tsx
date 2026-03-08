@@ -1,5 +1,5 @@
-import WorkspaceRagSettingsPageView from "@/components/pages/workspace-rag-settings-page-view";
+import WorkspaceRagSettingsPage from "@/components/pages/workspace/rag/overview/page";
 
-export default function WorkspaceRagSettingsPage() {
-  return <WorkspaceRagSettingsPageView />;
+export default function WorkspaceRagSettingsPageRoute() {
+  return <WorkspaceRagSettingsPage />;
 }

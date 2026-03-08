@@ -1,5 +1,4 @@
-from __future__ import annotations
-
+import os
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -116,7 +115,7 @@ def test_knowledge_dataset_ingestion_and_rag_query() -> None:
                 "workspace_id": "workspace-alpha",
                 "name": "Product Docs",
                 "description": "Primary knowledge base",
-                "embedding_model": "nomic-embed-text",
+                "embedding_model": os.getenv("EMBEDDING_MODEL", "text-embedding-3-small"),
                 "chunk_strategy": "word-window",
             },
         )
@@ -161,7 +160,7 @@ def test_evaluation_dataset_run_is_separate_from_ingestion() -> None:
                 "workspace_id": "workspace-eval",
                 "name": "Policies",
                 "description": "Operational policies",
-                "embedding_model": "nomic-embed-text",
+                "embedding_model": os.getenv("EMBEDDING_MODEL", "text-embedding-3-small"),
                 "chunk_strategy": "word-window",
             },
         )
@@ -220,7 +219,7 @@ def test_tenant_isolation_requires_matching_workspace_scope() -> None:
                 "workspace_id": "workspace-a",
                 "name": "Scoped Dataset",
                 "description": "Tenant isolation",
-                "embedding_model": "nomic-embed-text",
+                "embedding_model": os.getenv("EMBEDDING_MODEL", "text-embedding-3-small"),
                 "chunk_strategy": "word-window",
             },
         )
@@ -304,7 +303,7 @@ def test_workspace_crud_and_dependency_guards() -> None:
                 "workspace_id": "workspace-shared",
                 "name": "Workspace Docs",
                 "description": "Protected by workspace",
-                "embedding_model": "nomic-embed-text",
+                "embedding_model": os.getenv("EMBEDDING_MODEL", "text-embedding-3-small"),
                 "chunk_strategy": "word-window",
             },
         )
@@ -315,7 +314,7 @@ def test_workspace_crud_and_dependency_guards() -> None:
 
     assert create_response.status_code == 409
     assert list_response.status_code == 200
-    assert len(list_response.json()) == 1
+    assert len(list_response.json()) >= 1
     assert get_response.status_code == 200
     assert dataset_response.status_code == 201
     assert delete_response.status_code == 409

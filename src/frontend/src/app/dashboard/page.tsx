@@ -1,9 +1,10 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
+import { nanoid } from "nanoid";
 
-import OrganizationProjectsPageView from "@/components/pages/organization-projects-page-view";
+import OrganizationProjectsPage from "@/components/pages/organization/projects/page";
 import { ConfigForm } from "@/components/config/config-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -15,6 +16,7 @@ import { useTenant } from "@/providers/tenant-provider";
 export default function DashboardPage() {
   const queryClient = useQueryClient();
   const { isReady, organizations, tenant, setOrganizationId } = useTenant();
+  const freshId = useMemo(() => nanoid(), []);
 
   const createOrganization = useMutation({
     mutationFn: platformApi.createOrganization,
@@ -44,7 +46,7 @@ export default function DashboardPage() {
   }
 
   if (organizations.length || tenant.organizationId) {
-    return <OrganizationProjectsPageView />;
+    return <OrganizationProjectsPage />;
   }
 
   return (
@@ -58,6 +60,7 @@ export default function DashboardPage() {
         <CardContent>
           <ConfigForm
             definition={organizationFormDefinition}
+            initialValues={{ id: freshId }}
             loading={createOrganization.isPending}
             onSubmit={async (values) => {
               await createOrganization.mutateAsync(values);

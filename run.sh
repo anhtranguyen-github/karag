@@ -242,8 +242,8 @@ verify_backend() {
     fi
 
     log_info "Running backend tests..."
-    log_cmd "uv run pytest ../../tests/unit/backend ../../tests/integration/contracts/test_backend_api_contracts.py ../../tests/integration/contracts/test_backend_llm_contracts.py --ignore=../../tests/unit/backend/core/test_path_security.py --junitxml=results-unit.xml"
-    uv run pytest ../../tests/unit/backend ../../tests/integration/contracts/test_backend_api_contracts.py ../../tests/integration/contracts/test_backend_llm_contracts.py --ignore=../../tests/unit/backend/core/test_path_security.py --junitxml=results-unit.xml 2>/dev/null || log_warn "Backend tests failed"
+    log_cmd "uv run pytest tests/ --junitxml=results-unit.xml"
+    uv run pytest tests/ --junitxml=results-unit.xml 2>/dev/null || log_warn "Backend tests failed"
 
     cd - >/dev/null
     log_success "Backend verification complete"
@@ -255,7 +255,7 @@ verify_frontend() {
 
     cd src/frontend
 
-    if [[ ! -d "node_modules" ]]; then
+    if [[ ! -d "node_modules" ]] || [[ -z "$(ls -A node_modules 2>/dev/null)" ]]; then
         log_info "Installing dependencies..."
         log_cmd "pnpm install --silent"
         pnpm install --silent
@@ -293,32 +293,9 @@ check_cloud_qdrant() {
     curl -sf --connect-timeout 5 "${QDRANT_URL%/}/healthz" >/dev/null 2>&1
 }
 
-check_cloud_mongo() {
-    [[ -n "${MONGO_URI:-}" ]] || return 1
-    [[ "$MONGO_URI" == *"localhost"* ]] && return 1
-    [[ "$MONGO_URI" == *"127.0.0.1"* ]] && return 1
+# Infra checks simplified - Postgres and Redis handled via docker compose
 
-    # Use Python for proper MongoDB connectivity check
-    (
-        cd src/backend
-        MONGO_URI="$MONGO_URI" uv run python3 -c "
-import pymongo
-import os
-client = pymongo.MongoClient(os.getenv('MONGO_URI'), serverSelectionTimeoutMS=5000)
-client.admin.command('ping')
-" 2>/dev/null
-    )
-}
-
-check_cloud_neo4j() {
-    [[ -n "${NEO4J_URI:-}" ]] || return 1
-    [[ "$NEO4J_URI" == *"localhost"* ]] && return 1
-    [[ "$NEO4J_URI" == *"127.0.0.1"* ]] && return 1
-
-    local host
-    host=$(echo "$NEO4J_URI" | sed -e 's/neo4j+s:\/\///' -e 's/neo4j:\/\///' -e 's/bolt:\/\///' -e 's/.*@//' -e 's/\/.*//' -e 's/:.*//')
-    nc -zw 5 "$host" 7687 2>/dev/null
-}
+# Neo4j removed
 
 boot_infra() {
     log_phase "INFRASTRUCTURE"
@@ -327,69 +304,23 @@ boot_infra() {
     log_info "Evaluating cloud vs local providers"
 
     # Determine which services need local containers
+    local services="minio redis postgres"
+    
     if check_cloud_qdrant; then
         log_info "Using Qdrant Cloud"
         log_kv "Qdrant URL" "${QDRANT_URL:-unset}"
     else
-        if [[ -n "${QDRANT_URL:-}" ]] && [[ "$QDRANT_URL" != *"localhost"* ]] && [[ "$QDRANT_URL" != *"127.0.0.1"* ]]; then
-            log_warn "Qdrant Cloud unreachable, falling back to local Qdrant"
-        else
-            log_info "Using local Qdrant"
-        fi
+        log_info "Using local Qdrant"
         services="qdrant $services"
         export QDRANT_URL="http://localhost:6333"
         export QDRANT_API_KEY="local-dev-key"
     fi
 
-    if check_cloud_mongo; then
-        log_info "Using MongoDB Atlas"
-        log_kv "Mongo URI" "${MONGO_URI:-unset}"
-    else
-        if [[ -n "${MONGO_URI:-}" ]] && [[ "$MONGO_URI" != *"localhost"* ]] && [[ "$MONGO_URI" != *"127.0.0.1"* ]]; then
-            log_warn "MongoDB Atlas unreachable, falling back to local MongoDB"
-        else
-            log_info "Using local MongoDB"
-        fi
-        services="mongodb $services"
-        export MONGO_URI="mongodb://localhost:27017"
-    fi
-
-    if check_cloud_neo4j; then
-        log_info "Using Neo4j Aura"
-        log_kv "Neo4j URI" "${NEO4J_URI:-unset}"
-    else
-        if [[ -n "${NEO4J_URI:-}" ]] && [[ "$NEO4J_URI" != *"localhost"* ]] && [[ "$NEO4J_URI" != *"127.0.0.1"* ]]; then
-            log_warn "Neo4j Cloud unreachable, falling back to local Neo4j"
-        else
-            log_info "Using local Neo4j"
-        fi
-        services="neo4j $services"
-        export NEO4J_URI="bolt://localhost:7687"
-        export NEO4J_USER="neo4j"
-        export NEO4J_PASSWORD="neo4j_password"
-    fi
-
-    # Add DevSecOps services unless in turbo mode
-    if [[ "${TURBO_MODE:-}" != "true" ]]; then
-        services="$services jenkins sonarqube sonarqube_db"
-    fi
-
     # Start containers
-    log_info "Starting services: $services"
-    if [[ "${LITE_MODE:-}" == "true" ]]; then
-        log_kv "Docker mode" "base services only"
-        log_cmd "$DOCKER_CMD up -d $services"
-    else
-        log_kv "Docker mode" "local-models + devops profiles"
-        log_cmd "$DOCKER_CMD --profile local-models --profile devops up -d $services"
-    fi
-    if [[ "${LITE_MODE:-}" == "true" ]]; then
-        # shellcheck disable=SC2086
-        $DOCKER_CMD up -d $services
-    else
-        # shellcheck disable=SC2086
-        $DOCKER_CMD --profile local-models --profile devops up -d $services
-    fi
+    log_info "Starting infrastructure: $services"
+    log_cmd "$DOCKER_CMD --profile cpu up -d $services"
+    # shellcheck disable=SC2086
+    $DOCKER_CMD --profile cpu up -d $services
 
     # Wait for local services to be ready
     if [[ "${QDRANT_URL:-}" == *"localhost"* ]]; then
@@ -400,8 +331,12 @@ boot_infra() {
         wait_for_service "MinIO" "http://localhost:9000/minio/health/live" || exit 1
     fi
 
-    if [[ "${MONGO_URI:-}" == *"localhost"* ]] || [[ "${MONGO_URI:-}" == *"127.0.0.1"* ]]; then
-        wait_for_port "MongoDB" "localhost" "27017" || exit 1
+    if [[ "${REDIS_URL:-}" == *"localhost"* ]] || [[ "${REDIS_URL:-}" == *"127.0.0.1"* ]]; then
+        wait_for_port "Redis" "localhost" "6379" || exit 1
+    fi
+
+    if [[ "${DATABASE_URL:-}" == *"localhost"* ]] || [[ "${DATABASE_URL:-}" == *"127.0.0.1"* ]]; then
+        wait_for_port "Postgres" "localhost" "54321" || exit 1
     fi
 
     log_success "Infrastructure ready"
@@ -420,14 +355,16 @@ launch_backend() {
     log_info "Starting FastAPI server..."
     log_kv "Port" "$BACKEND_PORT"
     log_kv "Log file" "logs/backend.log"
-    log_cmd "uv run --project src/backend python src/backend/app/main.py"
-    nohup uv run --project src/backend python src/backend/app/main.py > logs/backend.log 2>&1 &
+    log_cmd "uv run --project src/backend uvicorn app.main:app --host 0.0.0.0 --port ${BACKEND_PORT}"
+    cd src/backend
+    nohup uv run uvicorn app.main:app --host 0.0.0.0 --port "${BACKEND_PORT}" > ../../logs/backend.log 2>&1 &
     local pid=$!
+    cd - >/dev/null
 
-    log_info "Waiting for API health check: http://localhost:${BACKEND_PORT}/"
+    log_info "Waiting for API health check: http://localhost:${BACKEND_PORT}/health"
     echo -n "  Progress"
     local count=0
-    while ! curl -sf "http://localhost:${BACKEND_PORT}/" >/dev/null 2>&1; do
+    while ! curl -sf "http://localhost:${BACKEND_PORT}/health" >/dev/null 2>&1; do
         echo -n "."
         sleep 1
         count=$((count + 1))
@@ -453,7 +390,7 @@ launch_frontend() {
     mkdir -p logs
     cd src/frontend
 
-    if [[ ! -d "node_modules" ]]; then
+    if [[ ! -d "node_modules" ]] || [[ -z "$(ls -A node_modules 2>/dev/null)" ]]; then
         log_info "Installing dependencies..."
         log_cmd "pnpm install --silent"
         pnpm install --silent
@@ -492,7 +429,7 @@ launch_frontend() {
     log_info "Waiting for UI health check: http://127.0.0.1:${FRONTEND_PORT}"
     echo -n "  Progress"
     local count=0
-    while ! curl -sf "http://127.0.0.1:${FRONTEND_PORT}" >/dev/null 2>&1; do
+    while ! curl -sfL "http://127.0.0.1:${FRONTEND_PORT}" >/dev/null 2>&1; do
         echo -n "."
         sleep 2
         count=$((count + 1))
@@ -502,8 +439,8 @@ launch_frontend() {
             exit 1
         fi
 
-        if [[ $count -ge $HEALTH_TIMEOUT ]]; then
-            echo -e "\n${RED}ERROR: Frontend failed to start within ${HEALTH_TIMEOUT}s${NC}"
+        if [[ $count -ge 120 ]]; then
+            echo -e "\n${RED}ERROR: Frontend failed to start within 120s${NC}"
             kill "$pid" 2>/dev/null || true
             exit 1
         fi
@@ -543,10 +480,6 @@ cmd_up() {
     echo ""
     echo -e "  Backend:  ${YELLOW}http://localhost:${BACKEND_PORT}/docs${NC}"
     echo -e "  Frontend: ${YELLOW}http://localhost:${FRONTEND_PORT}${NC}"
-    if [[ "${TURBO_MODE:-}" != "true" ]]; then
-        echo -e "  Jenkins:  ${YELLOW}http://localhost:8080${NC}"
-        echo -e "  SonarQube:${YELLOW}http://localhost:9005${NC}"
-    fi
     echo ""
     echo -e "  Logs:     ${YELLOW}tail -f logs/*.log${NC}"
 }
@@ -590,8 +523,6 @@ cmd_build_cloud() {
 
     [[ -z "${QDRANT_URL:-}" ]] && missing+=("QDRANT_URL")
     [[ -z "${QDRANT_API_KEY:-}" ]] && missing+=("QDRANT_API_KEY")
-    [[ -z "${MONGO_URI:-}" ]] && missing+=("MONGO_URI")
-    [[ -z "${NEO4J_URI:-}" ]] && missing+=("NEO4J_URI")
 
     if [[ ${#missing[@]} -gt 0 ]]; then
         log_error "Missing cloud environment variables:"
@@ -675,8 +606,6 @@ except Exception as e:
     echo ""
     log_info "Configuration summary:"
     log_success "  Qdrant:  CONFIGURED"
-    log_success "  MongoDB: CONFIGURED"
-    log_success "  Neo4j:   CONFIGURED"
     echo ""
 
     log_info "Installing frontend dependencies..."
@@ -699,7 +628,7 @@ cmd_test() {
     log_phase "TEST"
 
     log_info "Running backend tests..."
-    (cd src/backend && uv run pytest ../../tests/unit/backend ../../tests/integration/contracts/test_backend_api_contracts.py ../../tests/integration/contracts/test_backend_llm_contracts.py --ignore=../../tests/unit/backend/core/test_path_security.py 2>/dev/null) || log_warn "Backend tests failed"
+    (cd src/backend && uv run pytest tests/ 2>/dev/null) || log_warn "Backend tests failed"
 
     log_info "Running frontend tests..."
     (cd src/frontend && pnpm run test:unit 2>/dev/null) || log_warn "Frontend tests failed"
@@ -718,21 +647,11 @@ cmd_nuke() {
         uv run python3 scripts/purge_data.py \
             --qdrant-url "${QDRANT_URL}" \
             --qdrant-key "${QDRANT_API_KEY}" \
-            --mongo-uri "${MONGO_URI}" \
-            --mongo-db "${MONGO_DB}" \
-            --neo4j-uri "${NEO4J_URI}" \
-            --neo4j-user "${NEO4J_USER}" \
-            --neo4j-pwd "${NEO4J_PASSWORD}" \
             2>/dev/null || log_warn "Cloud purge may have failed"
     elif [[ "$target" == "--local" ]]; then
         log_warn "Purging local databases..."
         uv run python3 scripts/purge_data.py \
             --qdrant-url "http://localhost:6333" \
-            --mongo-uri "mongodb://localhost:27017" \
-            --mongo-db "karag_dev" \
-            --neo4j-uri "bolt://localhost:7687" \
-            --neo4j-user "neo4j" \
-            --neo4j-pwd "neo4j_password" \
             2>/dev/null || log_warn "Local purge may have failed"
     else
         log_error "Specify --cloud or --local"
@@ -853,8 +772,12 @@ EOF
 # =============================================================================
 
 # Default command
-COMMAND="${1:-up}"
-shift || true
+if [[ $# -gt 0 ]] && [[ "$1" != --* ]]; then
+    COMMAND="$1"
+    shift
+else
+    COMMAND="up"
+fi
 
 # Parse options
 SKIP_VERIFY=false

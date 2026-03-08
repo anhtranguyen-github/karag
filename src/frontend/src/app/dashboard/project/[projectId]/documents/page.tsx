@@ -1,5 +1,5 @@
-import ProjectDocumentsPageView from "@/components/pages/project-documents-page-view";
+import ProjectDocumentsPage from "@/components/pages/project/documents/page";
 
-export default function ProjectDocumentsPage() {
-  return <ProjectDocumentsPageView />;
+export default function ProjectDocumentsPageRoute() {
+  return <ProjectDocumentsPage />;
 }

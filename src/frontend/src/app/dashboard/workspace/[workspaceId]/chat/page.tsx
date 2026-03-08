@@ -1,5 +1,5 @@
-import WorkspaceChatPageView from "@/components/pages/workspace-chat-page-view";
+import WorkspaceChatPage from "@/components/pages/workspace/chat/page";
 
-export default function WorkspaceChatPage() {
-  return <WorkspaceChatPageView />;
+export default function WorkspaceChatPageRoute() {
+  return <WorkspaceChatPage />;
 }

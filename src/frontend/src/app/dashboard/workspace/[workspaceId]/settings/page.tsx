@@ -1,5 +1,5 @@
-import WorkspaceSettingsPageView from "@/components/pages/workspace-settings-page-view";
+import WorkspaceSettingsPage from "@/components/pages/workspace/settings/page";
 
-export default function WorkspaceSettingsPage() {
-  return <WorkspaceSettingsPageView />;
+export default function WorkspaceSettingsPageRoute() {
+  return <WorkspaceSettingsPage />;
 }
