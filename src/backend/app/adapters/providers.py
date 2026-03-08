@@ -175,3 +175,60 @@ class OpenAILLMProvider(_LLMProviderBase):
 class AnthropicLLMProvider(_LLMProviderBase):
     def __init__(self) -> None:
         super().__init__("anthropic", ["claude-3-5-sonnet-latest"])
+
+
+class LiteLLMEmbeddingProvider(_EmbeddingProviderBase):
+    def __init__(self) -> None:
+        models: list[str] = []
+        try:
+            base = os.getcwd()
+            path = os.path.join(base, "data", "litellm_embeddings.json")
+            if os.path.exists(path):
+                with open(path, "r", encoding="utf-8") as fh:
+                    data = json.load(fh)
+                    items = data.get("data") if isinstance(data, dict) else data
+                    if isinstance(items, list):
+                        for item in items:
+                            if isinstance(item, dict) and item.get("id"):
+                                models.append(item.get("id"))
+        except Exception:
+            models = []
+        super().__init__("litellm", models or [])
+
+
+class LiteLLMProvider(_LLMProviderBase):
+    def __init__(self) -> None:
+        models: list[str] = []
+        try:
+            base = os.getcwd()
+            path = os.path.join(base, "data", "litellm_models.json")
+            if os.path.exists(path):
+                with open(path, "r", encoding="utf-8") as fh:
+                    data = json.load(fh)
+                    items = data.get("data") if isinstance(data, dict) else data
+                    if isinstance(items, list):
+                        for item in items:
+                            if isinstance(item, dict) and item.get("id"):
+                                models.append(item.get("id"))
+        except Exception:
+            models = []
+        super().__init__("litellm", models or [])
+
+
+class HFProvider(_LLMProviderBase):
+    """Lists models from data/hf_models.json (community HF model list)."""
+    def __init__(self) -> None:
+        models: list[str] = []
+        try:
+            base = os.getcwd()
+            path = os.path.join(base, "data", "hf_models.json")
+            if os.path.exists(path):
+                with open(path, "r", encoding="utf-8") as fh:
+                    data = json.load(fh)
+                    if isinstance(data, list):
+                        for item in data:
+                            if isinstance(item, dict) and item.get("name"):
+                                models.append(item.get("name"))
+        except Exception:
+            models = []
+        super().__init__("hf", models or [])

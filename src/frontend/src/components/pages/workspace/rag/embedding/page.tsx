@@ -10,6 +10,7 @@ import { workspaceRagEmbeddingFormDefinition } from "@/lib/form-definitions";
 import { platformApi } from "@/lib/api/platform";
 import type { WorkspaceRagConfig, WorkspaceRagConfigUpdate } from "@/lib/types/platform";
 import { useTenant } from "@/providers/tenant-provider";
+import { useRuntimeModels } from "@/hooks/useRuntimeModels";
 
 function toUpdatePayload(config: WorkspaceRagConfig): WorkspaceRagConfigUpdate {
     const { workspace_id, organization_id, project_id, updated_at, ...rest } = config;
@@ -42,6 +43,9 @@ export default function WorkspaceRagEmbeddingPage() {
                 value: m.name
             }));
     }, [modelsQuery.data]);
+
+    const runtime = useRuntimeModels();
+    const embeddingProviderOptions = runtime.providerOptions.filter((p) => p.value.toLowerCase().includes("embed") || p.value.toLowerCase().includes("litellm") || p.value.toLowerCase().includes("openai") || p.value.toLowerCase().includes("vllm") || p.value.toLowerCase().includes("ollama"));
 
     const saveConfig = useMutation({
         mutationFn: (body: WorkspaceRagConfigUpdate) =>
@@ -93,9 +97,8 @@ export default function WorkspaceRagEmbeddingPage() {
                                 })
                             }
                             overrides={{
-                                embedding_model: {
-                                    options: modelOptions.length > 0 ? modelOptions : undefined
-                                }
+                                embedding_provider: { options: embeddingProviderOptions.length ? embeddingProviderOptions : undefined },
+                                embedding_model: { options: modelOptions.length > 0 ? modelOptions : undefined }
                             }}
                         />
                     </CardContent>

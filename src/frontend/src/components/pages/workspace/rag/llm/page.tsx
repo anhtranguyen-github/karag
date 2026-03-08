@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { WorkspaceGuard } from "@/components/ui/workspace-guard";
 import { workspaceRagLlmFormDefinition } from "@/lib/form-definitions";
 import { platformApi } from "@/lib/api/platform";
+import { useRuntimeModels } from "@/hooks/useRuntimeModels";
 import type { WorkspaceRagConfig, WorkspaceRagConfigUpdate } from "@/lib/types/platform";
 import { useTenant } from "@/providers/tenant-provider";
 
@@ -31,6 +32,9 @@ export default function WorkspaceRagLlmPage() {
         queryFn: () => platformApi.listModels(tenant),
         enabled: Boolean(tenant.organizationId)
     });
+
+    const runtime = useRuntimeModels();
+
 
     // Filter to only chat / text-generation models for the LLM dropdown
     const modelOptions = useMemo(() => {
@@ -77,9 +81,8 @@ export default function WorkspaceRagLlmPage() {
                             loading={saveConfig.isPending || configQuery.isLoading}
                             onSubmit={(values) => savePartial({ llm_config: values })}
                             overrides={{
-                                model: {
-                                    options: modelOptions.length > 0 ? modelOptions : undefined
-                                }
+                                provider: { options: runtime.providerOptions.length ? runtime.providerOptions : undefined },
+                                model: { options: modelOptions.length > 0 ? modelOptions : undefined }
                             }}
                         />
                     </CardContent>

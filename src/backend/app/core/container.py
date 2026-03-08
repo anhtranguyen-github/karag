@@ -7,7 +7,8 @@ from app.adapters import MinIOStorageProvider, NATSEventBus, OllamaEmbeddingProv
 from app.adapters import OllamaLLMProvider, OpenAIEmbeddingProvider, OpenAILLMProvider
 from app.adapters import PineconeVectorStore, ProviderRegistry, QdrantVectorStore
 from app.adapters import RedisStreamsEventBus, S3StorageProvider, VllmEmbeddingProvider
-from app.adapters import VllmLLMProvider, WeaviateVectorStore
+from app.adapters import VllmLLMProvider, WeaviateVectorStore, LiteLLMEmbeddingProvider
+from app.adapters import LiteLLMProvider, HFProvider
 from app.core.config import PlatformSettings
 from app.core.database import DatabaseManager
 from app.core.observability import TelemetryStore
@@ -116,6 +117,7 @@ def create_platform_container() -> PlatformContainer:
         default_name=settings.default_embedding_provider,
         providers={
             "ollama": OllamaEmbeddingProvider(),
+            "litellm": LiteLLMEmbeddingProvider(),
             "vllm": VllmEmbeddingProvider(),
             "openai": OpenAIEmbeddingProvider(),
         },
@@ -123,6 +125,8 @@ def create_platform_container() -> PlatformContainer:
     llm_providers = ProviderRegistry(
         default_name=settings.default_llm_provider,
         providers={
+            "hf": HFProvider(),
+            "litellm": LiteLLMProvider(),
             "ollama": OllamaLLMProvider(),
             "vllm": VllmLLMProvider(),
             "openai": OpenAILLMProvider(),

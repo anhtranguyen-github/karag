@@ -2,6 +2,7 @@ from app.adapters.event_bus import KafkaEventBus, NATSEventBus, RedisStreamsEven
 from app.adapters.providers import AnthropicLLMProvider, OllamaEmbeddingProvider, OllamaLLMProvider
 from app.adapters.providers import OpenAIEmbeddingProvider, OpenAILLMProvider, VllmEmbeddingProvider
 from app.adapters.providers import VllmLLMProvider
+from app.adapters.providers import LiteLLMEmbeddingProvider, LiteLLMProvider, HFProvider
 from app.adapters.registry import ProviderRegistry
 from app.adapters.storage import AzureBlobStorageProvider, GoogleCloudStorageProvider
 from app.adapters.storage import MinIOStorageProvider, S3StorageProvider
@@ -21,6 +22,9 @@ __all__ = [
     "OpenAIEmbeddingProvider",
     "OpenAILLMProvider",
     "PineconeVectorStore",
+    "LiteLLMEmbeddingProvider",
+    "LiteLLMProvider",
+    "HFProvider",
     "ProviderRegistry",
     "QdrantVectorStore",
     "RedisStreamsEventBus",

@@ -1,7 +1,40 @@
 import os
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+
+# Ensure test isolation by clearing all tables before each test
+from sqlalchemy import text
+
+@pytest.fixture(autouse=True)
+def clear_database():
+    # Ensure app.state.container is initialized (mimic app startup)
+    if not hasattr(app.state, "container"):
+        from app.core.container import create_platform_container
+        app.state.container = create_platform_container()
+    container = app.state.container
+    db = container.database
+    with db.session() as session:
+        # Order matters due to FKs; delete children first
+        for table in [
+            'model_deployments',
+            'model_artifacts',
+            'model_versions',
+            'models',
+            'evaluation_runs',
+            'evaluation_questions',
+            'evaluation_datasets',
+            'chunks',
+            'documents',
+            'knowledge_datasets',
+            'workspace_rag_configs',
+            'workspaces',
+            'projects',
+            'organizations',
+        ]:
+            session.execute(text(f"DELETE FROM {table}"))
+        session.commit()
 
 
 def _headers(

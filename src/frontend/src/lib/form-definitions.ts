@@ -650,7 +650,7 @@ export const workspaceRagEmbeddingFormDefinition: ConfigFormDefinition<typeof wo
       component: "select",
       options: [
         { label: "OpenAI", value: "openai" },
-        { label: "OpenRouter", value: "openrouter" },
+        { label: "LiteLLM", value: "litellm" },
         { label: "Ollama", value: "ollama" },
         { label: "vLLM", value: "vllm" }
       ]
@@ -788,7 +788,7 @@ export const workspaceRagLlmFormDefinition: ConfigFormDefinition<typeof workspac
       component: "select",
       options: [
         { label: "OpenAI", value: "openai" },
-        { label: "OpenRouter", value: "openrouter" },
+        { label: "LiteLLM", value: "litellm" },
         { label: "Ollama", value: "ollama" },
         { label: "vLLM", value: "vllm" },
         { label: "Anthropic", value: "anthropic" }
