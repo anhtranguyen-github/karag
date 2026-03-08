@@ -1,5 +1,5 @@
-import { LegacyRouteRedirect } from "@/components/routing/legacy-route-redirect";
+import OrganizationSettingsPage from "@/components/pages/organization/settings/page";
 
-export default function LegacyOrgSettingsPage() {
-  return <LegacyRouteRedirect />;
+export default function SettingsPage() {
+  return <OrganizationSettingsPage />;
 }

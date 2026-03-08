@@ -1,17 +1,5 @@
-import { LegacyHierarchyRedirect } from "@/components/routing/legacy-hierarchy-redirect";
+import WorkspaceModelsPage from "@/components/pages/workspace/models/page";
 
-export default async function LegacyWorkspaceModelsPage({
-  params
-}: {
-  params: Promise<{ workspaceId: string }>;
-}) {
-  const { workspaceId } = await params;
-  return (
-    <LegacyHierarchyRedirect
-      projectSection="integrations"
-      routeType="workspace"
-      targetScope="project"
-      workspaceId={workspaceId}
-    />
-  );
+export default function ModelsPage() {
+  return <WorkspaceModelsPage />;
 }

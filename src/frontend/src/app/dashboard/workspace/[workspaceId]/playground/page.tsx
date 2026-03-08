@@ -1,17 +1,5 @@
-import { LegacyHierarchyRedirect } from "@/components/routing/legacy-hierarchy-redirect";
+import WorkspaceChatPageView from "@/components/pages/workspace/chat/page";
 
-export default async function LegacyWorkspacePlaygroundPage({
-  params
-}: {
-  params: Promise<{ workspaceId: string }>;
-}) {
-  const { workspaceId } = await params;
-  return (
-    <LegacyHierarchyRedirect
-      routeType="workspace"
-      targetScope="workspace"
-      workspaceId={workspaceId}
-      workspaceSection="chat"
-    />
-  );
+export default function PlaygroundPage() {
+  return <WorkspaceChatPageView />;
 }

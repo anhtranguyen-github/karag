@@ -1,5 +1,5 @@
-import { LegacyRouteRedirect } from "@/components/routing/legacy-route-redirect";
+import OrganizationBillingPage from "@/components/pages/organization/billing/page";
 
-export default function LegacyOrgBillingPage() {
-  return <LegacyRouteRedirect />;
+export default function BillingPage() {
+  return <OrganizationBillingPage />;
 }

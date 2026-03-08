@@ -5,7 +5,6 @@ import { usePathname, useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
-  buildOrgPath,
   generateProjectUrl,
   generateWorkspaceUrl,
   matchRoute,

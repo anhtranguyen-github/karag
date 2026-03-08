@@ -11,7 +11,6 @@ import { ConfigForm } from "@/components/config/config-form";
 import { FileUpload } from "@/components/inputs/file-upload";
 import { SelectDropdown } from "@/components/inputs/select-dropdown";
 import { TextInput } from "@/components/inputs/text-input";
-import { LegacyRouteRedirect } from "@/components/routing/legacy-route-redirect";
 import { DataTable } from "@/components/tables/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

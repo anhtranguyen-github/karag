@@ -212,7 +212,6 @@ function isWorkspaceSection(value: string | undefined): value is WorkspaceSectio
   return Boolean(value && workspaceSectionKeys.has(value));
 }
 
-
 export function buildOrgPath(orgId?: string) {
   return orgId ? `/dashboard/org/${encodePathSegment(orgId)}` : "/dashboard/org";
 }
@@ -228,56 +227,6 @@ export function generateWorkspaceUrl(
 ) {
   const base = `/dashboard/workspace/${encodePathSegment(workspaceId)}`;
   return section === "overview" ? base : `${base}/${section}`;
-}
-
-export function buildProjectPath(projectId: string, section?: ProjectSection): string;
-export function buildProjectPath(
-  _orgId: string,
-  projectId: string,
-  section?: ProjectSection
-): string;
-export function buildProjectPath(
-  arg1: string,
-  arg2?: string | ProjectSection,
-  arg3?: ProjectSection
-) {
-  if (arg3 !== undefined) {
-    return generateProjectUrl(arg2 as string, arg3);
-  }
-
-  if (typeof arg2 === "string" && isProjectSection(arg2)) {
-    return generateProjectUrl(arg1, arg2);
-  }
-
-  if (typeof arg2 === "string") {
-    return generateProjectUrl(arg2);
-  }
-
-  return generateProjectUrl(arg1);
-}
-
-export function buildWorkspacePath(workspaceId: string, section?: WorkspaceSection): string;
-export function buildWorkspacePath(
-  _orgId: string,
-  _projectId: string,
-  workspaceId: string,
-  section?: WorkspaceSection
-): string;
-export function buildWorkspacePath(
-  arg1: string,
-  arg2?: string | WorkspaceSection,
-  arg3?: string,
-  arg4?: WorkspaceSection
-) {
-  if (arg3 !== undefined) {
-    return generateWorkspaceUrl(arg3, arg4);
-  }
-
-  if (typeof arg2 === "string" && isWorkspaceSection(arg2)) {
-    return generateWorkspaceUrl(arg1, arg2);
-  }
-
-  return generateWorkspaceUrl(arg1);
 }
 
 export function matchRoute(pathname: string): RouteMatch {
@@ -300,47 +249,17 @@ export function matchRoute(pathname: string): RouteMatch {
     return { scope: "dashboard" };
   }
 
-  if (segments[1] === "workspace" && segments[2]) {
-    const workspaceId = decodePathSegment(segments[2]);
-    const legacyWorkspaceSectionMap: Record<string, WorkspaceSection> = {
-      query: "chat",
-      pipelines: "rag",
-      "context-documents": "context-docs",
-      dashboard: "overview"
-    };
-    const sectionCandidate = decodePathSegment(segments[3]);
-    const section = isWorkspaceSection(sectionCandidate)
-      ? sectionCandidate
-      : legacyWorkspaceSectionMap[sectionCandidate] ?? "overview";
-    return { scope: "workspace", workspaceId, section };
+  if (segments[1] === "workspace") {
+    if (segments[2]) {
+      const workspaceId = decodePathSegment(segments[2]);
+      const sectionCandidate = decodePathSegment(segments[3]);
+      const section = isWorkspaceSection(sectionCandidate) ? sectionCandidate : "overview";
+      return { scope: "workspace", workspaceId, section };
+    }
+    return { scope: "dashboard" };
   }
 
   if (segments[1] === "org") {
-    if (segments[2]) {
-      if (segments[3] === "project" && segments[4]) {
-        const projectId = decodePathSegment(segments[4]);
-
-        if (segments[5] === "workspace" && segments[6]) {
-          const workspaceId = decodePathSegment(segments[6]);
-          const legacyWorkspaceSectionMap: Record<string, WorkspaceSection> = {
-            query: "chat",
-            pipelines: "rag",
-            "context-documents": "context-docs",
-            dashboard: "overview"
-          };
-          const sectionCandidate = decodePathSegment(segments[7]);
-          const section = isWorkspaceSection(sectionCandidate)
-            ? sectionCandidate
-            : legacyWorkspaceSectionMap[sectionCandidate] ?? "overview";
-          return { scope: "workspace", workspaceId, section };
-        }
-
-        const section = isProjectSection(segments[5]) ? segments[5] : "overview";
-        return { scope: "project", projectId, section };
-      }
-
-      return { scope: "dashboard" };
-    }
     return { scope: "dashboard" };
   }
 
@@ -351,31 +270,6 @@ export function matchRoute(pathname: string): RouteMatch {
   return { scope: "unknown" };
 }
 
-export function getLegacyWorkspaceSection(pathname: string): WorkspaceSection | null {
-  const mapping: Record<string, WorkspaceSection> = {
-    "/query": "chat",
-    "/pipelines": "rag",
-    "/models": "models",
-    "/providers": "providers",
-    "/configs": "configs",
-    "/api-keys": "api-keys",
-    "/observability": "observability",
-    "/evaluation": "evaluation"
-  };
-
-  return mapping[pathname] ?? null;
-}
-
-export function getLegacyProjectSection(pathname: string): ProjectSection | null {
-  const mapping: Record<string, ProjectSection> = {
-    "/documents": "documents",
-    "/knowledge-base": "documents",
-    "/model-registry": "integrations",
-    "/settings": "settings"
-  };
-
-  return mapping[pathname] ?? null;
-}
 
 export function buildSidebarSections(args: {
   route: RouteMatch;

@@ -1,5 +1,5 @@
-import { LegacyRouteRedirect } from "@/components/routing/legacy-route-redirect";
+import OrganizationProjectsPageView from "@/components/pages/organization/projects/page";
 
-export default function LegacyOrgPage() {
-  return <LegacyRouteRedirect />;
+export default function OrganizationPage() {
+  return <OrganizationProjectsPageView />;
 }

@@ -1,17 +1,5 @@
-import { LegacyHierarchyRedirect } from "@/components/routing/legacy-hierarchy-redirect";
+import WorkspaceObservabilityPage from "@/components/pages/workspace/observability/page";
 
-export default async function LegacyWorkspaceObservabilityPage({
-  params
-}: {
-  params: Promise<{ workspaceId: string }>;
-}) {
-  const { workspaceId } = await params;
-  return (
-    <LegacyHierarchyRedirect
-      projectSection="observability"
-      routeType="workspace"
-      targetScope="project"
-      workspaceId={workspaceId}
-    />
-  );
+export default function ObservabilityPage() {
+  return <WorkspaceObservabilityPage />;
 }

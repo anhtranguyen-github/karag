@@ -46,7 +46,7 @@ export function KeyValueEditor({
                 }))
             );
         }
-    }, [value]);
+    }, [value, items]);
 
     const updateParent = (
         newItems: { id: string; key: string; val: string }[]
