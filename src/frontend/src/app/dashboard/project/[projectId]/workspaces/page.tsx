@@ -1,4 +1,4 @@
-import ProjectWorkspacesPageView from "@/components/pages/project-workspaces-page-view";
+import ProjectWorkspacesPageView from "@/components/pages/project/workspaces/page";
 
 export default function ProjectWorkspacesPage() {
   return <ProjectWorkspacesPageView />;

@@ -3,7 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 
-import OrganizationProjectsPageView from "@/components/pages/organization-projects-page-view";
+import OrganizationProjectsPageView from "@/components/pages/organization/projects/page";
 import { ConfigForm } from "@/components/config/config-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
