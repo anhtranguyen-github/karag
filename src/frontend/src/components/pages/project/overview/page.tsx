@@ -3,6 +3,7 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
 
 import { DataTable } from "@/components/tables/data-table";
+import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MetricCard } from "@/components/ui/metric-card";
 import { PageHeader } from "@/components/ui/page-header";
@@ -65,15 +66,12 @@ export default function ProjectOverviewPageView() {
 				<div className="mx-auto w-full max-w-6xl pt-10">
 					<div className="flex items-center justify-between mb-8">
 						<h1 className="text-2xl font-bold text-white">Workspaces</h1>
-						<button
+						<Link
 							className="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-green-700 transition"
-							onClick={() => {
-								// Open a modal or scroll to create form (for now, scroll)
-								document.getElementById('create-workspace-form')?.scrollIntoView({ behavior: 'smooth' });
-							}}
+							href="/dashboard/new/workspace"
 						>
 							+ New workspace
-						</button>
+						</Link>
 					</div>
 					<div className="mb-6 flex items-center gap-3">
 						<input
@@ -95,8 +93,8 @@ export default function ProjectOverviewPageView() {
 								<div
 									key={workspace.id}
 									className="rounded-xl border border-slate-700 bg-[#232329] p-6 shadow hover:shadow-lg transition cursor-pointer flex flex-col justify-between min-h-[160px]"
-									// TODO: Replace with correct navigation for workspace
-									// onClick={() => router.push(generateWorkspaceUrl(workspace.id))}
+								// TODO: Replace with correct navigation for workspace
+								// onClick={() => router.push(generateWorkspaceUrl(workspace.id))}
 								>
 									<div>
 										<div className="flex items-center justify-between mb-2">
@@ -112,13 +110,6 @@ export default function ProjectOverviewPageView() {
 								</div>
 							))
 						)}
-					</div>
-					<div className="mt-12 max-w-md mx-auto" id="create-workspace-form">
-						<div className="rounded-xl border border-slate-700 bg-[#232329] p-8">
-							<h2 className="text-lg font-semibold text-white mb-4">Create new workspace</h2>
-							{/* TODO: Add workspace creation form here */}
-							<div className="text-slate-400 text-sm">Workspace creation coming soon.</div>
-						</div>
 					</div>
 				</div>
 			</div>

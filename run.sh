@@ -59,7 +59,7 @@ kill_port() {
     local port=$1
     local pids
 
-    if ! lsof -Pi :"$port" -sTCP:LISTEN -t >/dev/null 2>&1; then
+    if ! lsof -Pi :"$port" -sTCP:LISTEN -t >/dev/null 2>&1 && ! fuser "$port/tcp" >/dev/null 2>&1; then
         return 0
     fi
 
@@ -427,24 +427,7 @@ launch_frontend() {
     cd - >/dev/null
 
     log_info "Waiting for UI health check: http://127.0.0.1:${FRONTEND_PORT}"
-    echo -n "  Progress"
-    local count=0
-    while ! curl -sfL "http://127.0.0.1:${FRONTEND_PORT}" >/dev/null 2>&1; do
-        echo -n "."
-        sleep 2
-        count=$((count + 1))
-
-        if ! ps -p "$pid" >/dev/null 2>&1; then
-            echo -e "\n${RED}ERROR: Frontend crashed. Check logs/frontend.log${NC}"
-            exit 1
-        fi
-
-        if [[ $count -ge 120 ]]; then
-            echo -e "\n${RED}ERROR: Frontend failed to start within 120s${NC}"
-            kill "$pid" 2>/dev/null || true
-            exit 1
-        fi
-    done
+    wait_for_port "Frontend" "localhost" "${FRONTEND_PORT}" 60 || exit 1
 
     log_success "Frontend running (PID: $pid)"
 }
@@ -459,6 +442,8 @@ cmd_up() {
     preflight
     deep_cleanup
 
+    boot_infra
+
     if [[ "${SKIP_VERIFY:-}" != "true" ]]; then
         log_phase "VERIFICATION"
         verify_backend
@@ -467,7 +452,6 @@ cmd_up() {
         log_warn "Skipping verification (--skip-verify)"
     fi
 
-    boot_infra
 
     [[ "${CLEAR_CLOUD:-}" == "true" ]] && cmd_nuke "--cloud"
     [[ "${CLEAR_LOCAL:-}" == "true" ]] && cmd_nuke "--local"
@@ -494,6 +478,7 @@ cmd_verify() {
     load_env
     preflight
     deep_cleanup
+    boot_infra
     log_phase "VERIFICATION"
     verify_backend
     verify_frontend
@@ -625,6 +610,7 @@ except Exception as e:
 cmd_test() {
     load_env
     preflight
+    boot_infra
     log_phase "TEST"
 
     log_info "Running backend tests..."

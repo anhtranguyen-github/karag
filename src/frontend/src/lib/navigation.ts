@@ -291,10 +291,13 @@ export function matchRoute(pathname: string): RouteMatch {
     return { scope: "dashboard" };
   }
 
-  if (segments[1] === "project" && segments[2]) {
-    const projectId = decodePathSegment(segments[2]);
-    const section = isProjectSection(segments[3]) ? segments[3] : "overview";
-    return { scope: "project", projectId, section };
+  if (segments[1] === "project") {
+    if (segments[2]) {
+      const projectId = decodePathSegment(segments[2]);
+      const section = isProjectSection(segments[3]) ? segments[3] : "overview";
+      return { scope: "project", projectId, section };
+    }
+    return { scope: "dashboard" };
   }
 
   if (segments[1] === "workspace" && segments[2]) {
@@ -312,29 +315,36 @@ export function matchRoute(pathname: string): RouteMatch {
     return { scope: "workspace", workspaceId, section };
   }
 
-  if (segments[1] === "org" && segments[2]) {
-    if (segments[3] === "project" && segments[4]) {
-      const projectId = decodePathSegment(segments[4]);
+  if (segments[1] === "org") {
+    if (segments[2]) {
+      if (segments[3] === "project" && segments[4]) {
+        const projectId = decodePathSegment(segments[4]);
 
-      if (segments[5] === "workspace" && segments[6]) {
-        const workspaceId = decodePathSegment(segments[6]);
-        const legacyWorkspaceSectionMap: Record<string, WorkspaceSection> = {
-          query: "chat",
-          pipelines: "rag",
-          "context-documents": "context-docs",
-          dashboard: "overview"
-        };
-        const sectionCandidate = decodePathSegment(segments[7]);
-        const section = isWorkspaceSection(sectionCandidate)
-          ? sectionCandidate
-          : legacyWorkspaceSectionMap[sectionCandidate] ?? "overview";
-        return { scope: "workspace", workspaceId, section };
+        if (segments[5] === "workspace" && segments[6]) {
+          const workspaceId = decodePathSegment(segments[6]);
+          const legacyWorkspaceSectionMap: Record<string, WorkspaceSection> = {
+            query: "chat",
+            pipelines: "rag",
+            "context-documents": "context-docs",
+            dashboard: "overview"
+          };
+          const sectionCandidate = decodePathSegment(segments[7]);
+          const section = isWorkspaceSection(sectionCandidate)
+            ? sectionCandidate
+            : legacyWorkspaceSectionMap[sectionCandidate] ?? "overview";
+          return { scope: "workspace", workspaceId, section };
+        }
+
+        const section = isProjectSection(segments[5]) ? segments[5] : "overview";
+        return { scope: "project", projectId, section };
       }
 
-      const section = isProjectSection(segments[5]) ? segments[5] : "overview";
-      return { scope: "project", projectId, section };
+      return { scope: "dashboard" };
     }
+    return { scope: "dashboard" };
+  }
 
+  if (segments[1] === "new") {
     return { scope: "dashboard" };
   }
 

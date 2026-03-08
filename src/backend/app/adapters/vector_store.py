@@ -88,9 +88,14 @@ class QdrantVectorStore(_MemoryVectorStore):
         self._client: QdrantClient | None = None
         if url and QdrantClient and qdrant_models:
             try:
+                # Avoid warning for insecure connections with API key (local dev)
+                client_api_key = api_key
+                if url.startswith("http://") and api_key:
+                    client_api_key = None
+
                 self._client = QdrantClient(
                     url=url,
-                    api_key=api_key,
+                    api_key=client_api_key,
                     timeout=30,
                     check_compatibility=False,
                 )

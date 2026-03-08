@@ -60,6 +60,7 @@ function SidebarItem({
   );
 }
 
+export function Sidebar() {
   const pathname = usePathname();
   const route = matchRoute(pathname);
   const { tenant } = useTenant();

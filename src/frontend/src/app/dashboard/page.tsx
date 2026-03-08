@@ -1,9 +1,32 @@
-import { redirect } from "next/navigation";
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useTenant } from "@/providers/tenant-provider";
 
 export default function DashboardPage() {
-  // This page should never be directly accessed. Redirect to org or project dashboard.
-  // You may want to fetch the user's org/project id from context or session.
-  // For now, just redirect to /dashboard/org (could be improved to use actual org id)
-  redirect("/dashboard/org");
+  const router = useRouter();
+  const { tenant, isReady } = useTenant();
+
+  useEffect(() => {
+    if (isReady) {
+      if (tenant.organizationId) {
+        router.replace(`/dashboard/org/${tenant.organizationId}`);
+      } else {
+        // Fallback if no orgs found
+        router.replace("/dashboard/new/org");
+      }
+    }
+  }, [isReady, tenant.organizationId, router]);
+
+  return (
+    <div className="flex h-screen w-full items-center justify-center bg-slate-50">
+      <div className="flex flex-col items-center gap-4">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <div className="text-sm font-medium text-slate-500 animate-pulse">
+          Setting up your workspace...
+        </div>
+      </div>
+    </div>
+  );
 }
