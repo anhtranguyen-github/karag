@@ -2,6 +2,8 @@
 # Dependencies
 # ===================
 node_modules/
+src/frontend/node_modules_stale/
+src/frontend/node_modules_virtualstore_failed/
 .pnpm-store/
 .yarn/
 .npm/

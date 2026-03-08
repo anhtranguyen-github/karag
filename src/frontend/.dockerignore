@@ -1,0 +1,8 @@
+.next
+node_modules
+node_modules_stale
+node_modules_virtualstore_failed
+coverage
+dist
+npm-debug.log*
+pnpm-debug.log*

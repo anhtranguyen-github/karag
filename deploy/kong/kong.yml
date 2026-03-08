@@ -1,0 +1,17 @@
+_format_version: "3.0"
+services:
+  - name: backend
+    url: http://backend:8000
+    routes:
+      - name: backend-api
+        strip_path: false
+        paths:
+          - /api
+          - /v1
+          - /health
+  - name: frontend
+    url: http://frontend:3000
+    routes:
+      - name: frontend-ui
+        paths:
+          - /

@@ -15,6 +15,7 @@ jobs:
           cd src/backend
           uv sync
           uv run pytest
+          uv lock --check
 
   frontend:
     runs-on: ubuntu-latest
@@ -22,13 +23,29 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 10
+          run_install: false
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
           cache-dependency-path: src/frontend/pnpm-lock.yaml
+      - run: corepack enable
       - run: |
           cd src/frontend
-          pnpm install --frozen-lockfile
-          pnpm build
+          corepack pnpm install --frozen-lockfile
+          corepack pnpm build
+
+  compose-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose --profile cpu config > /dev/null
+      - run: docker compose --profile gpu config > /dev/null
+
+  helm-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - run: helm lint deploy/helm/rag-platform

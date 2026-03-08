@@ -1,0 +1,22 @@
+namespace: rag-platform
+
+backend:
+  image:
+    repository: ghcr.io/example/karag-backend
+    tag: latest
+  replicaCount: 1
+  service:
+    port: 8000
+
+frontend:
+  image:
+    repository: ghcr.io/example/karag-frontend
+    tag: latest
+  replicaCount: 1
+  service:
+    port: 3000
+
+ingress:
+  enabled: true
+  className: nginx
+  host: karag.local
