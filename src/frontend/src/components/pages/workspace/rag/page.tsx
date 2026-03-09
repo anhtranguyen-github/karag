@@ -212,15 +212,15 @@ export default function WorkspaceRagSettingsPage() {
 											<div className="space-y-3">
 												<div className="flex items-center justify-between text-sm">
 													<span className="text-slate-500 font-medium">Total Documents</span>
-													<span className="font-bold text-slate-900">0 Items</span>
+													<span className="font-bold text-slate-900">{dataset.document_count} Items</span>
 												</div>
 												<div className="flex items-center justify-between text-sm">
 													<span className="text-slate-500 font-medium">Vector Count</span>
-													<span className="font-bold text-slate-900">0 Nodes</span>
+													<span className="font-bold text-slate-900">{dataset.chunk_count} Nodes</span>
 												</div>
 												<div className="flex items-center justify-between text-sm">
 													<span className="text-slate-500 font-medium">Memory Usage</span>
-													<span className="font-bold text-slate-900">0 MB</span>
+													<span className="font-bold text-slate-900">{(dataset.chunk_count * 0.002).toFixed(2)} MB</span>
 												</div>
 											</div>
 

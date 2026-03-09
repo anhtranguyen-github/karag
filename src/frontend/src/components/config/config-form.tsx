@@ -19,6 +19,7 @@ type ConfigFormProps<TSchema extends z.AnyZodObject> = {
   resetOnSubmit?: boolean;
   initialValues?: Partial<z.input<TSchema>>;
   overrides?: Partial<Record<string, Partial<ConfigFieldConfig<TSchema>>>>;
+  onValuesChange?: (values: z.infer<TSchema>) => void;
 };
 
 export function ConfigForm<TSchema extends z.AnyZodObject>({
@@ -29,7 +30,8 @@ export function ConfigForm<TSchema extends z.AnyZodObject>({
   className,
   resetOnSubmit = false,
   initialValues,
-  overrides
+  overrides,
+  onValuesChange
 }: ConfigFormProps<TSchema>) {
   const mergedDefaults = useMemo(
     () =>
@@ -44,6 +46,12 @@ export function ConfigForm<TSchema extends z.AnyZodObject>({
     resolver: zodResolver(definition.schema),
     defaultValues: mergedDefaults
   });
+
+  const values = form.watch();
+
+  useEffect(() => {
+    onValuesChange?.(values);
+  }, [values, onValuesChange]);
 
   useEffect(() => {
     form.reset(mergedDefaults);

@@ -37,35 +37,35 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const workspaceDatasetQuery = useQuery({
     queryKey: ["command-palette", "datasets", tenant.organizationId, tenant.projectId, tenant.workspaceId],
     queryFn: () => platformApi.listKnowledgeDatasets(tenant, tenant.workspaceId!),
-    enabled: hasWorkspaceScope
+    enabled: hasWorkspaceScope && paletteOpen
   });
 
   const workspaceDocumentsQuery = useQuery({
     queryKey: ["command-palette", "runtime-documents", tenant.organizationId, tenant.projectId, tenant.workspaceId],
     queryFn: () => platformApi.listRuntimeDocuments(tenant, tenant.workspaceId!),
-    enabled: hasWorkspaceScope
+    enabled: hasWorkspaceScope && paletteOpen
   });
 
   const projectDatasetQueries = useQueries({
-    queries: hasProjectScope
+    queries: (hasProjectScope && paletteOpen)
       ? workspaces.map((workspace) => ({
-          queryKey: ["command-palette", "project-documents", tenant.projectId, workspace.id],
-          queryFn: () =>
-            platformApi.listKnowledgeDatasets(
-              {
-                ...tenant,
-                workspaceId: workspace.id
-              },
-              workspace.id
-            )
-        }))
+        queryKey: ["command-palette", "project-documents", tenant.projectId, workspace.id],
+        queryFn: () =>
+          platformApi.listKnowledgeDatasets(
+            {
+              ...tenant,
+              workspaceId: workspace.id
+            },
+            workspace.id
+          )
+      }))
       : []
   });
 
   const modelsQuery = useQuery({
     queryKey: ["command-palette", "models", tenant.organizationId, tenant.projectId],
     queryFn: () => platformApi.listModels(tenant),
-    enabled: hasProjectScope
+    enabled: hasProjectScope && paletteOpen
   });
 
   const datasetItems = useMemo(() => {

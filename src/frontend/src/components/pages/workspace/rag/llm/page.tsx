@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ConfigForm } from "@/components/config/config-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +20,8 @@ function toUpdatePayload(config: WorkspaceRagConfig): WorkspaceRagConfigUpdate {
 export default function WorkspaceRagLlmPage() {
     const { tenant } = useTenant();
     const queryClient = useQueryClient();
+    const runtime = useRuntimeModels();
+    const [currentProvider, setCurrentProvider] = useState<string>("openai");
 
     const configQuery = useQuery({
         queryKey: ["workspace-rag-config", tenant.workspaceId],
@@ -33,19 +35,28 @@ export default function WorkspaceRagLlmPage() {
         enabled: Boolean(tenant.organizationId)
     });
 
-    const runtime = useRuntimeModels();
-
-
-    // Filter to only chat / text-generation models for the LLM dropdown
+    // Dynamic model options based on both Registry and Runtime
     const modelOptions = useMemo(() => {
-        const chatTypes = new Set(["chat", "text-generation", "image-text-to-text"]);
-        return (modelsQuery.data ?? [])
+        const availableOptions = (runtime.modelOptionsByProvider[currentProvider] || []);
+
+        // Also combine with registered models of same type (simplified for now)
+        const chatTypes = new Set(["chat", "text-generation"]);
+        const registered = (modelsQuery.data ?? [])
             .filter((m) => chatTypes.has(m.type))
-            .map((m) => ({
-                label: m.name,
-                value: m.name
-            }));
-    }, [modelsQuery.data]);
+            .map((m) => ({ label: `${m.name} (DB)`, value: m.name }));
+
+        // Deduplicate
+        const seen = new Set(availableOptions.map(o => o.value));
+        const combined = [...availableOptions];
+        for (const r of registered) {
+            if (!seen.has(r.value)) {
+                combined.push(r);
+                seen.add(r.value);
+            }
+        }
+
+        return combined;
+    }, [runtime.modelOptionsByProvider, currentProvider, modelsQuery.data]);
 
     const saveConfig = useMutation({
         mutationFn: (body: WorkspaceRagConfigUpdate) =>
@@ -68,21 +79,29 @@ export default function WorkspaceRagLlmPage() {
 
     return (
         <WorkspaceGuard>
-            <div className="grid gap-6">
-                <PageHeader eyebrow="RAG Settings" title="LLM Generation" />
-                <Card>
+            <div className="grid gap-6 animate-in fade-in duration-500">
+                <PageHeader eyebrow="RAG Settings" title="LLM Generation" description="Configure the LLM engine used for answer synthesis in your RAG pipeline." />
+                <Card className="border-slate-800 bg-[#1c1c21]">
                     <CardHeader>
-                        <CardTitle>Inference Model</CardTitle>
+                        <CardTitle className="text-white">Inference Model</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <ConfigForm
                             definition={workspaceRagLlmFormDefinition}
                             initialValues={config?.llm_config}
                             loading={saveConfig.isPending || configQuery.isLoading}
+                            onValuesChange={(values) => {
+                                if (values.provider !== currentProvider) {
+                                    setCurrentProvider(values.provider);
+                                }
+                            }}
                             onSubmit={(values) => savePartial({ llm_config: values })}
                             overrides={{
                                 provider: { options: runtime.providerOptions.length ? runtime.providerOptions : undefined },
-                                model: { options: modelOptions.length > 0 ? modelOptions : undefined }
+                                model: {
+                                    options: modelOptions.length > 0 ? modelOptions : undefined,
+                                    placeholder: "Select an available model..."
+                                }
                             }}
                         />
                     </CardContent>

@@ -11,6 +11,7 @@ import { ProjectGuard } from "@/components/ui/project-guard";
 import { platformApi } from "@/lib/api/platform";
 import { formatCount, formatDate } from "@/lib/utils";
 import { useTenant } from "@/providers/tenant-provider";
+import { generateWorkspaceUrl } from "@/lib/navigation";
 
 import { useState, useMemo } from "react";
 
@@ -92,9 +93,8 @@ export default function ProjectOverviewPageView() {
 							filteredWorkspaces.map((workspace) => (
 								<div
 									key={workspace.id}
-									className="rounded-xl border border-slate-700 bg-[#232329] p-6 shadow hover:shadow-lg transition cursor-pointer flex flex-col justify-between min-h-[160px]"
-								// TODO: Replace with correct navigation for workspace
-								// onClick={() => router.push(generateWorkspaceUrl(workspace.id))}
+									className="rounded-xl border border-slate-700 bg-[#232329] p-6 shadow hover:shadow-lg transition cursor-pointer flex flex-col justify-between min-h-[160px] active:scale-[0.98]"
+									onClick={() => window.location.href = generateWorkspaceUrl(workspace.id)}
 								>
 									<div>
 										<div className="flex items-center justify-between mb-2">

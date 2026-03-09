@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ConfigForm } from "@/components/config/config-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +20,8 @@ function toUpdatePayload(config: WorkspaceRagConfig): WorkspaceRagConfigUpdate {
 export default function WorkspaceRagEmbeddingPage() {
     const { tenant } = useTenant();
     const queryClient = useQueryClient();
+    const runtime = useRuntimeModels();
+    const [currentProvider, setCurrentProvider] = useState<string>("openai");
 
     const configQuery = useQuery({
         queryKey: ["workspace-rag-config", tenant.workspaceId],
@@ -33,19 +35,32 @@ export default function WorkspaceRagEmbeddingPage() {
         enabled: Boolean(tenant.organizationId)
     });
 
-    // Filter to only embedding / feature-extraction models
-    const modelOptions = useMemo(() => {
-        const embeddingTypes = new Set(["embedding", "feature-extraction"]);
-        return (modelsQuery.data ?? [])
-            .filter((m) => embeddingTypes.has(m.type))
-            .map((m) => ({
-                label: m.name,
-                value: m.name
-            }));
-    }, [modelsQuery.data]);
+    const embeddingProviderOptions = useMemo(() => {
+        return runtime.data?.filter(p => p.kind === "embedding").map(p => ({ label: p.provider, value: p.provider })) ?? [];
+    }, [runtime.data]);
 
-    const runtime = useRuntimeModels();
-    const embeddingProviderOptions = runtime.providerOptions.filter((p) => p.value.toLowerCase().includes("embed") || p.value.toLowerCase().includes("litellm") || p.value.toLowerCase().includes("openai") || p.value.toLowerCase().includes("vllm") || p.value.toLowerCase().includes("ollama"));
+    // Dynamic model options based on both Registry and Runtime
+    const modelOptions = useMemo(() => {
+        const availableOptions = (runtime.modelOptionsByProvider[currentProvider] || []);
+
+        // Also combine with registered models of same type
+        const embeddingTypes = new Set(["embedding", "feature-extraction"]);
+        const registered = (modelsQuery.data ?? [])
+            .filter((m) => embeddingTypes.has(m.type))
+            .map((m) => ({ label: `${m.name} (DB)`, value: m.name }));
+
+        // Deduplicate
+        const seen = new Set(availableOptions.map(o => o.value));
+        const combined = [...availableOptions];
+        for (const r of registered) {
+            if (!seen.has(r.value)) {
+                combined.push(r);
+                seen.add(r.value);
+            }
+        }
+
+        return combined;
+    }, [runtime.modelOptionsByProvider, currentProvider, modelsQuery.data]);
 
     const saveConfig = useMutation({
         mutationFn: (body: WorkspaceRagConfigUpdate) =>
@@ -60,11 +75,7 @@ export default function WorkspaceRagEmbeddingPage() {
         const base = toUpdatePayload(configQuery.data);
         await saveConfig.mutateAsync({
             ...base,
-            ...patch,
-            embedding_provider: patch.embedding_provider ?? base.embedding_provider,
-            embedding_model: patch.embedding_model ?? base.embedding_model,
-            embedding_dimension: patch.embedding_dimension !== undefined ? patch.embedding_dimension : base.embedding_dimension,
-            embedding_batch_size: patch.embedding_batch_size ?? base.embedding_batch_size
+            ...patch
         });
     }
 
@@ -72,11 +83,11 @@ export default function WorkspaceRagEmbeddingPage() {
 
     return (
         <WorkspaceGuard>
-            <div className="grid gap-6">
-                <PageHeader eyebrow="RAG Settings" title="Embedding" />
-                <Card>
+            <div className="grid gap-6 animate-in fade-in duration-500">
+                <PageHeader eyebrow="RAG Settings" title="Embedding" description="Select the vectorizer that will transform your documents and queries into high-dimensional embeddings." />
+                <Card className="border-slate-800 bg-[#1c1c21]">
                     <CardHeader>
-                        <CardTitle>Vectorization Model</CardTitle>
+                        <CardTitle className="text-white">Vectorization Model</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <ConfigForm
@@ -88,6 +99,11 @@ export default function WorkspaceRagEmbeddingPage() {
                                 embedding_batch_size: config?.embedding_batch_size
                             }}
                             loading={saveConfig.isPending || configQuery.isLoading}
+                            onValuesChange={(values) => {
+                                if (values.embedding_provider !== currentProvider) {
+                                    setCurrentProvider(values.embedding_provider);
+                                }
+                            }}
                             onSubmit={(values) =>
                                 savePartial({
                                     embedding_provider: values.embedding_provider,
@@ -98,7 +114,10 @@ export default function WorkspaceRagEmbeddingPage() {
                             }
                             overrides={{
                                 embedding_provider: { options: embeddingProviderOptions.length ? embeddingProviderOptions : undefined },
-                                embedding_model: { options: modelOptions.length > 0 ? modelOptions : undefined }
+                                embedding_model: {
+                                    options: modelOptions.length > 0 ? modelOptions : undefined,
+                                    placeholder: "Select an embedding model..."
+                                }
                             }}
                         />
                     </CardContent>

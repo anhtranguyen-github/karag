@@ -64,6 +64,8 @@ export default function WorkspaceRagVectorStorePage() {
                             definition={workspaceRagVectorStoreFormDefinition}
                             initialValues={{
                                 vector_store_type: config?.vector_store_type,
+                                url: config?.vector_store_config.url ?? "",
+                                api_key: config?.vector_store_config.api_key ?? "",
                                 collection_name: config?.vector_store_config.collection_name ?? "",
                                 distance_metric: config?.vector_store_config.distance_metric,
                                 index_type: config?.vector_store_config.index_type
@@ -73,6 +75,8 @@ export default function WorkspaceRagVectorStorePage() {
                                 savePartial({
                                     vector_store_type: values.vector_store_type,
                                     vector_store_config: {
+                                        url: values.url || null,
+                                        api_key: values.api_key || null,
                                         collection_name: values.collection_name || null,
                                         distance_metric: values.distance_metric,
                                         index_type: values.index_type
