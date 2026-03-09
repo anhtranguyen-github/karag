@@ -14,6 +14,7 @@ import {
 	ShieldAlert
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,26 @@ export default function WorkspaceSettingsPage() {
 		queryFn: () => platformApi.getWorkspaceRagConfig(tenant, workspaceId),
 		enabled: !!workspaceId,
 	});
+
+	const { data: providers } = useQuery({
+		queryKey: ["providers"],
+		queryFn: () => platformApi.listProviders(),
+		staleTime: 1000 * 60 * 5,
+	});
+
+	const [selectedLlmProvider, setSelectedLlmProvider] = useState<string | undefined>(() => ragConfig?.llm_config?.provider ?? undefined);
+	const [selectedLlmModel, setSelectedLlmModel] = useState<string | undefined>(() => ragConfig?.llm_config?.model ?? undefined);
+	const [selectedVectorStore, setSelectedVectorStore] = useState<string | undefined>(() => ragConfig?.vector_store_type ?? undefined);
+	const [collectionName, setCollectionName] = useState<string | undefined>(() => ragConfig?.vector_store_config?.collection_name ?? undefined);
+
+	useEffect(() => {
+		if (ragConfig) {
+			setSelectedLlmProvider(ragConfig.llm_config?.provider ?? undefined);
+			setSelectedLlmModel(ragConfig.llm_config?.model ?? undefined);
+			setSelectedVectorStore(ragConfig.vector_store_type ?? undefined);
+			setCollectionName(ragConfig.vector_store_config?.collection_name ?? undefined);
+		}
+	}, [ragConfig]);
 
 	const updateRagMutation = useMutation({
 		mutationFn: (body: any) => platformApi.updateWorkspaceRagConfig(tenant, workspaceId, body),
@@ -91,6 +112,26 @@ export default function WorkspaceSettingsPage() {
 					</CardFooter>
 				</Card>
 
+				{/* vLLM Warmup */}
+				<div className="mt-4 p-4 rounded-lg bg-[#0b1220] border border-slate-800">
+					<div className="flex items-center gap-3">
+						<Button
+							onClick={async () => {
+								try {
+									const res = await platformApi.vllmHealth();
+									alert("vLLM reachable: " + JSON.stringify(res));
+								} catch (err: any) {
+									alert("vLLM not reachable: " + (err?.message || String(err)));
+								}
+							}}
+							className="rounded-lg bg-blue-600 text-white"
+						>
+							Warm vLLM
+							</Button>
+						<span className="text-sm text-slate-400">Probe and warm the configured vLLM endpoint.</span>
+					</div>
+				</div>
+
 				{/* RAG Configuration */}
 				<Card className="border-slate-200 shadow-sm">
 					<CardHeader>
@@ -105,15 +146,25 @@ export default function WorkspaceSettingsPage() {
 							<div className="space-y-4">
 								<div className="space-y-2">
 									<Label className="font-bold text-slate-700">Default LLM Provider</Label>
-									<select className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none text-sm font-medium">
-										<option>Ollama (Local)</option>
-										<option>OpenAI (Cloud)</option>
-										<option>Groq (Serverless)</option>
+									<select
+										className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none text-sm font-medium"
+										value={selectedLlmProvider}
+										onChange={(e) => setSelectedLlmProvider(e.target.value)}
+									>
+										<option value="">Select provider</option>
+										{providers?.llm_providers?.map((p) => (
+											<option key={p} value={p}>{p}</option>
+										))}
 									</select>
 								</div>
 								<div className="space-y-2">
 									<Label className="font-bold text-slate-700">Inference Model</Label>
-									<input className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium" defaultValue="llama3.2" />
+									<input
+										className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium"
+										value={selectedLlmModel ?? ""}
+										onChange={(e) => setSelectedLlmModel(e.target.value)}
+										placeholder="model id e.g. meta-llama/Llama-2-7b-chat-hf"
+									/>
 								</div>
 							</div>
 							<div className="space-y-4">
@@ -126,11 +177,48 @@ export default function WorkspaceSettingsPage() {
 									<Label className="font-bold text-slate-700">Re-ranking Threshold</Label>
 									<Input type="number" step="0.1" defaultValue="0.7" className="rounded-xl bg-slate-50 border-slate-200" />
 								</div>
+								<div className="space-y-2">
+									<Label className="font-bold text-slate-700">Vector Store</Label>
+									<select
+										className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none text-sm font-medium"
+										value={selectedVectorStore}
+										onChange={(e) => setSelectedVectorStore(e.target.value)}
+									>
+										<option value="">Select vector store</option>
+										{providers?.vector_stores?.map((v) => (
+											<option key={v} value={v}>{v}</option>
+										))}
+									</select>
+								</div>
+								<div className="space-y-2">
+									<Label className="font-bold text-slate-700">Collection Name</Label>
+									<Input value={collectionName ?? ""} onChange={(e) => setCollectionName(e.target.value)} className="rounded-xl bg-slate-50 border-slate-200" />
+									<p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Optional collection name for vector store</p>
+								</div>
 							</div>
 						</div>
 					</CardContent>
 					<CardFooter className="bg-slate-50/50 justify-end rounded-b-xl border-t">
-						<Button className="rounded-xl font-bold bg-slate-900 text-white gap-2">
+						<Button
+							className="rounded-xl font-bold bg-slate-900 text-white gap-2"
+							onClick={() => {
+								updateRagMutation.mutate({
+									...ragConfig,
+									llm_config: {
+										provider: selectedLlmProvider || ragConfig?.llm_config?.provider,
+										model: selectedLlmModel || ragConfig?.llm_config?.model,
+										temperature: ragConfig?.llm_config?.temperature ?? 0.7,
+										max_tokens: ragConfig?.llm_config?.max_tokens ?? 512,
+										streaming: ragConfig?.llm_config?.streaming ?? false,
+									},
+									vector_store_type: selectedVectorStore || ragConfig?.vector_store_type,
+									vector_store_config: {
+										...ragConfig?.vector_store_config,
+										collection_name: collectionName || ragConfig?.vector_store_config?.collection_name,
+									},
+								});
+							}}
+						>
 							<Save size={16} />
 							Update RAG Policy
 						</Button>
