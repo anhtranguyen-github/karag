@@ -89,3 +89,22 @@ def list_chunks(
     service: Annotated[KnowledgeDatasetService, Depends(get_service)],
 ) -> list[ChunkSummary]:
     return service.list_chunks(tenant, dataset_id)
+@router.post("/{dataset_id}/documents/{document_id}/attach", status_code=status.HTTP_204_NO_CONTENT)
+def attach_document(
+    dataset_id: str,
+    document_id: str,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)],
+    service: Annotated[KnowledgeDatasetService, Depends(get_service)],
+) -> Response:
+    service.attach_document(tenant, dataset_id, document_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/{dataset_id}/ingest", status_code=status.HTTP_202_ACCEPTED)
+async def ingest_dataset(
+    dataset_id: str,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)],
+    service: Annotated[KnowledgeDatasetService, Depends(get_service)],
+) -> dict[str, str]:
+    await service.ingest_dataset(tenant, dataset_id)
+    return {"status": "accepted"}

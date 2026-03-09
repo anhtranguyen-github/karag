@@ -16,11 +16,13 @@ def _organization_to_schema(row: OrganizationRow) -> OrganizationSummary:
 
 
 def _project_to_schema(row: ProjectRow) -> ProjectSummary:
+    from app.modules.organizations.schemas import DocumentStorageConfig
     return ProjectSummary(
         id=row.id,
         organization_id=row.organization_id,
         name=row.name,
         description=row.description,
+        document_storage_config=DocumentStorageConfig(**row.document_storage_config_json),
         created_at=row.created_at,
     )
 
@@ -64,6 +66,7 @@ class ProjectRepository:
                     organization_id=project.organization_id,
                     name=project.name,
                     description=project.description,
+                    document_storage_config_json=project.document_storage_config.model_dump(),
                     created_at=project.created_at,
                 )
             )
@@ -85,3 +88,17 @@ class ProjectRepository:
                 )
             )
         return _project_to_schema(row) if row else None
+
+    def update(self, project: ProjectSummary) -> ProjectSummary:
+        with self.database.session() as session:
+            row = session.scalar(
+                select(ProjectRow).where(
+                    ProjectRow.id == project.id,
+                    ProjectRow.organization_id == project.organization_id,
+                )
+            )
+            if row:
+                row.name = project.name
+                row.description = project.description
+                row.document_storage_config_json = project.document_storage_config.model_dump()
+        return project

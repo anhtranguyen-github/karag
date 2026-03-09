@@ -10,6 +10,14 @@ export type ProjectSummary = {
   organization_id: string;
   name: string;
   description?: string | null;
+  document_storage_config: {
+    provider: string;
+    endpoint?: string | null;
+    access_key?: string | null;
+    secret_key?: string | null;
+    bucket: string;
+    secure: boolean;
+  };
   created_at: string;
 };
 
@@ -32,6 +40,8 @@ export type WorkspaceRetrievalConfig = {
 };
 
 export type WorkspaceVectorStoreConfig = {
+  url?: string | null;
+  api_key?: string | null;
   collection_name?: string | null;
   distance_metric: string;
   index_type: string;
@@ -301,13 +311,13 @@ export type ProjectProviderRecord = {
 
 export type ProjectApiKeyRecord = {
   id: string;
-  projectId: string;
+  organization_id: string;
+  project_id: string;
   name: string;
-  value: string;
-  scope: string;
-  usageCount: number;
-  createdAt: string;
-  revokedAt?: string | null;
+  masked_key: string;
+  key_value?: string;
+  is_active: boolean;
+  created_at: string;
 };
 
 export type ProjectSettingRecord = {

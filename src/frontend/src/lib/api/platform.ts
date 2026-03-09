@@ -43,6 +43,17 @@ export const platformApi = {
       method: "POST",
       body
     }),
+  getProject: (organizationId: string, projectId: string) =>
+    request<ProjectSummary>(`/api/v1/organizations/${organizationId}/projects/${projectId}`),
+  updateProject: (
+    organizationId: string,
+    projectId: string,
+    body: { name?: string; description?: string; document_storage_config?: any }
+  ) =>
+    request<ProjectSummary>(`/api/v1/organizations/${organizationId}/projects/${projectId}`, {
+      method: "PUT",
+      body
+    }),
 
   listWorkspaces: (tenant: TenantSelection) =>
     request<WorkspaceSummary[]>("/api/v1/workspaces", { tenant }),
@@ -181,11 +192,23 @@ export const platformApi = {
     }),
 
   listModels: (tenant: TenantSelection) => request<ModelSummary[]>("/api/v1/models", { tenant }),
+  listProviders: () => request<{ storage_providers: string[]; vector_stores: string[]; llm_providers: string[]; embedding_providers: string[] }>("/api/v1/providers"),
+  vllmHealth: () => request<Record<string, unknown>>("/api/v1/providers/vllm/health"),
   createModel: (
     tenant: TenantSelection,
     body: { name: string; type: string; framework: string; description?: string }
   ) =>
     request<ModelSummary>("/api/v1/models", {
+      method: "POST",
+      tenant,
+      body
+    }),
+  installModel: (
+    tenant: TenantSelection,
+    workspaceId: string,
+    body: { name: string; type: string; framework: string; description?: string }
+  ) =>
+    request<ModelDeploymentSummary>(`/api/v1/models/install?workspace_id=${encodeURIComponent(workspaceId)}`, {
       method: "POST",
       tenant,
       body

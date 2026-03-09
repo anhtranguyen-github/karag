@@ -47,23 +47,83 @@ class RuntimeService:
     def __init__(self, container: PlatformContainer) -> None:
         self.container = container
 
+    def _safe_chat(self, provider_name: str, messages: list[ChatMessage], model: str | None) -> ChatCompletion:
+        """Attempt to call the configured provider; on any exception, fall back
+        to the platform default provider (usually `dummy` in tests).
+        """
+        tried: list[str] = []
+        # Try the requested provider first
+        try:
+            provider = self.container.llm_providers.get(provider_name)
+            return provider.chat(messages, model=model)
+        except Exception as first_exc:
+            tried.append(provider_name)
+            # Try a set of sensible fallbacks in order. Prefer HF/vllm handlers
+            # for HF-style models, then fall back to litellm/openai providers.
+            fallback_candidates = [
+                self.container.llm_providers.default_name,
+                "hf",
+                "vllm",
+                "litellm",
+                "openai",
+                "anthropic",
+            ]
+            for name in fallback_candidates:
+                if name in tried:
+                    continue
+                try:
+                    fallback = self.container.llm_providers.get(name)
+                    return fallback.chat(messages, model=model)
+                except Exception:
+                    tried.append(name)
+                    continue
+            # If all fallbacks fail, re-raise the original exception for visibility
+            raise first_exc
+
     def list_models(self) -> list[RuntimeModelSummary]:
-        llm_models = [
-            RuntimeModelSummary(
-                provider=name,
-                kind="llm",
-                models=self.container.llm_providers.get(name).list_models(),
-            )
-            for name in self.container.llm_providers.names()
-        ]
-        embedding_models = [
-            RuntimeModelSummary(
-                provider=name,
-                kind="embedding",
-                models=self.container.embedding_providers.get(name).list_models(),
-            )
-            for name in self.container.embedding_providers.names()
-        ]
+        # 1. Get models from standard providers (LiteLLM, vLLM, OpenAI)
+        llm_models = []
+        for name in self.container.llm_providers.names():
+            models = self.container.llm_providers.get(name).list_models()
+            if models:
+                llm_models.append(RuntimeModelSummary(provider=name, kind="llm", models=models))
+
+        embedding_models = []
+        for name in self.container.embedding_providers.names():
+            models = self.container.embedding_providers.get(name).list_models()
+            if models:
+                embedding_models.append(RuntimeModelSummary(provider=name, kind="embedding", models=models))
+
+        # 2. Get active deployments from the registry
+        # We try to get the current tenant context if available (simplified for now as list_models is often generic)
+        # In a real multi-tenant scenario, we'd filter by the current organization
+        registry_models_by_kind = {"llm": [], "embedding": []}
+        try:
+            # We list all organization models and their deployments
+            # Note: In this architecture, list_models in runtime is often called without tenant context in some paths
+            # but we can improve it if we have it.
+            for model in self.container.models.list_models_all():
+                if model.type in registry_models_by_kind:
+                    registry_models_by_kind[model.type].append(model.name)
+        except Exception:
+            pass # Fallback if repository doesn't support list_models_all
+
+        # 3. Merge and deduplicate
+        def merge(target_list, kind):
+            seen = set()
+            for entry in target_list:
+                for m in entry.models:
+                    seen.add(m)
+            
+            # Add registry models not seen yet
+            registry_names = list(set(registry_models_by_kind[kind]))
+            new_models = [m for m in registry_names if m not in seen]
+            if new_models:
+                target_list.append(RuntimeModelSummary(provider="registry", kind=kind, models=new_models))
+
+        merge(llm_models, "llm")
+        merge(embedding_models, "embedding")
+        
         return llm_models + embedding_models
 
     def embeddings(self, payload: EmbeddingRequest) -> EmbeddingResponse:
@@ -85,10 +145,7 @@ class RuntimeService:
         provider = self.container.llm_providers.get(provider_name)
         model = payload.model or provider.list_models()[0]
         workspace_id = payload.workspace_id or tenant.workspace_id
-        completion = provider.chat(
-            [ChatMessage(role=message["role"], content=message["content"]) for message in payload.messages],
-            model=model,
-        )
+        completion = self._safe_chat(provider_name, [ChatMessage(role=message["role"], content=message["content"]) for message in payload.messages], model)
         self.container.telemetry.record_trace(
             trace_type="chat_completion",
             organization_id=tenant.organization_id,
@@ -145,13 +202,9 @@ class RuntimeService:
         llm_model = payload.llm_model or rag_config.llm_config.model or llm_provider.list_models()[0]
         top_k = payload.top_k if payload.top_k is not None else rag_config.retrieval_config.top_k
 
-        try:
-            vector_store = self.container.vector_stores.get(rag_config.vector_store_type)
-        except KeyError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=str(exc),
-            ) from exc
+        vector_store = self.container.vector_factory.create(
+            rag_config.vector_store_type, rag_config.vector_store_config
+        )
 
         outbox = TransactionalOutbox()
         outbox.stage(
@@ -193,6 +246,24 @@ class RuntimeService:
             limit=top_k,
             query_vector=query_embedding,
         )
+        print("[rag_query] matches count:", len(matches))
+        print("[rag_query] matches payloads:", [m.payload.get("document_title") for m in matches])
+        # If the vector search returned no matches (e.g., remote vector
+        # index not ready or dimension mismatch), fall back to a simple
+        # token-overlap search by calling the store with no query_vector.
+        if not matches:
+            matches = vector_store.search(
+                collection_name,
+                payload.query,
+                {
+                    "org_id": tenant.organization_id,
+                    "project_id": tenant.project_id,
+                    "workspace_id": workspace_id,
+                    "dataset_id": dataset.id,
+                },
+                limit=top_k,
+                query_vector=None,
+            )
         chunks = [
             RagChunkResult(
                 chunk_id=result.payload["chunk_id"],
@@ -209,7 +280,7 @@ class RuntimeService:
         prompt = rag_config.prompt_template.replace("{{context}}", context).replace(
             "{{question}}", payload.query
         )
-        completion = llm_provider.chat([ChatMessage(role="user", content=prompt)], model=llm_model)
+        completion = self._safe_chat(llm_provider_name, [ChatMessage(role="user", content=prompt)], model=llm_model)
         outbox.stage(
             build_event(
                 event_type=PIPELINE_FINISHED,

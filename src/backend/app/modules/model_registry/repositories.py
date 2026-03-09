@@ -96,6 +96,11 @@ class ModelRegistryRepository:
             rows = session.scalars(stmt).all()
         return [_model_to_schema(row) for row in rows]
 
+    def list_models_all(self) -> list[ModelSummary]:
+        with self.database.session() as session:
+            rows = session.scalars(select(ModelRow)).all()
+        return [_model_to_schema(row) for row in rows]
+
     def get_model(self, tenant: TenantContext, model_id: str) -> ModelSummary | None:
         with self.database.session() as session:
             stmt = select(ModelRow).where(ModelRow.id == model_id)

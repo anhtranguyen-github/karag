@@ -30,6 +30,16 @@ def create_model(
     return service.create_model(tenant, payload)
 
 
+@router.post("/models/install", response_model=ModelDeploymentSummary, status_code=status.HTTP_201_CREATED)
+def install_model(
+    payload: ModelCreate,
+    workspace_id: str,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)],
+    service: Annotated[ModelRegistryService, Depends(get_service)],
+) -> ModelDeploymentSummary:
+    return service.install_model(tenant, payload, workspace_id)
+
+
 @router.get("/models", response_model=list[ModelSummary])
 def list_models(
     tenant: Annotated[TenantContext, Depends(get_tenant_context)],

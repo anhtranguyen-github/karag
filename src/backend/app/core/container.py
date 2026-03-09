@@ -2,19 +2,37 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.adapters import AnthropicLLMProvider, KafkaEventBus, MilvusVectorStore
-from app.adapters import MinIOStorageProvider, NATSEventBus, OllamaEmbeddingProvider
-from app.adapters import OllamaLLMProvider, OpenAIEmbeddingProvider, OpenAILLMProvider
-from app.adapters import PineconeVectorStore, ProviderRegistry, QdrantVectorStore
-from app.adapters import RedisStreamsEventBus, S3StorageProvider, VllmEmbeddingProvider
-from app.adapters import VllmLLMProvider, WeaviateVectorStore, LiteLLMEmbeddingProvider
-from app.adapters import LiteLLMProvider, HFProvider
+from app.adapters import (
+    AnthropicLLMProvider,
+    KafkaEventBus,
+    MilvusVectorStore,
+    NATSEventBus,
+    OpenAIEmbeddingProvider,
+    OpenAILLMProvider,
+    PineconeVectorStore,
+    ProviderRegistry,
+    QdrantVectorStore,
+    RedisStreamsEventBus,
+    VllmEmbeddingProvider,
+    VllmLLMProvider,
+    WeaviateVectorStore,
+    LiteLLMEmbeddingProvider,
+    LiteLLMProvider,
+    HFProvider,
+)
+from app.adapters import registry as provider_registry
 from app.core.config import PlatformSettings
 from app.core.database import DatabaseManager
+from app.core.factories import StorageProviderFactory, VectorStoreFactory
 from app.core.observability import TelemetryStore
+from app.modules.api_keys.repositories import ApiKeyRepository
 from app.modules.evaluation_datasets.repositories import EvaluationDatasetRepository
-from app.modules.knowledge_datasets.repositories import ChunkRepository, DocumentRepository
-from app.modules.knowledge_datasets.repositories import KnowledgeDatasetRepository
+from app.modules.knowledge_datasets.repositories import (
+    ChunkRepository,
+    DocumentRepository,
+    KnowledgeDatasetDocumentRepository,
+    KnowledgeDatasetRepository,
+)
 from app.modules.model_registry.repositories import ModelRegistryRepository
 from app.modules.organizations.repositories import OrganizationRepository, ProjectRepository
 from app.modules.workspaces.repositories import WorkspaceRagConfigRepository, WorkspaceRepository
@@ -35,10 +53,14 @@ class PlatformContainer:
     workspaces: WorkspaceRepository
     workspace_rag_configs: WorkspaceRagConfigRepository
     knowledge_datasets: KnowledgeDatasetRepository
+    knowledge_dataset_documents: KnowledgeDatasetDocumentRepository
     documents: DocumentRepository
     chunks: ChunkRepository
     evaluation_datasets: EvaluationDatasetRepository
     models: ModelRegistryRepository
+    api_keys: ApiKeyRepository
+    storage_factory: StorageProviderFactory
+    vector_factory: VectorStoreFactory
 
     @property
     def vector_store(self):
@@ -87,20 +109,32 @@ def create_platform_container() -> PlatformContainer:
             "milvus": MilvusVectorStore(),
         },
     )
-    storage_providers = ProviderRegistry(
-        default_name=settings.default_storage_provider,
-        providers={
-            "minio": MinIOStorageProvider(
+    # Dynamically load storage providers from the plugins registry so that
+    # storage backends (MinIO/S3/GCS/etc.) are configurable plugins rather
+    # than hard-coded infrastructure. Use the adapter registry helpers to
+    # instantiate providers with the platform settings when available.
+    storage_provider_keys = provider_registry.list_storage_providers()
+    storage_providers_map: dict[str, object] = {}
+    for key in storage_provider_keys:
+        # Pass relevant settings for common providers; providers can ignore
+        # unknown kwargs in their constructors.
+        try:
+            instance = provider_registry.get_storage_provider(
+                key,
                 endpoint=settings.minio_endpoint,
                 access_key=settings.minio_access_key,
                 secret_key=settings.minio_secret_key,
                 bucket=settings.minio_bucket,
                 secure=settings.minio_secure,
-            ),
-            "s3": S3StorageProvider(
-                bucket=settings.minio_bucket,
-            ),
-        },
+            )
+            storage_providers_map[key] = instance
+        except Exception:
+            # If instantiation fails (e.g., missing deps), skip provider so
+            # container creation can continue in degraded mode.
+            pass
+    storage_providers = ProviderRegistry(
+        default_name=settings.default_storage_provider,
+        providers=storage_providers_map,
     )
     event_buses = ProviderRegistry(
         default_name=settings.default_event_bus,
@@ -116,19 +150,17 @@ def create_platform_container() -> PlatformContainer:
     embedding_providers = ProviderRegistry(
         default_name=settings.default_embedding_provider,
         providers={
-            "ollama": OllamaEmbeddingProvider(),
             "litellm": LiteLLMEmbeddingProvider(),
-            "vllm": VllmEmbeddingProvider(),
+            "vllm": VllmEmbeddingProvider(base_url=settings.vllm_base_url),
             "openai": OpenAIEmbeddingProvider(),
         },
     )
     llm_providers = ProviderRegistry(
         default_name=settings.default_llm_provider,
         providers={
-            "hf": HFProvider(),
+            "hf": HFProvider(base_url=settings.vllm_base_url),
             "litellm": LiteLLMProvider(),
-            "ollama": OllamaLLMProvider(),
-            "vllm": VllmLLMProvider(),
+            "vllm": VllmLLMProvider(base_url=settings.vllm_base_url),
             "openai": OpenAILLMProvider(),
             "anthropic": AnthropicLLMProvider(),
         },
@@ -147,10 +179,14 @@ def create_platform_container() -> PlatformContainer:
         workspaces=WorkspaceRepository(database),
         workspace_rag_configs=WorkspaceRagConfigRepository(database),
         knowledge_datasets=KnowledgeDatasetRepository(database),
+        knowledge_dataset_documents=KnowledgeDatasetDocumentRepository(database),
         documents=DocumentRepository(database),
         chunks=ChunkRepository(database),
         evaluation_datasets=EvaluationDatasetRepository(database),
         models=ModelRegistryRepository(database),
+        api_keys=ApiKeyRepository(database),
+        storage_factory=StorageProviderFactory(settings),
+        vector_factory=VectorStoreFactory(settings),
     )
     container.event_bus.subscribe(
         "*",

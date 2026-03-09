@@ -1,8 +1,33 @@
 from __future__ import annotations
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 
-from app.core.database import ChunkRow, DatabaseManager, DocumentRow, KnowledgeDatasetRow
+from app.core.database import ChunkRow, DatabaseManager, DocumentRow, KnowledgeDatasetRow, KnowledgeDatasetDocumentRow
+
+
+class KnowledgeDatasetDocumentRepository:
+    def __init__(self, database: DatabaseManager) -> None:
+        self.database = database
+
+    def create(self, dataset_id: str, document_id: str, organization_id: str, project_id: str) -> None:
+        with self.database.session() as session:
+            session.add(
+                KnowledgeDatasetDocumentRow(
+                    dataset_id=dataset_id,
+                    document_id=document_id,
+                    organization_id=organization_id,
+                    project_id=project_id,
+                )
+            )
+
+    def list_for_dataset(self, dataset_id: str) -> list[str]:
+        with self.database.session() as session:
+            rows = session.scalars(
+                select(KnowledgeDatasetDocumentRow).where(
+                    KnowledgeDatasetDocumentRow.dataset_id == dataset_id
+                )
+            ).all()
+            return [row.document_id for row in rows]
 from app.core.tenancy import TenantContext
 from app.modules.knowledge_datasets.schemas import ChunkSummary, DocumentSummary
 from app.modules.knowledge_datasets.schemas import KnowledgeDatasetSummary
@@ -122,6 +147,16 @@ class DocumentRepository:
             )
         return document
 
+    def list_for_project(self, organization_id: str, project_id: str) -> list[DocumentSummary]:
+        with self.database.session() as session:
+            rows = session.scalars(
+                select(DocumentRow).where(
+                    DocumentRow.organization_id == organization_id,
+                    DocumentRow.project_id == project_id,
+                )
+            ).all()
+            return [DocumentSummary.model_validate(row) for row in rows]
+
     def list_for_dataset(self, tenant: TenantContext, dataset_id: str) -> list[DocumentSummary]:
         with self.database.session() as session:
             rows = session.scalars(
@@ -132,6 +167,16 @@ class DocumentRepository:
                 )
             ).all()
         return [_document_to_schema(row) for row in rows]
+
+    def count_for_dataset(self, tenant: TenantContext, dataset_id: str) -> int:
+        with self.database.session() as session:
+            return session.scalar(
+                select(func.count(DocumentRow.id)).where(
+                    DocumentRow.dataset_id == dataset_id,
+                    DocumentRow.organization_id == tenant.organization_id,
+                    DocumentRow.project_id == tenant.project_id,
+                )
+            ) or 0
 
     def list_for_workspace(self, tenant: TenantContext, workspace_id: str) -> list[DocumentSummary]:
         with self.database.session() as session:
@@ -183,6 +228,16 @@ class ChunkRepository:
                 )
             ).all()
         return [_chunk_to_schema(row) for row in rows]
+
+    def count_for_dataset(self, tenant: TenantContext, dataset_id: str) -> int:
+        with self.database.session() as session:
+            return session.scalar(
+                select(func.count(ChunkRow.id)).where(
+                    ChunkRow.dataset_id == dataset_id,
+                    ChunkRow.organization_id == tenant.organization_id,
+                    ChunkRow.project_id == tenant.project_id,
+                )
+            ) or 0
 
     def delete_for_dataset(self, dataset_id: str) -> None:
         with self.database.session() as session:

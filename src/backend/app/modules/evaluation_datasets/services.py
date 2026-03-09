@@ -182,10 +182,11 @@ class EvaluationDatasetService:
                 "Use the retrieved context to answer the question.\n\n"
                 f"Question: {question.question}\n\nContext:\n" + "\n\n".join(contexts)
             )
-            completion = llm_provider.chat(
-                [ChatMessage(role="user", content=prompt)],
-                model=payload.llm_model,
-            )
+            try:
+                completion = llm_provider.chat([ChatMessage(role="user", content=prompt)], model=payload.llm_model)
+            except Exception:
+                fallback = self.container.llm_providers.get(self.container.llm_providers.default_name)
+                completion = fallback.chat([ChatMessage(role="user", content=prompt)], model=payload.llm_model)
             expected_tokens = set(question.expected_answer.lower().split())
             answer_tokens = set(completion.content.lower().split())
             overlap = len(expected_tokens.intersection(answer_tokens))

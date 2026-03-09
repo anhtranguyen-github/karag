@@ -38,6 +38,8 @@ class RetrievalConfig(BaseModel):
 
 
 class VectorStoreConfig(BaseModel):
+    url: str | None = None
+    api_key: str | None = None
     collection_name: str | None = None
     distance_metric: str = "cosine"
     index_type: str = "hnsw"
@@ -81,8 +83,17 @@ class WorkspaceRagConfig(WorkspaceRagConfigUpdate):
 def build_default_workspace_rag_config(
     *, workspace_id: str, organization_id: str, project_id: str
 ) -> WorkspaceRagConfig:
+    # Use platform settings to pick the default LLM provider (allows tests to
+    # override the provider via environment variables, e.g. to use the
+    # DummyLLMProvider).
+    from app.core.config import PlatformSettings
+
+    settings = PlatformSettings()
+    llm = LlmConfig()
+    llm.provider = settings.default_llm_provider
     return WorkspaceRagConfig(
         workspace_id=workspace_id,
         organization_id=organization_id,
         project_id=project_id,
+        llm_config=llm,
     )

@@ -221,7 +221,6 @@ export const modelFormDefinition: ConfigFormDefinition<typeof modelFormSchema> =
       component: "select",
       options: [
         { label: "OpenAI", value: "openai" },
-        { label: "Ollama", value: "ollama" },
         { label: "vLLM", value: "vllm" },
         { label: "Anthropic", value: "anthropic" }
       ]
@@ -341,7 +340,7 @@ export const providerFormDefinition: ConfigFormDefinition<typeof providerFormSch
       component: "select",
       options: [
         { label: "OpenAI", value: "openai" },
-        { label: "Ollama", value: "ollama" },
+        { label: "vLLM", value: "vllm" },
         { label: "Qdrant", value: "qdrant" },
         { label: "MinIO", value: "minio" }
       ]
@@ -439,7 +438,7 @@ export const settingsFormDefinition: ConfigFormDefinition<typeof settingsFormSch
       component: "select",
       options: [
         { label: "OpenAI", value: "openai" },
-        { label: "Ollama", value: "ollama" }
+        { label: "vLLM", value: "vllm" }
       ]
     },
     {
@@ -501,7 +500,6 @@ export const workspaceAgentFormDefinition: ConfigFormDefinition<typeof workspace
       component: "select",
       options: [
         { label: "OpenAI", value: "openai" },
-        { label: "Ollama", value: "ollama" },
         { label: "vLLM", value: "vllm" }
       ]
     },
@@ -569,7 +567,6 @@ export const ragQueryFormDefinition: ConfigFormDefinition<typeof ragQueryFormSch
       component: "select",
       options: [
         { label: "OpenAI", value: "openai" },
-        { label: "Ollama", value: "ollama" },
         { label: "vLLM", value: "vllm" }
       ]
     },
@@ -651,7 +648,6 @@ export const workspaceRagEmbeddingFormDefinition: ConfigFormDefinition<typeof wo
       options: [
         { label: "OpenAI", value: "openai" },
         { label: "LiteLLM", value: "litellm" },
-        { label: "Ollama", value: "ollama" },
         { label: "vLLM", value: "vllm" }
       ]
     },
@@ -674,6 +670,8 @@ export const workspaceRagEmbeddingFormDefinition: ConfigFormDefinition<typeof wo
 
 const workspaceRagVectorStoreFormSchema = z.object({
   vector_store_type: z.string().min(1),
+  url: z.string().optional(),
+  api_key: z.string().optional(),
   collection_name: z.string().optional(),
   distance_metric: z.string().min(1),
   index_type: z.string().min(1)
@@ -683,6 +681,8 @@ export const workspaceRagVectorStoreFormDefinition: ConfigFormDefinition<typeof 
   schema: workspaceRagVectorStoreFormSchema,
   defaultValues: {
     vector_store_type: "qdrant",
+    url: "",
+    api_key: "",
     collection_name: "",
     distance_metric: "cosine",
     index_type: "hnsw"
@@ -699,6 +699,17 @@ export const workspaceRagVectorStoreFormDefinition: ConfigFormDefinition<typeof 
         { label: "Milvus", value: "milvus" },
         { label: "Redis", value: "redis" }
       ]
+    },
+    {
+      name: "url",
+      label: "Endpoint URL",
+      placeholder: "http://qdrant:6333"
+    },
+    {
+      name: "api_key",
+      label: "API Key / Secret",
+      component: "secret",
+      placeholder: "Optional for local dev"
     },
     { name: "collection_name", label: "Collection", placeholder: "knowledge_chunks__text_embedding_3_small" },
     {
@@ -789,7 +800,6 @@ export const workspaceRagLlmFormDefinition: ConfigFormDefinition<typeof workspac
       options: [
         { label: "OpenAI", value: "openai" },
         { label: "LiteLLM", value: "litellm" },
-        { label: "Ollama", value: "ollama" },
         { label: "vLLM", value: "vllm" },
         { label: "Anthropic", value: "anthropic" }
       ]
@@ -831,4 +841,65 @@ export const workspaceRagPromptFormDefinition: ConfigFormDefinition<typeof works
     }
   ],
   submitLabel: "Save prompt"
+};
+
+const projectDocumentStorageFormSchema = z.object({
+  provider: z.string().min(1),
+  endpoint: z.string().optional(),
+  access_key: z.string().optional(),
+  secret_key: z.string().optional(),
+  bucket: z.string().min(1),
+  secure: z.boolean()
+});
+
+export const projectDocumentStorageFormDefinition: ConfigFormDefinition<typeof projectDocumentStorageFormSchema> = {
+  schema: projectDocumentStorageFormSchema,
+  defaultValues: {
+    provider: "minio",
+    endpoint: "",
+    access_key: "",
+    secret_key: "",
+    bucket: "karag",
+    secure: false
+  },
+  fields: [
+    {
+      name: "provider",
+      label: "Storage Provider",
+      component: "select",
+      options: [
+        { label: "MinIO", value: "minio" },
+        { label: "Amazon S3", value: "s3" },
+        { label: "Google Cloud Storage", value: "gcs" },
+        { label: "Azure Document Storage", value: "azure-document-storage" }
+      ]
+    },
+    {
+      name: "endpoint",
+      label: "Endpoint URL",
+      placeholder: "http://minio:9000"
+    },
+    {
+      name: "access_key",
+      label: "Access Key",
+      placeholder: "e.g. minioadmin"
+    },
+    {
+      name: "secret_key",
+      label: "Secret Key",
+      component: "secret",
+      placeholder: "e.g. minioadmin"
+    },
+    {
+      name: "bucket",
+      label: "Bucket / Container",
+      placeholder: "karag"
+    },
+    {
+      name: "secure",
+      label: "Use SSL / HTTPS",
+      component: "switch"
+    }
+  ],
+  submitLabel: "Save Storage Configuration"
 };

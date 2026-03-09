@@ -33,6 +33,7 @@ class ProjectRow(Base):
     organization_id: Mapped[str] = mapped_column(String(120), index=True)
     name: Mapped[str] = mapped_column(String(255))
     description: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    document_storage_config_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
@@ -84,13 +85,23 @@ class DocumentRow(Base):
     __tablename__ = "documents"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    dataset_id: Mapped[str] = mapped_column(String(36), index=True)
+    dataset_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
     organization_id: Mapped[str] = mapped_column(String(120), index=True)
     project_id: Mapped[str] = mapped_column(String(120), index=True)
-    workspace_id: Mapped[str] = mapped_column(String(120), index=True)
+    workspace_id: Mapped[str | None] = mapped_column(String(120), index=True, nullable=True)
     title: Mapped[str] = mapped_column(String(255))
     storage_path: Mapped[str] = mapped_column(String(512))
     metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class KnowledgeDatasetDocumentRow(Base):
+    __tablename__ = "knowledge_dataset_documents"
+
+    dataset_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    document_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(120), index=True)
+    project_id: Mapped[str] = mapped_column(String(120), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
@@ -99,10 +110,10 @@ class ChunkRow(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     document_id: Mapped[str] = mapped_column(String(36), index=True)
-    dataset_id: Mapped[str] = mapped_column(String(36), index=True)
+    dataset_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
     organization_id: Mapped[str] = mapped_column(String(120), index=True)
     project_id: Mapped[str] = mapped_column(String(120), index=True)
-    workspace_id: Mapped[str] = mapped_column(String(120), index=True)
+    workspace_id: Mapped[str | None] = mapped_column(String(120), index=True, nullable=True)
     text: Mapped[str] = mapped_column(Text())
     token_count: Mapped[int]
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
@@ -204,6 +215,18 @@ class ModelDeploymentRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class ApiKeyRow(Base):
+    __tablename__ = "api_keys"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(120), index=True)
+    project_id: Mapped[str] = mapped_column(String(120), index=True)
+    key_value: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(255))
+    is_active: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class DatabaseManager:
     def __init__(self, database_url: str) -> None:
         engine_kwargs: dict[str, Any] = {"future": True}
@@ -215,6 +238,13 @@ class DatabaseManager:
         self._session_factory = sessionmaker(self.engine, expire_on_commit=False)
 
     def initialize(self) -> None:
+        Base.metadata.create_all(self.engine)
+
+    def recreate_schema(self) -> None:
+        """Drop all tables and recreate schema. Useful for test setup where an
+        existing database may have an out-of-date schema.
+        """
+        Base.metadata.drop_all(self.engine)
         Base.metadata.create_all(self.engine)
 
     @contextmanager
@@ -231,16 +261,22 @@ class DatabaseManager:
 
     def counts(self) -> dict[str, int]:
         with self.session() as session:
+            from sqlalchemy import func
+            def _count(model):
+                return session.scalar(select(func.count()).select_from(model))
+            
             return {
-                "organizations": len(session.scalars(select(OrganizationRow)).all()),
-                "projects": len(session.scalars(select(ProjectRow)).all()),
-                "workspaces": len(session.scalars(select(WorkspaceRow)).all()),
-                "workspace_rag_configs": len(session.scalars(select(WorkspaceRagConfigRow)).all()),
-                "knowledge_datasets": len(session.scalars(select(KnowledgeDatasetRow)).all()),
-                "documents": len(session.scalars(select(DocumentRow)).all()),
-                "chunks": len(session.scalars(select(ChunkRow)).all()),
-                "evaluation_datasets": len(session.scalars(select(EvaluationDatasetRow)).all()),
-                "evaluation_questions": len(session.scalars(select(EvaluationQuestionRow)).all()),
-                "models": len(session.scalars(select(ModelRow)).all()),
-                "model_versions": len(session.scalars(select(ModelVersionRow)).all()),
+                "organizations": _count(OrganizationRow),
+                "projects": _count(ProjectRow),
+                "workspaces": _count(WorkspaceRow),
+                "workspace_rag_configs": _count(WorkspaceRagConfigRow),
+                "knowledge_datasets": _count(KnowledgeDatasetRow),
+                "documents": _count(DocumentRow),
+                "chunks": _count(ChunkRow),
+                "evaluation_datasets": _count(EvaluationDatasetRow),
+                "evaluation_questions": _count(EvaluationQuestionRow),
+                "models": _count(ModelRow),
+                "model_versions": _count(ModelVersionRow),
+                "api_keys": _count(ApiKeyRow),
+                "knowledge_dataset_documents": _count(KnowledgeDatasetDocumentRow),
             }

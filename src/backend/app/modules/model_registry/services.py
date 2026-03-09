@@ -23,6 +23,33 @@ class ModelRegistryService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found.")
         return workspace_id
 
+    def install_model(self, tenant: TenantContext, payload: ModelCreate, workspace_id: str) -> ModelDeploymentSummary:
+        # 1. Register model if it doesn't exist
+        existing_models = self.container.models.list_models(tenant)
+        model = next((m for m in existing_models if m.name == payload.name), None)
+        if not model:
+            model = self.create_model(tenant, payload)
+        
+        # 2. Register a default version (v1.0.0)
+        version = self.create_version(tenant, model.id, ModelVersionCreate(version="1.0.0", release_notes="Auto-installed from registry."))
+        
+        # 3. Deploy to workspace
+        # For simplicity, we assume litellm or vllm target based on framework
+        target = payload.framework
+        inference_url = self.container.settings.vllm_base_url if target == "vllm" else "https://api.openai.com/v1"
+        
+        deployment = self.create_deployment(
+            tenant, 
+            version.id, 
+            ModelDeploymentCreate(
+                workspace_id=workspace_id,
+                target=target,
+                inference_url=inference_url,
+                configuration={"auto_installed": True}
+            )
+        )
+        return deployment
+
     def create_model(self, tenant: TenantContext, payload: ModelCreate) -> ModelSummary:
         model = self.container.models.create_model(
             ModelSummary(
@@ -174,7 +201,7 @@ class ModelRegistryService:
             metrics={
                 "inference_latency_ms": 42,
                 "throughput_rps": 120,
-                "gpu_utilization": 0.0 if payload.target == "ollama" else 0.68,
+                "gpu_utilization": 0.68,
                 "error_rate": 0.0,
             },
         )

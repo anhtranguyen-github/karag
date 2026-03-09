@@ -184,6 +184,6 @@ class GoogleCloudStorageProvider(_MemoryStorageProvider):
         super().__init__("gcs")
 
 
-class AzureBlobStorageProvider(_MemoryStorageProvider):
+class AzureDocumentStorageProvider(_MemoryStorageProvider):
     def __init__(self) -> None:
-        super().__init__("azure-blob")
+        super().__init__("azure-document-storage")

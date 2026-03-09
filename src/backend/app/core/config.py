@@ -18,8 +18,8 @@ class PlatformSettings:
     default_vector_store: str = os.getenv("DEFAULT_VECTOR_STORE", "qdrant")
     default_storage_provider: str = os.getenv("DEFAULT_STORAGE_PROVIDER", "minio")
     default_event_bus: str = os.getenv("DEFAULT_EVENT_BUS", "redis-streams")
-    default_embedding_provider: str = os.getenv("DEFAULT_EMBEDDING_PROVIDER", "ollama")
-    default_llm_provider: str = os.getenv("DEFAULT_LLM_PROVIDER", "ollama")
+    default_embedding_provider: str = os.getenv("DEFAULT_EMBEDDING_PROVIDER", "vllm")
+    default_llm_provider: str = os.getenv("DEFAULT_LLM_PROVIDER", "vllm")
     default_chunk_size: int = int(os.getenv("DEFAULT_CHUNK_SIZE", "48"))
     default_qdrant_collection: str = os.getenv(
         "DEFAULT_QDRANT_COLLECTION",
@@ -40,3 +40,4 @@ class PlatformSettings:
         for part in os.getenv("UNREDACTED_WORKSPACE_IDS", "").split(",")
         if part.strip()
     )
+    vllm_base_url: str = os.getenv("VLLM_BASE_URL", "http://localhost:8008/v1")

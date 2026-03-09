@@ -121,12 +121,19 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     async function syncRouteSelection() {
+      const needsProjectSync = route.scope === "project" && route.projectId !== tenant.projectId;
+      const needsWorkspaceSync = route.scope === "workspace" && route.workspaceId !== tenant.workspaceId;
+
+      if (!needsProjectSync && !needsWorkspaceSync) {
+        setRouteResolved(true);
+        return;
+      }
+
+      setRouteResolved(false);
+
       if (route.scope === "project") {
-        setRouteResolved(false);
         const resolved = await resolveProjectContext(route.projectId);
-        if (cancelled) {
-          return;
-        }
+        if (cancelled) return;
 
         if (resolved) {
           setTenant((current) => ({
@@ -135,20 +142,16 @@ export function TenantProvider({ children }: { children: ReactNode }) {
             workspaceId: undefined
           }));
         }
-
         setRouteResolved(true);
         return;
       }
 
       if (route.scope === "workspace") {
-        setRouteResolved(false);
         const resolved = await resolveWorkspaceContext(
           route.workspaceId,
           tenant.actorId ?? DEFAULT_TENANT.actorId!
         );
-        if (cancelled) {
-          return;
-        }
+        if (cancelled) return;
 
         if (resolved) {
           setTenant((current) => ({
@@ -156,7 +159,6 @@ export function TenantProvider({ children }: { children: ReactNode }) {
             ...resolved
           }));
         }
-
         setRouteResolved(true);
         return;
       }
