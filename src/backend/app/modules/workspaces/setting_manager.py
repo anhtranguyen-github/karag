@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any
 
 from app.core.config import PlatformSettings
 from app.modules.workspaces.schemas import (
@@ -22,53 +21,77 @@ class WorkspaceSettingManager:
     @staticmethod
     def build_default(*, workspace_id: str) -> WorkspaceSetting:
         settings = PlatformSettings()
+
         return WorkspaceSetting(
             workspace_id=workspace_id,
             embedding=EmbeddingConfig(
-                component=settings.rag_default_embedder,
+                component="multi_vector",
                 provider=settings.default_embedding_provider,
                 model=settings.default_embedding_model,
                 dimension=settings.default_embedding_dimension,
                 batch_size=16,
+                api_base=settings.embedding_base_url,
+                api_key=settings.jina_api_key,
+                task="text-matching",
             ),
             chunking=ChunkingConfig(
-                component=settings.rag_default_chunker,
-                chunk_size=512,
+                component="semantic",
+                chunk_size=settings.default_chunk_size,
                 chunk_overlap=64,
+                separators=["\n\n", "\n", " ", ""],
+                threshold=0.72,
+                buffer_size=1,
             ),
             vectorstore=VectorStoreConfig(
-                component=settings.rag_default_vectorstore,
+                component="qdrant",
+                collection_name=settings.default_qdrant_collection,
                 distance_metric="cosine",
                 index_type="hnsw",
                 vector_dimension=settings.default_embedding_dimension,
+                url=settings.qdrant_url,
+                api_key=settings.qdrant_api_key,
             ),
             retriever=RetrieverConfig(
-                component=settings.rag_default_retriever,
-                top_k=3,
+                component="multi_stage",
+                top_k=25,
                 score_threshold=0.0,
+                final_top_k=10,
             ),
             reranker=RerankerConfig(
-                component=settings.rag_default_reranker,
-                provider="jina",
-                model="cross-encoder-mini",
+                component="colbert",
+                provider="late-interaction",
+                model="colbert",
+                top_k=5,
+                api_base=None,
+                api_key=None,
             ),
             llm=LlmConfig(
                 provider=settings.default_llm_provider,
                 model=settings.default_llm_model,
                 temperature=0.2,
-                max_tokens=700,
-                streaming=False,
+                max_tokens=2048,
+                streaming=True,
                 api_base=settings.llm_base_url,
+                api_key=settings.openai_api_key or "omniroute-local",
             ),
             rag=RAGConfig(
-                reader=settings.rag_default_reader,
-                query_transformer=settings.rag_default_query_transformer,
-                generator=settings.rag_default_generator,
+                reader="marker",
+                query_transformer="hyde",
+                self_query="openai_self_query",
+                pii_masking=True,
+                generator="openai",
                 prompt_template=DEFAULT_PROMPT_TEMPLATE,
                 max_context_tokens=4000,
                 context_compression=False,
                 citation_mode="inline",
                 context_formatting_template="[{index}] {text}",
+                chat_context="simple",
+                use_llm=True,
+                force_ocr=True,
+                redo_inline_math=True,
+                html_tables_in_markdown=True,
+                paginate_output=True,
+                device="auto",
             ),
             updated_at=datetime.now(UTC),
         )

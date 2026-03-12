@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from sqlalchemy import select, delete
-from app.core.database import ApiKeyRow, DatabaseManager
+from app.infra.db.database import ApiKeyRow, DatabaseManager
 from app.modules.api_keys.schemas import ApiKeySummary
 
 

@@ -20,9 +20,12 @@ class ChatSessionBase(BaseModel):
     title: Optional[str] = None
 
 class ChatSessionCreate(ChatSessionBase):
-    workspace_id: str
-    project_id: str
-    organization_id: str
+    workspace_id: Optional[str] = None
+    project_id: Optional[str] = None
+    organization_id: Optional[str] = None
+
+class ChatAskRequest(BaseModel):
+    message: str
 
 class ChatSessionSummary(ChatSessionBase):
     id: str

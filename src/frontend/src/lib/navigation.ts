@@ -14,7 +14,6 @@ export type ProjectSection =
   | "workspaces"
   | "members"
   | "billing"
-  | "observability"
   | "logs"
   | "integrations"
   | "settings";
@@ -33,10 +32,7 @@ export type WorkspaceSection =
   | "rag-llm"
   | "rag-strategy"
   | "settings"
-  | "api-keys"
-  | "observability"
-  | "evaluation"
-  | "playground";
+  | "api-keys";
 
 export type RouteMatch =
   | { scope: "dashboard" }
@@ -78,11 +74,6 @@ const projectSections: Record<ProjectSection, { label: string; description: stri
     label: "Workspaces",
     description: "Project workspaces",
     icon: Blocks
-  },
-  observability: {
-    label: "Observability",
-    description: "Project observability",
-    icon: LayoutDashboard
   },
   logs: {
     label: "Logs",
@@ -181,21 +172,6 @@ const workspaceSections: Record<WorkspaceSection, { label: string; description: 
     label: "API Keys",
     description: "Workspace API keys",
     icon: Settings2
-  },
-  observability: {
-    label: "Observability",
-    description: "Workspace observability",
-    icon: LayoutDashboard
-  },
-  evaluation: {
-    label: "Evaluation",
-    description: "Workspace evaluation",
-    icon: Blocks
-  },
-  playground: {
-    label: "Playground",
-    description: "Workspace playground",
-    icon: MessageSquareText
   }
 };
 
@@ -305,18 +281,6 @@ export function buildSidebarSections(args: {
         id: "workspace",
         title: "Workspace",
         items: (["overview", "chat", "context-docs"] as WorkspaceSection[]).map(
-          (section) => ({
-            href: generateWorkspaceUrl(workspaceId, section),
-            label: workspaceSections[section].label,
-            description: workspaceSections[section].description,
-            icon: workspaceSections[section].icon
-          })
-        )
-      },
-      {
-        id: "workspace-rag",
-        title: "RAG Settings",
-        items: (["rag", "rag-retrieval", "rag-embedding", "rag-vector-store", "rag-llm", "rag-strategy"] as WorkspaceSection[]).map(
           (section) => ({
             href: generateWorkspaceUrl(workspaceId, section),
             label: workspaceSections[section].label,

@@ -19,7 +19,7 @@ export function ToggleSwitch({
 }: ToggleSwitchProps) {
   return (
     <FieldShell label={label} description={description} error={error}>
-      <span className="inline-flex items-center justify-between rounded-lg border border-input bg-white/80 px-3 py-3">
+      <span className="inline-flex items-center justify-between rounded-lg border border-input bg-[#121212]/80 px-3 py-3">
         <span className="text-sm text-muted-foreground">
           {checked ? "Enabled" : "Disabled"}
         </span>
@@ -31,10 +31,10 @@ export function ToggleSwitch({
             type="checkbox"
             {...props}
           />
-          <span className="h-6 w-11 rounded-full bg-slate-200 transition peer-checked:bg-emerald-500" />
+          <span className="h-6 w-11 rounded-full bg-[#2a2a2a] transition peer-checked:bg-emerald-600" />
           <span
             className={cn(
-              "absolute left-1 top-1 h-4 w-4 rounded-full bg-white transition",
+              "absolute left-1 top-1 h-4 w-4 rounded-full bg-[#e5e5e5] transition",
               checked ? "translate-x-5" : "translate-x-0"
             )}
           />

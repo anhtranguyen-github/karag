@@ -1,0 +1,94 @@
+{
+  "trace_id": "tr_1774259993",
+  "scenario_name": "Transformer Architecture Overview",
+  "original_input": "What are the core contributions of the Attention Is All You Need paper?",
+  "total_latency_ms": 10136.13,
+  "steps": [
+    {
+      "component_name": "Pre-Retrieval Manager",
+      "stage": "Pre-Retrieval",
+      "class_name": "PreRetrievalManager",
+      "input_data": "What are the core contributions of the Attention Is All You Need paper?",
+      "output_data": {
+        "original_query": "What are the core contributions of the Attention Is All You Need paper?",
+        "condensed_query": "What are the core contributions of the Attention Is All You Need paper?",
+        "expanded_queries": [
+          "What are the core contributions of the Attention Is All You Need paper?",
+          "The \"Attention Is All You Need\" paper introduced the Transformer architecture, which relies solely on attention mechanisms, dispensing with recurrent and convolutional layers. Its core contributions include the self-attention mechanism, enabling the model to weigh the importance of different input words when processing a given word, and the multi-head attention mechanism, allowing the model to jointly attend to information from different representation subspaces at different positions. This architecture achieved state-of-the-art results on machine translation tasks and demonstrated superior parallelization capabilities compared to previous sequential models."
+        ],
+        "filters": {},
+        "is_safe": true,
+        "metadata": {
+          "elapsed_ms": 2635
+        }
+      },
+      "latency_ms": 2635.22,
+      "metadata": {
+        "num_expanded": 2,
+        "filters": {}
+      },
+      "timestamp": "2026-03-23T09:59:55.960022"
+    },
+    {
+      "component_name": "Retrieval Manager",
+      "stage": "Retrieval",
+      "class_name": "RetrievalManager",
+      "input_data": {
+        "original_query": "What are the core contributions of the Attention Is All You Need paper?",
+        "condensed_query": "What are the core contributions of the Attention Is All You Need paper?",
+        "expanded_queries": [
+          "What are the core contributions of the Attention Is All You Need paper?",
+          "The \"Attention Is All You Need\" paper introduced the Transformer architecture, which relies solely on attention mechanisms, dispensing with recurrent and convolutional layers. Its core contributions include the self-attention mechanism, enabling the model to weigh the importance of different input words when processing a given word, and the multi-head attention mechanism, allowing the model to jointly attend to information from different representation subspaces at different positions. This architecture achieved state-of-the-art results on machine translation tasks and demonstrated superior parallelization capabilities compared to previous sequential models."
+        ],
+        "filters": {},
+        "is_safe": true,
+        "metadata": {
+          "elapsed_ms": 2635
+        }
+      },
+      "output_data": {
+        "candidates_count": 0
+      },
+      "latency_ms": 5016.77,
+      "metadata": {
+        "search_count": 2
+      },
+      "timestamp": "2026-03-23T10:00:00.977200"
+    },
+    {
+      "component_name": "Post-Retrieval Manager",
+      "stage": "Post-Retrieval",
+      "class_name": "PostRetrievalManager",
+      "input_data": {
+        "candidates_in": 0
+      },
+      "output_data": {
+        "ranked_count": 0,
+        "pii_spans": 0
+      },
+      "latency_ms": 0.04,
+      "metadata": {
+        "masked_spans": []
+      },
+      "timestamp": "2026-03-23T10:00:00.977301"
+    },
+    {
+      "component_name": "Inference/Context Manager",
+      "stage": "Inference",
+      "class_name": "InferenceManager",
+      "input_data": {
+        "prompt_preview": "What are the core contributions of the Attention Is All You Need paper?"
+      },
+      "output_data": {
+        "answer_preview": "The \"Attention Is All You Need\" paper's core contributions are:\n\n*   **The Transformer Architecture:"
+      },
+      "latency_ms": 2483.53,
+      "metadata": {
+        "context_count": 0
+      },
+      "timestamp": "2026-03-23T10:00:03.460867"
+    }
+  ],
+  "final_output": "The \"Attention Is All You Need\" paper's core contributions are:\n\n*   **The Transformer Architecture:** This is the primary contribution. It introduced a novel neural network architecture that relies entirely on attention mechanisms, dispensing with recurrence and convolutions.\n*   **Self-Attention Mechanism:** The paper popularized and formalized the self-attention mechanism, allowing the model to weigh the importance of different words in the input sequence when processing each word. This enables the model to capture long-range dependencies more effectively than previous recurrent models.\n*   **Multi-Head Attention:** This is an extension of the self-attention mechanism, where attention is applied multiple times in parallel with different learned linear projections. This allows the model to jointly attend to information from different representation subspaces at different positions.\n*   **Positional Encoding:** Since the Transformer architecture does not use recurrence, it needs a way to incorporate information about the relative or absolute position of tokens in the sequence. Positional encodings are added to the input embeddings to achieve this.\n*   **Demonstration of Superior Performance:** The paper demonstrated that the Transformer architecture achieved state-of-the-art results on machine translation tasks, significantly outperforming previous recurrent and convolutional models in terms of both quality and training speed. [Document 1]",
+  "timestamp": "2026-03-23T09:59:53.324746"
+}

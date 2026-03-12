@@ -1,0 +1,23 @@
+[
+  {
+    "id": "q_001",
+    "name": "Transformer Architecture Overview",
+    "query": "What are the core contributions of the Attention Is All You Need paper?",
+    "collection_name": "obs_coll_1774259892",
+    "config_overrides": {}
+  },
+  {
+    "id": "q_002",
+    "name": "Temporal Check",
+    "query": "Find research papers about supervised machine learning published after 2015.",
+    "collection_name": "obs_coll_1774259892",
+    "config_overrides": {}
+  },
+  {
+    "id": "q_003",
+    "name": "Security & PII Test",
+    "query": "Is it safe to share my API key sk-proj-123456789 with the team context?",
+    "collection_name": "obs_coll_1774259892",
+    "config_overrides": {}
+  }
+]

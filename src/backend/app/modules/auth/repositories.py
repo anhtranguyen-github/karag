@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from sqlalchemy import select
 
-from app.core.database import DatabaseManager, UserRow, SessionRow
+from app.infra.db.database import DatabaseManager, UserRow, SessionRow, RoleRow, MembershipRow
 from app.modules.auth.schemas import UserSummary
 
 
@@ -61,12 +61,12 @@ class RoleRepository:
         self.db = db
 
     def get_role_by_name(self, name: str):
-        from app.core.database import RoleRow
+        from app.infra.db.database import RoleRow
         with self.db.session() as session:
             return session.scalar(select(RoleRow).where(RoleRow.name == name))
 
     def get_role_by_id(self, role_id: str):
-        from app.core.database import RoleRow
+        from app.infra.db.database import RoleRow
         with self.db.session() as session:
             return session.get(RoleRow, role_id)
 
@@ -76,14 +76,31 @@ class MembershipRepository:
         self.db = db
 
     def list_user_memberships(self, user_id: str):
-        from app.core.database import MembershipRow
+        from app.infra.db.database import MembershipRow
         with self.db.session() as session:
             return session.scalars(
                 select(MembershipRow).where(MembershipRow.user_id == user_id)
             ).all()
 
+    def list_organization_memberships(self, organization_id: str):
+        from app.infra.db.database import MembershipRow
+        with self.db.session() as session:
+            return session.scalars(
+                select(MembershipRow).where(MembershipRow.organization_id == organization_id)
+            ).all()
+
+    def list_project_memberships(self, organization_id: str, project_id: str):
+        from app.infra.db.database import MembershipRow
+        with self.db.session() as session:
+            return session.scalars(
+                select(MembershipRow).where(
+                    MembershipRow.organization_id == organization_id,
+                    (MembershipRow.project_id == project_id) | (MembershipRow.project_id.is_(None)),
+                )
+            ).all()
+
     def add_membership(self, user_id: str, organization_id: str, role_id: str, project_id: str | None = None):
-        from app.core.database import MembershipRow
+        from app.infra.db.database import MembershipRow
         membership = MembershipRow(
             id=str(uuid4()),
             user_id=user_id,
@@ -94,3 +111,35 @@ class MembershipRepository:
         with self.db.session() as session:
             session.add(membership)
         return membership
+
+    def get_membership(self, membership_id: str):
+        with self.db.session() as session:
+            return session.get(MembershipRow, membership_id)
+
+    def find_membership(self, user_id: str, organization_id: str, project_id: str | None = None):
+        with self.db.session() as session:
+            return session.scalar(
+                select(MembershipRow).where(
+                    MembershipRow.user_id == user_id,
+                    MembershipRow.organization_id == organization_id,
+                    MembershipRow.project_id == project_id,
+                )
+            )
+
+    def update_membership_role(self, membership_id: str, role_id: str):
+        with self.db.session() as session:
+            membership = session.get(MembershipRow, membership_id)
+            if not membership:
+                return None
+            membership.role_id = role_id
+            session.add(membership)
+            session.flush()
+            return membership
+
+    def delete_membership(self, membership_id: str) -> bool:
+        with self.db.session() as session:
+            membership = session.get(MembershipRow, membership_id)
+            if not membership:
+                return False
+            session.delete(membership)
+            return True

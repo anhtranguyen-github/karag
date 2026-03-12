@@ -36,3 +36,6 @@ compose-down:
 
 test:
 	cd src/backend && uv run pytest
+
+live-integration-test:
+	bash tests/test_live_integration.sh

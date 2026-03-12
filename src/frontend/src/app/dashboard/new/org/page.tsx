@@ -2,68 +2,40 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+
+import { CreateEntityPage } from "@/components/ui/create-entity-page";
 import { platformApi } from "@/lib/api/platform";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTenant } from "@/providers/tenant-provider";
 
 export default function CreateOrganizationPage() {
-    const router = useRouter();
-    const { setOrganizationId } = useTenant();
-    const [loading, setLoading] = useState(false);
-    const [name, setName] = useState("");
+  const router = useRouter();
+  const { tenant, setOrganizationId } = useTenant();
+  const [loading, setLoading] = useState(false);
+  const [name, setName] = useState("");
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        try {
-            const org = await platformApi.createOrganization({ name });
-            setOrganizationId(org.id);
-            router.push(`/dashboard/org/${org.id}`);
-        } catch (error) {
-            console.error("Failed to create organization:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setLoading(true);
+    try {
+      const organization = await platformApi.createOrganization({ name }, { actorId: tenant.actorId });
+      setOrganizationId(organization.id);
+      router.push(`/dashboard/org/${organization.id}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    return (
-        <div className="flex h-screen w-full items-center justify-center bg-slate-50 p-4">
-            <Card className="w-full max-w-md border-blue-100 shadow-xl shadow-blue-500/10">
-                <CardHeader className="space-y-1">
-                    <CardTitle className="text-2xl font-bold tracking-tight text-slate-950">Create Organization</CardTitle>
-                    <CardDescription className="text-slate-500">
-                        Get started by creating your first organization.
-                    </CardDescription>
-                </CardHeader>
-                <form onSubmit={handleSubmit}>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="name" className="text-slate-700">Display Name</Label>
-                            <Input
-                                id="name"
-                                placeholder="e.g. Acme Corporation"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                required
-                                className="border-slate-200 focus:border-blue-500 focus:ring-blue-500"
-                            />
-                            <p className="text-[11px] text-slate-400">Organization ID will be automatically generated.</p>
-                        </div>
-                    </CardContent>
-                    <CardFooter>
-                        <Button
-                            type="submit"
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98]"
-                            disabled={loading || !name}
-                        >
-                            {loading ? "Creating..." : "Create Organization"}
-                        </Button>
-                    </CardFooter>
-                </form>
-            </Card>
-        </div>
-    );
+  return (
+    <CreateEntityPage
+      description="Create a new organization boundary for projects, workspaces, and members."
+      label="Organization Name"
+      loading={loading}
+      onChange={setName}
+      onSubmit={handleSubmit}
+      placeholder="Acme Research"
+      submitLabel="Create Organization"
+      title="Create Organization"
+      value={name}
+    />
+  );
 }

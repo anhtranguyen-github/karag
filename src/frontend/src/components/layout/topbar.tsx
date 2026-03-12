@@ -9,7 +9,13 @@ import {
   Plus,
   Search,
   UserCircle2,
-  Bell
+  Bell,
+  Settings2,
+  LogOut,
+  LogOut as LogoutIcon,
+  Settings,
+  User,
+  Settings2 as SettingsIcon
 } from "lucide-react";
 import {
   generateProjectUrl,
@@ -19,12 +25,13 @@ import {
   type WorkspaceSection
 } from "@/lib/navigation";
 import { useTenant } from "@/providers/tenant-provider";
-import { cn } from "@/lib/utils";
+import { cn, formatCount, formatDate } from "@/lib/utils";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Dialog } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { PrimaryButton } from "@/components/ui/primary-button";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 // ─── Feedback Button & Modal ─────────────────────────────────────────
 export function FeedbackButton() {
   const [open, setOpen] = useState(false);
@@ -34,19 +41,21 @@ export function FeedbackButton() {
 
   return (
     <>
-      <button
-        className="flex h-8 items-center gap-2 rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] px-2.5 text-sm text-[#9ca3af] transition-colors hover:text-[#e5e5e5]"
+      <Button
+        variant="secondary"
+        size="sm"
+        className="gap-2 text-muted-foreground"
         onClick={() => setOpen(true)}
         title="Feedback"
         type="button"
       >
         <MessageSquare className="h-3.5 w-3.5" />
         <span className="hidden sm:inline">Feedback</span>
-      </button>
+      </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <h2 className="mb-2 text-lg font-semibold text-[#e5e5e5]">Send Feedback</h2>
+        <h2 className="mb-4 text-xl font-bold tracking-tight text-foreground/90">Send Feedback</h2>
         {submitted ? (
-          <div className="py-6 text-center text-[#9ca3af]">Thank you for your feedback!</div>
+          <div className="py-8 text-center text-muted-foreground animate-fade-in">Thank you for your feedback!</div>
         ) : (
           <form
             className="space-y-4"
@@ -69,14 +78,21 @@ export function FeedbackButton() {
               onChange={e => setMessage(e.target.value)}
               className="bg-[#181818] border-[#2a2a2a] text-[#e5e5e5] placeholder-[#6b7280] min-h-[100px]"
             />
-            <div className="flex justify-end">
-              <PrimaryButton
+            <div className="flex justify-end gap-3 pt-2">
+              <Button
+                variant="ghost"
+                onClick={() => setOpen(false)}
+                type="button"
+              >
+                Cancel
+              </Button>
+              <Button
                 type="submit"
                 disabled={submitting || !message.trim()}
                 className="min-w-[100px]"
               >
                 {submitting ? "Sending..." : "Send"}
-              </PrimaryButton>
+              </Button>
             </div>
           </form>
         )}
@@ -105,7 +121,7 @@ export function UserMenu({ actorId }: { readonly actorId?: string }) {
   return (
     <div className="relative" ref={menuRef}>
       <button
-        className="flex h-8 w-8 items-center justify-center rounded-full bg-[#222] text-[#9ca3af] transition-colors hover:bg-[#2a2a2a]"
+        className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-muted-foreground transition-all hover:bg-muted hover:text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         title={actorId ?? "User"}
         onClick={() => setOpen((v) => !v)}
         type="button"
@@ -115,25 +131,26 @@ export function UserMenu({ actorId }: { readonly actorId?: string }) {
         <UserCircle2 className="h-5 w-5" />
       </button>
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-48 rounded-xl border border-[#2a2a2a] bg-[#181818] shadow-2xl shadow-black/50">
+        <div className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-xl border border-border bg-popover p-1 shadow-2xl animate-fade-in">
           <button
-            className="w-full px-4 py-3 text-left text-sm text-[#e5e5e5] hover:bg-[#232323] rounded-t-xl"
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-foreground/80 hover:bg-accent hover:text-foreground transition-colors"
             onClick={() => {
               setOpen(false);
               globalThis.location.href = "/dashboard/account/settings";
             }}
           >
+            <Settings2 className="h-4 w-4" />
             Account Settings
           </button>
+          <div className="my-1 border-t border-border" />
           <button
-            className="w-full px-4 py-3 text-left text-sm text-[#e53e3e] hover:bg-[#232323] rounded-b-xl border-t border-[#2a2a2a]"
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
             onClick={() => {
               setOpen(false);
               globalThis.location.href = "/logout";
-
-
             }}
           >
+            <LogOut className="h-4 w-4" />
             Log Out
           </button>
         </div>
@@ -226,11 +243,10 @@ function OrgSwitcher() {
       <button
         aria-expanded={open}
         aria-haspopup="listbox"
-        className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-[#1f1f1f]"
+        className="flex items-center gap-2.5 rounded-xl border border-border/70 bg-card/55 px-3 py-2 transition-colors hover:bg-muted/70"
         onClick={() => setOpen((v) => !v)}
       >
-        {/* Org icon */}
-        <div className="flex h-6 w-6 items-center justify-center rounded-md bg-orange-500/15 text-orange-400">
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/14 text-primary">
           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
             <circle cx="12" cy="7" r="3" />
             <circle cx="5" cy="18" r="3" />
@@ -239,13 +255,13 @@ function OrgSwitcher() {
           </svg>
         </div>
 
-        <span className="max-w-[180px] truncate text-sm font-semibold text-[#e5e5e5]">
+        <span className="max-w-[180px] truncate text-sm font-semibold text-foreground">
           {currentOrg?.name ?? "Select organization"}
         </span>
 
         <ChevronDown
           className={cn(
-            "h-3.5 w-3.5 text-[#6b7280] transition-transform duration-150",
+            "h-3.5 w-3.5 text-muted-foreground transition-transform duration-150",
             open && "rotate-180"
           )}
         />
@@ -253,14 +269,14 @@ function OrgSwitcher() {
 
       {/* ── Dropdown ── */}
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1.5 w-[300px] overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#1a1a1a] shadow-2xl shadow-black/50">
+        <div className="absolute left-0 top-full z-50 mt-2 w-[300px] overflow-hidden rounded-2xl border border-border bg-popover shadow-2xl animate-fade-in">
           {/* Search */}
-          <div className="p-2">
+          <div className="p-2 border-b border-border">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#6b7280]" />
-              <input
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
                 ref={inputRef}
-                className="h-8 w-full rounded-lg border border-[#2a2a2a] bg-[#121212] pl-8 pr-3 text-sm text-[#e5e5e5] placeholder-[#6b7280] outline-none transition focus:border-orange-500/50"
+                className="h-9 pl-9"
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Find organization..."
@@ -270,41 +286,39 @@ function OrgSwitcher() {
           </div>
 
           {/* Org list */}
-          <div className="max-h-52 overflow-y-auto px-1.5 pb-1">
+          <div className="max-h-60 overflow-y-auto p-1.5 pt-2">
             {filteredOrgs.map((org, idx) => {
               const selected = org.id === tenant.organizationId;
               const focused = idx === focusIdx;
               return (
                 <button
                   className={cn(
-                    "flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-sm transition-colors",
-                    selected && "bg-[#222]",
-                    focused && !selected && "bg-[#1f1f1f]",
-                    selected ? "text-[#e5e5e5]" : "text-[#9ca3af]",
-                    !selected && !focused && "hover:bg-[#1f1f1f] hover:text-[#e5e5e5]"
+                    "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
+                    selected ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    focused && !selected && "bg-muted/50"
                   )}
                   key={org.id}
                   onClick={() => selectOrg(org.id)}
                   onMouseEnter={() => setFocusIdx(idx)}
                 >
-                  <span className="truncate font-medium">{org.name}</span>
+                  <span className="truncate">{org.name}</span>
                   {selected && (
-                    <Check className="h-4 w-4 shrink-0 text-orange-400" />
+                    <Check className="h-4 w-4 shrink-0" />
                   )}
                 </button>
               );
             })}
             {filteredOrgs.length === 0 && (
-              <div className="px-2 py-4 text-center text-sm text-[#6b7280]">
+              <div className="px-2 py-8 text-center text-sm text-muted-foreground">
                 No organizations found
               </div>
             )}
           </div>
 
           {/* Footer */}
-          <div className="border-t border-[#2a2a2a] px-1.5 py-1">
+          <div className="border-t border-border bg-muted/30 p-1.5">
             <button
-              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm text-[#9ca3af] transition-colors hover:bg-[#1f1f1f] hover:text-[#e5e5e5]"
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               onClick={() => {
                 setOpen(false);
                 router.push("/dashboard");
@@ -313,13 +327,13 @@ function OrgSwitcher() {
               All Organizations
             </button>
             <button
-              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm text-[#9ca3af] transition-colors hover:bg-[#1f1f1f] hover:text-[#e5e5e5]"
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               onClick={() => {
                 setOpen(false);
                 router.push("/dashboard/new/org");
               }}
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus className="h-4 w-4" />
               New organization
             </button>
           </div>
@@ -433,9 +447,9 @@ function ScopeSelector({
         aria-haspopup="listbox"
         aria-label={ariaLabel}
         className={cn(
-          "flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors hover:bg-[#1f1f1f]",
+          "flex h-10 items-center gap-2 rounded-xl border border-border/70 bg-card/45 px-3 text-sm font-medium transition-all hover:bg-muted/70 active:scale-[0.98]",
           disabled && "pointer-events-none opacity-50",
-          selectedLabel ? "text-[#e5e5e5]" : "text-[#6b7280]"
+          selectedLabel ? "text-foreground" : "text-muted-foreground"
         )}
         disabled={disabled}
         onClick={() => setOpen((v) => !v)}
@@ -444,21 +458,21 @@ function ScopeSelector({
         <span className="max-w-[160px] truncate">{selectedLabel ?? placeholder}</span>
         <ChevronDown
           className={cn(
-            "h-3 w-3 text-[#6b7280] transition-transform duration-150",
+            "h-3.5 w-3.5 text-muted-foreground transition-transform duration-200",
             open && "rotate-180"
           )}
         />
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1.5 w-[260px] overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#1a1a1a] shadow-2xl shadow-black/50">
+        <div className="absolute left-0 top-full z-50 mt-1.5 w-[260px] overflow-hidden rounded-2xl border border-border bg-popover shadow-2xl">
           {/* Search */}
           <div className="p-2">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#6b7280]" />
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <input
                 ref={inputRef}
-                className="h-8 w-full rounded-lg border border-[#2a2a2a] bg-[#121212] pl-8 pr-3 text-sm text-[#e5e5e5] placeholder-[#6b7280] outline-none transition focus:border-orange-500/50"
+                className="h-9 w-full rounded-xl border border-border bg-card/60 pl-8 pr-3 text-sm text-foreground placeholder:text-muted-foreground outline-none transition focus:border-primary/50"
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={`Find ${placeholder.toLowerCase()}...`}
@@ -476,10 +490,10 @@ function ScopeSelector({
                 <button
                   className={cn(
                     "flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-sm transition-colors",
-                    selected && "bg-[#222]",
-                    focused && !selected && "bg-[#1f1f1f]",
-                    selected ? "text-[#e5e5e5]" : "text-[#9ca3af]",
-                    !selected && !focused && "hover:bg-[#1f1f1f] hover:text-[#e5e5e5]"
+                    selected && "bg-primary/10",
+                    focused && !selected && "bg-muted/60",
+                    selected ? "text-foreground" : "text-muted-foreground",
+                    !selected && !focused && "hover:bg-muted/60 hover:text-foreground"
                   )}
                   key={opt.value}
                   onClick={() => select(opt.value)}
@@ -487,13 +501,13 @@ function ScopeSelector({
                 >
                   <span className="truncate font-medium">{opt.label}</span>
                   {selected && (
-                    <Check className="h-4 w-4 shrink-0 text-orange-400" />
+                    <Check className="h-4 w-4 shrink-0 text-primary" />
                   )}
                 </button>
               );
             })}
             {filtered.length === 0 && (
-              <div className="px-2 py-4 text-center text-sm text-[#6b7280]">
+              <div className="px-2 py-4 text-center text-sm text-muted-foreground">
                 No results found
               </div>
             )}
@@ -501,10 +515,10 @@ function ScopeSelector({
 
           {/* Footer */}
           {(allLabel || newLabel) && (
-            <div className="border-t border-[#2a2a2a] px-1.5 py-1">
+            <div className="border-t border-border px-1.5 py-1">
               {allLabel && allHref && (
                 <button
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm text-[#9ca3af] transition-colors hover:bg-[#1f1f1f] hover:text-[#e5e5e5]"
+                  className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
                   onClick={() => {
                     setOpen(false);
                     router.push(allHref);
@@ -515,7 +529,7 @@ function ScopeSelector({
               )}
               {newLabel && newHref && (
                 <button
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm text-[#9ca3af] transition-colors hover:bg-[#1f1f1f] hover:text-[#e5e5e5]"
+                  className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
                   onClick={() => {
                     setOpen(false);
                     router.push(newHref);
@@ -625,51 +639,40 @@ export function Topbar({ onOpenSearch }: Readonly<{ onOpenSearch: () => void }>)
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[#2a2a2a] bg-[#141414]">
-      <div className="flex h-14 items-center justify-between gap-3 px-4">
-        {/* Left: Org switcher + breadcrumbs */}
-        <div className="flex min-w-0 flex-1 items-center gap-2">
+    <header className="sticky top-0 z-40 w-full h-16 bg-background flex justify-between items-center px-8 border-b border-border/20 backdrop-blur-xl">
+      <div className="flex items-center gap-6 md:gap-8">
+        {/* We can hide Karag logo here if it's already in Sidebar but kept on mobile */}
+        <span className="text-xl font-black text-primary tracking-tighter font-display lg:hidden">Karag</span>
+        
+        <div className="flex items-center gap-2">
           <OrgSwitcher />
           {breadcrumbExtras}
         </div>
+      </div>
 
-        {/* Right: actions */}
-        <div className="flex shrink-0 items-center gap-1.5">
-          {/* Feedback Modal State */}
-          <FeedbackButton />
-
-          <button
-            className="flex h-8 min-w-[160px] items-center justify-between gap-2 rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] px-2.5 text-sm text-[#9ca3af] transition-colors hover:text-[#e5e5e5]"
-            onClick={onOpenSearch}
-            title="Search"
-          >
-            <span className="inline-flex items-center gap-2">
-              <Search className="h-3.5 w-3.5" />
-              Search
-            </span>
-            <span className="kbd">
-              <Command className="h-2.5 w-2.5" />K
-            </span>
-          </button>
-
-          <button
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-[#6b7280] transition-colors hover:bg-[#1f1f1f] hover:text-[#e5e5e5]"
-            title="Help"
-          >
-            <HelpCircle className="h-4 w-4" />
-          </button>
-
-          {/* Notification Bell Icon Button */}
-          <button
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#222] text-[#9ca3af] transition-colors hover:bg-[#2a2a2a] mr-1"
-            title="Notifications"
-            type="button"
-          >
-            <Bell className="h-5 w-5" />
-          </button>
-
-          {/* User Icon with Dropdown Menu */}
-          <UserMenu actorId={tenant.actorId} />
+      <div className="flex shrink-0 items-center gap-4">
+        <button
+          className="hidden h-9 w-64 items-center justify-between gap-3 rounded-full bg-muted border border-border px-4 text-sm text-muted-foreground transition-all hover:ring-2 hover:ring-primary/30 focus:ring-2 focus:ring-primary/30 lg:flex"
+          onClick={onOpenSearch}
+          title="Search"
+        >
+          <span className="flex items-center gap-2">
+            <Search className="h-4 w-4" />
+            Search...
+          </span>
+          <kbd className="hidden md:inline-flex items-center px-2 py-0.5 text-xs font-semibold text-muted-foreground bg-popover rounded-md">
+            <Command className="h-2.5 w-2.5 mr-1 inline" />K
+          </kbd>
+        </button>
+        
+        <FeedbackButton />
+        
+        <button className="p-2 text-muted-foreground hover:bg-muted rounded-full transition-all">
+          <Bell className="h-5 w-5" />
+        </button>
+        
+        <div className="pl-2 border-l border-border/50">
+           <UserMenu actorId={tenant.actorId} />
         </div>
       </div>
     </header>

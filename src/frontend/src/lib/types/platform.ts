@@ -33,111 +33,31 @@ export type WorkspaceSummary = {
   created_at: string;
 };
 
-export type WorkspaceEmbeddingConfig = {
-  component: string;
-  provider: string;
-  model: string;
-  dimension?: number | null;
-  batch_size: number;
-  api_key?: string | null;
-  api_base?: string | null;
+export type ScopeMemberSummary = {
+  id: string;
+  user_id: string;
+  email: string;
+  display_name: string;
+  role: string;
+  mfa_enabled: boolean;
+  organization_id: string;
+  project_id?: string | null;
+  inherited: boolean;
+  created_at: string;
 };
 
-export type WorkspaceChunkingConfig = {
-  component: string;
-  chunk_size: number;
-  chunk_overlap: number;
-};
-
-export type WorkspaceVectorStoreConfig = {
-  component: string;
-  url?: string | null;
-  api_key?: string | null;
-  collection_name?: string | null;
-  distance_metric: string;
-  index_type: string;
-  vector_dimension?: number | null;
-};
-
-export type WorkspaceRetrieverConfig = {
-  component: string;
-  top_k: number;
-  score_threshold: number;
-};
-
-export type WorkspaceRerankConfig = {
-  component: string;
-  provider: string;
-  model: string;
-  top_k?: number;
-  api_key?: string | null;
-  api_base?: string | null;
-};
-
-export type WorkspaceLlmConfig = {
-  provider: string;
-  model: string;
-  temperature: number;
-  max_tokens: number;
-  streaming: boolean;
-  api_key?: string | null;
-  api_base?: string | null;
-};
-
-export type WorkspaceRagBehaviorConfig = {
-  reader: string;
-  query_transformer: string;
-  generator: string;
-  prompt_template: string;
-  max_context_tokens: number;
-  context_compression: boolean;
-  citation_mode: string;
-  context_formatting_template: string;
-};
-
-export type WorkspaceRagConfig = {
-  workspace_id: string;
-  embedding: WorkspaceEmbeddingConfig;
-  chunking: WorkspaceChunkingConfig;
-  vectorstore: WorkspaceVectorStoreConfig;
-  retriever: WorkspaceRetrieverConfig;
-  reranker: WorkspaceRerankConfig;
-  llm: WorkspaceLlmConfig;
-  rag: WorkspaceRagBehaviorConfig;
-  features: Record<string, unknown>;
-  updated_at: string;
-};
-
-export type WorkspaceRagConfigUpdate = Partial<{
-  embedding: Partial<WorkspaceEmbeddingConfig>;
-  chunking: Partial<WorkspaceChunkingConfig>;
-  vectorstore: Partial<WorkspaceVectorStoreConfig>;
-  retriever: Partial<WorkspaceRetrieverConfig>;
-  reranker: Partial<WorkspaceRerankConfig>;
-  llm: Partial<WorkspaceLlmConfig>;
-  rag: Partial<WorkspaceRagBehaviorConfig>;
-  features: Record<string, unknown>;
-}>;
-
-export type RagPipelineCompatibilityCheck = {
+export type ApiKeySummary = {
+  id: string;
+  organization_id: string;
+  project_id: string;
   name: string;
-  status: string;
-  message: string;
+  masked_key?: string | null;
+  is_active: boolean;
+  created_at: string;
 };
 
-export type RagPipelineComponentMetadata = {
-  implementation: string;
-  enabled: boolean;
-  details: Record<string, unknown>;
-};
-
-export type RagPipelineAudit = {
-  valid: boolean;
-  current_pipeline: Record<string, string>;
-  pipeline_graph: string[];
-  compatibility: RagPipelineCompatibilityCheck[];
-  components: Record<string, RagPipelineComponentMetadata>;
-  available_components: Record<string, string[]>;
+export type ApiKeyCreated = ApiKeySummary & {
+  key_value: string;
 };
 
 export type DocumentSummary = {
@@ -152,48 +72,44 @@ export type DocumentSummary = {
   created_at: string;
 };
 
-export type EvaluationDatasetSummary = {
+export type ProjectDocumentSummary = {
   id: string;
-  organization_id: string;
   project_id: string;
-  workspace_id: string;
-  name: string;
-  description?: string | null;
-  created_at: string;
-};
-
-export type EvaluationQuestionSummary = {
-  id: string;
-  evaluation_dataset_id: string;
   organization_id: string;
-  project_id: string;
-  workspace_id: string;
-  question: string;
-  expected_answer: string;
-  expected_context?: string | null;
+  workspace_id?: string | null;
+  storage_path: string;
+  title: string;
+  extension: string;
+  file_size: number;
+  labels: string[];
+  source: string;
   metadata: Record<string, unknown>;
+  status: string;
   created_at: string;
+  workspace_count?: number;
+  latest_ingestion?: IngestionSummary | null;
 };
 
-export type EvaluationRunQuestionResult = {
-  question_id: string;
-  answer: string;
-  retrieved_contexts: string[];
-  expected_answer: string;
-  lexical_overlap_score: number;
+export type IngestionSummary = {
+  job_id?: string;
+  document_id: string;
+  workspace_id?: string;
+  track_id: string;
+  status: string;
+  error_message?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  completed_at?: string | null;
 };
 
-export type EvaluationRunResult = {
-  id: string;
-  evaluation_dataset_id: string;
-  knowledge_dataset_id: string;
-  organization_id: string;
-  project_id: string;
-  workspace_id: string;
-  total_questions: number;
-  average_score: number;
-  created_at: string;
-  question_results: EvaluationRunQuestionResult[];
+export type IngestFilesResponse = {
+  status: string;
+  ingestions: IngestionSummary[];
+};
+
+export type WorkspaceUploadResponse = {
+  document: ProjectDocumentSummary;
+  ingestion?: IngestionSummary | null;
 };
 
 export type RuntimeModelSummary = {
@@ -222,34 +138,6 @@ export type DependencyHealth = {
   counts: Record<string, number>;
 };
 
-export type TraceSummary = {
-  trace_id: string;
-  trace_type: string;
-  organization_id: string;
-  project_id: string;
-  workspace_id?: string | null;
-  resource_id?: string | null;
-  status: string;
-  captured: Record<string, unknown>;
-  metrics: Record<string, number>;
-  created_at: string;
-};
-
-export type EventSummary = {
-  event_type: string;
-  resource_id: string;
-  workspace_id?: string | null;
-  occurred_at: string;
-};
-
-export type ObservabilitySummary = {
-  trace_counts: Record<string, number>;
-  event_counts: Record<string, number>;
-  recent_traces?: TraceSummary[];
-  event_bus: string;
-  events: EventSummary[];
-};
-
 export type RagChunkResult = {
   chunk_id: string;
   document_id: string;
@@ -264,6 +152,7 @@ export type RagQueryResponse = {
   model: string;
   prompt: string;
   chunks: RagChunkResult[];
+  trace?: string[];
   usage: {
     prompt_tokens: number;
     completion_tokens: number;
@@ -278,12 +167,28 @@ export type TenantSelection = {
   actorId?: string;
 };
 
+export type EffectivePermissionsSummary = {
+  organization_id: string;
+  project_id?: string | null;
+  actor_id: string;
+  permissions: string[];
+};
+
 export type ChatMessageSummary = {
   id: string;
   session_id: string;
   role: string;
   content: string;
-  metadata: Record<string, any>;
+  metadata: {
+    sources?: RagChunkResult[];
+    trace?: string[];
+    error?: {
+      code: string;
+      message: string;
+      detail?: string;
+    };
+    [key: string]: any;
+  };
   created_at: string;
 };
 

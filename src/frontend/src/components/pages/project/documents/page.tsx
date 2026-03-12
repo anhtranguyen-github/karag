@@ -1,266 +1,357 @@
 "use client";
 
-import { useQueries } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-	Search,
-	Filter,
-	HardDrive,
-	Box,
 	FileText,
-	Layers,
-	PieChart,
-	ExternalLink,
-	ShieldCheck,
-	LayoutGrid,
-	List
+	Upload,
+	Search,
+	CheckCircle2,
+	Loader2,
+	FolderOpen,
+	Database,
+	Clock,
+	HardDrive,
+	AlertCircle,
+	FileCode,
+	X,
+	Zap,
+	Trash2,
 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ProjectGuard } from "@/components/ui/project-guard";
 import PageShell from "@/components/ui/page-shell";
 import { platformApi } from "@/lib/api/platform";
-import { formatDate } from "@/lib/utils";
 import { useTenant } from "@/providers/tenant-provider";
-import { cn } from "@/lib/utils";
+import { formatDate, cn } from "@/lib/utils";
+
+function formatFileSize(bytes: number): string {
+	if (bytes < 1024) return `${bytes} B`;
+	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+	return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+const statusConfig: Record<string, { icon: React.ElementType; label: string; color: string; bg: string; border: string }> = {
+	completed: { icon: CheckCircle2, label: "Indexed", color: "text-emerald-400", bg: "bg-emerald-950/40", border: "border-emerald-800/60" },
+	processing: { icon: Loader2, label: "Processing", color: "text-amber-400", bg: "bg-amber-950/40", border: "border-amber-800/60" },
+	pending: { icon: Clock, label: "Pending", color: "text-slate-400", bg: "bg-slate-800/40", border: "border-slate-700/60" },
+	failed: { icon: AlertCircle, label: "Failed", color: "text-rose-400", bg: "bg-rose-950/40", border: "border-rose-800/60" },
+};
 
 export default function ProjectDocumentsPageView() {
-	const { tenant, workspaces } = useTenant();
+	const { tenant, isReady, hasPermission, isPermissionsReady } = useTenant();
+	const queryClient = useQueryClient();
+	const fileInputRef = useRef<HTMLInputElement>(null);
+
 	const [search, setSearch] = useState("");
-	const [workspaceFilter, setWorkspaceFilter] = useState("all");
-	const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+	const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+	const [dragActive, setDragActive] = useState(false);
+	const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
+	const [sortBy, setSortBy] = useState<"created_at" | "title" | "file_size" | "status">("created_at");
+	const [currentPage, setCurrentPage] = useState(1);
+	const canUploadDocuments = hasPermission("doc.upload");
+	const canDeleteDocuments = hasPermission("doc.delete") || hasPermission("doc.upload");
 
-	const workspaceNameMap = useMemo(
-		() => new Map(workspaces.map((workspace) => [workspace.id, workspace.name])),
-		[workspaces]
-	);
-
-	const documentQueries = useQueries({
-		queries: workspaces.map((workspace) => ({
-			queryKey: ["project-documents", tenant.organizationId, tenant.projectId, workspace.id],
-			queryFn: () =>
-				platformApi.listRuntimeDocuments(
-					{ ...tenant, workspaceId: workspace.id },
-					workspace.id
-				)
-		}))
+	const { data: documents, isLoading } = useQuery({
+		queryKey: ["project-documents", tenant.organizationId, tenant.projectId],
+		queryFn: () => platformApi.listProjectDocuments(tenant),
+		enabled: isReady && !!tenant.projectId,
 	});
 
-	const allDocuments = useMemo(() => {
-		return documentQueries.flatMap((query, index) =>
-			(query.data ?? []).map((document) => ({
-				...document,
-				workspaceName: workspaceNameMap.get(workspaces[index]?.id ?? "") ?? "Unknown"
-			}))
-		).filter((document) => {
-			const searchHaystack = [document.title, document.storage_path, document.workspaceName]
-				.join(" ")
-				.toLowerCase();
-			const matchesSearch = searchHaystack.includes(search.toLowerCase());
-			const matchesWorkspace =
-				workspaceFilter === "all" || document.workspace_id === workspaceFilter;
-			return matchesSearch && matchesWorkspace;
-		});
-	}, [documentQueries, search, workspaceFilter, workspaceNameMap, workspaces]);
+	const uploadMutation = useMutation({
+		mutationFn: (file: File) => platformApi.uploadProjectDocument(tenant, file, (pct) => setUploadProgress(pct)),
+		onSuccess: () => {
+			setUploadProgress(null);
+			queryClient.invalidateQueries({ queryKey: ["project-documents"] });
+		},
+		onError: () => {
+			setUploadProgress(null);
+		},
+	});
 
-	const workspaceStats = useMemo(() => {
-		return workspaces.map((ws, idx) => ({
-			name: ws.name,
-			count: documentQueries[idx].data?.length ?? 0,
-			id: ws.id
-		}));
-	}, [workspaces, documentQueries]);
+	const deleteMutation = useMutation({
+		mutationFn: (documentId: string) => platformApi.deleteProjectDocument(tenant, documentId),
+		onMutate: (documentId) => {
+			setDeletingDocumentId(documentId);
+		},
+		onSuccess: async () => {
+			await queryClient.invalidateQueries({ queryKey: ["project-documents"] });
+			await queryClient.invalidateQueries({ queryKey: ["workspace-documents"] });
+		},
+		onSettled: () => {
+			setDeletingDocumentId(null);
+		},
+	});
+
+	const handleUpload = useCallback((files: FileList | null) => {
+		if (!files?.length) return;
+		for (let i = 0; i < files.length; i++) {
+			uploadMutation.mutate(files[i]);
+		}
+	}, [uploadMutation]);
+
+	const handleDrop = useCallback((e: React.DragEvent) => {
+		e.preventDefault();
+		setDragActive(false);
+		handleUpload(e.dataTransfer.files);
+	}, [handleUpload]);
+
+	const handleDelete = useCallback((documentId: string, title: string) => {
+		if (!confirm(`Delete "${title}" from this project? This also removes linked workspace ingestion data.`)) {
+			return;
+		}
+		deleteMutation.mutate(documentId);
+	}, [deleteMutation]);
+
+	const filteredDocs = useMemo(() => (documents ?? []).filter(doc =>
+		doc.title.toLowerCase().includes(search.toLowerCase())
+	), [documents, search]);
+
+	const sortedDocs = useMemo(() => {
+		const docs = [...filteredDocs];
+		docs.sort((left, right) => {
+			if (sortBy === "title") return left.title.localeCompare(right.title);
+			if (sortBy === "file_size") return (right.file_size ?? 0) - (left.file_size ?? 0);
+			if (sortBy === "status") return left.status.localeCompare(right.status);
+			return new Date(right.created_at).getTime() - new Date(left.created_at).getTime();
+		});
+		return docs;
+	}, [filteredDocs, sortBy]);
+
+	const pageSize = 10;
+	const totalPages = Math.max(1, Math.ceil(sortedDocs.length / pageSize));
+	const safePage = Math.min(currentPage, totalPages);
+	const paginatedDocs = useMemo(() => {
+		const start = (safePage - 1) * pageSize;
+		return sortedDocs.slice(start, start + pageSize);
+	}, [safePage, sortedDocs]);
+
+	const cycleSort = useCallback(() => {
+		setCurrentPage(1);
+		setSortBy((current) => {
+			if (current === "created_at") return "title";
+			if (current === "title") return "file_size";
+			if (current === "file_size") return "status";
+			return "created_at";
+		});
+	}, []);
+
+	useEffect(() => {
+		setCurrentPage(1);
+	}, [search]);
+
+	const indexedCount = filteredDocs.filter(d => d.status === "completed").length;
+	const totalSize = filteredDocs.reduce((sum, d) => sum + (d.file_size || 0), 0);
+
+	const stats = [
+		{ label: "Total Files", value: filteredDocs.length, icon: Database, color: "text-blue-400", bg: "bg-blue-500/10" },
+		{ label: "Indexed", value: indexedCount, icon: CheckCircle2, color: "text-emerald-400", bg: "bg-emerald-500/10" },
+		{ label: "Total Size", value: formatFileSize(totalSize), icon: HardDrive, color: "text-amber-400", bg: "bg-amber-500/10" },
+	];
 
 	return (
 		<ProjectGuard>
-			<div className="flex flex-col gap-10 p-4 sm:p-10 max-w-7xl mx-auto w-full animate-in fade-in-from-bottom-4 duration-1000">
-				<PageShell
-					title="Global Assets"
-					scopeLabel="Project"
-					subtitle="Federated view of all context documents across the project namespaces."
-				>
-
-				{/* Storage Insight Panels */}
-				<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-					<div className="lg:col-span-2 p-8 rounded-[2rem] bg-white border border-slate-100 shadow-sm flex flex-col gap-6 relative overflow-hidden">
-						<div className="absolute -right-20 -bottom-20 opacity-[0.03] rotate-12 pointer-events-none">
-							<PieChart size={300} />
+			<div className="flex-1 overflow-y-auto mb-10 mt-2">
+				<div className="max-w-[1520px] mx-auto px-6 space-y-8 animate-in fade-in-from-bottom-4 duration-700">
+					{/* Header Section */}
+					<div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+						<div>
+							<h1 className="text-3xl font-extrabold text-foreground font-display tracking-tight mb-2">Project Documents</h1>
+							<p className="text-muted-foreground max-w-xl">Manage your organizational intelligence. Upload technical specs, research papers, or dataset documentation for RAG indexing.</p>
 						</div>
-						<div className="flex flex-col gap-1 relative">
-							<h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Namespace Residency</h3>
-							<p className="text-2xl font-black text-slate-900">Resource Distribution</p>
-						</div>
-						<div className="flex flex-col gap-4 relative">
-							{workspaceStats.slice(0, 3).map((ws) => (
-								<div key={ws.id} className="flex flex-col gap-2">
-									<div className="flex justify-between items-center text-xs font-bold uppercase tracking-wider text-slate-500">
-										<span>{ws.name}</span>
-										<span className="text-blue-500">{ws.count} Docs</span>
-									</div>
-									<div className="h-1.5 w-full bg-slate-50 rounded-full overflow-hidden">
-										<div 
-											className="h-full bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.2)] transition-all duration-1000" 
-											style={{ width: `${Math.min((ws.count / (allDocuments.length || 1)) * 100, 100)}%` }} 
-										/>
-									</div>
+						{/* Stats Grid */}
+						<div className="grid grid-cols-3 gap-4">
+							<div className="bg-popover p-4 rounded-xl border border-border min-w-[120px]">
+								<p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-1">Total Files</p>
+								<p className="text-xl font-display font-extrabold text-foreground">{filteredDocs.length}</p>
+							</div>
+							<div className="bg-popover p-4 rounded-xl border border-border min-w-[120px]">
+								<p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-1">Indexed</p>
+								<div className="flex items-center gap-2">
+									<p className="text-xl font-display font-extrabold text-primary">{indexedCount}</p>
+									<span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></span>
 								</div>
-							))}
-						</div>
-					</div>
-
-					<div className="p-8 rounded-[2rem] bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-xl flex flex-col justify-between relative overflow-hidden group">
-						<div className="absolute top-0 right-0 p-4 opacity-10 group-hover:rotate-12 transition-transform duration-700">
-							<ShieldCheck size={120} />
-						</div>
-						<div className="flex flex-col gap-2">
-							<Badge className="bg-blue-500/20 text-blue-400 border-none px-3 py-1 text-[9px] font-black uppercase tracking-widest w-fit mb-2">
-								Verified
-							</Badge>
-							<h3 className="text-xl font-bold leading-tight">Secured Data Sovereignty</h3>
-							<p className="text-xs text-slate-400 font-medium leading-relaxed">
-								Your documents never leave your infrastructure. All vector indices are maintained on-premise within your cluster.
-							</p>
-						</div>
-						<div className="pt-8">
-							<p className="text-3xl font-black tracking-tighter mb-1">{allDocuments.length}</p>
-							<p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-400">Global Indexed Objects</p>
-						</div>
-					</div>
-				</div>
-
-				{/* Filter & Table Area */}
-				<div className="flex flex-col gap-6">
-					<div className="flex flex-col sm:flex-row items-center gap-4">
-						<div className="flex-1 relative w-full group">
-							<div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors">
-								<Search size={18} />
 							</div>
-							<Input 
-								placeholder="Filter global assets by name, extension or path..."
-								value={search}
-								onChange={(e) => setSearch(e.target.value)}
-								className="pl-12 h-12 rounded-2xl border-slate-100 bg-white shadow-sm focus:border-blue-200 transition-all font-medium text-slate-600"
+							<div className="bg-popover p-4 rounded-xl border border-border min-w-[120px]">
+								<p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-1">Storage</p>
+								<p className="text-xl font-display font-extrabold text-foreground">{formatFileSize(totalSize)}</p>
+							</div>
+						</div>
+					</div>
+
+					{/* Upload Zone */}
+					<section className="relative group">
+						<div 
+                           onClick={() => {
+								if (canUploadDocuments) {
+									fileInputRef.current?.click();
+								}
+						   }}
+                           onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+                           onDragLeave={() => setDragActive(false)}
+                           onDrop={handleDrop}
+                           className={cn(
+							 "w-full min-h-[12rem] rounded-2xl border-2 border-dashed flex flex-col items-center justify-center transition-all overflow-hidden p-8",
+                             canUploadDocuments ? "cursor-pointer" : "cursor-default opacity-70",
+                             dragActive ? "border-primary bg-primary/10" : "border-border bg-card group-hover:border-primary group-hover:bg-muted"
+                           )}
+                        >
+							<input
+								ref={fileInputRef}
+								type="file"
+								className="hidden"
+								accept=".pdf,.txt,.md,.doc,.docx,.csv"
+								multiple
+								onChange={(e) => handleUpload(e.target.files)}
 							/>
+                            {uploadProgress !== null ? (
+                                <div className="flex flex-col items-center gap-4 z-10">
+                                    <Loader2 className="h-10 w-10 text-primary animate-spin" />
+                                    <div className="text-center">
+                                        <p className="text-sm font-bold text-foreground font-display">Uploading document...</p>
+                                        <p className="text-xs text-muted-foreground mt-1">{uploadProgress}% complete</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center gap-2 z-10">
+                                    <span className="material-symbols-outlined text-4xl text-primary mb-3" style={{ fontVariationSettings: "'FILL' 1" }}>cloud_upload</span>
+                                    <h3 className="text-lg font-bold text-foreground font-display">{canUploadDocuments ? "Drop intelligence artifacts here" : "Read-only document library"}</h3>
+                                    <p className="text-sm text-muted-foreground mt-1">{canUploadDocuments ? "PDF, Markdown, JSON, or Text up to 50MB" : "You can browse documents, but uploading requires document write access."}</p>
+                                </div>
+                            )}
 						</div>
-						<div className="flex items-center gap-2 p-1 bg-white border border-slate-100 rounded-2xl shadow-sm w-full sm:w-auto">
-							<select 
-								value={workspaceFilter} 
-								onChange={(e) => setWorkspaceFilter(e.target.value)}
-								className="h-10 px-4 bg-transparent text-sm font-bold text-slate-500 focus:outline-none cursor-pointer"
-							>
-								<option value="all">All Namespaces</option>
-								{workspaces.map(ws => (
-									<option key={ws.id} value={ws.id}>{ws.name}</option>
-								))}
-							</select>
-							<Button variant="ghost" className="h-10 px-4 rounded-xl text-slate-400 hover:text-blue-500 hover:bg-blue-50">
-								<Filter size={16} />
-							</Button>
+					</section>
+
+					{/* List & Filter Section */}
+					<div className="bg-card rounded-2xl shadow-2xl border border-border overflow-hidden">
+						{/* Table Header / Filters */}
+						<div className="p-6 flex flex-col md:flex-row gap-4 justify-between items-center border-b border-border">
+							<div className="relative w-full md:w-96">
+								<span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-[20px]">search</span>
+								<input 
+                                   value={search}
+                                   onChange={e => setSearch(e.target.value)}
+                                   className="w-full bg-popover border-none rounded-lg pl-10 pr-4 py-2.5 text-sm text-foreground focus:ring-1 focus:ring-primary placeholder:text-muted-foreground outline-none" 
+                                   placeholder="Filter by document name or tag..." 
+                                   type="text"
+                                />
+							</div>
+							<div className="flex items-center gap-3">
+								<button
+									className="px-4 py-2 bg-popover rounded-lg text-sm font-medium hover:bg-muted transition-colors flex items-center gap-2"
+									onClick={() => setSearch("")}
+									type="button"
+								>
+									<span className="material-symbols-outlined text-sm">filter_list</span>
+									<span>{search ? "Clear Filter" : "All Documents"}</span>
+								</button>
+								<button
+									className="px-4 py-2 bg-popover rounded-lg text-sm font-medium hover:bg-muted transition-colors flex items-center gap-2"
+									onClick={cycleSort}
+									type="button"
+								>
+									<span className="material-symbols-outlined text-sm">sort</span>
+									<span>Sort: {sortBy.replace("_", " ")}</span>
+								</button>
+							</div>
+						</div>
+
+						{/* Modern Table */}
+						<div className="overflow-x-auto">
+							<table className="w-full text-left border-collapse">
+								<thead>
+									<tr className="bg-popover/50">
+										<th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Document Name</th>
+										<th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Size</th>
+										<th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Date Added</th>
+										<th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Status</th>
+									</tr>
+								</thead>
+								<tbody className="divide-y divide-border/50">
+                                    {isLoading ? (
+                                        <tr><td colSpan={4} className="p-12 text-center text-muted-foreground"><Loader2 className="mx-auto animate-spin" /></td></tr>
+                                    ) : paginatedDocs.length === 0 ? (
+                                        <tr><td colSpan={4} className="p-12 text-center text-muted-foreground text-sm font-medium">No documents found.</td></tr>
+                                    ) : (
+                                        paginatedDocs.map(doc => {
+                                            const sc = statusConfig[doc.status] ?? statusConfig.pending;
+                                            return (
+                                                <tr key={doc.id} className="hover:bg-muted/50 transition-colors group">
+                                                    <td className="px-6 py-5">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center text-primary">
+                                                                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                                                    {doc.extension === 'pdf' ? 'picture_as_pdf' : 'description'}
+                                                                </span>
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-bold text-foreground font-body">{doc.title}</p>
+                                                                <p className="text-xs text-muted-foreground uppercase">{doc.extension || 'FILE'}</p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-5 text-sm text-muted-foreground">{formatFileSize(doc.file_size)}</td>
+                                                    <td className="px-6 py-5 text-sm text-muted-foreground">{formatDate(doc.created_at)}</td>
+													<td className="px-6 py-5">
+														<div className="flex items-center justify-between gap-3">
+															<span className={cn("inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border", sc.bg, sc.border, sc.color)}>
+																{doc.status === 'processing' && <span className={cn("w-1.5 h-1.5 rounded-full animate-pulse", `bg-amber-400`)}></span>}
+																{doc.status === 'completed' && <span className={cn("w-1.5 h-1.5 rounded-full", `bg-emerald-400`)}></span>}
+																{sc.label}
+															</span>
+															<button
+																type="button"
+																className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-destructive disabled:cursor-not-allowed disabled:opacity-50"
+																onClick={() => handleDelete(doc.id, doc.title)}
+																disabled={!canDeleteDocuments || deleteMutation.isPending}
+																aria-label={`Delete ${doc.title}`}
+															>
+																{deletingDocumentId === doc.id && deleteMutation.isPending ? (
+																	<Loader2 className="h-4 w-4 animate-spin" />
+																) : canDeleteDocuments ? (
+																	<Trash2 className="h-4 w-4" />
+																) : (
+																	<span className="text-[10px] font-semibold">Read only</span>
+																)}
+															</button>
+														</div>
+													</td>
+												</tr>
+											);
+										})
+                                    )}
+								</tbody>
+							</table>
+						</div>
+
+						{/* Table Footer / Pagination */}
+						<div className="p-4 bg-popover/50 flex justify-between items-center text-sm text-muted-foreground">
+							<p>Showing {sortedDocs.length > 0 ? ((safePage - 1) * pageSize) + 1 : 0}-{Math.min(safePage * pageSize, sortedDocs.length)} of {sortedDocs.length} documents</p>
+							<div className="flex items-center gap-2">
+								<button
+									className="w-8 h-8 flex items-center justify-center rounded hover:bg-muted disabled:opacity-30"
+									disabled={safePage <= 1}
+									onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+									type="button"
+								>
+									<span className="material-symbols-outlined">chevron_left</span>
+								</button>
+								<button className="w-8 h-8 flex items-center justify-center rounded bg-primary/10 text-primary font-bold" type="button">{safePage}</button>
+								<button
+									className="w-8 h-8 flex items-center justify-center rounded hover:bg-muted disabled:opacity-30"
+									disabled={safePage >= totalPages}
+									onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+									type="button"
+								>
+									<span className="material-symbols-outlined">chevron_right</span>
+								</button>
+							</div>
 						</div>
 					</div>
-
-					{viewMode === "list" ? (
-						<div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden animate-in fade-in zoom-in-95">
-							<div className="overflow-x-auto">
-								<table className="w-full text-left">
-									<thead>
-										<tr className="border-b border-slate-50">
-											<th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Object Details</th>
-											<th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Residency</th>
-											<th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Pipeline</th>
-											<th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Discovery</th>
-											<th className="px-8 py-5 text-right pr-10" />
-										</tr>
-									</thead>
-									<tbody className="divide-y divide-slate-50">
-										{allDocuments.map((doc) => (
-											<tr key={doc.id} className="group hover:bg-blue-50/30 transition-colors">
-												<td className="px-8 py-6">
-													<div className="flex items-center gap-4">
-														<div className="h-11 w-11 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-500 group-hover:text-white transition-all shadow-inner border border-slate-100/50">
-															<FileText size={20} />
-														</div>
-														<div className="flex flex-col">
-															<span className="font-bold text-slate-900 tracking-tight">{doc.title}</span>
-															<span className="text-[10px] text-slate-400 font-bold uppercase group-hover:text-blue-400 transition-colors flex items-center gap-1 mt-0.5">
-																{(doc.title.split('.').pop() || 'binary').toUpperCase()} • {(doc.metadata?.page_count as number) || 1} pages
-															</span>
-														</div>
-													</div>
-												</td>
-												<td className="px-8 py-6">
-													<Badge className="bg-slate-100 text-slate-500 border-none px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider">
-														{doc.workspaceName}
-													</Badge>
-												</td>
-												<td className="px-8 py-6">
-													<div className="flex items-center gap-2">
-														<div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-														<span className="text-xs font-bold text-slate-600">{String(doc.metadata?.parser || 'marker')}</span>
-													</div>
-												</td>
-												<td className="px-8 py-6">
-													<span className="text-xs font-medium text-slate-400 italic font-serif tracking-tighter">{formatDate(doc.created_at)}</span>
-												</td>
-												<td className="px-8 py-6 text-right pr-10">
-													<Button variant="ghost" className="h-10 w-10 p-0 rounded-xl bg-slate-50 text-slate-300 opacity-0 group-hover:opacity-100 transition-all">
-														<ExternalLink size={16} />
-													</Button>
-												</td>
-											</tr>
-										))}
-									</tbody>
-								</table>
-							</div>
-						</div>
-					) : (
-						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in zoom-in-95">
-							{allDocuments.map((doc) => (
-								<Card key={doc.id} className="rounded-[2rem] border-none shadow-sm hover:shadow-xl transition-all group p-6">
-									<div className="flex flex-col gap-4">
-										<div className="flex justify-between items-start">
-											<div className="h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100">
-												<FileText size={24} />
-											</div>
-											<Badge className="bg-blue-50 text-blue-500 border-none text-[9px] font-black uppercase tracking-widest">
-												{doc.workspaceName}
-											</Badge>
-										</div>
-										<div className="flex flex-col gap-1">
-											<h4 className="font-bold text-slate-900 line-clamp-1">{doc.title}</h4>
-											<p className="text-[10px] text-slate-400 font-bold uppercase italic">{formatDate(doc.created_at)}</p>
-										</div>
-										<div className="flex items-center justify-between pt-2">
-											<div className="flex gap-1">
-												<Badge variant="outline" className="text-[8px] px-1.5 border-slate-100">{String(doc.metadata?.parser || 'marker')}</Badge>
-												<Badge variant="outline" className="text-[8px] px-1.5 border-slate-100">{String((doc.metadata?.page_count as number) || 1)} P</Badge>
-											</div>
-											<Button variant="ghost" className="h-8 w-8 p-0 rounded-lg text-slate-300 hover:text-blue-500">
-												<ExternalLink size={14} />
-											</Button>
-										</div>
-									</div>
-								</Card>
-							))}
-						</div>
-					)}
-
-					{allDocuments.length === 0 && (
-						<div className="py-24 text-center bg-white rounded-[3rem] border border-slate-100 shadow-inner flex flex-col items-center">
-							<div className="h-20 w-20 rounded-[2rem] bg-slate-50 flex items-center justify-center text-slate-200 mb-6 drop-shadow-sm">
-								<Box size={40} />
-							</div>
-							<h3 className="text-2xl font-black text-slate-900 mb-2">Cluster namespace is empty</h3>
-							<p className="text-slate-400 font-medium max-w-sm mx-auto">
-								No global assets found matching your criteria. Ingest documents into workspaces to see them here.
-							</p>
-						</div>
-					)}
 				</div>
-			</PageShell>
 			</div>
 		</ProjectGuard>
 	);

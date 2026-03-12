@@ -1,0 +1,37 @@
+[
+  {
+    "id": "q_trans",
+    "name": "Transformer Query",
+    "query": "What is the role of multi-head attention in transformers?",
+    "collection_name": "obs_coll_doc_transformer",
+    "config_overrides": {}
+  },
+  {
+    "id": "q_recent",
+    "name": "Recent Research Query",
+    "query": "Summarize the key findings of paper 2508.15260.",
+    "collection_name": "obs_coll_doc_new_research",
+    "config_overrides": {}
+  },
+  {
+    "id": "q_sml",
+    "name": "SML Query",
+    "query": "What is supervised machine learning according to the PDF?",
+    "collection_name": "obs_coll_doc_sml",
+    "config_overrides": {}
+  },
+  {
+    "id": "q_net",
+    "name": "Network Programming Query",
+    "query": "Hỏi về lập trình mạng bằng tiếng Việt.",
+    "collection_name": "obs_coll_doc_net_prog",
+    "config_overrides": {}
+  },
+  {
+    "id": "q_phys",
+    "name": "Physics Query",
+    "query": "Tóm tắt các nội dung chính của Vật Lý Đại Cương 2.",
+    "collection_name": "obs_coll_doc_physics",
+    "config_overrides": {}
+  }
+]

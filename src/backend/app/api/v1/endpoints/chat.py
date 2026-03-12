@@ -6,6 +6,7 @@ from app.core.tenancy import TenantContext, get_tenant_context
 from app.modules.chat.schemas import (
     ChatSessionSummary, 
     ChatSessionCreate, 
+    ChatAskRequest,
     ChatMessageSummary
 )
 from app.modules.chat.services import ChatService
@@ -27,21 +28,31 @@ async def create_session(
 
 @router.get("/sessions", response_model=list[ChatSessionSummary])
 async def list_sessions(
-    workspace_id: str,
     tenant: Annotated[TenantContext, Depends(get_tenant_context)],
     service: Annotated[ChatService, Depends(get_service)],
+    workspace_id: str | None = None,
 ) -> list[ChatSessionSummary]:
     """List sessions for a specific workspace."""
     return service.list_sessions(tenant, workspace_id)
 
-@router.post("/sessions/{session_id}/ask", response_model=ChatMessageSummary)
+@router.post("/sessions/{session_id}/messages", response_model=ChatMessageSummary)
+async def create_message(
+    session_id: str,
+    payload: ChatAskRequest,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)],
+    service: Annotated[ChatService, Depends(get_service)],
+) -> ChatMessageSummary:
+    """Send a message to a session and trigger RAG generation."""
+    return await service.ask(tenant, session_id, payload.message)
+
+@router.post("/sessions/{session_id}/ask", response_model=ChatMessageSummary, deprecated=True)
 async def ask_question(
     session_id: str,
     query: str,
     tenant: Annotated[TenantContext, Depends(get_tenant_context)],
     service: Annotated[ChatService, Depends(get_service)],
 ) -> ChatMessageSummary:
-    """Send a message to a session and trigger RAG generation."""
+    """Legacy alias for sending a message to a session."""
     return await service.ask(tenant, session_id, query)
 
 @router.get("/sessions/{session_id}/messages", response_model=list[ChatMessageSummary])

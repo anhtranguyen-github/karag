@@ -7,19 +7,20 @@ export function Badge({
   variant = "default",
   ...props
 }: HTMLAttributes<HTMLSpanElement> & {
-  variant?: "default" | "muted" | "success" | "warning" | "danger" | "outline" | "secondary";
+  variant?: "default" | "muted" | "success" | "warning" | "danger" | "outline" | "secondary" | "destructive";
 }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
-        variant === "default" && "border-emerald-200 bg-emerald-50 text-emerald-700",
-        variant === "muted" && "border-slate-200 bg-slate-50 text-slate-600",
-        variant === "success" && "border-emerald-200 bg-emerald-50 text-emerald-700",
-        variant === "warning" && "border-amber-200 bg-amber-50 text-amber-700",
-        variant === "danger" && "border-rose-200 bg-rose-50 text-rose-700",
-        variant === "outline" && "border-slate-700 bg-slate-900/50 text-slate-300",
-        variant === "secondary" && "border-blue-500/20 bg-blue-500/10 text-blue-400",
+        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors",
+        variant === "default" && "border-primary/20 bg-primary/10 text-primary",
+        variant === "secondary" && "border-secondary bg-secondary text-secondary-foreground",
+        variant === "muted" && "border-border bg-muted/50 text-muted-foreground",
+        variant === "destructive" && "border-destructive/20 bg-destructive/10 text-destructive-foreground",
+        variant === "success" && "border-success/20 bg-success/10 text-success",
+        variant === "warning" && "border-warning/20 bg-warning/10 text-warning",
+        variant === "danger" && "border-destructive/20 bg-destructive/10 text-destructive-foreground",
+        variant === "outline" && "border-border bg-transparent text-foreground",
         className
       )}
       {...props}

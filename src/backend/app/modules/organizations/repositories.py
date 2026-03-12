@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from sqlalchemy import select
 
-from app.core.database import DatabaseManager, OrganizationRow, ProjectRow
+from app.infra.db.database import DatabaseManager, OrganizationRow, ProjectRow
 from app.modules.organizations.schemas import OrganizationSummary, ProjectSummary
 
 
@@ -55,6 +55,15 @@ class OrganizationRepository:
         with self.database.session() as session:
             row = session.scalar(select(OrganizationRow).where(OrganizationRow.id == organization_id))
         return _organization_to_schema(row) if row else None
+
+    def update(self, organization: OrganizationSummary) -> OrganizationSummary:
+        with self.database.session() as session:
+            row = session.scalar(select(OrganizationRow).where(OrganizationRow.id == organization.id))
+            if row:
+                row.name = organization.name
+                row.description = organization.description
+                row.status = organization.status
+        return organization
 
 
 class ProjectRepository:

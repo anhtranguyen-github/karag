@@ -9,23 +9,25 @@ These are the endpoints the frontend calls for actual RAG/LLM inference:
 
 from __future__ import annotations
 
+import logging
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from app.karag_manager import KaragManager
 from app.core.tenancy import TenantContext, get_tenant_context
 
 router = APIRouter(prefix="/v1", tags=["runtime"])
+logger = logging.getLogger(__name__)
 
 
 # ── Schemas ──
 
 
 class RagQueryRequest(BaseModel):
-    workspace_id: str
-    knowledge_dataset_id: str
+    workspace_id: str | None = None
+    knowledge_dataset_id: str | None = None
     query: str
     top_k: int | None = None
     llm_provider: str | None = None
@@ -49,6 +51,7 @@ class RagQueryResponse(BaseModel):
     usage: dict[str, int] = Field(default_factory=lambda: {
         "prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0
     })
+    trace: list[str] = Field(default_factory=list)
 
 
 class ChatCompletionRequest(BaseModel):
@@ -80,14 +83,29 @@ async def rag_query(
     request: Request,
     tenant: Annotated[TenantContext, Depends(get_tenant_context)],
 ) -> RagQueryResponse:
-    karag_manager: KaragManager = request.app.state.karag_manager
+    karag_manager = request.app.state.karag_manager
+    workspace_id = payload.workspace_id or tenant.workspace_id
+    dataset_id = payload.knowledge_dataset_id or "default"
 
-    result = await karag_manager.execute_rag_query(
-        tenant=tenant,
-        workspace_id=payload.workspace_id,
-        query=payload.query,
-        dataset_id=payload.knowledge_dataset_id,
-    )
+    if not workspace_id:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="workspace_id is required either in the request body or tenant headers."
+        )
+
+    try:
+        result = await karag_manager.execute_rag_query(
+            tenant=tenant,
+            workspace_id=workspace_id,
+            query=payload.query,
+            dataset_id=dataset_id,
+        )
+    except Exception as exc:
+        logger.error("RAG query failed for workspace %s: %s", workspace_id, exc, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="RAG query failed because an upstream inference provider is unavailable."
+        ) from exc
 
     chunks = [
         RagChunkResult(
@@ -100,7 +118,7 @@ async def rag_query(
         for c in result.chunks
     ]
 
-    setting = karag_manager._resolve_workspace_setting(tenant, payload.workspace_id)
+    setting = karag_manager._resolve_workspace_setting(tenant, workspace_id)
 
     return RagQueryResponse(
         answer=result.answer,
@@ -108,6 +126,7 @@ async def rag_query(
         model=setting.llm.model,
         prompt=result.prompt,
         chunks=chunks,
+        trace=getattr(result, "trace", None) or [],
     )
 
 
@@ -118,7 +137,7 @@ def list_runtime_models(request: Request) -> list[RuntimeModelSummary]:
 
     result: list[RuntimeModelSummary] = []
 
-    for name in components.get("generator", []):
+    for name in components.get("inference", []):
         result.append(RuntimeModelSummary(provider=name, kind="llm", models=[name]))
 
     for name in components.get("embedder", []):
@@ -157,10 +176,10 @@ async def chat_completions(
     rag_config["llm"]["provider"] = payload.provider
     rag_config["llm"]["model"] = payload.model
 
-    from app.core.rag.types import ChatMessage
+    from app.rag.schemas.types import ChatMessage
 
     messages = [ChatMessage(role=m["role"], content=m["content"]) for m in payload.messages]
-    answer = await karag_manager.rag_manager.generators.process(rag_config, messages)
+    answer = await karag_manager.rag_manager.inference.process(rag_config, messages)
 
     return ChatCompletionResponse(
         provider=payload.provider,

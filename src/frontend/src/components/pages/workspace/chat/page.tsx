@@ -1,285 +1,400 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-	Send,
-	Bot,
-	User,
-	Loader2,
-	Trash2,
-	MessageSquare,
-	FileText,
-	ChevronDown,
-	Sparkles,
-	Search
+  Send,
+  Bot,
+  User,
+  Loader2,
+  Trash2,
+  MessageSquare,
+  FileText,
+  ChevronDown,
+  Sparkles,
+  Search,
+  Zap
 } from "lucide-react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 
-import { Card } from "@/components/ui/card";
 import { WorkspaceGuard } from "@/components/ui/workspace-guard";
+import PageShell from "@/components/ui/page-shell";
 import { platformApi } from "@/lib/api/platform";
+import { generateWorkspaceUrl } from "@/lib/navigation";
+import type { ChatMessageSummary } from "@/lib/types/platform";
 import { useTenant } from "@/providers/tenant-provider";
 import { cn } from "@/lib/utils";
 
-type Message = {
-	role: "user" | "assistant";
-	content: string;
-	sources?: any[];
-	timestamp: Date;
+type ViewMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  sources?: Array<{ document_title?: string }>;
+  trace?: string[];
+  error?: {
+    code: string;
+    message: string;
+    detail?: string;
+  };
+  timestamp: Date;
 };
 
-export default function WorkspaceChatPage() {
-	const { tenant } = useTenant();
-	const params = useParams();
-	const workspaceId = params.workspaceId as string;
-
-	const [messages, setMessages] = useState<Message[]>([]);
-	const [inputValue, setInputValue] = useState("");
-	const [isSubmitting, setIsSubmitting] = useState(false);
-	const scrollRef = useRef<HTMLDivElement>(null);
-
-	useEffect(() => {
-		if (scrollRef.current) {
-			scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-		}
-	}, [messages, isSubmitting]);
-
-	const handleSendMessage = async (e?: React.FormEvent) => {
-		e?.preventDefault();
-		if (!inputValue.trim() || isSubmitting) return;
-
-		const userMessage: Message = {
-			role: "user",
-			content: inputValue,
-			timestamp: new Date(),
-		};
-
-		setMessages((prev) => [...prev, userMessage]);
-		setInputValue("");
-		setIsSubmitting(true);
-
-		try {
-			const response = await platformApi.ragQuery(tenant, {
-				workspace_id: workspaceId,
-				knowledge_dataset_id: workspaceId,
-				query: userMessage.content,
-			});
-
-			const botMessage: Message = {
-				role: "assistant",
-				content: response.answer,
-				sources: response.chunks,
-				timestamp: new Date(),
-			};
-			setMessages((prev) => [...prev, botMessage]);
-		} catch (error) {
-			console.error("Chat error:", error);
-			const errorMessage: Message = {
-				role: "assistant",
-				content: "I encountered an error while processing your request. Please check your connection and try again.",
-				timestamp: new Date(),
-			};
-			setMessages((prev) => [...prev, errorMessage]);
-		} finally {
-			setIsSubmitting(false);
-		}
-	};
-
-	const clearChat = () => {
-		setMessages([]);
-	};
-
-	return (
-		<WorkspaceGuard>
-			<div className="flex flex-col h-[calc(100vh-56px)] bg-slate-50/50">
-				{/* Chat Header */}
-				<div className="flex items-center justify-between px-6 py-4 border-b bg-white relative z-10 shadow-sm">
-					<div className="flex items-center gap-3">
-						<div className="h-10 w-10 rounded-xl bg-emerald-100 flex items-center justify-center text-orange-500">
-							<MessageSquare size={22} />
-						</div>
-						<div>
-							<h2 className="text-lg font-bold text-slate-900 leading-tight">AI Agent</h2>
-							<div className="flex items-center gap-1.5 mt-0.5">
-								<div className="h-1.5 w-1.5 rounded-full bg-orange-400 animate-pulse" />
-								<span className="text-xs text-orange-500 font-bold uppercase tracking-wider">Active Workspace</span>
-							</div>
-						</div>
-					</div>
-
-					<div className="flex items-center gap-2">
-						<button
-							onClick={clearChat}
-							className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
-							title="Clear conversation"
-						>
-							<Trash2 size={20} />
-						</button>
-						<div className="h-4 w-[1px] bg-slate-200 mx-2" />
-						<button className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 rounded-lg transition-colors border border-slate-200">
-							Settings <ChevronDown size={16} />
-						</button>
-					</div>
-				</div>
-
-				{/* Messages Dashboard */}
-				<div
-					ref={scrollRef}
-					className="flex-1 overflow-y-auto p-6 space-y-8 scroll-smooth"
-				>
-					{messages.length === 0 ? (
-						<div className="h-full flex flex-col items-center justify-center text-center max-w-lg mx-auto space-y-6 pt-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-							<div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-emerald-100 to-blue-50 flex items-center justify-center text-orange-400 shadow-xl shadow-orange-400/10">
-								<Sparkles size={40} className="animate-pulse" />
-							</div>
-							<div className="space-y-2">
-								<h3 className="text-2xl font-bold text-slate-900">How can I help you today?</h3>
-								<p className="text-slate-500 text-lg">
-									Ask me anything about your documents, model parameters, or workspace configuration.
-								</p>
-							</div>
-							<div className="grid grid-cols-2 gap-3 w-full">
-								{["Summarize recent logs", "Check RAG strategy", "List active documents", "Model availability"].map((suggestion) => (
-									<button
-										key={suggestion}
-										onClick={() => {
-											setInputValue(suggestion);
-										}}
-										className="p-3 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-xl hover:border-orange-400 hover:text-orange-500 hover:bg-emerald-50/50 transition-all text-left group"
-									>
-										<div className="flex items-center justify-between">
-											{suggestion}
-											<ArrowRight size={14} className="opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
-										</div>
-									</button>
-								))}
-							</div>
-						</div>
-					) : (
-						<div className="max-w-4xl mx-auto w-full space-y-8">
-							{messages.map((msg, idx) => (
-								<div
-									key={idx}
-									className={cn(
-										"flex gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300",
-										msg.role === "assistant" ? "flex-row" : "flex-row-reverse"
-									)}
-								>
-									<div className={cn(
-										"h-10 w-10 shrink-0 rounded-xl flex items-center justify-center shadow-lg transition-transform hover:scale-105",
-										msg.role === "assistant" ? "bg-slate-900 text-[#e5e5e5]" : "bg-orange-500 text-[#e5e5e5]"
-									)}>
-										{msg.role === "assistant" ? <Bot size={22} /> : <User size={22} />}
-									</div>
-
-									<div className={cn(
-										"flex flex-col max-w-[85%] space-y-2",
-										msg.role === "user" ? "items-end" : "items-start"
-									)}>
-										<div className={cn(
-											"p-4 rounded-2xl text-[15px] leading-relaxed shadow-sm border",
-											msg.role === "assistant"
-												? "bg-white text-slate-800 border-slate-100"
-												: "bg-orange-500 text-[#e5e5e5] border-orange-400"
-										)}>
-											{msg.content}
-										</div>
-
-										{msg.sources && msg.sources.length > 0 && (
-											<div className="flex flex-wrap gap-2 mt-3">
-												{msg.sources.map((source, sIdx) => (
-													<div
-														key={sIdx}
-														className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-200 cursor-pointer transition-colors"
-													>
-														<FileText size={14} className="text-slate-400" />
-														{source.document_title || "Document Source"}
-													</div>
-												))}
-											</div>
-										)}
-
-										<span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 px-1">
-											{msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-										</span>
-									</div>
-								</div>
-							))}
-							{isSubmitting && (
-								<div className="flex gap-4 animate-pulse">
-									<div className="h-10 w-10 rounded-xl bg-slate-900 flex items-center justify-center text-[#e5e5e5]">
-										<Bot size={22} />
-									</div>
-									<div className="flex flex-col items-start gap-2">
-										<div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center gap-3">
-											<div className="flex gap-1">
-												<div className="h-1.5 w-1.5 bg-slate-300 rounded-full animate-bounce [animation-delay:-0.3s]" />
-												<div className="h-1.5 w-1.5 bg-slate-300 rounded-full animate-bounce [animation-delay:-0.15s]" />
-												<div className="h-1.5 w-1.5 bg-slate-300 rounded-full animate-bounce" />
-											</div>
-											<span className="text-sm font-medium text-slate-400 italic">Thinking...</span>
-										</div>
-									</div>
-								</div>
-							)}
-						</div>
-					)}
-				</div>
-
-				{/* Input Dock */}
-				<div className="p-6 bg-transparent">
-					<div className="max-w-4xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-2xl shadow-slate-200/50 p-1 relative group focus-within:border-orange-400 focus-within:ring-4 focus-within:ring-orange-400/5 transition-all">
-						<form onSubmit={handleSendMessage} className="flex items-center gap-2">
-							<div className="p-3 text-slate-400 group-focus-within:text-orange-400 transition-colors">
-								<Search size={20} />
-							</div>
-							<input
-								type="text"
-								value={inputValue}
-								onChange={(e) => setInputValue(e.target.value)}
-								placeholder="Type your message here..."
-								className="flex-1 py-3 text-[15px] text-slate-900 placeholder:text-slate-400 focus:outline-none"
-								disabled={isSubmitting}
-							/>
-							<button
-								type="submit"
-								disabled={isSubmitting || !inputValue.trim()}
-								className={cn(
-									"p-3 rounded-xl transition-all active:scale-[0.98] mr-1 shadow-lg",
-									inputValue.trim()
-										? "bg-slate-900 text-[#e5e5e5] hover:bg-slate-800 shadow-slate-900/10"
-										: "bg-slate-100 text-slate-400"
-								)}
-							>
-								{isSubmitting ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
-							</button>
-						</form>
-					</div>
-					<p className="text-[10px] text-center mt-3 text-slate-400 font-bold uppercase tracking-[0.2em]">
-						Karag AI may display inaccurate info · Grounded by Workspace RAG pipeline
-					</p>
-				</div>
-			</div>
-		</WorkspaceGuard>
-	);
+function toViewMessage(message: ChatMessageSummary): ViewMessage {
+  return {
+    id: message.id,
+    role: message.role as "user" | "assistant",
+    content: message.content,
+    sources: message.metadata?.sources,
+    trace: message.metadata?.trace,
+    error: message.metadata?.error,
+    timestamp: new Date(message.created_at)
+  };
 }
 
-function ArrowRight({ size, className }: { size?: number, className?: string }) {
-	return (
-		<svg
-			xmlns="http://www.w3.org/2000/svg"
-			width={size || 24}
-			height={size || 24}
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			strokeWidth="2"
-			strokeLinecap="round"
-			strokeLinejoin="round"
-			className={className}
-		>
-			<path d="M5 12h14" />
-			<path d="m12 5 7 7-7 7" />
-		</svg>
-	)
+function ArrowRight({ size, className }: { size?: number; className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size || 24}
+      height={size || 24}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M5 12h14" />
+      <path d="m12 5 7 7-7 7" />
+    </svg>
+  );
+}
+
+export default function WorkspaceChatPage() {
+  const { tenant, isReady, hasPermission, isPermissionsReady } = useTenant();
+  const params = useParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const workspaceId = params.workspaceId as string;
+  const sessionId = searchParams.get("session");
+  const queryClient = useQueryClient();
+  const canCreateSession = hasPermission("chat.session");
+  const canAskChat = hasPermission("chat.ask");
+  const canSendMessage = canAskChat && (Boolean(sessionId) || canCreateSession);
+
+  const [inputValue, setInputValue] = useState("");
+  const [pendingUserMessage, setPendingUserMessage] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const sessionMessagesQuery = useQuery({
+    queryKey: ["chat-messages", sessionId],
+    queryFn: () => platformApi.listChatMessages({ ...tenant, workspaceId }, sessionId!),
+    enabled: isReady && !!workspaceId && !!sessionId
+  });
+
+  const createSessionMutation = useMutation({
+    mutationFn: (title: string) =>
+      platformApi.createChatSession({ ...tenant, workspaceId }, { title }),
+    onSuccess: (session) => {
+      router.replace(`/dashboard/workspace/${workspaceId}/chat?session=${session.id}`);
+    }
+  });
+
+  const askMutation = useMutation({
+    mutationFn: ({ currentSessionId, query }: { currentSessionId: string; query: string }) =>
+      platformApi.askChatSession({ ...tenant, workspaceId }, currentSessionId, query),
+    onSuccess: () => {
+      setPendingUserMessage(null);
+      if (sessionId) {
+        queryClient.invalidateQueries({ queryKey: ["chat-messages", sessionId] });
+        queryClient.invalidateQueries({ queryKey: ["chat-sessions", workspaceId] });
+      }
+    },
+    onError: () => {
+      setPendingUserMessage(null);
+    }
+  });
+
+  useEffect(() => {
+    if (sessionId && pendingUserMessage && !askMutation.isPending) {
+      askMutation.mutate({ currentSessionId: sessionId, query: pendingUserMessage });
+    }
+  }, [askMutation, pendingUserMessage, sessionId]);
+
+  const messages = useMemo<ViewMessage[]>(
+    () => sessionMessagesQuery.data?.map(toViewMessage) ?? [],
+    [sessionMessagesQuery.data]
+  );
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, askMutation.isPending, pendingUserMessage]);
+
+  const optimisticMessages = [...messages];
+  if (askMutation.isPending && pendingUserMessage) {
+    optimisticMessages.push({
+      id: "pending-user",
+      role: "user",
+      content: pendingUserMessage,
+      timestamp: new Date()
+    });
+  }
+
+  const handleSendMessage = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!inputValue.trim() || askMutation.isPending || createSessionMutation.isPending || !canSendMessage) return;
+
+    const query = inputValue.trim();
+    setInputValue("");
+    setPendingUserMessage(query);
+
+    if (!sessionId) {
+      createSessionMutation.mutate(query.slice(0, 80));
+      return;
+    }
+
+    askMutation.mutate({ currentSessionId: sessionId, query });
+  };
+
+  const clearChat = () => {
+    setPendingUserMessage(null);
+    setInputValue("");
+    router.replace(`/dashboard/workspace/${workspaceId}/chat`);
+  };
+
+  return (
+    <WorkspaceGuard>
+      <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden bg-background relative w-full">
+        {/* Header (Optional inside chat) */}
+        <div className="relative z-10 flex items-center justify-between border-b border-border bg-card px-8 py-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-muted text-primary">
+              <MessageSquare size={22} />
+            </div>
+            <div>
+              <h2 className="leading-tight text-lg font-bold text-foreground font-display">AI Agent</h2>
+              <div className="mt-0.5 flex items-center gap-1.5">
+                <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                <span className="text-xs font-bold uppercase tracking-widest text-primary">
+                  {sessionId ? "Saved Thread" : "New Thread"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={clearChat}
+              className="rounded-lg p-2 text-muted-foreground transition-all hover:bg-destructive/10 hover:text-destructive"
+              title="Clear conversation"
+            >
+              <Trash2 size={20} />
+            </button>
+            <div className="mx-2 h-4 w-[1px] bg-border" />
+            <button
+              className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-border/50 hover:text-foreground"
+              onClick={() => router.push(generateWorkspaceUrl(workspaceId, "history"))}
+              type="button"
+            >
+              Session <ChevronDown size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* Chat Interaction Area */}
+        <section ref={scrollRef} className="flex-1 overflow-y-auto px-4 md:px-0 py-8 scroll-smooth relative">
+          <div className="max-w-3xl mx-auto space-y-12 pb-32">
+            
+            {optimisticMessages.length === 0 ? (
+               <div className="flex flex-col items-center justify-center space-y-6 pt-12 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
+                 <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-border bg-card text-primary shadow-xl shadow-primary/10">
+                   <Sparkles size={40} className="animate-pulse" />
+                 </div>
+                 <div className="space-y-2">
+                   <h3 className="text-2xl font-bold text-foreground font-display">How can I help you today?</h3>
+                   <p className="text-lg text-muted-foreground">
+                     {canCreateSession
+                       ? "Messages are saved to thread history. Trace steps and sources appear on assistant replies."
+                       : "You can only ask inside an existing session. Creating new threads requires chat session access."}
+                   </p>
+                 </div>
+                 <div className="grid w-full grid-cols-2 gap-3 mt-8">
+                   {["Summarize recent logs", "Check RAG strategy", "List active documents", "Model availability"].map((suggestion) => (
+                     <button
+                       key={suggestion}
+                       onClick={() => setInputValue(suggestion)}
+                       className="group rounded-xl border border-border bg-card p-4 text-left text-sm font-medium text-muted-foreground transition-all hover:border-primary hover:bg-muted hover:text-primary"
+                     >
+                       <div className="flex items-center justify-between">
+                         {suggestion}
+                         <ArrowRight
+                           size={14}
+                           className="-translate-x-2 opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100"
+                         />
+                       </div>
+                     </button>
+                   ))}
+                 </div>
+               </div>
+            ) : (
+                <>
+                {optimisticMessages.map((msg, idx) => (
+                   msg.role === "user" ? (
+                      <div key={msg.id || idx} className="flex flex-col items-end gap-2 group animate-in fade-in slide-in-from-bottom-2 duration-300">
+                          <div className="flex items-center gap-3 mb-1">
+                              <span className="text-[10px] font-bold text-muted-foreground tracking-widest uppercase">You</span>
+                          </div>
+                          <div className="max-w-[85%] bg-muted/50 p-4 rounded-xl text-foreground border-r-2 border-primary shadow-sm">
+                              <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                          </div>
+                      </div>
+                   ) : (
+                      <div key={msg.id || idx} className="flex flex-col items-start gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                          <div className="flex items-center gap-3">
+                              <div className="w-6 h-6 rounded-sm bg-primary/20 flex items-center justify-center text-primary">
+                                  <span className="material-symbols-outlined text-[14px]">bolt</span>
+                              </div>
+                              <span className="text-[10px] font-bold text-primary tracking-widest uppercase">Intelligence</span>
+                              <span className="text-[10px] text-muted-foreground uppercase">{msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                          </div>
+                          <div className="w-full space-y-6">
+                              {/* Reasoning Trace */}
+                              {msg.trace && msg.trace.length > 0 && (
+                                  <div className="bg-popover/40 rounded-lg p-4 border border-border">
+                                      <button className="flex items-center gap-2 text-[11px] font-bold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors group">
+                                          <span className="material-symbols-outlined text-[16px] group-hover:text-primary transition-colors">query_stats</span>
+                                          Reasoning Trace ({msg.trace.length} steps)
+                                      </button>
+                                      <div className="mt-4 flex flex-col gap-3 pl-2 border-l border-border">
+                                          {msg.trace.map((step, traceIndex) => (
+                                              <div key={`${msg.id}-trace-${traceIndex}`} className="flex items-start gap-3 text-xs text-muted-foreground">
+                                                  <div className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-border" />
+                                                  <span className="text-foreground/80 leading-relaxed italic">{step}</span>
+                                              </div>
+                                          ))}
+                                      </div>
+                                  </div>
+                              )}
+
+                              {/* Main Response Text */}
+                              <div className="text-foreground space-y-4 text-[15px] leading-relaxed font-body whitespace-pre-wrap">
+                                  {msg.content}
+                              </div>
+
+                              {/* Source Citations */}
+                              {msg.sources && msg.sources.length > 0 && (
+                                  <div className="pt-6 border-t border-border/50">
+                                      <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-3">Source Citations</h4>
+                                      <div className="flex flex-wrap gap-2">
+                                          {msg.sources.map((source, sourceIndex) => (
+                                              <div key={`${msg.id}-source-${sourceIndex}`} className="flex items-center gap-2 px-3 py-1.5 bg-card rounded-lg border border-border hover:bg-muted transition-colors cursor-pointer group">
+                                                  <span className="material-symbols-outlined text-xs text-primary">article</span>
+                                                  <span className="text-[11px] font-medium text-muted-foreground group-hover:text-primary truncate max-w-[200px]">
+                                                      {source.document_title || "Document Source"}
+                                                  </span>
+                                              </div>
+                                          ))}
+                                      </div>
+                                  </div>
+                              )}
+
+                              {/* Error messages */}
+                              {msg.error && (
+                                  <div className="mt-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                                      {msg.error.message}
+                                  </div>
+                              )}
+                          </div>
+                      </div>
+                   )
+                ))}
+
+                {(askMutation.isPending || createSessionMutation.isPending) && (
+                   <div className="flex flex-col items-start gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                      <div className="flex items-center gap-3">
+                          <div className="w-6 h-6 rounded-sm bg-primary/20 flex items-center justify-center text-primary animate-pulse">
+                              <span className="material-symbols-outlined text-[14px]">bolt</span>
+                          </div>
+                          <span className="text-[10px] font-bold text-primary tracking-widest uppercase animate-pulse">Thinking</span>
+                      </div>
+                      <div className="bg-popover/20 rounded-xl p-4 border border-border/50 shadow-sm flex gap-1">
+                          <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:-0.3s]" />
+                          <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:-0.15s]" />
+                          <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground animate-bounce" />
+                      </div>
+                   </div>
+                )}
+                </>
+            )}
+
+          </div>
+        </section>
+
+        {/* Bottom Input Area */}
+        <footer className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-background via-background/95 to-transparent z-20">
+          <div className="max-w-3xl mx-auto space-y-4">
+             {/* Suggested Prompts Optional */}
+             <div className="relative group">
+               <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 to-transparent rounded-2xl blur opacity-30 group-focus-within:opacity-60 transition duration-500"></div>
+               <div className="relative flex items-center gap-3 bg-card/80 backdrop-blur-xl border border-border rounded-2xl p-2 pr-4 pl-4 shadow-2xl">
+                 <button onClick={clearChat} className="p-2 text-muted-foreground hover:text-primary transition-colors flex items-center justify-center" title="New Chat">
+                   <span className="material-symbols-outlined">add_circle</span>
+                 </button>
+                 <form onSubmit={handleSendMessage} className="flex-1 flex items-center gap-2">
+                   <textarea 
+                     value={inputValue}
+                     onChange={(e) => setInputValue(e.target.value)}
+                     onKeyDown={(e) => {
+                         if (e.key === 'Enter' && !e.shiftKey) {
+                             e.preventDefault();
+                             handleSendMessage(e as any);
+                         }
+                     }}
+                     className="flex-1 bg-transparent border-none focus:ring-0 text-sm py-3 h-12 max-h-32 resize-none text-foreground placeholder:text-muted-foreground outline-none scrollbar-hide" 
+                     placeholder="Ask the workspace anything..." 
+                     rows={1}
+                     disabled={askMutation.isPending || createSessionMutation.isPending || !canAskChat}
+                   />
+                   <div className="flex items-center gap-2">
+                     <button type="button" className="p-2 text-muted-foreground hover:text-foreground transition-colors hidden sm:block">
+                       <span className="material-symbols-outlined">attach_file</span>
+                     </button>
+                     <button 
+                       type="submit"
+                       disabled={!isPermissionsReady || askMutation.isPending || createSessionMutation.isPending || !inputValue.trim() || !canSendMessage}
+                       className="w-10 h-10 rounded-xl bg-primary text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+                     >
+                       {askMutation.isPending || createSessionMutation.isPending ? (
+                         <Loader2 size={18} className="animate-spin" />
+                       ) : (
+                         <span className="material-symbols-outlined text-[18px]">send</span>
+                       )}
+                     </button>
+                   </div>
+                 </form>
+               </div>
+             </div>
+             <div className="flex justify-center">
+               <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-[0.2em]">
+                 {!canAskChat
+                   ? "Chat access required"
+                   : !sessionId && !canCreateSession
+                     ? "Open an existing thread to continue chatting"
+                     : "End-to-end encrypted • Thread history persisted"}
+               </p>
+             </div>
+          </div>
+        </footer>
+
+        {/* Visual Texture Layer */}
+        <div className="pointer-events-none absolute inset-0 z-0 opacity-20 overflow-hidden">
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/10 blur-[150px] rounded-full"></div>
+          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-secondary/5 blur-[150px] rounded-full"></div>
+        </div>
+      </div>
+    </WorkspaceGuard>
+  );
 }

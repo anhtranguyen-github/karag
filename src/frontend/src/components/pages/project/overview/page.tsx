@@ -1,97 +1,100 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-
-import { DataTable } from "@/components/tables/data-table";
 import Link from "next/link";
+import { Plus, Search } from "lucide-react";
+import { useMemo, useState } from "react";
+
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MetricCard } from "@/components/ui/metric-card";
+import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { ProjectGuard } from "@/components/ui/project-guard";
-import { platformApi } from "@/lib/api/platform";
-import { formatCount, formatDate } from "@/lib/utils";
-import { useTenant } from "@/providers/tenant-provider";
 import { generateWorkspaceUrl } from "@/lib/navigation";
-
-import { useState, useMemo } from "react";
+import { useTenant } from "@/providers/tenant-provider";
 
 export default function ProjectOverviewPageView() {
-	const { tenant, projects, workspaces } = useTenant();
-	const selectedProject = projects.find((project) => project.id === tenant.projectId);
-	const [search, setSearch] = useState("");
+  const { workspaces } = useTenant();
+  const [search, setSearch] = useState("");
 
-	const observabilityQuery = useQuery({
-		queryKey: ["project-overview", "observability"],
-		queryFn: platformApi.observabilitySummary
-	});
+  const filteredWorkspaces = useMemo(
+    () =>
+      workspaces.filter((workspace) =>
+        [workspace.name, workspace.id].join(" ").toLowerCase().includes(search.toLowerCase())
+      ),
+    [search, workspaces]
+  );
 
-	const projectEvents = (observabilityQuery.data?.events ?? []).filter(
-		(event) => !event.workspace_id || workspaces.some((workspace) => workspace.id === event.workspace_id)
-	);
+  return (
+    <ProjectGuard>
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
+        <PageHeader
+          eyebrow="Project"
+          title="Workspaces"
+          description="A single list of active workspaces, with less noise and faster navigation."
+          actions={
+            <Link href="/dashboard/new/workspace">
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                New Workspace
+              </Button>
+            </Link>
+          }
+        />
 
-	const filteredWorkspaces = useMemo(
-		() =>
-			workspaces.filter((workspace) =>
-				[workspace.name, workspace.id]
-					.join(" ")
-					.toLowerCase()
-					.includes(search.toLowerCase())
-			),
-		[workspaces, search]
-	);
+        <div className="app-panel flex flex-col gap-5 px-5 py-5 md:flex-row md:items-center md:justify-between md:px-6">
+          <div>
+            <p className="section-label">Browse</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {filteredWorkspaces.length} workspace{filteredWorkspaces.length === 1 ? "" : "s"} visible
+            </p>
+          </div>
+          <div className="relative w-full max-w-md">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-9"
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search by workspace name or id"
+              value={search}
+            />
+          </div>
+        </div>
 
-	return (
-		<ProjectGuard>
-			<div className="min-h-screen bg-[#18181b] px-0 py-0">
-				<div className="mx-auto w-full max-w-6xl pt-10">
-					<div className="flex items-center justify-between mb-8">
-						<h1 className="text-2xl font-bold text-[#e5e5e5]">Workspaces</h1>
-						<Link
-							className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-[#e5e5e5] shadow hover:bg-green-700 transition"
-							href="/dashboard/new/workspace"
-						>
-							+ New workspace
-						</Link>
-					</div>
-					<div className="mb-6 flex items-center gap-3">
-						<input
-							className="w-full max-w-xs rounded-xl border border-slate-700 bg-[#232329] px-3 py-2 text-sm text-[#e5e5e5] placeholder:text-slate-400 focus:border-green-600 focus:outline-none"
-							placeholder="Search for a workspace"
-							value={search}
-							onChange={e => setSearch(e.target.value)}
-						/>
-						<span className="text-slate-400 text-sm">Status</span>
-						<span className="text-slate-400 text-sm">Sorted by name</span>
-					</div>
-					<div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-						{filteredWorkspaces.length === 0 ? (
-							<div className="col-span-full rounded-xl border border-dashed border-slate-700 bg-[#232329] p-10 text-center text-slate-400">
-								No workspaces found.
-							</div>
-						) : (
-							filteredWorkspaces.map((workspace) => (
-								<div
-									key={workspace.id}
-									className="rounded-xl border border-slate-700 bg-[#232329] p-6 shadow hover:shadow-lg transition cursor-pointer flex flex-col justify-between min-h-[160px] active:scale-[0.98]"
-									onClick={() => window.location.href = generateWorkspaceUrl(workspace.id)}
-								>
-									<div>
-										<div className="flex items-center justify-between mb-2">
-											<span className="text-lg font-semibold text-[#e5e5e5]">{workspace.name}</span>
-											<span className="inline-flex items-center rounded-full bg-green-900/30 px-3 py-1 text-xs font-medium text-green-400 border border-green-800">ACTIVE</span>
-										</div>
-										<div className="text-xs text-slate-400 mb-1">Workspace</div>
-										<div className="text-xs text-slate-500">{workspace.id}</div>
-									</div>
-									<div className="mt-4 flex gap-2">
-										<span className="inline-flex items-center rounded-full bg-slate-800/60 px-2 py-0.5 text-xs font-medium text-slate-300 border border-slate-700">NANO</span>
-									</div>
-								</div>
-							))
-						)}
-					</div>
-				</div>
-			</div>
-		</ProjectGuard>
-	);
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {filteredWorkspaces.length === 0 ? (
+            <Card className="lg:col-span-2">
+              <CardContent className="flex min-h-56 flex-col items-center justify-center gap-3 text-center">
+                <p className="text-lg font-medium text-foreground">No workspaces found</p>
+                <p className="max-w-md text-sm text-muted-foreground">
+                  Try a different search, or create a fresh workspace for a cleaner project structure.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            filteredWorkspaces.map((workspace) => (
+              <Link href={generateWorkspaceUrl(workspace.id)} key={workspace.id}>
+                <Card className="h-full transition-transform hover:-translate-y-0.5">
+                  <CardHeader>
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="section-label">Workspace</p>
+                        <CardTitle className="mt-2">{workspace.name}</CardTitle>
+                      </div>
+                      <span className="status-pill status-pill--healthy">Active</span>
+                    </div>
+                    <CardDescription>{workspace.id}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex items-center justify-between pt-2">
+                    <p className="text-sm text-muted-foreground">
+                      Open documents, chat, and thread history from one workspace home.
+                    </p>
+                    <span className="text-sm font-medium text-primary">Open</span>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))
+          )}
+        </div>
+      </div>
+    </ProjectGuard>
+  );
 }

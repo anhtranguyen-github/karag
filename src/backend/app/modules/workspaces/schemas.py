@@ -32,6 +32,12 @@ class WorkspaceSummary(BaseModel):
     created_at: datetime
 
 
+class WorkspaceUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    status: str | None = None
+
+
 # ── Workspace RAG config blocks ──────────────────────────
 
 
@@ -44,6 +50,7 @@ class EmbeddingConfig(BaseModel):
     batch_size: int
     api_key: str | None = None
     api_base: str | None = None
+    task: str | None = None
 
 
 class ChunkingConfig(BaseModel):
@@ -51,6 +58,9 @@ class ChunkingConfig(BaseModel):
     component: str
     chunk_size: int
     chunk_overlap: int
+    separators: list[str] = Field(default_factory=lambda: ["\n\n", "\n", " ", ""])
+    threshold: float = 0.70
+    buffer_size: int = 1
 
     @field_validator("chunk_size")
     @classmethod
@@ -89,6 +99,7 @@ class RetrieverConfig(BaseModel):
     component: str
     top_k: int
     score_threshold: float
+    final_top_k: int | None = None
 
     @field_validator("top_k")
     @classmethod
@@ -122,12 +133,22 @@ class RAGConfig(BaseModel):
     """RAG pipeline behavior settings."""
     reader: str
     query_transformer: str
+    self_query: str = "none"
+    pii_masking: bool = False
     generator: str
+
     prompt_template: str
     max_context_tokens: int
     context_compression: bool
     citation_mode: str
     context_formatting_template: str
+    chat_context: str
+    use_llm: bool = True
+    force_ocr: bool = True
+    redo_inline_math: bool = True
+    html_tables_in_markdown: bool = True
+    paginate_output: bool = True
+    device: str = "auto"
 
 
 # ── WorkspaceSetting: single source of truth (RAG only) ──
@@ -252,15 +273,17 @@ class WorkspaceSettingUpdate(BaseModel):
 
 # Static compatibility matrix — which vectorstores support which embedding types.
 _VECTORSTORE_SUPPORTED_TYPES: dict[str, set[str]] = {
-    "qdrant": {"dense", "hybrid"},
+    "qdrant": {"dense", "hybrid", "multi_vector"},
     "pgvector": {"dense"},
 }
 _EMBEDDER_TYPE: dict[str, str] = {
     "dense": "dense",
     "multi_vector": "multi_vector",
     "graph": "graph",
+    "local": "dense",
 }
 _VECTORSTORE_HYBRID: set[str] = {"qdrant"}
+_VECTORSTORE_MULTI_STAGE: set[str] = {"qdrant"}
 
 
 class WorkspaceSetting(BaseModel):
@@ -303,10 +326,15 @@ class WorkspaceSetting(BaseModel):
                 f"hybrid retriever requires a vectorstore with hybrid support (not '{vs_name}')"
             )
 
-        # multi_vector embedder not supported by current vectorstores
-        if emb_type == "multi_vector":
+        if ret_name == "multi_stage" and vs_name not in _VECTORSTORE_MULTI_STAGE:
             errors.append(
-                "multi_vector embedder requires a vector store and retriever with multi-vector support"
+                f"multi_stage retriever requires a vectorstore with advanced query support (not '{vs_name}')"
+            )
+
+        # multi_vector embedder requires specific support
+        if emb_type == "multi_vector" and vs_name not in ["qdrant"]:
+            errors.append(
+                f"multi_vector embedder requires a vector store with multi-vector support (not '{vs_name}')"
             )
 
         if errors:

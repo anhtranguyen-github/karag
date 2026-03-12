@@ -14,11 +14,9 @@ export function PageHeader({
   return (
     <section className="flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-          {eyebrow}
-        </p>
-        <h2 className="mt-1 truncate text-2xl font-semibold text-slate-950">{title}</h2>
-        {description ? <span className="hidden">{description}</span> : null}
+        <p className="section-label">{eyebrow}</p>
+        <h2 className="mt-2 truncate text-3xl font-semibold tracking-tight text-foreground">{title}</h2>
+        {description ? <p className="page-copy mt-2">{description}</p> : null}
       </div>
       {actions ? <div className="shrink-0">{actions}</div> : null}
     </section>

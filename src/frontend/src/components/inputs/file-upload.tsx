@@ -30,8 +30,8 @@ export function FileUpload({
     <FieldShell label={label} description={description} error={error}>
       <button
         className={cn(
-          "flex min-h-[128px] w-full flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-input bg-white/70 px-4 py-5 text-center transition hover:border-emerald-300 hover:bg-emerald-50/60",
-          dragging && "border-emerald-400 bg-emerald-50"
+          "flex min-h-[128px] w-full flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-[#2a2a2a] bg-[#1a1a1a]/70 px-4 py-5 text-center transition hover:border-emerald-500/50 hover:bg-emerald-950/40",
+          dragging && "border-emerald-500/60 bg-emerald-950/60"
         )}
         onClick={(event) => {
           event.preventDefault();
@@ -59,7 +59,7 @@ export function FileUpload({
       >
         <UploadCloud className="h-6 w-6 text-emerald-600" />
         <div className="space-y-1">
-          <p className="text-sm font-medium text-slate-700">
+          <p className="text-sm font-medium text-[#e5e5e5]">
             Drag and drop a document, or click to browse
           </p>
           <p className="text-xs text-muted-foreground">

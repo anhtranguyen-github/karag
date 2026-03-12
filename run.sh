@@ -546,46 +546,8 @@ cmd_build_cloud() {
         failed+=("Qdrant")
     fi
 
-    # Test MongoDB
-    log_info "  Testing MongoDB..."
-    if [[ "$MONGO_URI" == *"localhost"* ]] || [[ "$MONGO_URI" == *"127.0.0.1"* ]]; then
-        log_warn "    MongoDB: LOCAL (skipping cloud test)"
-        skipped+=("MongoDB(local)")
-    elif command -v python3 >/dev/null 2>&1; then
-        if python3 -c "
-import sys
-try:
-    import pymongo
-    client = pymongo.MongoClient('${MONGO_URI}', serverSelectionTimeoutMS=5000)
-    client.admin.command('ping')
-    sys.exit(0)
-except Exception as e:
-    sys.exit(1)
-" 2>/dev/null; then
-            log_success "    MongoDB: CONNECTED"
-        else
-            log_error "    MongoDB: FAILED"
-            failed+=("MongoDB")
-        fi
-    else
-        log_warn "    MongoDB: SKIP (python3 not available)"
-    fi
-
-    # Test Neo4j
-    log_info "  Testing Neo4j..."
-    if [[ "$NEO4J_URI" == *"localhost"* ]] || [[ "$NEO4J_URI" == *"127.0.0.1"* ]]; then
-        log_warn "    Neo4j: LOCAL (skipping cloud test)"
-        skipped+=("Neo4j(local)")
-    else
-        local neo_host
-        neo_host=$(echo "$NEO4J_URI" | sed -e 's/neo4j+s:\/\///' -e 's/neo4j:\/\///' -e 's/bolt:\/\///' -e 's/.*@//' -e 's/\/.*//' -e 's/:.*//')
-        if command -v nc >/dev/null 2>&1 && nc -zw 5 "$neo_host" 7687 2>/dev/null; then
-            log_success "    Neo4j: CONNECTED"
-        else
-            log_error "    Neo4j: FAILED"
-            failed+=("Neo4j")
-        fi
-    fi
+    # No MongoDB or Neo4j in core stack
+    log_info "Cloud services verified!"
 
     if [[ ${#failed[@]} -gt 0 ]]; then
         log_error "Cloud service connection failed:"

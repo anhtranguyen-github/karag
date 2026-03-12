@@ -2,16 +2,25 @@ from __future__ import annotations
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi import APIRouter, Depends, File, Header, HTTPException, Request, Response, UploadFile, status
+
 from pydantic import BaseModel, Field, ValidationError
 
 from app.karag_manager import KaragManager
 from app.core.tenancy import TenantContext, get_tenant_context
+from app.modules.documents.schemas import (
+    BulkIngestionResponse,
+    DocumentIngestionResponse,
+    DocumentSummary,
+    IngestionTrackerSummary,
+    WorkspaceDocumentSummary,
+)
 from app.modules.workspaces.schemas import (
     WorkspaceCreate,
     WorkspaceSetting,
     WorkspaceSettingUpdate,
     WorkspaceSummary,
+    WorkspaceUpdate,
 )
 from app.modules.workspaces.services import WorkspaceService
 
@@ -48,6 +57,16 @@ def get_workspace(
     service: Annotated[WorkspaceService, Depends(get_service)],
 ) -> WorkspaceSummary:
     return service.get_workspace(tenant, workspace_id)
+
+
+@router.put("/{workspace_id}", response_model=WorkspaceSummary)
+def update_workspace(
+    workspace_id: str,
+    payload: WorkspaceUpdate,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)],
+    service: Annotated[WorkspaceService, Depends(get_service)],
+) -> WorkspaceSummary:
+    return service.update_workspace(tenant, workspace_id, payload)
 
 
 @router.get("/{workspace_id}/rag-config", response_model=WorkspaceSetting)
@@ -108,7 +127,7 @@ def _build_audit(setting: WorkspaceSetting, available_components: dict[str, list
     current = {
         "reader": setting.rag.reader,
         "embedder": setting.embedding.component,
-        "chunker": "recursive",
+        "chunker": setting.chunking.component,
         "vectorstore": setting.vectorstore.component,
         "retriever": setting.retriever.component,
         "reranker": setting.reranker.component,
@@ -210,3 +229,116 @@ def validate_workspace_rag_pipeline(
 
     available = karag_manager.list_available_components()
     return _build_audit(proposed, available)
+
+
+class IngestFilesRequest(BaseModel):
+    document_ids: list[str]
+
+
+@router.post("/{workspace_id}/ingest-files", status_code=status.HTTP_202_ACCEPTED)
+async def ingest_project_files_to_workspace(
+    workspace_id: str,
+    payload: IngestFilesRequest,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)],
+    service: Annotated[WorkspaceService, Depends(get_service)],
+) -> BulkIngestionResponse:
+    """
+    Ingest existing project documents into a specific workspace.
+    Documents must already be uploaded to the project.
+    """
+    return await service.ingest_from_project(tenant, workspace_id, payload.document_ids)
+
+
+# --- Workspace-Scoped Documents ---
+
+@router.get("/{workspace_id}/documents", response_model=list[WorkspaceDocumentSummary])
+async def list_workspace_documents(
+    workspace_id: str,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)],
+    service: Annotated[WorkspaceService, Depends(get_service)],
+) -> list[WorkspaceDocumentSummary]:
+    """List documents scoped to a specific workspace with RAG status."""
+    return service.list_workspace_documents(tenant, workspace_id)
+
+
+@router.post(
+    "/{workspace_id}/documents/upload",
+    response_model=DocumentIngestionResponse | DocumentSummary,
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_workspace_document(
+    workspace_id: str,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)],
+    request: Request,
+    file: UploadFile = File(...),
+    upload_id: Annotated[str | None, Header(alias="X-Upload-Id")] = None,
+) -> DocumentIngestionResponse | DocumentSummary:
+    """Upload a document directly to a workspace. Triggers automatic RAG ingestion."""
+    karag_manager: KaragManager = request.app.state.karag_manager
+    return await karag_manager.document_service.upload_document(
+        tenant,
+        tenant.project_id,
+        file,
+        workspace_id=workspace_id,
+        track_id=upload_id,
+    )
+
+
+@router.post(
+    "/{workspace_id}/documents/{document_id}",
+    response_model=IngestionTrackerSummary,
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_document_to_workspace(
+    workspace_id: str,
+    document_id: str,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)],
+    service: Annotated[WorkspaceService, Depends(get_service)],
+) -> IngestionTrackerSummary:
+    """Link an existing project document to this workspace and trigger ingestion."""
+    return await service.add_document(tenant, workspace_id, document_id)
+
+
+@router.delete("/{workspace_id}/documents/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_document_from_workspace(
+    workspace_id: str,
+    document_id: str,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)],
+    service: Annotated[WorkspaceService, Depends(get_service)],
+) -> Response:
+    """Unlink a document from this workspace and remove its RAG data."""
+    await service.remove_document(tenant, workspace_id, document_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/{workspace_id}/ingestions", response_model=list[IngestionTrackerSummary])
+def list_workspace_ingestions(
+    workspace_id: str,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)],
+    service: Annotated[WorkspaceService, Depends(get_service)],
+) -> list[IngestionTrackerSummary]:
+    return service.list_ingestions(tenant, workspace_id)
+
+
+@router.get("/rag-documents/{document_id}/status")
+async def get_rag_document_status(
+    document_id: str,
+    workspace_id: str,
+    request: Request,
+    tenant: Annotated[TenantContext, Depends(get_tenant_context)],
+) -> Any:
+    """Get the RAG ingestion status for a specific document in a workspace."""
+    karag_manager: KaragManager = request.app.state.karag_manager
+    rag_record = karag_manager.rag_documents_repository.get(document_id, workspace_id)
+    if not rag_record:
+        raise HTTPException(status_code=404, detail="RAG status not found for this document/workspace combination.")
+    
+    return {
+        "document_id": document_id,
+        "workspace_id": workspace_id,
+        "status": rag_record.status,
+        "progress": rag_record.progress,
+        "error": rag_record.error_message,
+        "chunk_count": rag_record.chunk_count,
+        "updated_at": rag_record.updated_at,
+    }

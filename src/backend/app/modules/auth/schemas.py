@@ -58,3 +58,32 @@ class MembershipSummary(BaseModel):
     project_id: str | None = None
     role_id: str
     created_at: datetime
+
+
+class MembershipCreateRequest(BaseModel):
+    user_id: str
+    role: str
+
+
+class MembershipUpdateRequest(BaseModel):
+    role: str
+
+
+class ScopeMemberSummary(BaseModel):
+    id: str
+    user_id: str
+    email: str
+    display_name: str
+    role: str
+    mfa_enabled: bool = False
+    organization_id: str
+    project_id: str | None = None
+    inherited: bool = False
+    created_at: datetime
+
+
+class EffectivePermissionsSummary(BaseModel):
+    organization_id: str
+    project_id: str | None = None
+    actor_id: str
+    permissions: list[str]

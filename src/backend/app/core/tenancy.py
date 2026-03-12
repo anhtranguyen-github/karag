@@ -51,14 +51,22 @@ def get_tenant_context(
     # Dev-mode fallback: when no API key is required and the user has no
     # memberships yet, grant admin-level permissions so the dashboard is
     # usable before a real auth layer is in place.
-    if not api_key and not permissions:
+    if getattr(karag_manager.settings, "database_url", "").startswith("sqlite") and not api_key and not permissions:
+        import os
         import logging
-        logging.getLogger(__name__).warning(
-            "DEV-MODE FALLBACK: actor_id=%s org=%s prj=%s → granting admin perms (no memberships found)",
-            actor_id, x_organization_id, x_project_id,
+        if os.getenv("TESTING") == "1":
+            logging.getLogger(__name__).warning(
+                "DEV-MODE FALLBACK: actor_id=%s org=%s prj=%s → granting admin perms (no memberships found)",
+                actor_id, x_organization_id, x_project_id,
+            )
+            from app.modules.auth.access_service import DEFAULT_ROLE_PERMISSIONS
+            permissions = set(DEFAULT_ROLE_PERMISSIONS["admin"])
+
+    if not permissions:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No effective permissions for the requested tenant scope.",
         )
-        from app.modules.auth.access_service import DEFAULT_ROLE_PERMISSIONS
-        permissions = set(DEFAULT_ROLE_PERMISSIONS["admin"])
 
     return TenantContext(
         organization_id=x_organization_id,

@@ -22,8 +22,12 @@ dependencies = [
     "pyjwt>=2.12.1",
     "python-dotenv>=1.2.2",
     "marker-pdf[full]>=1.6.1",
-    "transformers==4.45.2",
+    "transformers>=4.48.0",
+
+    "numpy>=1.26.0",
+    "docling>=2.15.0",
 ]
+
 
 [dependency-groups]
 dev = [

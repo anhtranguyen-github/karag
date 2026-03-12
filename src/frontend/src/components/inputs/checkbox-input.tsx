@@ -18,7 +18,7 @@ export function CheckboxInput({
 }: CheckboxInputProps) {
   return (
     <FieldShell label={label} description={description} error={error}>
-      <span className="inline-flex items-center gap-3 rounded-lg border border-input bg-white/80 px-3 py-3">
+      <span className="inline-flex items-center gap-3 rounded-lg border border-input bg-[#121212]/80 px-3 py-3">
         <input checked={checked} onChange={onChange} type="checkbox" {...props} />
         <span className="text-sm text-muted-foreground">
           {checked ? "Included" : "Excluded"}

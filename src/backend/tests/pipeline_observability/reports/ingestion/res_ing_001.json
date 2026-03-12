@@ -1,0 +1,68 @@
+{
+  "trace_id": "tr_1774259847",
+  "scenario_name": "Transformer Foundation (Attention Is All You Need)",
+  "original_input": "1906.05799v4.pdf",
+  "total_latency_ms": 98089.16,
+  "steps": [
+    {
+      "component_name": "Reader Manager",
+      "stage": "Reading",
+      "class_name": "ReaderManager",
+      "input_data": "1906.05799v4.pdf",
+      "output_data": {
+        "chars": 121712
+      },
+      "latency_ms": 623.99,
+      "metadata": {
+        "reader": "simple_pdf"
+      },
+      "timestamp": "2026-03-23T09:57:28.550444"
+    },
+    {
+      "component_name": "Chunker Manager",
+      "stage": "Chunking",
+      "class_name": "ChunkerManager",
+      "input_data": {
+        "num_docs": 1
+      },
+      "output_data": {
+        "num_chunks": 2023
+      },
+      "latency_ms": 15319.18,
+      "metadata": {
+        "component": "semantic"
+      },
+      "timestamp": "2026-03-23T09:57:42.521297"
+    },
+    {
+      "component_name": "Embedder Manager",
+      "stage": "Embedding",
+      "class_name": "EmbedderManager",
+      "input_data": {
+        "num_chunks": 2023
+      },
+      "output_data": "Success",
+      "latency_ms": 30178.95,
+      "metadata": {
+        "model": "jina-embeddings-v3"
+      },
+      "timestamp": "2026-03-23T09:58:12.700398"
+    },
+    {
+      "component_name": "VectorStore Manager",
+      "stage": "Persistence",
+      "class_name": "VectorStoreManager",
+      "input_data": {
+        "collection": "obs_coll_1774259892"
+      },
+      "output_data": "Success",
+      "latency_ms": 51966.69,
+      "metadata": {
+        "store": "qdrant"
+      },
+      "timestamp": "2026-03-23T09:59:01.944393"
+    }
+  ],
+  "final_output": "Ingested 2023 chunks",
+  "timestamp": "2026-03-23T09:57:27.926419"
+}

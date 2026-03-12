@@ -32,6 +32,9 @@ type TenantContextValue = {
   setProjectId: (value: string) => void;
   setWorkspaceId: (value: string) => void;
   setActorId: (value: string) => void;
+  permissions: string[];
+  hasPermission: (...permissions: string[]) => boolean;
+  isPermissionsReady: boolean;
   isReady: boolean;
   hasOrganizationScope: boolean;
   hasProjectScope: boolean;
@@ -58,11 +61,12 @@ function readStoredSelection(): TenantSelection {
   }
 }
 
-async function resolveProjectContext(projectId: string) {
-  const organizations = await platformApi.listOrganizations();
+async function resolveProjectContext(projectId: string, actorId: string) {
+  const actorTenant = { actorId };
+  const organizations = await platformApi.listOrganizations(actorTenant);
 
   for (const organization of organizations) {
-    const projects = await platformApi.listProjects(organization.id);
+    const projects = await platformApi.listProjects(organization.id, actorTenant);
     const project = projects.find((entry) => entry.id === projectId);
     if (project) {
       return {
@@ -76,10 +80,11 @@ async function resolveProjectContext(projectId: string) {
 }
 
 async function resolveWorkspaceContext(workspaceId: string, actorId: string) {
-  const organizations = await platformApi.listOrganizations();
+  const actorTenant = { actorId };
+  const organizations = await platformApi.listOrganizations(actorTenant);
 
   for (const organization of organizations) {
-    const projects = await platformApi.listProjects(organization.id);
+    const projects = await platformApi.listProjects(organization.id, actorTenant);
 
     for (const project of projects) {
       const workspaces = await platformApi.listWorkspaces({
@@ -132,7 +137,10 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       setRouteResolved(false);
 
       if (route.scope === "project") {
-        const resolved = await resolveProjectContext(route.projectId);
+        const resolved = await resolveProjectContext(
+          route.projectId,
+          tenant.actorId ?? DEFAULT_TENANT.actorId!
+        );
         if (cancelled) return;
 
         if (resolved) {
@@ -171,19 +179,34 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [hasHydratedSelection, route, tenant.actorId]);
+  }, [
+    hasHydratedSelection,
+    route,
+    tenant.actorId,
+    tenant.projectId,
+    tenant.workspaceId
+  ]);
 
   const organizationsQuery = useQuery({
     queryKey: ["organizations"],
-    queryFn: platformApi.listOrganizations,
+    queryFn: () => platformApi.listOrganizations({ actorId: tenant.actorId }),
     enabled: hasHydratedSelection
   });
 
   const projectsQuery = useQuery({
     queryKey: ["projects", tenant.organizationId],
-    queryFn: () => platformApi.listProjects(tenant.organizationId!),
+    queryFn: () => platformApi.listProjects(tenant.organizationId!, { actorId: tenant.actorId }),
     enabled: Boolean(hasHydratedSelection && tenant.organizationId)
   });
+
+  const selectedOrganizationExists = Boolean(
+    tenant.organizationId &&
+      (organizationsQuery.data ?? []).some((item) => item.id === tenant.organizationId)
+  );
+  const selectedProjectExists = Boolean(
+    tenant.projectId &&
+      (projectsQuery.data ?? []).some((item) => item.id === tenant.projectId)
+  );
 
   const workspacesQuery = useQuery({
     queryKey: ["workspaces", tenant.organizationId, tenant.projectId],
@@ -193,7 +216,31 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         projectId: tenant.projectId,
         actorId: tenant.actorId
       }),
-    enabled: Boolean(hasHydratedSelection && tenant.organizationId && tenant.projectId)
+    enabled: Boolean(
+      hasHydratedSelection &&
+        organizationsQuery.isSuccess &&
+        projectsQuery.isSuccess &&
+        selectedOrganizationExists &&
+        selectedProjectExists
+    )
+  });
+
+  const orgPermissionsQuery = useQuery({
+    queryKey: ["permissions", "organization", tenant.organizationId, tenant.actorId],
+    queryFn: () =>
+      platformApi.getEffectivePermissions(tenant.organizationId!, { actorId: tenant.actorId }),
+    enabled: Boolean(hasHydratedSelection && tenant.organizationId && tenant.actorId)
+  });
+
+  const projectPermissionsQuery = useQuery({
+    queryKey: ["permissions", "project", tenant.organizationId, tenant.projectId, tenant.actorId],
+    queryFn: () =>
+      platformApi.getEffectivePermissions(
+        tenant.organizationId!,
+        { actorId: tenant.actorId },
+        tenant.projectId
+      ),
+    enabled: Boolean(hasHydratedSelection && tenant.organizationId && tenant.projectId && tenant.actorId)
   });
 
   useEffect(() => {
@@ -269,7 +316,15 @@ export function TenantProvider({ children }: { children: ReactNode }) {
   }, [route.scope, tenant.organizationId, tenant.projectId, tenant.workspaceId, workspacesQuery.data]);
 
   const value = useMemo<TenantContextValue>(
-    () => ({
+    () => {
+      const activePermissions =
+        route.scope === "project" || route.scope === "workspace"
+          ? (projectPermissionsQuery.data?.permissions ??
+            orgPermissionsQuery.data?.permissions ??
+            [])
+          : (orgPermissionsQuery.data?.permissions ?? []);
+
+      return ({
       tenant,
       organizations: organizationsQuery.data ?? [],
       projects: projectsQuery.data ?? [],
@@ -297,6 +352,16 @@ export function TenantProvider({ children }: { children: ReactNode }) {
           ...current,
           actorId
         })),
+      permissions: activePermissions,
+      hasPermission: (...permissions) =>
+        permissions.every((permission) => activePermissions.includes(permission)),
+      isPermissionsReady:
+        !tenant.organizationId ||
+        (
+          route.scope === "project" || route.scope === "workspace"
+            ? (tenant.projectId ? projectPermissionsQuery.isFetched : orgPermissionsQuery.isFetched)
+            : orgPermissionsQuery.isFetched
+        ),
       isReady:
         hasHydratedSelection &&
         routeResolved &&
@@ -308,14 +373,19 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       hasWorkspaceScope: Boolean(
         tenant.organizationId && tenant.projectId && tenant.workspaceId
       )
-    }),
+    })},
     [
       hasHydratedSelection,
+      orgPermissionsQuery.data?.permissions,
+      orgPermissionsQuery.isFetched,
       organizationsQuery.data,
       organizationsQuery.isFetched,
+      projectPermissionsQuery.data?.permissions,
+      projectPermissionsQuery.isFetched,
       projectsQuery.data,
       projectsQuery.isFetched,
       routeResolved,
+      route.scope,
       tenant,
       workspacesQuery.data,
       workspacesQuery.isFetched

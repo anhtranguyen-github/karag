@@ -2,7 +2,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, UTC
 from sqlalchemy import select
-from app.core.database import DatabaseManager, ChatSessionRow, ChatMessageRow
+from app.infra.db.database import DatabaseManager, ChatSessionRow, ChatMessageRow
 from app.modules.chat.schemas import ChatSessionCreate, ChatSessionSummary, ChatMessageCreate, ChatMessageSummary
 
 class ChatRepository:
@@ -49,6 +49,21 @@ class ChatRepository:
                     created_at=row.created_at
                 ) for row in rows
             ]
+
+    def get_session(self, session_id: str) -> ChatSessionSummary | None:
+        with self.database.session() as db_session:
+            row = db_session.get(ChatSessionRow, session_id)
+            if not row:
+                return None
+            return ChatSessionSummary(
+                id=row.id,
+                workspace_id=row.workspace_id,
+                project_id=row.project_id,
+                organization_id=row.organization_id,
+                user_id=row.user_id,
+                title=row.title,
+                created_at=row.created_at,
+            )
 
     def add_message(self, session_id: str, message: ChatMessageCreate) -> ChatMessageSummary:
         message_id = str(uuid.uuid4())

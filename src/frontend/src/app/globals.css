@@ -1,45 +1,50 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+.material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+.glass-card {
+    background: rgba(47, 53, 68, 0.6);
+    backdrop-filter: blur(20px);
+}
+.primary-gradient {
+    background: linear-gradient(135deg, #adc6ff 0%, #4d8eff 100%);
+}
+
 @layer base {
   :root {
-    /* ── Surfaces (layered depth: base → card → popover) ── */
-    --background: 0 0% 7%;          /* #121212 */
-    --foreground: 0 0% 90%;         /* #e5e5e5 */
-    --card: 0 0% 10%;               /* #1a1a1a */
-    --card-foreground: 0 0% 90%;
-    --popover: 0 0% 12%;            /* #1f1f1f */
-    --popover-foreground: 0 0% 90%;
-
-    /* ── Accent — warm orange ── */
-    --primary: 24 95% 53%;           /* #f97316  orange-500 */
-    --primary-foreground: 0 0% 100%;
-    --ring: 24 95% 53%;
-
-    /* ── Neutrals ── */
-    --secondary: 0 0% 13%;          /* #212121 */
-    --secondary-foreground: 0 0% 72%;
-    --muted: 0 0% 15%;              /* #262626 */
-    --muted-foreground: 220 9% 60%; /* #9ca3af */
-    --accent: 0 0% 16%;             /* #292929 */
-    --accent-foreground: 0 0% 90%;
-
-    /* ── Semantic ── */
-    --destructive: 0 72% 56%;
-    --destructive-foreground: 0 0% 100%;
-    --success: 142 72% 48%;
-    --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 7%;
-
-    /* ── Borders & inputs ── */
-    --border: 0 0% 16%;             /* #2a2a2a */
-    --input: 0 0% 13%;
-
-    /* ── Typography ── */
-    --font-sans: "Inter", "IBM Plex Sans", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-    --font-mono: "JetBrains Mono", "Fira Code", "SF Mono", monospace;
+    --background: 222 44% 9%;
+    --foreground: 228 56% 91%;
+    --card: 223 30% 14%;
+    --card-foreground: 228 56% 91%;
+    --popover: 223 18% 23%;
+    --popover-foreground: 228 56% 91%;
+    --primary: 222 100% 84%;
+    --primary-foreground: 214 100% 21%;
+    --secondary: 216 42% 80%;
+    --secondary-foreground: 213 35% 20%;
+    --muted: 222 32% 12%; /* surface-container-low */
+    --muted-foreground: 228 20% 80%; /* on-surface-variant */
+    --accent: 218 100% 65%;
+    --accent-foreground: 214 100% 18%;
+    --destructive: 6 100% 84%;
+    --destructive-foreground: 357 100% 21%;
+    --success: 222 100% 84%; /* using primary for success as per design */
+    --success-foreground: 214 100% 21%;
+    --warning: 24 100% 76%;
+    --warning-foreground: 27 100% 16%;
+    --border: 223 12% 29%;
+    --input: 223 12% 29%;
+    --ring: 222 100% 84%;
+    --radius: 0.5rem;
+    --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+    --font-display: "Manrope", system-ui, -apple-system, sans-serif;
+    --font-mono: "JetBrains Mono", "Fira Code", monospace;
   }
 
   * {
@@ -47,92 +52,111 @@
   }
 
   html {
-    @apply h-full scroll-smooth;
+    @apply h-full scroll-smooth selection:bg-primary/20;
   }
 
   body {
-    @apply min-h-full bg-background font-sans text-foreground antialiased;
+    @apply min-h-full bg-background font-sans text-foreground antialiased selection:bg-primary/20;
+    background-image:
+      radial-gradient(circle at top left, rgba(240, 171, 88, 0.14), transparent 24rem),
+      radial-gradient(circle at top right, rgba(77, 124, 110, 0.12), transparent 20rem),
+      linear-gradient(180deg, rgba(14, 11, 9, 0.94), rgba(20, 15, 12, 1));
   }
 
-  h1, h2, h3, h4 {
-    @apply font-sans tracking-tight;
-    color: #e5e5e5;
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-semibold tracking-tight text-foreground;
   }
 
-  ::selection {
-    background: rgba(249, 115, 22, 0.2);
-  }
+  h1 { @apply text-3xl md:text-4xl; }
+  h2 { @apply text-2xl md:text-3xl; }
+  h3 { @apply text-xl md:text-2xl; }
+  h4 { @apply text-lg md:text-xl; }
 
   /* Subtle scrollbar */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
+  ::-webkit-scrollbar-thumb { @apply rounded-full bg-muted/50 hover:bg-muted; }
 }
 
 @layer components {
-  /* ── Surface cards ── */
+  /* ── Surface units ── */
   .surface {
-    @apply rounded-xl border border-[#2a2a2a] bg-[#1a1a1a];
+    @apply rounded-2xl border border-border bg-card shadow-[0_20px_60px_rgba(0,0,0,0.18)] backdrop-blur transition-colors;
   }
 
   .surface-elevated {
-    @apply rounded-xl border border-[#2a2a2a] bg-[#1f1f1f];
+    @apply surface bg-card;
   }
 
   .surface-muted {
-    @apply rounded-xl border border-[#222] bg-[#161616];
+    @apply rounded-2xl border border-border bg-muted;
+  }
+
+  .app-frame {
+    @apply min-h-screen;
+  }
+
+  .app-panel {
+    @apply rounded-[1.5rem] border border-border bg-card backdrop-blur-xl;
+  }
+
+  .section-label {
+    @apply text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground;
+  }
+
+  .page-title {
+    @apply text-3xl font-semibold tracking-tight text-foreground md:text-4xl;
+  }
+
+  .page-copy {
+    @apply max-w-2xl text-sm leading-6 text-muted-foreground md:text-base;
   }
 
   /* ── Form elements ── */
   .field-label {
-    @apply text-sm font-medium text-[#e5e5e5];
+    @apply mb-1.5 block text-sm font-medium text-foreground/80;
   }
 
   .field-help {
-    @apply text-xs leading-5 text-[#9ca3af];
+    @apply mt-1 px-1 text-xs leading-relaxed text-muted-foreground;
   }
 
   .field-error {
-    @apply text-xs font-medium text-destructive;
+    @apply mt-1 px-1 text-xs font-medium text-destructive-foreground opacity-90;
   }
 
   /* ── Status pills ── */
   .status-pill {
-    @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium;
+    @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em];
   }
 
   .status-pill--healthy {
-    @apply border-emerald-800/60 bg-emerald-950/40 text-emerald-400;
+    @apply border-success/30 bg-success/10 text-success;
   }
 
   .status-pill--warning {
-    @apply border-amber-800/60 bg-amber-950/40 text-amber-400;
+    @apply border-warning/30 bg-warning/10 text-warning;
   }
 
   .status-pill--danger {
-    @apply border-rose-800/60 bg-rose-950/40 text-rose-400;
+    @apply border-destructive/30 bg-destructive/10 text-destructive-foreground;
   }
 
-  /* ── Buttons ── */
+  /* ── Buttons ── (Deprecated in favor of Button component, but kept for legacy) */
   .btn-primary {
-    @apply inline-flex h-8 items-center gap-1.5 rounded-lg bg-orange-500 px-3.5 text-sm font-medium text-white transition-colors hover:bg-orange-600 active:bg-orange-700;
+    @apply inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition-all hover:brightness-110 active:scale-[0.98];
   }
 
   .btn-secondary {
-    @apply inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] px-3 text-sm text-[#9ca3af] transition-colors hover:bg-[#222] hover:text-[#e5e5e5];
+    @apply inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-border bg-secondary px-4 text-sm font-medium text-foreground transition-all hover:bg-secondary active:scale-[0.98];
   }
 
   .btn-ghost {
-    @apply inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-sm text-[#9ca3af] transition-colors hover:bg-[#1f1f1f] hover:text-[#e5e5e5];
-  }
-
-  .btn-danger {
-    @apply inline-flex h-8 items-center gap-1.5 rounded-lg border border-red-800/60 bg-red-950/40 px-3 text-sm text-red-400 transition-colors hover:bg-red-900/40;
+    @apply inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground active:scale-[0.98];
   }
 
   /* ── Kbd shortcut badges ── */
   .kbd {
-    @apply inline-flex items-center gap-0.5 rounded border border-[#2a2a2a] bg-[#1f1f1f] px-1 py-0.5 text-[10px] font-semibold text-[#6b7280];
+    @apply inline-flex items-center gap-1 rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-tight text-muted-foreground;
   }
 }

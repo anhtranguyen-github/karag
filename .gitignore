@@ -202,3 +202,14 @@ results/
 *.groovy
 !groovy_scripts/*.groovy
 qdrant-tut/
+
+# ===================
+# Local Verification Artifacts
+# ===================
+src/backend/*.db
+src/backend/*.sqlite
+src/backend/conversion_results/
+src/backend/debug_data/
+src/backend/scripts/docs_test_run.log
+stitch_assets/
+stitch_assets_v2/

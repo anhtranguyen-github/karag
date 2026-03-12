@@ -22,10 +22,10 @@ export default function WorkspaceLandingPage() {
     }, [isReady, tenant.workspaceId, workspaces, router]);
 
     return (
-        <div className="flex h-screen w-full items-center justify-center bg-slate-50">
+        <div className="flex h-screen w-full items-center justify-center bg-transparent">
             <div className="flex flex-col items-center gap-4">
                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                <div className="text-sm font-medium text-slate-500 animate-pulse">
+                <div className="text-sm font-medium text-[#9ca3af] animate-pulse">
                     Loading workspace...
                 </div>
             </div>

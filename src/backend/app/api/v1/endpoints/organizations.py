@@ -3,7 +3,7 @@ from typing import Annotated
 import logging
 from fastapi import APIRouter, Depends, Request, status
 from app.karag_manager import KaragManager
-from app.modules.organizations.schemas import OrganizationCreate, OrganizationSummary
+from app.modules.organizations.schemas import OrganizationCreate, OrganizationSummary, OrganizationUpdate
 from app.modules.organizations.schemas import ProjectCreate, ProjectSummary, ProjectUpdate
 from app.modules.organizations.services import OrganizationService
 from app.core.tenancy import BootstrapContext, TenantContext, get_bootstrap_context, get_tenant_context
@@ -18,32 +18,43 @@ def get_service(request: Request) -> OrganizationService:
 @router.post("", response_model=OrganizationSummary, status_code=status.HTTP_201_CREATED)
 def create_organization(
     payload: OrganizationCreate,
+    ctx: Annotated[BootstrapContext, Depends(get_bootstrap_context)],
     service: Annotated[OrganizationService, Depends(get_service)],
 ) -> OrganizationSummary:
-    return service.create_organization(payload)
+    return service.create_organization(payload, actor_id=ctx.actor_id)
 
 @router.get("", response_model=list[OrganizationSummary])
 def list_organizations(
     ctx: Annotated[BootstrapContext, Depends(get_bootstrap_context)],
     service: Annotated[OrganizationService, Depends(get_service)],
 ) -> list[OrganizationSummary]:
-    return service.list_all_organizations()
+    return service.list_visible_organizations(ctx.actor_id)
 
 @router.get("/{organization_id}", response_model=OrganizationSummary)
 def get_organization(
     organization_id: str,
-    tenant: Annotated[TenantContext, Depends(get_tenant_context)],
+    ctx: Annotated[BootstrapContext, Depends(get_bootstrap_context)],
     service: Annotated[OrganizationService, Depends(get_service)],
 ) -> OrganizationSummary:
-    return service.get_organization(tenant, organization_id)
+    return service.get_organization_for_actor(ctx.actor_id, organization_id)
+
+@router.put("/{organization_id}", response_model=OrganizationSummary)
+def update_organization(
+    organization_id: str,
+    payload: OrganizationUpdate,
+    ctx: Annotated[BootstrapContext, Depends(get_bootstrap_context)],
+    service: Annotated[OrganizationService, Depends(get_service)],
+) -> OrganizationSummary:
+    return service.update_organization(ctx.actor_id, organization_id, payload)
 
 @router.post("/{organization_id}/projects", response_model=ProjectSummary, status_code=status.HTTP_201_CREATED)
 def create_project(
     organization_id: str,
     payload: ProjectCreate,
+    ctx: Annotated[BootstrapContext, Depends(get_bootstrap_context)],
     service: Annotated[OrganizationService, Depends(get_service)],
 ) -> ProjectSummary:
-    return service.create_project(organization_id, payload)
+    return service.create_project_for_actor(ctx.actor_id, organization_id, payload)
 
 @router.get("/{organization_id}/projects", response_model=list[ProjectSummary])
 def list_projects(
@@ -51,7 +62,7 @@ def list_projects(
     ctx: Annotated[BootstrapContext, Depends(get_bootstrap_context)],
     service: Annotated[OrganizationService, Depends(get_service)],
 ) -> list[ProjectSummary]:
-    return service.list_all_projects(organization_id)
+    return service.list_visible_projects(ctx.actor_id, organization_id)
 
 @router.get("/{organization_id}/projects/{project_id}", response_model=ProjectSummary)
 def get_project(

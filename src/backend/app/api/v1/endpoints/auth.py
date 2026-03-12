@@ -4,8 +4,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
-from app.modules.auth.schemas import LoginRequest, Token, UserCreate, UserSummary
-from app.modules.auth.services import AuthService
+from app.core.tenancy import BootstrapContext, get_bootstrap_context
+from app.modules.auth.schemas import EffectivePermissionsSummary, LoginRequest, Token, UserCreate, UserSummary
+from app.modules.auth.service import AuthService
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -47,3 +48,17 @@ def get_me(
         raise HTTPException(status_code=401, detail="Missing or invalid token")
     token = auth_header.split(" ")[1]
     return service.get_current_user(token)
+
+
+@router.get("/permissions", response_model=EffectivePermissionsSummary)
+def get_effective_permissions(
+    organization_id: str,
+    project_id: str | None = None,
+    bootstrap: Annotated[BootstrapContext, Depends(get_bootstrap_context)] = None,
+    service: Annotated[AuthService, Depends(get_service)] = None,
+) -> EffectivePermissionsSummary:
+    return service.get_effective_permissions(
+        actor_id=bootstrap.actor_id,
+        organization_id=organization_id,
+        project_id=project_id,
+    )

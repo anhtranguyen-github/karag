@@ -1,116 +1,109 @@
 "use client";
 
-import { Clock, ExternalLink, MessageSquareText, Search } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
+import { useQueries, useQuery } from "@tanstack/react-query";
+import { MessageSquareText, Search, Zap } from "lucide-react";
 
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import PageShell from "@/components/ui/page-shell";
 import { WorkspaceGuard } from "@/components/ui/workspace-guard";
-
-const DEMO_HISTORY = [
-  {
-    id: "s1",
-    title: "How to configure vector store",
-    messageCount: 12,
-    createdAt: "2025-03-18T10:30:00Z",
-    lastMessageAt: "2025-03-18T11:02:00Z",
-  },
-  {
-    id: "s2",
-    title: "Summarize uploaded PDF",
-    messageCount: 5,
-    createdAt: "2025-03-17T14:00:00Z",
-    lastMessageAt: "2025-03-17T14:15:00Z",
-  },
-  {
-    id: "s3",
-    title: "Explain RAG pipeline steps",
-    messageCount: 8,
-    createdAt: "2025-03-15T09:00:00Z",
-    lastMessageAt: "2025-03-15T09:45:00Z",
-  },
-];
-
-function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
+import { platformApi } from "@/lib/api/platform";
+import { useTenant } from "@/providers/tenant-provider";
 
 export default function WorkspaceHistoryPage() {
   const params = useParams();
   const workspaceId = params.workspaceId as string;
+  const { tenant, isReady, hasPermission, isPermissionsReady } = useTenant();
   const [search, setSearch] = useState("");
+  const canCreateSession = hasPermission("chat.session");
 
-  const filtered = useMemo(
-    () => DEMO_HISTORY.filter((s) => s.title.toLowerCase().includes(search.toLowerCase())),
-    [search]
+  const sessionsQuery = useQuery({
+    queryKey: ["chat-sessions", workspaceId],
+    queryFn: () => platformApi.listChatSessions({ ...tenant, workspaceId }),
+    enabled: isReady && !!workspaceId,
+  });
+
+  const messageQueries = useQueries({
+    queries: (sessionsQuery.data ?? []).map((session) => ({
+      queryKey: ["chat-messages", session.id],
+      queryFn: () => platformApi.listChatMessages({ ...tenant, workspaceId }, session.id),
+      enabled: isReady && !!workspaceId,
+      staleTime: 15_000,
+    })),
+  });
+
+  const sessions = useMemo(
+    () =>
+      (sessionsQuery.data ?? [])
+        .map((session, index) => {
+          const messages = messageQueries[index]?.data ?? [];
+          const lastMessage = messages[messages.length - 1];
+          const traceCount =
+            [...messages].reverse().find((message) => (message.metadata?.trace?.length ?? 0) > 0)?.metadata?.trace?.length ?? 0;
+          return {
+            ...session,
+            preview: lastMessage?.content ?? "No messages yet",
+            count: messages.length,
+            traceCount,
+          };
+        })
+        .filter((session) => `${session.title ?? ""} ${session.preview}`.toLowerCase().includes(search.toLowerCase())),
+    [messageQueries, search, sessionsQuery.data]
   );
 
   return (
     <WorkspaceGuard>
-      <div className="mx-auto w-full max-w-5xl py-6">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-[#e5e5e5]">Chat History</h1>
-          <div className="flex items-center gap-2">
-            <button className="flex h-8 items-center gap-1.5 rounded-xl border border-[#2a2a2a] bg-[#1a1a1a] px-3 text-sm text-[#9ca3af] transition-colors hover:text-[#e5e5e5]">
-              <ExternalLink className="h-3 w-3" />
-              Docs
-            </button>
-            <Link
-              className="flex h-8 items-center gap-1.5 rounded-lg bg-orange-500 px-3.5 text-sm font-medium text-[#e5e5e5] hover:bg-orange-600 transition-colors"
-              href={`/dashboard/workspace/${workspaceId}/chat`}
-            >
-              <MessageSquareText className="h-3.5 w-3.5" />
-              New chat
-            </Link>
+      <PageShell
+        scopeLabel="Workspace"
+        title="Thread History"
+        subtitle="Saved chat sessions, message counts, and trace availability in one simple list."
+      >
+        <div className="app-panel flex flex-col gap-4 px-5 py-5 md:flex-row md:items-center md:justify-between md:px-6">
+          <div className="relative w-full max-w-md">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input className="pl-9" onChange={(event) => setSearch(event.target.value)} placeholder="Search thread history" value={search} />
           </div>
-        </div>
-
-        <div className="mb-4">
-          <div className="relative max-w-xs">
-            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#6b7280]" />
-            <input
-              className="h-8 w-full rounded-xl border border-[#2a2a2a] bg-[#121212] pl-8 pr-3 text-sm text-[#e5e5e5] placeholder-[#6b7280] outline-none focus:border-orange-500"
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search conversations"
-              value={search}
-            />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          {filtered.map((session) => (
-            <Link
-              className="flex items-center gap-4 rounded-xl border border-[#2a2a2a] bg-[#1a1a1a] p-4 transition-colors hover:bg-[#1f1f1f]"
-              href={`/dashboard/workspace/${workspaceId}/chat?session=${session.id}`}
-              key={session.id}
-            >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#2a2a2a]">
-                <MessageSquareText className="h-4 w-4 text-orange-400" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-[#e5e5e5]">{session.title}</p>
-                <p className="text-xs text-[#6b7280]">{session.messageCount} messages</p>
-              </div>
-              <div className="flex shrink-0 items-center gap-1.5 text-xs text-[#6b7280]">
-                <Clock className="h-3 w-3" />
-                {timeAgo(session.lastMessageAt)}
-              </div>
+          {canCreateSession ? (
+            <Link href={`/dashboard/workspace/${workspaceId}/chat`}>
+              <span className="btn-primary">New Chat</span>
             </Link>
-          ))}
-          {filtered.length === 0 && (
-            <div className="rounded-xl border border-[#2a2a2a] bg-[#1a1a1a] p-8 text-center text-sm text-[#6b7280]">
-              {search ? "No conversations match your search." : "No chat history yet. Start a conversation!"}
-            </div>
+          ) : (
+            <span className="text-sm text-muted-foreground">
+              {isPermissionsReady ? "New chat requires chat session access." : "Checking access..."}
+            </span>
           )}
         </div>
-        <p className="mt-3 text-xs text-[#6b7280]">Showing {filtered.length} of {DEMO_HISTORY.length} conversations</p>
-      </div>
+
+        <div className="mt-6 grid grid-cols-1 gap-4">
+          {sessions.map((session) => (
+            <Link href={`/dashboard/workspace/${workspaceId}/chat?session=${session.id}`} key={session.id}>
+              <Card>
+                <CardHeader>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <CardTitle>{session.title || "Untitled thread"}</CardTitle>
+                      <p className="mt-2 text-sm text-muted-foreground">{session.preview}</p>
+                    </div>
+                    <MessageSquareText className="h-5 w-5 text-primary" />
+                  </div>
+                </CardHeader>
+                <CardContent className="flex flex-wrap gap-3">
+                  <span className="status-pill">{session.count} messages</span>
+                  {session.traceCount > 0 ? (
+                    <span className="status-pill status-pill--warning">
+                      <Zap className="h-3 w-3" />
+                      {session.traceCount} trace steps
+                    </span>
+                  ) : null}
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      </PageShell>
     </WorkspaceGuard>
   );
 }

@@ -1,0 +1,101 @@
+{
+  "trace_id": "tr_1774260113",
+  "scenario_name": "Temporal Check",
+  "original_input": "Find research papers about supervised machine learning published after 2015.",
+  "total_latency_ms": 3868.31,
+  "steps": [
+    {
+      "component_name": "Pre-Retrieval Manager",
+      "stage": "Pre-Retrieval",
+      "class_name": "PreRetrievalManager",
+      "input_data": "Find research papers about supervised machine learning published after 2015.",
+      "output_data": {
+        "original_query": "Find research papers about supervised machine learning published after 2015.",
+        "condensed_query": "Find research papers about supervised machine learning published after 2015.",
+        "expanded_queries": [
+          "Find research papers about supervised machine learning published after 2015."
+        ],
+        "filters": {
+          "category": "supervised machine learning",
+          "date_after": "2015"
+        },
+        "is_safe": true,
+        "metadata": {
+          "elapsed_ms": 1077
+        }
+      },
+      "latency_ms": 1077.81,
+      "metadata": {
+        "num_expanded": 1,
+        "filters": {
+          "category": "supervised machine learning",
+          "date_after": "2015"
+        }
+      },
+      "timestamp": "2026-03-23T10:01:54.968974"
+    },
+    {
+      "component_name": "Retrieval Manager",
+      "stage": "Retrieval",
+      "class_name": "RetrievalManager",
+      "input_data": {
+        "original_query": "Find research papers about supervised machine learning published after 2015.",
+        "condensed_query": "Find research papers about supervised machine learning published after 2015.",
+        "expanded_queries": [
+          "Find research papers about supervised machine learning published after 2015."
+        ],
+        "filters": {
+          "category": "supervised machine learning",
+          "date_after": "2015"
+        },
+        "is_safe": true,
+        "metadata": {
+          "elapsed_ms": 1077
+        }
+      },
+      "output_data": {
+        "candidates_count": 0
+      },
+      "latency_ms": 2130.41,
+      "metadata": {
+        "search_count": 1
+      },
+      "timestamp": "2026-03-23T10:01:57.099759"
+    },
+    {
+      "component_name": "Post-Retrieval Manager",
+      "stage": "Post-Retrieval",
+      "class_name": "PostRetrievalManager",
+      "input_data": {
+        "candidates_in": 0
+      },
+      "output_data": {
+        "ranked_count": 0,
+        "pii_spans": 0
+      },
+      "latency_ms": 0.06,
+      "metadata": {
+        "masked_spans": []
+      },
+      "timestamp": "2026-03-23T10:01:57.099921"
+    },
+    {
+      "component_name": "Inference/Context Manager",
+      "stage": "Inference",
+      "class_name": "InferenceManager",
+      "input_data": {
+        "prompt_preview": "Find research papers about supervised machine learning published after 2015."
+      },
+      "output_data": {
+        "answer_preview": "I am sorry, but I cannot fulfill this request. My current capabilities do not allow me to search for"
+      },
+      "latency_ms": 659.41,
+      "metadata": {
+        "context_count": 0
+      },
+      "timestamp": "2026-03-23T10:01:57.759413"
+    }
+  ],
+  "final_output": "I am sorry, but I cannot fulfill this request. My current capabilities do not allow me to search for and retrieve research papers based on specific criteria like publication date and topic.",
+  "timestamp": "2026-03-23T10:01:53.891106"
+}

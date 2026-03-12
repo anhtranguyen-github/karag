@@ -20,7 +20,7 @@ import { useTenant } from "@/providers/tenant-provider";
 export function DashboardShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const route = useMemo(() => matchRoute(pathname), [pathname]);
-  const { tenant, organizations, projects, workspaces, hasWorkspaceScope } =
+  const { tenant, organizations, projects, workspaces, hasWorkspaceScope, isReady } =
     useTenant();
   const [paletteOpen, setPaletteOpen] = useState(false);
 
@@ -37,7 +37,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const workspaceDocumentsQuery = useQuery({
     queryKey: ["command-palette", "runtime-documents", tenant.organizationId, tenant.projectId, tenant.workspaceId],
     queryFn: () => platformApi.listRuntimeDocuments(tenant, tenant.workspaceId!),
-    enabled: hasWorkspaceScope && paletteOpen
+    enabled: isReady && hasWorkspaceScope && paletteOpen
   });
 
   const documentItems = useMemo(() => {
@@ -92,12 +92,14 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <Topbar onOpenSearch={() => setPaletteOpen(true)} />
-      <div className="mx-auto flex max-w-[1600px]">
-        <Sidebar />
-        <main className="min-w-0 flex-1 px-4 py-5 lg:px-5 xl:px-6">{children}</main>
-      </div>
+    <div className="app-frame bg-background text-foreground font-body">
+      <Sidebar aria-label="Main sidebar" />
+      <main className="ml-64 min-h-screen flex flex-col animate-fade-in">
+        <Topbar onOpenSearch={() => setPaletteOpen(true)} />
+        <div className="flex-1 w-full mx-auto">
+          {children}
+        </div>
+      </main>
       <CommandPalette items={commandItems} onOpenChange={setPaletteOpen} open={paletteOpen} />
     </div>
   );

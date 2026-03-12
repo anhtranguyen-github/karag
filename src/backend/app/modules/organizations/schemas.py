@@ -28,6 +28,12 @@ class OrganizationSummary(BaseModel):
     created_at: datetime
 
 
+class OrganizationUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    status: str | None = None
+
+
 class ProjectCreate(BaseModel):
     id: str | None = None
     name: str

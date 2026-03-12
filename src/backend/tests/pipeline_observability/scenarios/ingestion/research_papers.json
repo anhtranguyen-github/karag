@@ -1,0 +1,32 @@
+[
+  {
+    "id": "doc_transformer",
+    "name": "Attention Is All You Need",
+    "file_path": "../../.docs/1906.05799v4.pdf",
+    "config_overrides": {}
+  },
+  {
+    "id": "doc_new_research",
+    "name": "Recent Research (2508.15260)",
+    "file_path": "../../.docs/2508.15260v1.pdf",
+    "config_overrides": {}
+  },
+  {
+    "id": "doc_sml",
+    "name": "Supervised Machine Learning Models",
+    "file_path": "../../.docs/Supervised_Machine_Learning_Models.pdf",
+    "config_overrides": {}
+  },
+  {
+    "id": "doc_net_prog",
+    "name": "Network Programming (Vietnamese)",
+    "file_path": "../../.docs/lap-trinh-mang_luong-anh-hoang_de-4 - [cuuduongthancong.com].pdf",
+    "config_overrides": {}
+  },
+  {
+    "id": "doc_physics",
+    "name": "General Physics 2 (Vietnamese)",
+    "file_path": "../../.docs/vat-ly-2__cau-hoi-tu-luan-vat-li-dai-cuong-2 - [cuuduongthancong.com].pdf",
+    "config_overrides": {}
+  }
+]

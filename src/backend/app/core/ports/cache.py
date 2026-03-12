@@ -1,30 +1,26 @@
-"""Cache port — abstraction for key-value caching.
-
-Follows the same graceful-degradation pattern as EventBus:
-InMemoryCache as fallback, RedisCache for production.
-"""
 from __future__ import annotations
+from abc import ABC, abstractmethod
+from typing import Any
 
-from typing import Any, Protocol, runtime_checkable
+class CachePort(ABC):
+    """Port for simple key-value caching logic."""
+    
+    @abstractmethod
+    async def get(self, key: str) -> Any | None: 
+        """Retrieve a value by key (returns None if missing/expired)."""
+        pass
 
-
-@runtime_checkable
-class CachePort(Protocol):
-    """Port for key-value cache operations."""
-    name: str
-
-    async def get(self, key: str) -> Any | None:
-        """Return cached value or None."""
-        ...
-
+    @abstractmethod
     async def set(self, key: str, value: Any, ttl_seconds: int | None = None) -> None:
-        """Store a value with optional TTL."""
-        ...
+        """Store a value with an optional TTL."""
+        pass
 
+    @abstractmethod
     async def delete(self, key: str) -> None:
-        """Remove a key."""
-        ...
+        """Remove a value from the cache."""
+        pass
 
+    @abstractmethod
     async def exists(self, key: str) -> bool:
-        """Check if a key exists."""
-        ...
+        """Check if a key exists and is non-expired."""
+        pass

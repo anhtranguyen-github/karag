@@ -41,12 +41,12 @@ export function DataTable<T>({
       ) : null}
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-border/70">
-          <thead className="bg-slate-50/80">
+          <thead className="bg-[#1f1f1f]">
             <tr>
               {columns.map((column) => (
                 <th
                   className={cn(
-                    "px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-500",
+                    "px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-[0.16em] text-[#9ca3af]",
                     column.className
                   )}
                   key={column.key}
@@ -59,9 +59,9 @@ export function DataTable<T>({
           <tbody className="divide-y divide-border/60">
             {rows.length ? (
               rows.map((row, rowIndex) => (
-                <tr className="bg-white/60 align-top" key={rowIndex}>
+                <tr className="bg-[#1a1a1a] align-top hover:bg-[#222] transition-colors" key={rowIndex}>
                   {columns.map((column) => (
-                    <td className={cn("px-4 py-3 text-sm text-slate-700", column.className)} key={column.key}>
+                    <td className={cn("px-4 py-3 text-sm text-[#e5e5e5]", column.className)} key={column.key}>
                       {column.render(row)}
                     </td>
                   ))}

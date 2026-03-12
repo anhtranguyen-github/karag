@@ -1,111 +1,99 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { Plus, Search, Trash2 } from "lucide-react";
 
-import { PrimaryButton } from "@/components/ui/primary-button";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import PageShell from "@/components/ui/page-shell";
 import { ProjectGuard } from "@/components/ui/project-guard";
-import { ResourceCard, type ResourceCardItem } from "@/components/ui/resource-card";
-import { ResourceGrid, ResourceToolbar } from "@/components/ui/resource-toolbar";
 import { platformApi } from "@/lib/api/platform";
 import { useTenant } from "@/providers/tenant-provider";
 
 export default function ProjectWorkspacesPageView() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { tenant, workspaces, setWorkspaceId } = useTenant();
+  const { tenant, workspaces, setWorkspaceId, hasPermission, isPermissionsReady } = useTenant();
   const [search, setSearch] = useState("");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const canCreateWorkspace = hasPermission("workspace.create");
+  const canDeleteWorkspace = hasPermission("workspace.delete");
 
-  const filteredWorkspaces: ResourceCardItem[] = useMemo(
+  const filteredWorkspaces = useMemo(
     () =>
-      workspaces
-        .filter((w) =>
-          [w.name, w.id, w.description ?? ""]
-            .join(" ")
-            .toLowerCase()
-            .includes(search.toLowerCase())
-        )
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .map((w) => ({
-          id: w.id,
-          name: w.name,
-          description: w.description || "No description provided.",
-          status: w.status,
-          href: `/dashboard/workspace/${w.id}`,
-        })),
-    [workspaces, search]
+      workspaces.filter((workspace) =>
+        [workspace.name, workspace.id, workspace.description ?? ""].join(" ").toLowerCase().includes(search.toLowerCase())
+      ),
+    [search, workspaces]
   );
 
   const deleteWorkspace = useMutation({
     mutationFn: (workspaceId: string) =>
       platformApi.deleteWorkspace(
-        {
-          organizationId: tenant.organizationId,
-          projectId: tenant.projectId,
-          actorId: tenant.actorId,
-        },
+        { organizationId: tenant.organizationId, projectId: tenant.projectId, actorId: tenant.actorId },
         workspaceId
       ),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ["workspaces", tenant.organizationId, tenant.projectId],
-      });
+      await queryClient.invalidateQueries({ queryKey: ["workspaces", tenant.organizationId, tenant.projectId] });
     },
   });
 
   return (
     <ProjectGuard>
-      <div className="mx-auto w-full max-w-6xl py-6">
-        {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-[#e5e5e5]">Workspaces</h1>
-          <PrimaryButton onClick={() => router.push("/dashboard/new/workspace")}>
-            New workspace
-          </PrimaryButton>
+      <PageShell
+        scopeLabel="Project"
+        title="Workspaces"
+        subtitle="All workspaces in one simple list, with direct open and delete actions."
+      >
+        <div className="app-panel flex flex-col gap-4 px-5 py-5 md:flex-row md:items-center md:justify-between md:px-6">
+          <div className="relative w-full max-w-md">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input className="pl-9" onChange={(event) => setSearch(event.target.value)} placeholder="Search workspaces" value={search} />
+          </div>
+          <Button className="gap-2" disabled={!isPermissionsReady || !canCreateWorkspace} onClick={() => router.push("/dashboard/new/workspace")}>
+            <Plus className="h-4 w-4" />
+            {canCreateWorkspace ? "New Workspace" : "Create Access Required"}
+          </Button>
         </div>
 
-        <ResourceToolbar
-          search={search}
-          onSearchChange={setSearch}
-          searchPlaceholder="Search for a workspace"
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-        />
-
-        <ResourceGrid
-          viewMode={viewMode}
-          isEmpty={filteredWorkspaces.length === 0}
-          emptyLabel="No workspaces found."
-        >
-          {filteredWorkspaces.map((item) => (
-            <ResourceCard
-              item={item}
-              key={item.id}
-              onClick={() => {
-                setWorkspaceId(item.id);
-                router.push(item.href);
-              }}
-              actionButton={
-                <button
-                  className="ml-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[#6b7280] opacity-0 transition-all hover:bg-[#2a2a2a] hover:text-red-400 group-hover:opacity-100"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (confirm("Are you sure you want to delete this workspace?")) {
-                      deleteWorkspace.mutate(item.id);
-                    }
-                  }}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              }
-            />
+        <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {filteredWorkspaces.map((workspace) => (
+            <Card className="cursor-pointer" key={workspace.id} onClick={() => {
+              setWorkspaceId(workspace.id);
+              router.push(`/dashboard/workspace/${workspace.id}`);
+            }}>
+              <CardHeader>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <CardTitle>{workspace.name}</CardTitle>
+                    <CardDescription>{workspace.description || workspace.id}</CardDescription>
+                  </div>
+                  {canDeleteWorkspace ? (
+                    <button
+                      className="rounded-xl p-2 text-muted-foreground hover:bg-muted hover:text-destructive"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        if (confirm("Delete this workspace?")) {
+                          deleteWorkspace.mutate(workspace.id);
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  ) : null}
+                </div>
+              </CardHeader>
+              <CardContent className="flex items-center justify-between">
+                <span className="status-pill status-pill--healthy">{workspace.status}</span>
+                <span className="text-sm font-medium text-primary">Open</span>
+              </CardContent>
+            </Card>
           ))}
-        </ResourceGrid>
-      </div>
+        </div>
+      </PageShell>
     </ProjectGuard>
   );
 }

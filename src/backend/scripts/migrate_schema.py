@@ -2,10 +2,12 @@
 """Quick migration to add missing columns to the database."""
 import os
 import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from app.core.database import DatabaseManager, Base
-from sqlalchemy import text, inspect
+from app.infra.db.database import DatabaseManager, Base, RoleRow
+from sqlalchemy import text, inspect, select
+from uuid import uuid4
 
 db_url = os.environ.get("DATABASE_URL", "postgresql+psycopg://karag:karag@localhost:54321/karag")
 db = DatabaseManager(db_url)
@@ -35,10 +37,6 @@ with db.engine.begin() as conn:
             print(f"  Column '{col}' already exists")
 
 # Ensure roles exist
-from uuid import uuid4
-from sqlalchemy import select
-from app.core.database import RoleRow
-
 with db.session() as session:
     for role_name in ["admin", "member", "viewer"]:
         existing = session.scalar(select(RoleRow).where(RoleRow.name == role_name))

@@ -15,7 +15,6 @@ import {
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 
 import { cn } from "@/lib/utils";
 import { useTenant } from "@/providers/tenant-provider";
@@ -32,56 +31,42 @@ type SidebarItem = {
 function SidebarLink({
   item,
   active,
-  expanded,
 }: Readonly<{
   item: SidebarItem;
   active: boolean;
-  expanded: boolean;
 }>) {
   return (
     <Link
       href={item.href}
-      title={expanded ? undefined : item.label}
       className={cn(
-        "flex h-9 items-center gap-3 rounded-lg transition-colors",
-        expanded ? "w-full px-3" : "w-9 justify-center",
+        "flex h-11 items-center gap-3 rounded-lg px-4 py-3 transition-all duration-200 group relative",
         active
-          ? "bg-[#1f1f1f] text-orange-400"
-          : "text-[#6b7280] hover:bg-[#1a1a1a] hover:text-[#e5e5e5]"
+          ? "bg-primary/10 text-primary-foreground before:absolute before:inset-y-0 before:left-0 before:w-1 before:rounded-r-md before:bg-primary"
+          : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
       )}
     >
-      <item.icon className="h-[18px] w-[18px] shrink-0" />
-      {expanded && (
-        <span className="truncate text-[13px] font-medium">{item.label}</span>
-      )}
+      <item.icon className={cn("h-5 w-5 shrink-0 transition-transform", active && "scale-110", active ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
+      <span className="truncate text-sm font-medium font-body">{item.label}</span>
     </Link>
   );
 }
-
-/* ─── Shared hover-expand sidebar shell ─────────────────────────── */
 
 function HoverSidebar({
   items,
   pathname,
 }: Readonly<{ items: SidebarItem[]; pathname: string }>) {
-  const [hovered, setHovered] = useState(false);
-
   return (
     <aside
-      style={{ display: "block" }}
-      className={cn(
-        "shrink-0 border-r border-[#2a2a2a] bg-[#141414] transition-[width] duration-200 ease-in-out max-lg:hidden",
-        hovered ? "w-[200px]" : "w-14"
-      )}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      className="h-screen w-64 fixed left-0 top-0 border-r border-white/5 bg-background flex flex-col p-4 space-y-2 z-50 shadow-[20px_0_40px_rgba(8,14,28,0.4)] max-lg:hidden"
     >
-      <div
-        className={cn(
-          "sticky top-14 flex h-[calc(100vh-56px)] flex-col gap-0.5 overflow-hidden py-3",
-          hovered ? "items-stretch px-2" : "items-center"
-        )}
-      >
+      <div className="mb-6 px-4 pt-2">
+        <h1 className="text-2xl font-black text-primary font-display tracking-tight">Karag Enterprise</h1>
+        <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">v2.4.0-monolith</p>
+      </div>
+      <div className="flex-1 flex flex-col gap-1 overflow-y-auto">
+        <div className="px-2 pb-2 pt-1 mt-2">
+          <p className="section-label">Navigation</p>
+        </div>
         {items.map((item) => {
           const baseMatch = item.exact
             ? pathname === item.href
@@ -96,10 +81,12 @@ function HoverSidebar({
               key={item.href}
               item={item}
               active={active}
-              expanded={hovered}
             />
           );
         })}
+      </div>
+      <div className="pt-4 border-t border-border/50 space-y-1 mt-auto pb-4">
+        {/* Help Center spacing */}
       </div>
     </aside>
   );
@@ -110,7 +97,7 @@ function HoverSidebar({
 export function Sidebar() {
   const pathname = usePathname();
   const route = matchRoute(pathname);
-  const { tenant } = useTenant();
+  const { tenant, hasPermission } = useTenant();
 
   /* Org level */
   if (route.scope === "dashboard") {
@@ -120,7 +107,7 @@ export function Sidebar() {
     const items: SidebarItem[] = [
       { href: base, label: "Projects", icon: LayoutGrid, exact: true },
       { href: `${base}/members`, label: "Team", icon: Users },
-      { href: `${base}/settings`, label: "Settings", icon: Settings2 },
+      ...(hasPermission("org.edit") ? [{ href: `${base}/settings`, label: "Settings", icon: Settings2 }] : []),
     ];
     return <HoverSidebar items={items} pathname={pathname} />;
   }
@@ -132,7 +119,7 @@ export function Sidebar() {
       { href: `${base}/workspaces`, label: "Workspaces", icon: Blocks, alsoMatch: [base] },
       { href: `${base}/documents`, label: "Document Storage", icon: HardDrive },
       { href: `${base}/members`, label: "Members", icon: Users },
-      { href: `${base}/settings`, label: "Settings", icon: Settings2 },
+      ...(hasPermission("project.edit") ? [{ href: `${base}/settings`, label: "Settings", icon: Settings2 }] : []),
     ];
     return <HoverSidebar items={items} pathname={pathname} />;
   }
@@ -145,7 +132,11 @@ export function Sidebar() {
       { href: `${base}/history`, label: "History", icon: Clock },
       { href: `${base}/context-docs`, label: "Documents", icon: Files },
       { href: `${base}/members`, label: "Members", icon: Users },
-      { href: `${base}/settings`, label: "Settings", icon: Settings2 },
+      ...(
+        hasPermission("workspace.edit") || hasPermission("workspace.delete")
+          ? [{ href: `${base}/settings`, label: "Settings", icon: Settings2 }]
+          : []
+      ),
     ];
     return <HoverSidebar items={items} pathname={pathname} />;
   }

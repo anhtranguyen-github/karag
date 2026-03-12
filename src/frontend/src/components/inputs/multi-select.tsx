@@ -21,7 +21,7 @@ export function MultiSelect({
 }: MultiSelectProps) {
   return (
     <FieldShell label={label} description={description} error={error}>
-      <div className="flex flex-wrap gap-2 rounded-lg border border-input bg-white/80 p-2">
+      <div className="flex flex-wrap gap-2 rounded-lg border border-input bg-[#121212]/80 p-2">
         {options.map((option) => {
           const active = value.includes(option.value);
           return (
@@ -29,8 +29,8 @@ export function MultiSelect({
               className={cn(
                 "rounded-full border px-3 py-1.5 text-sm transition",
                 active
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                  ? "border-emerald-500/50 bg-emerald-950/50 text-emerald-400"
+                  : "border-[#2a2a2a] bg-[#1a1a1a] text-[#e5e5e5] hover:border-[#4b5563]"
               )}
               key={option.value}
               onClick={(event) => {
