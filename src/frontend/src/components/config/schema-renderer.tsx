@@ -183,7 +183,7 @@ export function SchemaRenderer<TSchema extends z.AnyZodObject>({
                       }
                       placeholder={mergedField.placeholder}
                       step={mergedField.step}
-                      value={controlledField.value as number | undefined}
+                      value={controlledField.value ?? ""}
                     />
                   );
                 case "slider":

@@ -11,7 +11,7 @@ import type { WorkspaceRagConfig, WorkspaceRagConfigUpdate } from "@/lib/types/p
 import { useTenant } from "@/providers/tenant-provider";
 
 function toUpdatePayload(config: WorkspaceRagConfig): WorkspaceRagConfigUpdate {
-    const { workspace_id, organization_id, project_id, updated_at, ...rest } = config;
+    const { workspace_id, updated_at, ...rest } = config;
     return rest;
 }
 
@@ -39,9 +39,13 @@ export default function WorkspaceRagRetrievalPage() {
         await saveConfig.mutateAsync({
             ...base,
             ...patch,
-            retrieval_config: {
-                ...base.retrieval_config,
-                ...patch.retrieval_config
+            retriever: {
+                ...base.retriever,
+                ...patch.retriever
+            },
+            chunking: {
+                ...base.chunking,
+                ...patch.chunking
             }
         });
     }
@@ -57,9 +61,17 @@ export default function WorkspaceRagRetrievalPage() {
                     <CardContent>
                         <ConfigForm
                             definition={workspaceRagRetrievalFormDefinition}
-                            initialValues={configQuery.data?.retrieval_config}
+                            initialValues={configQuery.data ? {
+                                top_k: configQuery.data.retriever.top_k,
+                                score_threshold: configQuery.data.retriever.score_threshold,
+                                chunk_size: configQuery.data.chunking.chunk_size,
+                                chunk_overlap: configQuery.data.chunking.chunk_overlap
+                            } : undefined}
                             loading={saveConfig.isPending || configQuery.isLoading}
-                            onSubmit={(values) => savePartial({ retrieval_config: values })}
+                            onSubmit={(values) => savePartial({
+                                retriever: { top_k: values.top_k, score_threshold: values.score_threshold },
+                                chunking: { chunk_size: values.chunk_size, chunk_overlap: values.chunk_overlap }
+                            })}
                         />
                     </CardContent>
                 </Card>

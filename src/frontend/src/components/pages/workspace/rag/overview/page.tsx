@@ -30,32 +30,40 @@ export default function WorkspaceRagSettingsPage() {
       title: "Retrieval",
       description: "Search algorithms, top-k, and hybrid search ranking.",
       icon: Search,
-      status: config?.retrieval_config.hybrid_search ? "Hybrid ON" : "Keyword",
-      summary: `Top K: ${config?.retrieval_config.top_k}`
+      status: config?.retriever.component === "hybrid" ? "Hybrid ON" : "Keyword",
+      summary: `Top K: ${config?.retriever.top_k}`
     },
     {
       id: "rag-embedding",
       title: "Embedding",
       description: "Model selection and vector dimension configuration.",
       icon: Sliders,
-      status: config?.embedding_provider,
-      summary: config?.embedding_model
+      status: config?.embedding.provider,
+      summary: config?.embedding.model
     },
     {
       id: "rag-vector-store",
       title: "Vector Store",
       description: "Database backend, collection names, and indexing.",
       icon: Database,
-      status: config?.vector_store_type,
-      summary: config?.vector_store_config.distance_metric
+      status: config?.vectorstore.component,
+      summary: config?.vectorstore.distance_metric
     },
     {
       id: "rag-llm",
       title: "Generation",
       description: "LLM model for inference, temperature, and tokens.",
       icon: MessageSquare,
-      status: config?.llm_config.model,
-      summary: `Temp: ${config?.llm_config.temperature}`
+      status: config?.llm.model,
+      summary: `Temp: ${config?.llm.temperature}`
+    },
+    {
+      id: "rag-rerank",
+      title: "Reranking",
+      description: "Post-retrieval ranking models and direct provider adapters.",
+      icon: Sliders,
+      status: config?.reranker.provider,
+      summary: config?.reranker.model
     },
     {
       id: "rag-strategy",
@@ -63,7 +71,7 @@ export default function WorkspaceRagSettingsPage() {
       description: "Prompt templates and reading comprehension strategy.",
       icon: Blocks,
       status: "Configured",
-      summary: config?.reading_config.citation_mode
+      summary: config?.rag.citation_mode
     }
   ];
 
@@ -76,7 +84,7 @@ export default function WorkspaceRagSettingsPage() {
           {sections.map((section) => (
             <Card className="flex flex-col" key={section.id}>
               <CardHeader className="flex-row items-center gap-4 space-y-0">
-                <div className="rounded-lg bg-emerald-100 p-2 text-emerald-700">
+                <div className="rounded-lg bg-emerald-100 p-2 text-orange-600">
                   <section.icon className="h-5 w-5" />
                 </div>
                 <div className="space-y-1">

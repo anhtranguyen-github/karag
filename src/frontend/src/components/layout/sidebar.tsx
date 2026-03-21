@@ -1,167 +1,153 @@
 
 "use client";
 
-import { Blocks, UserCircle2, Settings2 } from "lucide-react";
+import {
+  Blocks,
+  Clock,
+  CreditCard,
+  Files,
+  HardDrive,
+  LayoutGrid,
+  MessageSquareText,
+  Settings2,
+  Users,
+} from "lucide-react";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
-import { buildSidebarSections, matchRoute, type NavigationItem } from "@/lib/navigation";
-import { useTenant } from "@/providers/tenant-provider";
 import { cn } from "@/lib/utils";
+import { useTenant } from "@/providers/tenant-provider";
+import { matchRoute } from "@/lib/navigation";
 
-function isItemActive(pathname: string, item: NavigationItem) {
-  return pathname === item.href || pathname.startsWith(`${item.href}/`);
-}
+type SidebarItem = {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  exact?: boolean;
+  alsoMatch?: string[];
+};
 
-function SidebarItem({
-  pathname,
+function SidebarLink({
   item,
-  tone
-}: {
-  pathname: string;
-  item: NavigationItem;
-  tone: "organization" | "project" | "workspace";
-}) {
-  const active = isItemActive(pathname, item);
-  const Icon = item.icon;
-
-  let colorClass = "text-slate-600 hover:bg-white hover:text-slate-900";
-  let iconClass = "bg-slate-100 text-slate-500";
-  if (tone === "organization") {
-    if (active) {
-      colorClass = "bg-blue-100 text-blue-900";
-      iconClass = "bg-blue-200 text-blue-900";
-    }
-  } else if (tone === "project") {
-    if (active) {
-      colorClass = "bg-amber-100 text-amber-900";
-      iconClass = "bg-amber-200 text-amber-900";
-    }
-  } else if (tone === "workspace") {
-    if (active) {
-      colorClass = "bg-emerald-100 text-emerald-900";
-      iconClass = "bg-emerald-200 text-emerald-900";
-    }
-  }
+  active,
+  expanded,
+}: Readonly<{
+  item: SidebarItem;
+  active: boolean;
+  expanded: boolean;
+}>) {
   return (
     <Link
-      className={cn(
-        "flex items-center gap-3 rounded-md px-2.5 py-2 text-sm font-medium transition",
-        colorClass
-      )}
       href={item.href}
+      title={expanded ? undefined : item.label}
+      className={cn(
+        "flex h-9 items-center gap-3 rounded-lg transition-colors",
+        expanded ? "w-full px-3" : "w-9 justify-center",
+        active
+          ? "bg-[#1f1f1f] text-orange-400"
+          : "text-[#6b7280] hover:bg-[#1a1a1a] hover:text-[#e5e5e5]"
+      )}
     >
-      <span className={cn("rounded-md p-1.5", iconClass)}>
-        <Icon className="h-4 w-4" />
-      </span>
-      <span className="truncate">{item.label}</span>
+      <item.icon className="h-[18px] w-[18px] shrink-0" />
+      {expanded && (
+        <span className="truncate text-[13px] font-medium">{item.label}</span>
+      )}
     </Link>
   );
 }
+
+/* ─── Shared hover-expand sidebar shell ─────────────────────────── */
+
+function HoverSidebar({
+  items,
+  pathname,
+}: Readonly<{ items: SidebarItem[]; pathname: string }>) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <aside
+      style={{ display: "block" }}
+      className={cn(
+        "shrink-0 border-r border-[#2a2a2a] bg-[#141414] transition-[width] duration-200 ease-in-out max-lg:hidden",
+        hovered ? "w-[200px]" : "w-14"
+      )}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <div
+        className={cn(
+          "sticky top-14 flex h-[calc(100vh-56px)] flex-col gap-0.5 overflow-hidden py-3",
+          hovered ? "items-stretch px-2" : "items-center"
+        )}
+      >
+        {items.map((item) => {
+          const baseMatch = item.exact
+            ? pathname === item.href
+            : pathname === item.href ||
+              pathname.startsWith(`${item.href}/`);
+          const extraMatch = item.alsoMatch?.some(
+            (p) => pathname === p || pathname.startsWith(`${p}/`)
+          ) ?? false;
+          const active = baseMatch || extraMatch;
+          return (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={active}
+              expanded={hovered}
+            />
+          );
+        })}
+      </div>
+    </aside>
+  );
+}
+
+/* ─── Main export ────────────────────────────────────────────────── */
 
 export function Sidebar() {
   const pathname = usePathname();
   const route = matchRoute(pathname);
   const { tenant } = useTenant();
 
-  // Organization scope sidebar
+  /* Org level */
   if (route.scope === "dashboard") {
-    // Minimal org sidebar: Projects, Members, Settings
-    const orgItems: NavigationItem[] = [
-      {
-        href: tenant.organizationId ? `/dashboard/org/${tenant.organizationId}` : "/dashboard/org",
-        label: "Organization",
-        description: "Organization overview",
-        icon: Blocks
-      },
-      {
-        href: tenant.organizationId ? `/dashboard/org/${tenant.organizationId}/members` : "/dashboard/org/members",
-        label: "Members",
-        description: "Organization members",
-        icon: UserCircle2
-      },
-      {
-        href: tenant.organizationId ? `/dashboard/org/${tenant.organizationId}/settings` : "/dashboard/org/settings",
-        label: "Settings",
-        description: "Organization settings",
-        icon: Settings2
-      }
+    const orgIdFromUrl = pathname.match(/\/dashboard\/org\/([^/]+)/)?.[1] ?? null;
+    const orgId = orgIdFromUrl ?? tenant.organizationId;
+    const base = orgId ? `/dashboard/org/${orgId}` : "/dashboard";
+    const items: SidebarItem[] = [
+      { href: base, label: "Projects", icon: LayoutGrid, exact: true },
+      { href: `${base}/members`, label: "Team", icon: Users },
+      { href: `${base}/settings`, label: "Settings", icon: Settings2 },
     ];
-    return (
-      <aside className="hidden w-[220px] shrink-0 border-r border-blue-100/80 bg-blue-50/35 xl:block">
-        <div className="sticky top-14 flex h-[calc(100vh-56px)] flex-col gap-5 overflow-y-auto px-3 py-4">
-          <div className="space-y-1 px-1">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-700">
-              Organization
-            </div>
-          </div>
-          <nav className="space-y-1">
-            {orgItems.map((item) => (
-              <SidebarItem item={item} key={item.href} pathname={pathname} tone="organization" />
-            ))}
-          </nav>
-        </div>
-      </aside>
-    );
+    return <HoverSidebar items={items} pathname={pathname} />;
   }
 
-  // Project scope sidebar
+  /* Project level */
   if (route.scope === "project") {
-    const sections = buildSidebarSections({ route });
-    return (
-      <aside className="hidden w-[220px] shrink-0 border-r border-amber-100/80 bg-amber-50/35 xl:block">
-        <div className="sticky top-14 flex h-[calc(100vh-56px)] flex-col gap-5 overflow-y-auto px-3 py-4">
-          <div className="space-y-1 px-1">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700">
-              Project
-            </div>
-            <div className="truncate text-sm font-semibold text-slate-950">{route.projectId}</div>
-          </div>
-          {sections.map((section) => (
-            <div className="space-y-1.5" key={section.id}>
-              <div className="px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                {section.title}
-              </div>
-              <nav className="space-y-1">
-                {section.items.map((item) => (
-                  <SidebarItem item={item} key={item.href} pathname={pathname} tone="project" />
-                ))}
-              </nav>
-            </div>
-          ))}
-        </div>
-      </aside>
-    );
+    const base = `/dashboard/project/${encodeURIComponent(route.projectId)}`;
+    const items: SidebarItem[] = [
+      { href: `${base}/workspaces`, label: "Workspaces", icon: Blocks, alsoMatch: [base] },
+      { href: `${base}/documents`, label: "Document Storage", icon: HardDrive },
+      { href: `${base}/members`, label: "Members", icon: Users },
+      { href: `${base}/settings`, label: "Settings", icon: Settings2 },
+    ];
+    return <HoverSidebar items={items} pathname={pathname} />;
   }
 
-  // Workspace scope sidebar
+  /* Workspace level */
   if (route.scope === "workspace") {
-    const sections = buildSidebarSections({ route });
-    return (
-      <aside className="hidden w-[220px] shrink-0 border-r border-emerald-100/80 bg-emerald-50/35 xl:block">
-        <div className="sticky top-14 flex h-[calc(100vh-56px)] flex-col gap-5 overflow-y-auto px-3 py-4">
-          <div className="space-y-1 px-1">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
-              Workspace
-            </div>
-            <div className="truncate text-sm font-semibold text-slate-950">{route.workspaceId}</div>
-          </div>
-          {sections.map((section) => (
-            <div className="space-y-1.5" key={section.id}>
-              <div className="px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                {section.title}
-              </div>
-              <nav className="space-y-1">
-                {section.items.map((item) => (
-                  <SidebarItem item={item} key={item.href} pathname={pathname} tone="workspace" />
-                ))}
-              </nav>
-            </div>
-          ))}
-        </div>
-      </aside>
-    );
+    const base = `/dashboard/workspace/${encodeURIComponent(route.workspaceId)}`;
+    const items: SidebarItem[] = [
+      { href: `${base}/chat`, label: "Chat", icon: MessageSquareText },
+      { href: `${base}/history`, label: "History", icon: Clock },
+      { href: `${base}/context-docs`, label: "Documents", icon: Files },
+      { href: `${base}/members`, label: "Members", icon: Users },
+      { href: `${base}/settings`, label: "Settings", icon: Settings2 },
+    ];
+    return <HoverSidebar items={items} pathname={pathname} />;
   }
 
   return null;

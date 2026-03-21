@@ -13,7 +13,6 @@ export default function CreateProjectPage() {
     const router = useRouter();
     const { tenant, setProjectId } = useTenant();
     const [loading, setLoading] = useState(false);
-    const [id, setId] = useState("");
     const [name, setName] = useState("");
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -22,7 +21,7 @@ export default function CreateProjectPage() {
 
         setLoading(true);
         try {
-            const project = await platformApi.createProject(tenant.organizationId, { id, name });
+            const project = await platformApi.createProject(tenant.organizationId, { name });
             setProjectId(project.id);
             router.push(`/dashboard/project/${project.id}`);
         } catch (error) {
@@ -44,18 +43,6 @@ export default function CreateProjectPage() {
                 <form onSubmit={handleSubmit}>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="id" className="text-slate-700">Project ID</Label>
-                            <Input
-                                id="id"
-                                placeholder="e.g. backend-api"
-                                value={id}
-                                onChange={(e) => setId(e.target.value)}
-                                required
-                                className="border-slate-200 focus:border-amber-500 focus:ring-amber-500"
-                            />
-                            <p className="text-[11px] text-slate-400">Unique identifier for this project.</p>
-                        </div>
-                        <div className="space-y-2">
                             <Label htmlFor="name" className="text-slate-700">Project Name</Label>
                             <Input
                                 id="name"
@@ -65,13 +52,14 @@ export default function CreateProjectPage() {
                                 required
                                 className="border-slate-200 focus:border-amber-500 focus:ring-amber-500"
                             />
+                            <p className="text-[11px] text-slate-400">Project ID will be automatically generated.</p>
                         </div>
                     </CardContent>
                     <CardFooter>
                         <Button
                             type="submit"
                             className="w-full bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-500/20 transition-all active:scale-[0.98]"
-                            disabled={loading || !id || !name || !tenant.organizationId}
+                            disabled={loading || !name || !tenant.organizationId}
                         >
                             {loading ? "Creating..." : "Create Project"}
                         </Button>

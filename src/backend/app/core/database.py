@@ -23,6 +23,7 @@ class OrganizationRow(Base):
     id: Mapped[str] = mapped_column(String(120), primary_key=True)
     name: Mapped[str] = mapped_column(String(255))
     description: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    status: Mapped[str] = mapped_column(String(64), default="active")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
@@ -34,6 +35,7 @@ class ProjectRow(Base):
     name: Mapped[str] = mapped_column(String(255))
     description: Mapped[str | None] = mapped_column(Text(), nullable=True)
     document_storage_config_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    status: Mapped[str] = mapped_column(String(64), default="active")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
@@ -45,6 +47,7 @@ class WorkspaceRow(Base):
     project_id: Mapped[str] = mapped_column(String(120), index=True)
     name: Mapped[str] = mapped_column(String(255))
     description: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    status: Mapped[str] = mapped_column(String(64), default="active")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
@@ -54,31 +57,15 @@ class WorkspaceRagConfigRow(Base):
     workspace_id: Mapped[str] = mapped_column(String(120), primary_key=True)
     organization_id: Mapped[str] = mapped_column(String(120), index=True)
     project_id: Mapped[str] = mapped_column(String(120), index=True)
-    embedding_provider: Mapped[str] = mapped_column(String(120), default="openai")
-    embedding_model: Mapped[str] = mapped_column(String(255), default="text-embedding-3-small")
-    embedding_dimension: Mapped[int | None] = mapped_column(Integer(), nullable=True)
-    embedding_batch_size: Mapped[int] = mapped_column(Integer(), default=16)
-    vector_store_type: Mapped[str] = mapped_column(String(120), default="qdrant")
+    embedding_config_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    vector_store_type: Mapped[str] = mapped_column(String(120), default="pgvector")
     vector_store_config_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     retrieval_config_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    rerank_config_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     reading_config_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     llm_config_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     prompt_template: Mapped[str] = mapped_column(Text(), default="")
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-
-
-class KnowledgeDatasetRow(Base):
-    __tablename__ = "knowledge_datasets"
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    organization_id: Mapped[str] = mapped_column(String(120), index=True)
-    project_id: Mapped[str] = mapped_column(String(120), index=True)
-    workspace_id: Mapped[str] = mapped_column(String(120), index=True)
-    name: Mapped[str] = mapped_column(String(255))
-    description: Mapped[str | None] = mapped_column(Text(), nullable=True)
-    embedding_model: Mapped[str] = mapped_column(String(255))
-    chunk_strategy: Mapped[str] = mapped_column(String(255))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class DocumentRow(Base):
@@ -91,17 +78,11 @@ class DocumentRow(Base):
     workspace_id: Mapped[str | None] = mapped_column(String(120), index=True, nullable=True)
     title: Mapped[str] = mapped_column(String(255))
     storage_path: Mapped[str] = mapped_column(String(512))
+    extension: Mapped[str] = mapped_column(String(16), default="")
+    file_size: Mapped[int] = mapped_column(Integer, default=0)
+    labels_json: Mapped[list[str]] = mapped_column(JSON, default=list)
+    source: Mapped[str] = mapped_column(String(255), default="")
     metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-
-
-class KnowledgeDatasetDocumentRow(Base):
-    __tablename__ = "knowledge_dataset_documents"
-
-    dataset_id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    document_id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    organization_id: Mapped[str] = mapped_column(String(120), index=True)
-    project_id: Mapped[str] = mapped_column(String(120), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
@@ -161,57 +142,52 @@ class EvaluationRunRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
-class ModelRow(Base):
-    __tablename__ = "models"
+class UserRow(Base):
+    __tablename__ = "users"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    organization_id: Mapped[str] = mapped_column(String(120), index=True)
-    name: Mapped[str] = mapped_column(String(255))
-    type: Mapped[str] = mapped_column(String(120))
-    framework: Mapped[str] = mapped_column(String(120))
-    description: Mapped[str | None] = mapped_column(Text(), nullable=True)
-    lifecycle_state: Mapped[str] = mapped_column(String(64))
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    hashed_password: Mapped[str] = mapped_column(String(255))
+    full_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # Global roles or legacy org field
+    organization_id: Mapped[str | None] = mapped_column(String(120), index=True, nullable=True)
+    is_active: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
-class ModelVersionRow(Base):
-    __tablename__ = "model_versions"
+class RoleRow(Base):
+    __tablename__ = "roles"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    name: Mapped[str] = mapped_column(String(64), unique=True)
+    description: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+
+class PermissionRow(Base):
+    __tablename__ = "permissions"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    code: Mapped[str] = mapped_column(String(64), unique=True)  # e.g., "org.invite_user"
+    description: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+
+class MembershipRow(Base):
+    """Links users to Organizations/Projects with specific Roles."""
+    __tablename__ = "memberships"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    model_id: Mapped[str] = mapped_column(String(36), index=True)
-    organization_id: Mapped[str] = mapped_column(String(120), index=True)
-    version: Mapped[str] = mapped_column(String(120))
-    release_notes: Mapped[str | None] = mapped_column(Text(), nullable=True)
-    lifecycle_state: Mapped[str] = mapped_column(String(64))
+    user_id: Mapped[str] = mapped_column(String(36), index=True)
+    organization_id: Mapped[str] = mapped_column(String(36), index=True)
+    project_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
+    role_id: Mapped[str] = mapped_column(String(36))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
-class ModelArtifactRow(Base):
-    __tablename__ = "model_artifacts"
+class SessionRow(Base):
+    __tablename__ = "sessions"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    model_version_id: Mapped[str] = mapped_column(String(36), index=True)
-    organization_id: Mapped[str] = mapped_column(String(120), index=True)
-    name: Mapped[str] = mapped_column(String(255))
-    artifact_type: Mapped[str] = mapped_column(String(120))
-    storage_backend: Mapped[str] = mapped_column(String(120))
-    storage_path: Mapped[str] = mapped_column(String(512))
-    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-
-
-class ModelDeploymentRow(Base):
-    __tablename__ = "model_deployments"
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    model_version_id: Mapped[str] = mapped_column(String(36), index=True)
-    organization_id: Mapped[str] = mapped_column(String(120), index=True)
-    project_id: Mapped[str] = mapped_column(String(120), index=True)
-    workspace_id: Mapped[str] = mapped_column(String(120), index=True)
-    target: Mapped[str] = mapped_column(String(120))
-    inference_url: Mapped[str] = mapped_column(String(512))
-    configuration_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
-    lifecycle_state: Mapped[str] = mapped_column(String(64))
+    user_id: Mapped[str] = mapped_column(String(36), index=True)
+    token: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
@@ -224,6 +200,29 @@ class ApiKeyRow(Base):
     key_value: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(255))
     is_active: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class ChatSessionRow(Base):
+    __tablename__ = "chat_sessions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(120), index=True)
+    project_id: Mapped[str] = mapped_column(String(120), index=True)
+    workspace_id: Mapped[str] = mapped_column(String(120), index=True)
+    user_id: Mapped[str] = mapped_column(String(36), index=True)
+    title: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class ChatMessageRow(Base):
+    __tablename__ = "chat_messages"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    session_id: Mapped[str] = mapped_column(String(36), index=True)
+    role: Mapped[str] = mapped_column(String(64))  # user, assistant, system
+    content: Mapped[str] = mapped_column(Text())
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
@@ -270,13 +269,13 @@ class DatabaseManager:
                 "projects": _count(ProjectRow),
                 "workspaces": _count(WorkspaceRow),
                 "workspace_rag_configs": _count(WorkspaceRagConfigRow),
-                "knowledge_datasets": _count(KnowledgeDatasetRow),
                 "documents": _count(DocumentRow),
                 "chunks": _count(ChunkRow),
                 "evaluation_datasets": _count(EvaluationDatasetRow),
                 "evaluation_questions": _count(EvaluationQuestionRow),
-                "models": _count(ModelRow),
-                "model_versions": _count(ModelVersionRow),
                 "api_keys": _count(ApiKeyRow),
-                "knowledge_dataset_documents": _count(KnowledgeDatasetDocumentRow),
+                "users": _count(UserRow),
+                "sessions": _count(SessionRow),
+                "roles": _count(RoleRow),
+                "memberships": _count(MembershipRow),
             }

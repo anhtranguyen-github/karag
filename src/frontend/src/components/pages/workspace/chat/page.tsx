@@ -20,7 +20,6 @@ import { WorkspaceGuard } from "@/components/ui/workspace-guard";
 import { platformApi } from "@/lib/api/platform";
 import { useTenant } from "@/providers/tenant-provider";
 import { cn } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
 
 type Message = {
 	role: "user" | "assistant";
@@ -38,15 +37,6 @@ export default function WorkspaceChatPage() {
 	const [inputValue, setInputValue] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const scrollRef = useRef<HTMLDivElement>(null);
-
-	// Fetch available datasets to use for RAG
-	const { data: datasets } = useQuery({
-		queryKey: ["workspace-chat", "datasets", workspaceId],
-		queryFn: () => platformApi.listKnowledgeDatasets(tenant, workspaceId),
-		enabled: !!workspaceId,
-	});
-
-	const activeDataset = datasets?.[0]; // Default to first dataset
 
 	useEffect(() => {
 		if (scrollRef.current) {
@@ -69,29 +59,19 @@ export default function WorkspaceChatPage() {
 		setIsSubmitting(true);
 
 		try {
-			if (activeDataset) {
-				const response = await platformApi.ragQuery(tenant, {
-					workspace_id: workspaceId,
-					knowledge_dataset_id: activeDataset.id,
-					query: userMessage.content,
-				});
+			const response = await platformApi.ragQuery(tenant, {
+				workspace_id: workspaceId,
+				knowledge_dataset_id: workspaceId,
+				query: userMessage.content,
+			});
 
-				const botMessage: Message = {
-					role: "assistant",
-					content: response.answer,
-					sources: response.chunks,
-					timestamp: new Date(),
-				};
-				setMessages((prev) => [...prev, botMessage]);
-			} else {
-				// Fallback or simple chat
-				const botMessage: Message = {
-					role: "assistant",
-					content: "No knowledge base is connected to this workspace. Please set up a dataset in RAG settings to enable grounding.",
-					timestamp: new Date(),
-				};
-				setMessages((prev) => [...prev, botMessage]);
-			}
+			const botMessage: Message = {
+				role: "assistant",
+				content: response.answer,
+				sources: response.chunks,
+				timestamp: new Date(),
+			};
+			setMessages((prev) => [...prev, botMessage]);
 		} catch (error) {
 			console.error("Chat error:", error);
 			const errorMessage: Message = {
@@ -115,14 +95,14 @@ export default function WorkspaceChatPage() {
 				{/* Chat Header */}
 				<div className="flex items-center justify-between px-6 py-4 border-b bg-white relative z-10 shadow-sm">
 					<div className="flex items-center gap-3">
-						<div className="h-10 w-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600">
+						<div className="h-10 w-10 rounded-xl bg-emerald-100 flex items-center justify-center text-orange-500">
 							<MessageSquare size={22} />
 						</div>
 						<div>
-							<h2 className="text-lg font-bold text-slate-900 leading-tight">AI Agent {activeDataset && <span className="text-slate-400 font-medium ml-1">· grounded by {activeDataset.name}</span>}</h2>
+							<h2 className="text-lg font-bold text-slate-900 leading-tight">AI Agent</h2>
 							<div className="flex items-center gap-1.5 mt-0.5">
-								<div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-								<span className="text-xs text-emerald-600 font-bold uppercase tracking-wider">Active Workspace</span>
+								<div className="h-1.5 w-1.5 rounded-full bg-orange-400 animate-pulse" />
+								<span className="text-xs text-orange-500 font-bold uppercase tracking-wider">Active Workspace</span>
 							</div>
 						</div>
 					</div>
@@ -149,7 +129,7 @@ export default function WorkspaceChatPage() {
 				>
 					{messages.length === 0 ? (
 						<div className="h-full flex flex-col items-center justify-center text-center max-w-lg mx-auto space-y-6 pt-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-							<div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-emerald-100 to-blue-50 flex items-center justify-center text-emerald-500 shadow-xl shadow-emerald-500/10">
+							<div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-emerald-100 to-blue-50 flex items-center justify-center text-orange-400 shadow-xl shadow-orange-400/10">
 								<Sparkles size={40} className="animate-pulse" />
 							</div>
 							<div className="space-y-2">
@@ -165,7 +145,7 @@ export default function WorkspaceChatPage() {
 										onClick={() => {
 											setInputValue(suggestion);
 										}}
-										className="p-3 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-xl hover:border-emerald-500 hover:text-emerald-600 hover:bg-emerald-50/50 transition-all text-left group"
+										className="p-3 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-xl hover:border-orange-400 hover:text-orange-500 hover:bg-emerald-50/50 transition-all text-left group"
 									>
 										<div className="flex items-center justify-between">
 											{suggestion}
@@ -187,7 +167,7 @@ export default function WorkspaceChatPage() {
 								>
 									<div className={cn(
 										"h-10 w-10 shrink-0 rounded-xl flex items-center justify-center shadow-lg transition-transform hover:scale-105",
-										msg.role === "assistant" ? "bg-slate-900 text-white" : "bg-emerald-600 text-white"
+										msg.role === "assistant" ? "bg-slate-900 text-[#e5e5e5]" : "bg-orange-500 text-[#e5e5e5]"
 									)}>
 										{msg.role === "assistant" ? <Bot size={22} /> : <User size={22} />}
 									</div>
@@ -200,7 +180,7 @@ export default function WorkspaceChatPage() {
 											"p-4 rounded-2xl text-[15px] leading-relaxed shadow-sm border",
 											msg.role === "assistant"
 												? "bg-white text-slate-800 border-slate-100"
-												: "bg-emerald-600 text-white border-emerald-500"
+												: "bg-orange-500 text-[#e5e5e5] border-orange-400"
 										)}>
 											{msg.content}
 										</div>
@@ -227,7 +207,7 @@ export default function WorkspaceChatPage() {
 							))}
 							{isSubmitting && (
 								<div className="flex gap-4 animate-pulse">
-									<div className="h-10 w-10 rounded-xl bg-slate-900 flex items-center justify-center text-white">
+									<div className="h-10 w-10 rounded-xl bg-slate-900 flex items-center justify-center text-[#e5e5e5]">
 										<Bot size={22} />
 									</div>
 									<div className="flex flex-col items-start gap-2">
@@ -248,9 +228,9 @@ export default function WorkspaceChatPage() {
 
 				{/* Input Dock */}
 				<div className="p-6 bg-transparent">
-					<div className="max-w-4xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-2xl shadow-slate-200/50 p-1 relative group focus-within:border-emerald-400 focus-within:ring-4 focus-within:ring-emerald-500/5 transition-all">
+					<div className="max-w-4xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-2xl shadow-slate-200/50 p-1 relative group focus-within:border-orange-400 focus-within:ring-4 focus-within:ring-orange-400/5 transition-all">
 						<form onSubmit={handleSendMessage} className="flex items-center gap-2">
-							<div className="p-3 text-slate-400 group-focus-within:text-emerald-500 transition-colors">
+							<div className="p-3 text-slate-400 group-focus-within:text-orange-400 transition-colors">
 								<Search size={20} />
 							</div>
 							<input
@@ -267,7 +247,7 @@ export default function WorkspaceChatPage() {
 								className={cn(
 									"p-3 rounded-xl transition-all active:scale-[0.98] mr-1 shadow-lg",
 									inputValue.trim()
-										? "bg-slate-900 text-white hover:bg-slate-800 shadow-slate-900/10"
+										? "bg-slate-900 text-[#e5e5e5] hover:bg-slate-800 shadow-slate-900/10"
 										: "bg-slate-100 text-slate-400"
 								)}
 							>

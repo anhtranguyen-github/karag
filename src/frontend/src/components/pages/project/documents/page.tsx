@@ -1,549 +1,266 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Trash2, UploadCloud, Wand2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { z } from "zod";
+import { useQueries } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import {
+	Search,
+	Filter,
+	HardDrive,
+	Box,
+	FileText,
+	Layers,
+	PieChart,
+	ExternalLink,
+	ShieldCheck,
+	LayoutGrid,
+	List
+} from "lucide-react";
 
-import { ConfigForm } from "@/components/config/config-form";
-import { FileUpload } from "@/components/inputs/file-upload";
-import { SelectDropdown } from "@/components/inputs/select-dropdown";
-import { TextInput } from "@/components/inputs/text-input";
-import { DataTable } from "@/components/tables/data-table";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page-header";
+import { Input } from "@/components/ui/input";
 import { ProjectGuard } from "@/components/ui/project-guard";
-import { knowledgeDatasetFormDefinition } from "@/lib/form-definitions";
+import PageShell from "@/components/ui/page-shell";
 import { platformApi } from "@/lib/api/platform";
-import type { KnowledgeDatasetDetail } from "@/lib/types/platform";
-import { formatCount, formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import { useTenant } from "@/providers/tenant-provider";
-
-const uploadSchema = z.object({
-	datasetId: z.string().min(1, "Choose a dataset."),
-	file: z.custom<File | null>((value) => value instanceof File, {
-		message: "Choose a file to upload."
-	})
-});
-
-type UploadValues = z.infer<typeof uploadSchema>;
-
-type ProjectKnowledgeDataset = KnowledgeDatasetDetail & {
-	workspaceName: string;
-};
+import { cn } from "@/lib/utils";
 
 export default function ProjectDocumentsPageView() {
 	const { tenant, workspaces } = useTenant();
-	const queryClient = useQueryClient();
 	const [search, setSearch] = useState("");
 	const [workspaceFilter, setWorkspaceFilter] = useState("all");
-	const [targetWorkspaceId, setTargetWorkspaceId] = useState("");
-	const [selectedDatasetId, setSelectedDatasetId] = useState<string>("");
-	const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
-	const [uploadProgress, setUploadProgress] = useState<number>(0);
-	const [uploadStatus, setUploadStatus] = useState<"idle" | "processing" | "completed" | "failed">(
-		"idle"
-	);
+	const [viewMode, setViewMode] = useState<"grid" | "list">("list");
 
 	const workspaceNameMap = useMemo(
 		() => new Map(workspaces.map((workspace) => [workspace.id, workspace.name])),
 		[workspaces]
 	);
 
-	useEffect(() => {
-		if (!targetWorkspaceId && workspaces.length) {
-			setTargetWorkspaceId(workspaces[0].id);
-		}
-	}, [targetWorkspaceId, workspaces]);
-
-	const datasetQueries = useQueries({
+	const documentQueries = useQueries({
 		queries: workspaces.map((workspace) => ({
-			queryKey: ["knowledge-datasets", tenant.organizationId, tenant.projectId, workspace.id],
+			queryKey: ["project-documents", tenant.organizationId, tenant.projectId, workspace.id],
 			queryFn: () =>
-				platformApi.listKnowledgeDatasets(
-					{
-						...tenant,
-						workspaceId: workspace.id
-					},
+				platformApi.listRuntimeDocuments(
+					{ ...tenant, workspaceId: workspace.id },
 					workspace.id
 				)
 		}))
 	});
 
-	const datasets = useMemo<ProjectKnowledgeDataset[]>(() => {
-		return datasetQueries.flatMap((query) =>
-			(query.data ?? []).map((dataset) => ({
-				...dataset,
-				workspaceName: workspaceNameMap.get(dataset.workspace_id) ?? dataset.workspace_id
-			}))
-		);
-	}, [datasetQueries, workspaceNameMap]);
-
-	useEffect(() => {
-		if (!selectedDatasetId && datasets.length) {
-			setSelectedDatasetId(datasets[0].id);
-		}
-	}, [datasets, selectedDatasetId]);
-
-	const uploadDatasets = useMemo(
-		() => datasets.filter((dataset) => dataset.workspace_id === targetWorkspaceId),
-		[datasets, targetWorkspaceId]
-	);
-
-	const uploadForm = useForm<UploadValues>({
-		resolver: zodResolver(uploadSchema),
-		defaultValues: {
-			datasetId: "",
-			file: null
-		}
-	});
-
-	useEffect(() => {
-		const currentDatasetId = uploadForm.getValues("datasetId");
-		const fallbackDatasetId = uploadDatasets[0]?.id ?? "";
-
-		if (!currentDatasetId || !uploadDatasets.some((dataset) => dataset.id === currentDatasetId)) {
-			uploadForm.setValue("datasetId", fallbackDatasetId);
-		}
-	}, [targetWorkspaceId, uploadDatasets, uploadForm]);
-
-	const datasetDocumentQueries = useQueries({
-		queries: datasets.map((dataset) => ({
-			queryKey: ["documents", dataset.id],
-			queryFn: () =>
-				platformApi.listDatasetDocuments(
-					{
-						...tenant,
-						workspaceId: dataset.workspace_id
-					},
-					dataset.id
-				)
-		}))
-	});
-
-	const selectedDataset = datasets.find((dataset) => dataset.id === selectedDatasetId);
-
-	const selectedChunksQuery = useQuery({
-		queryKey: ["chunks", selectedDatasetId],
-		queryFn: () =>
-			platformApi.listDatasetChunks(
-				{
-					...tenant,
-					workspaceId: selectedDataset?.workspace_id
-				},
-				selectedDatasetId
-			),
-		enabled: Boolean(selectedDatasetId && selectedDataset?.workspace_id)
-	});
-
-	const createDataset = useMutation({
-		mutationFn: (values: {
-			name: string;
-			description?: string;
-			embedding_model: string;
-			chunk_strategy: string;
-		}) =>
-			platformApi.createKnowledgeDataset(
-				{
-					...tenant,
-					workspaceId: targetWorkspaceId
-				},
-				{
-					workspace_id: targetWorkspaceId,
-					...values
-				}
-			),
-		onSuccess: async () => {
-			await queryClient.invalidateQueries({
-				queryKey: ["knowledge-datasets", tenant.organizationId, tenant.projectId]
-			});
-		}
-	});
-
-	const deleteDataset = useMutation({
-		mutationFn: (dataset: ProjectKnowledgeDataset) =>
-			platformApi.deleteKnowledgeDataset(
-				{
-					...tenant,
-					workspaceId: dataset.workspace_id
-				},
-				dataset.id
-			),
-		onSuccess: async () => {
-			await Promise.all([
-				queryClient.invalidateQueries({
-					queryKey: ["knowledge-datasets", tenant.organizationId, tenant.projectId]
-				}),
-				queryClient.invalidateQueries({ queryKey: ["documents"] }),
-				queryClient.invalidateQueries({ queryKey: ["chunks"] })
-			]);
-		}
-	});
-
 	const allDocuments = useMemo(() => {
-		const documents = datasetDocumentQueries.flatMap((query) => query.data ?? []);
-		const datasetNameMap = new Map(datasets.map((dataset) => [dataset.id, dataset.name]));
-
-		return documents
-			.map((document) => ({
+		return documentQueries.flatMap((query, index) =>
+			(query.data ?? []).map((document) => ({
 				...document,
-				datasetName: datasetNameMap.get(document.dataset_id) ?? document.dataset_id,
-				workspaceName: workspaceNameMap.get(document.workspace_id) ?? document.workspace_id
+				workspaceName: workspaceNameMap.get(workspaces[index]?.id ?? "") ?? "Unknown"
 			}))
-			.filter((document) => {
-				const searchHaystack = [
-					document.title,
-					document.storage_path,
-					document.datasetName,
-					document.workspaceName
-				]
-					.join(" ")
-					.toLowerCase();
-				const matchesSearch = searchHaystack.includes(search.toLowerCase());
-				const matchesWorkspace =
-					workspaceFilter === "all" || document.workspace_id === workspaceFilter;
-				return matchesSearch && matchesWorkspace;
-			});
-	}, [datasetDocumentQueries, datasets, search, workspaceFilter, workspaceNameMap]);
+		).filter((document) => {
+			const searchHaystack = [document.title, document.storage_path, document.workspaceName]
+				.join(" ")
+				.toLowerCase();
+			const matchesSearch = searchHaystack.includes(search.toLowerCase());
+			const matchesWorkspace =
+				workspaceFilter === "all" || document.workspace_id === workspaceFilter;
+			return matchesSearch && matchesWorkspace;
+		});
+	}, [documentQueries, search, workspaceFilter, workspaceNameMap, workspaces]);
+
+	const workspaceStats = useMemo(() => {
+		return workspaces.map((ws, idx) => ({
+			name: ws.name,
+			count: documentQueries[idx].data?.length ?? 0,
+			id: ws.id
+		}));
+	}, [workspaces, documentQueries]);
 
 	return (
 		<ProjectGuard>
-			<div className="grid gap-6">
-				<PageHeader
-					description="Operate document storage at the project level. This console aggregates knowledge datasets and uploaded files across every workspace in the selected project while keeping create and upload actions explicitly targeted at one workspace."
-					eyebrow="Project"
-					title="Documents"
-				/>
+			<div className="flex flex-col gap-10 p-4 sm:p-10 max-w-7xl mx-auto w-full animate-in fade-in-from-bottom-4 duration-1000">
+				<PageShell
+					title="Global Assets"
+					scopeLabel="Project"
+					subtitle="Federated view of all context documents across the project namespaces."
+				>
 
-				<section className="grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
-					<Card>
-						<CardHeader>
-							<CardTitle>Create dataset</CardTitle>
-							<CardDescription>
-								Choose the workspace that will own the new retrieval dataset before saving it.
-							</CardDescription>
-						</CardHeader>
-						<CardContent className="space-y-4">
-							<SelectDropdown
-								label="Target workspace"
-								onChange={(event) => setTargetWorkspaceId(event.target.value)}
-								options={workspaces.map((workspace) => ({
-									label: workspace.name,
-									value: workspace.id
-								}))}
-								placeholder="Choose workspace"
-								value={targetWorkspaceId}
-							/>
-							<ConfigForm
-								definition={knowledgeDatasetFormDefinition}
-								initialValues={{ workspace_id: targetWorkspaceId }}
-								loading={createDataset.isPending}
-								onSubmit={async (values) => {
-									await createDataset.mutateAsync(values);
-								}}
-								resetOnSubmit
-							/>
-						</CardContent>
-					</Card>
-
-					<Card>
-						<CardHeader>
-							<CardTitle>Upload document</CardTitle>
-							<CardDescription>
-								Pick a workspace, then a dataset inside that workspace. The backend keeps ownership workspace-scoped even though this console is project-wide.
-							</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<form
-								className="grid gap-5"
-								onSubmit={uploadForm.handleSubmit(async (values) => {
-									const targetDataset = datasets.find((dataset) => dataset.id === values.datasetId);
-									if (!targetDataset) {
-										return;
-									}
-
-									setUploadStatus("processing");
-									setUploadProgress(0);
-									try {
-										await platformApi.uploadDatasetDocument(
-											{
-												...tenant,
-												workspaceId: targetDataset.workspace_id
-											},
-											values.datasetId,
-											values.file!,
-											setUploadProgress
-										);
-										setUploadStatus("completed");
-										setSelectedDatasetId(values.datasetId);
-										await Promise.all([
-											queryClient.invalidateQueries({ queryKey: ["documents", values.datasetId] }),
-											queryClient.invalidateQueries({ queryKey: ["chunks", values.datasetId] }),
-											queryClient.invalidateQueries({
-												queryKey: ["knowledge-datasets", tenant.organizationId, tenant.projectId]
-											})
-										]);
-										uploadForm.reset({
-											datasetId: values.datasetId,
-											file: null
-										});
-									} catch {
-										setUploadStatus("failed");
-									}
-								})}
-							>
-								<SelectDropdown
-									label="Target workspace"
-									onChange={(event) => setTargetWorkspaceId(event.target.value)}
-									options={workspaces.map((workspace) => ({
-										label: workspace.name,
-										value: workspace.id
-									}))}
-									placeholder="Choose workspace"
-									value={targetWorkspaceId}
-								/>
-								<Controller
-									control={uploadForm.control}
-									name="datasetId"
-									render={({ field, fieldState }) => (
-										<SelectDropdown
-											description="Documents ingest into the selected dataset inside the chosen workspace."
-											error={fieldState.error?.message}
-											label="Target dataset"
-											onChange={(event) => field.onChange(event.target.value)}
-											options={uploadDatasets.map((dataset) => ({
-												label: `${dataset.name} (${dataset.document_count} docs)`,
-												value: dataset.id
-											}))}
-											placeholder="Choose dataset"
-											value={field.value}
-										/>
-									)}
-								/>
-								<Controller
-									control={uploadForm.control}
-									name="file"
-									render={({ field, fieldState }) => (
-										<FileUpload
-											accept=".pdf,.txt,.md"
-											error={fieldState.error?.message}
-											label="Source file"
-											onChange={field.onChange}
-											value={field.value}
-										/>
-									)}
-								/>
-								<div className="grid gap-3 rounded-xl border border-border/70 bg-slate-50/80 p-4">
-									<div className="flex items-center justify-between text-sm">
-										<span className="font-medium text-slate-700">Ingestion status</span>
-										<span
-											className={
-												uploadStatus === "completed"
-													? "status-pill status-pill--healthy"
-													: uploadStatus === "failed"
-														? "status-pill status-pill--danger"
-														: "status-pill status-pill--warning"
-											}
-										>
-											{uploadStatus}
-										</span>
+				{/* Storage Insight Panels */}
+				<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+					<div className="lg:col-span-2 p-8 rounded-[2rem] bg-white border border-slate-100 shadow-sm flex flex-col gap-6 relative overflow-hidden">
+						<div className="absolute -right-20 -bottom-20 opacity-[0.03] rotate-12 pointer-events-none">
+							<PieChart size={300} />
+						</div>
+						<div className="flex flex-col gap-1 relative">
+							<h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Namespace Residency</h3>
+							<p className="text-2xl font-black text-slate-900">Resource Distribution</p>
+						</div>
+						<div className="flex flex-col gap-4 relative">
+							{workspaceStats.slice(0, 3).map((ws) => (
+								<div key={ws.id} className="flex flex-col gap-2">
+									<div className="flex justify-between items-center text-xs font-bold uppercase tracking-wider text-slate-500">
+										<span>{ws.name}</span>
+										<span className="text-blue-500">{ws.count} Docs</span>
 									</div>
-									<div className="h-2 rounded-full bg-slate-200">
-										<div
-											className="h-2 rounded-full bg-emerald-500 transition-all"
-											style={{ width: `${uploadProgress}%` }}
+									<div className="h-1.5 w-full bg-slate-50 rounded-full overflow-hidden">
+										<div 
+											className="h-full bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.2)] transition-all duration-1000" 
+											style={{ width: `${Math.min((ws.count / (allDocuments.length || 1)) * 100, 100)}%` }} 
 										/>
 									</div>
-									<p className="text-xs text-muted-foreground">
-										Uploads stay tied to the selected workspace.
-									</p>
 								</div>
-								<div className="flex justify-end">
-									<Button disabled={uploadForm.formState.isSubmitting || !uploadDatasets.length} type="submit">
-										<UploadCloud className="h-4 w-4" />
-										Upload and ingest
-									</Button>
-								</div>
-							</form>
-						</CardContent>
-					</Card>
-				</section>
+							))}
+						</div>
+					</div>
 
-				<section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-					<DataTable
-						actions={
-							<div className="flex flex-wrap items-end gap-2">
-								<div className="min-w-[220px]">
-									<SelectDropdown
-										label="Workspace filter"
-										onChange={(event) => setWorkspaceFilter(event.target.value)}
-										options={[
-											{ label: "All workspaces", value: "all" },
-											...workspaces.map((workspace) => ({
-												label: workspace.name,
-												value: workspace.id
-											}))
-										]}
-										value={workspaceFilter}
-									/>
-								</div>
-								<Button disabled variant="outline">
-									<Trash2 className="h-4 w-4" />
-									Delete selected
-								</Button>
-								<Button disabled variant="outline">
-									<Wand2 className="h-4 w-4" />
-									Re-index selected
-								</Button>
+					<div className="p-8 rounded-[2rem] bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-xl flex flex-col justify-between relative overflow-hidden group">
+						<div className="absolute top-0 right-0 p-4 opacity-10 group-hover:rotate-12 transition-transform duration-700">
+							<ShieldCheck size={120} />
+						</div>
+						<div className="flex flex-col gap-2">
+							<Badge className="bg-blue-500/20 text-blue-400 border-none px-3 py-1 text-[9px] font-black uppercase tracking-widest w-fit mb-2">
+								Verified
+							</Badge>
+							<h3 className="text-xl font-bold leading-tight">Secured Data Sovereignty</h3>
+							<p className="text-xs text-slate-400 font-medium leading-relaxed">
+								Your documents never leave your infrastructure. All vector indices are maintained on-premise within your cluster.
+							</p>
+						</div>
+						<div className="pt-8">
+							<p className="text-3xl font-black tracking-tighter mb-1">{allDocuments.length}</p>
+							<p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-400">Global Indexed Objects</p>
+						</div>
+					</div>
+				</div>
+
+				{/* Filter & Table Area */}
+				<div className="flex flex-col gap-6">
+					<div className="flex flex-col sm:flex-row items-center gap-4">
+						<div className="flex-1 relative w-full group">
+							<div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors">
+								<Search size={18} />
 							</div>
-						}
-						columns={[
-							{
-								key: "select",
-								header: "",
-								className: "w-[52px]",
-								render: (row) => (
-									<input
-										checked={selectedDocumentIds.includes(row.id)}
-										onChange={(event) =>
-											setSelectedDocumentIds((current) =>
-												event.target.checked
-													? [...current, row.id]
-													: current.filter((value) => value !== row.id)
-											)
-										}
-										type="checkbox"
-									/>
-								)
-							},
-							{
-								key: "title",
-								header: "Document",
-								render: (row) => (
-									<div className="space-y-1">
-										<div className="font-medium text-slate-900">{row.title}</div>
-										<div className="text-xs text-muted-foreground">{row.datasetName}</div>
-									</div>
-								)
-							},
-							{
-								key: "workspace",
-								header: "Workspace",
-								render: (row) => row.workspaceName
-							},
-							{
-								key: "metadata",
-								header: "Metadata",
-								render: (row) => (
-									<div className="space-y-1">
-										<Badge variant="muted">{String(row.metadata?.parser ?? "unknown")}</Badge>
-										<div className="text-xs text-muted-foreground">
-											{(row.metadata?.page_count as number | undefined) ?? "n/a"} pages
-										</div>
-									</div>
-								)
-							},
-							{
-								key: "created",
-								header: "Created",
-								render: (row) => formatDate(row.created_at)
-							},
-							{
-								key: "storage",
-								header: "Storage path",
-								render: (row) => (
-									<div className="max-w-[260px] truncate text-xs text-muted-foreground">
-										{row.storage_path}
-									</div>
-								)
-							}
-						]}
-						description="Documents are flattened across all workspaces in the selected project, with workspace ownership visible as a first-class column and filter."
-						rows={allDocuments}
-						title="Project documents"
-					/>
-
-					<Card>
-						<CardHeader>
-							<CardTitle>Datasets</CardTitle>
-							<CardDescription>
-								Review retrieval datasets across the project, then inspect chunks or delete a dataset inside its owning workspace.
-							</CardDescription>
-						</CardHeader>
-						<CardContent className="space-y-4">
-							<TextInput
-								label="Filter documents"
-								onChange={(event) => setSearch(event.target.value)}
-								placeholder="Search title, storage path, dataset, or workspace"
+							<Input 
+								placeholder="Filter global assets by name, extension or path..."
 								value={search}
+								onChange={(e) => setSearch(e.target.value)}
+								className="pl-12 h-12 rounded-2xl border-slate-100 bg-white shadow-sm focus:border-blue-200 transition-all font-medium text-slate-600"
 							/>
-							<SelectDropdown
-								label="Preview dataset"
-								onChange={(event) => setSelectedDatasetId(event.target.value)}
-								options={datasets.map((dataset) => ({
-									label: `${dataset.name} | ${dataset.workspaceName} | ${formatCount(dataset.chunk_count)} chunks`,
-									value: dataset.id
-								}))}
-								placeholder="Choose dataset"
-								value={selectedDatasetId}
-							/>
-							<div className="space-y-3">
-								{datasets.map((dataset) => (
-									<div className="rounded-xl border border-border/70 bg-white/70 p-4" key={dataset.id}>
-										<div className="flex items-start justify-between gap-3">
-											<div>
-												<div className="font-medium text-slate-900">{dataset.name}</div>
-												<div className="mt-1 text-xs text-muted-foreground">
-													{dataset.workspaceName} | {dataset.embedding_model} | {formatCount(dataset.document_count)} docs | {" "}
-													{formatCount(dataset.chunk_count)} chunks
-												</div>
+						</div>
+						<div className="flex items-center gap-2 p-1 bg-white border border-slate-100 rounded-2xl shadow-sm w-full sm:w-auto">
+							<select 
+								value={workspaceFilter} 
+								onChange={(e) => setWorkspaceFilter(e.target.value)}
+								className="h-10 px-4 bg-transparent text-sm font-bold text-slate-500 focus:outline-none cursor-pointer"
+							>
+								<option value="all">All Namespaces</option>
+								{workspaces.map(ws => (
+									<option key={ws.id} value={ws.id}>{ws.name}</option>
+								))}
+							</select>
+							<Button variant="ghost" className="h-10 px-4 rounded-xl text-slate-400 hover:text-blue-500 hover:bg-blue-50">
+								<Filter size={16} />
+							</Button>
+						</div>
+					</div>
+
+					{viewMode === "list" ? (
+						<div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden animate-in fade-in zoom-in-95">
+							<div className="overflow-x-auto">
+								<table className="w-full text-left">
+									<thead>
+										<tr className="border-b border-slate-50">
+											<th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Object Details</th>
+											<th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Residency</th>
+											<th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Pipeline</th>
+											<th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Discovery</th>
+											<th className="px-8 py-5 text-right pr-10" />
+										</tr>
+									</thead>
+									<tbody className="divide-y divide-slate-50">
+										{allDocuments.map((doc) => (
+											<tr key={doc.id} className="group hover:bg-blue-50/30 transition-colors">
+												<td className="px-8 py-6">
+													<div className="flex items-center gap-4">
+														<div className="h-11 w-11 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-500 group-hover:text-white transition-all shadow-inner border border-slate-100/50">
+															<FileText size={20} />
+														</div>
+														<div className="flex flex-col">
+															<span className="font-bold text-slate-900 tracking-tight">{doc.title}</span>
+															<span className="text-[10px] text-slate-400 font-bold uppercase group-hover:text-blue-400 transition-colors flex items-center gap-1 mt-0.5">
+																{(doc.title.split('.').pop() || 'binary').toUpperCase()} • {(doc.metadata?.page_count as number) || 1} pages
+															</span>
+														</div>
+													</div>
+												</td>
+												<td className="px-8 py-6">
+													<Badge className="bg-slate-100 text-slate-500 border-none px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider">
+														{doc.workspaceName}
+													</Badge>
+												</td>
+												<td className="px-8 py-6">
+													<div className="flex items-center gap-2">
+														<div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+														<span className="text-xs font-bold text-slate-600">{String(doc.metadata?.parser || 'marker')}</span>
+													</div>
+												</td>
+												<td className="px-8 py-6">
+													<span className="text-xs font-medium text-slate-400 italic font-serif tracking-tighter">{formatDate(doc.created_at)}</span>
+												</td>
+												<td className="px-8 py-6 text-right pr-10">
+													<Button variant="ghost" className="h-10 w-10 p-0 rounded-xl bg-slate-50 text-slate-300 opacity-0 group-hover:opacity-100 transition-all">
+														<ExternalLink size={16} />
+													</Button>
+												</td>
+											</tr>
+										))}
+									</tbody>
+								</table>
+							</div>
+						</div>
+					) : (
+						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in zoom-in-95">
+							{allDocuments.map((doc) => (
+								<Card key={doc.id} className="rounded-[2rem] border-none shadow-sm hover:shadow-xl transition-all group p-6">
+									<div className="flex flex-col gap-4">
+										<div className="flex justify-between items-start">
+											<div className="h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100">
+												<FileText size={24} />
 											</div>
-											<Button
-												onClick={() => deleteDataset.mutate(dataset)}
-												size="sm"
-												type="button"
-												variant="outline"
-											>
-												Delete
+											<Badge className="bg-blue-50 text-blue-500 border-none text-[9px] font-black uppercase tracking-widest">
+												{doc.workspaceName}
+											</Badge>
+										</div>
+										<div className="flex flex-col gap-1">
+											<h4 className="font-bold text-slate-900 line-clamp-1">{doc.title}</h4>
+											<p className="text-[10px] text-slate-400 font-bold uppercase italic">{formatDate(doc.created_at)}</p>
+										</div>
+										<div className="flex items-center justify-between pt-2">
+											<div className="flex gap-1">
+												<Badge variant="outline" className="text-[8px] px-1.5 border-slate-100">{String(doc.metadata?.parser || 'marker')}</Badge>
+												<Badge variant="outline" className="text-[8px] px-1.5 border-slate-100">{String((doc.metadata?.page_count as number) || 1)} P</Badge>
+											</div>
+											<Button variant="ghost" className="h-8 w-8 p-0 rounded-lg text-slate-300 hover:text-blue-500">
+												<ExternalLink size={14} />
 											</Button>
 										</div>
 									</div>
-								))}
-							</div>
-						</CardContent>
-					</Card>
-				</section>
+								</Card>
+							))}
+						</div>
+					)}
 
-				<Card>
-					<CardHeader>
-						<CardTitle>Chunk preview</CardTitle>
-						<CardDescription>
-							Inspect the first chunk payloads for the selected dataset.
-						</CardDescription>
-					</CardHeader>
-					<CardContent className="grid gap-3">
-						{(selectedChunksQuery.data ?? []).slice(0, 6).map((chunk) => (
-							<div className="rounded-xl border border-border/70 bg-white/70 p-4" key={chunk.id}>
-								<div className="mb-2 flex items-center justify-between gap-3">
-									<span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-										Chunk {chunk.id.slice(0, 8)}
-									</span>
-									<Badge variant="muted">{chunk.token_count} tokens</Badge>
-								</div>
-								<p className="text-sm leading-7 text-slate-700">{chunk.text}</p>
+					{allDocuments.length === 0 && (
+						<div className="py-24 text-center bg-white rounded-[3rem] border border-slate-100 shadow-inner flex flex-col items-center">
+							<div className="h-20 w-20 rounded-[2rem] bg-slate-50 flex items-center justify-center text-slate-200 mb-6 drop-shadow-sm">
+								<Box size={40} />
 							</div>
-						))}
-						{!selectedChunksQuery.data?.length ? (
-							<div className="rounded-xl border border-dashed border-border bg-muted/40 px-4 py-8 text-center text-sm text-muted-foreground">
-								Upload a document to inspect generated chunks here.
-							</div>
-						) : null}
-					</CardContent>
-				</Card>
+							<h3 className="text-2xl font-black text-slate-900 mb-2">Cluster namespace is empty</h3>
+							<p className="text-slate-400 font-medium max-w-sm mx-auto">
+								No global assets found matching your criteria. Ingest documents into workspaces to see them here.
+							</p>
+						</div>
+					)}
+				</div>
+			</PageShell>
 			</div>
 		</ProjectGuard>
 	);

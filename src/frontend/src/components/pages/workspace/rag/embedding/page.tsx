@@ -13,7 +13,7 @@ import { useTenant } from "@/providers/tenant-provider";
 import { useRuntimeModels } from "@/hooks/useRuntimeModels";
 
 function toUpdatePayload(config: WorkspaceRagConfig): WorkspaceRagConfigUpdate {
-    const { workspace_id, organization_id, project_id, updated_at, ...rest } = config;
+    const { workspace_id, updated_at, ...rest } = config;
     return rest;
 }
 
@@ -29,38 +29,13 @@ export default function WorkspaceRagEmbeddingPage() {
         enabled: Boolean(tenant.workspaceId)
     });
 
-    const modelsQuery = useQuery({
-        queryKey: ["models", tenant.organizationId],
-        queryFn: () => platformApi.listModels(tenant),
-        enabled: Boolean(tenant.organizationId)
-    });
-
     const embeddingProviderOptions = useMemo(() => {
         return runtime.data?.filter(p => p.kind === "embedding").map(p => ({ label: p.provider, value: p.provider })) ?? [];
     }, [runtime.data]);
 
-    // Dynamic model options based on both Registry and Runtime
     const modelOptions = useMemo(() => {
-        const availableOptions = (runtime.modelOptionsByProvider[currentProvider] || []);
-
-        // Also combine with registered models of same type
-        const embeddingTypes = new Set(["embedding", "feature-extraction"]);
-        const registered = (modelsQuery.data ?? [])
-            .filter((m) => embeddingTypes.has(m.type))
-            .map((m) => ({ label: `${m.name} (DB)`, value: m.name }));
-
-        // Deduplicate
-        const seen = new Set(availableOptions.map(o => o.value));
-        const combined = [...availableOptions];
-        for (const r of registered) {
-            if (!seen.has(r.value)) {
-                combined.push(r);
-                seen.add(r.value);
-            }
-        }
-
-        return combined;
-    }, [runtime.modelOptionsByProvider, currentProvider, modelsQuery.data]);
+        return runtime.modelOptionsByProvider[currentProvider] || [];
+    }, [runtime.modelOptionsByProvider, currentProvider]);
 
     const saveConfig = useMutation({
         mutationFn: (body: WorkspaceRagConfigUpdate) =>
@@ -87,16 +62,17 @@ export default function WorkspaceRagEmbeddingPage() {
                 <PageHeader eyebrow="RAG Settings" title="Embedding" description="Select the vectorizer that will transform your documents and queries into high-dimensional embeddings." />
                 <Card className="border-slate-800 bg-[#1c1c21]">
                     <CardHeader>
-                        <CardTitle className="text-white">Vectorization Model</CardTitle>
+                        <CardTitle className="text-[#e5e5e5]">Vectorization Model</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <ConfigForm
                             definition={workspaceRagEmbeddingFormDefinition}
                             initialValues={{
-                                embedding_provider: config?.embedding_provider,
-                                embedding_model: config?.embedding_model,
-                                embedding_dimension: config?.embedding_dimension ?? undefined,
-                                embedding_batch_size: config?.embedding_batch_size
+                                embedding_provider: config?.embedding.provider,
+                                embedding_model: config?.embedding.model,
+                                embedding_dimension: config?.embedding.dimension ?? undefined,
+                                embedding_batch_size: config?.embedding.batch_size,
+                                api_key: config?.embedding.api_key ?? undefined
                             }}
                             loading={saveConfig.isPending || configQuery.isLoading}
                             onValuesChange={(values) => {
@@ -106,10 +82,13 @@ export default function WorkspaceRagEmbeddingPage() {
                             }}
                             onSubmit={(values) =>
                                 savePartial({
-                                    embedding_provider: values.embedding_provider,
-                                    embedding_model: values.embedding_model,
-                                    embedding_dimension: values.embedding_dimension ?? null,
-                                    embedding_batch_size: values.embedding_batch_size
+                                    embedding: {
+                                        provider: values.embedding_provider,
+                                        model: values.embedding_model,
+                                        dimension: values.embedding_dimension ?? null,
+                                        batch_size: values.embedding_batch_size,
+                                        api_key: values.api_key
+                                    }
                                 })
                             }
                             overrides={{

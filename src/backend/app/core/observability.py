@@ -9,16 +9,18 @@ from pydantic import BaseModel, Field
 
 
 class TelemetryTrace(BaseModel):
-    trace_id: str = Field(default_factory=lambda: str(uuid4()))
+    trace_id: str
     trace_type: str
     organization_id: str
     project_id: str
     workspace_id: str | None = None
     resource_id: str | None = None
-    status: str = "ok"
-    captured: dict[str, Any] = Field(default_factory=dict)
-    metrics: dict[str, float | int] = Field(default_factory=dict)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    status: str
+    captured: dict[str, Any]
+    metrics: dict[str, float | int]
+    created_at: datetime
+
+REDACTED_VALUE = "[REDACTED]"
 
 
 class TelemetryStore:
@@ -34,11 +36,11 @@ class TelemetryStore:
         if workspace_id and workspace_id in self._allowed_unredacted:
             return value
         if isinstance(value, str):
-            return "[REDACTED]"
+            return REDACTED_VALUE
         if isinstance(value, list):
-            return ["[REDACTED]" for _ in value]
+            return [REDACTED_VALUE for _ in value]
         if isinstance(value, dict):
-            return {key: "[REDACTED]" for key in value}
+            return dict.fromkeys(value, REDACTED_VALUE)
         return value
 
     def record_event(self, event_type: str, payload: dict[str, Any]) -> None:
@@ -57,6 +59,7 @@ class TelemetryStore:
         metrics: dict[str, float | int] | None = None,
     ) -> TelemetryTrace:
         trace = TelemetryTrace(
+            trace_id=str(uuid4()),
             trace_type=trace_type,
             organization_id=organization_id,
             project_id=project_id,
@@ -68,6 +71,7 @@ class TelemetryStore:
                 for key, value in (captured or {}).items()
             },
             metrics=metrics or {},
+            created_at=datetime.now(UTC),
         )
         self._traces.append(trace)
         return trace

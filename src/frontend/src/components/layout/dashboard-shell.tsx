@@ -1,6 +1,6 @@
 "use client";
 
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -20,7 +20,7 @@ import { useTenant } from "@/providers/tenant-provider";
 export function DashboardShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const route = useMemo(() => matchRoute(pathname), [pathname]);
-  const { tenant, organizations, projects, workspaces, hasProjectScope, hasWorkspaceScope } =
+  const { tenant, organizations, projects, workspaces, hasWorkspaceScope } =
     useTenant();
   const [paletteOpen, setPaletteOpen] = useState(false);
 
@@ -34,63 +34,11 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     [projects, route, workspaces]
   );
 
-  const workspaceDatasetQuery = useQuery({
-    queryKey: ["command-palette", "datasets", tenant.organizationId, tenant.projectId, tenant.workspaceId],
-    queryFn: () => platformApi.listKnowledgeDatasets(tenant, tenant.workspaceId!),
-    enabled: hasWorkspaceScope && paletteOpen
-  });
-
   const workspaceDocumentsQuery = useQuery({
     queryKey: ["command-palette", "runtime-documents", tenant.organizationId, tenant.projectId, tenant.workspaceId],
     queryFn: () => platformApi.listRuntimeDocuments(tenant, tenant.workspaceId!),
     enabled: hasWorkspaceScope && paletteOpen
   });
-
-  const projectDatasetQueries = useQueries({
-    queries: (hasProjectScope && paletteOpen)
-      ? workspaces.map((workspace) => ({
-        queryKey: ["command-palette", "project-documents", tenant.projectId, workspace.id],
-        queryFn: () =>
-          platformApi.listKnowledgeDatasets(
-            {
-              ...tenant,
-              workspaceId: workspace.id
-            },
-            workspace.id
-          )
-      }))
-      : []
-  });
-
-  const modelsQuery = useQuery({
-    queryKey: ["command-palette", "models", tenant.organizationId, tenant.projectId],
-    queryFn: () => platformApi.listModels(tenant),
-    enabled: hasProjectScope && paletteOpen
-  });
-
-  const datasetItems = useMemo(() => {
-    if (route.scope === "workspace") {
-      return (workspaceDatasetQuery.data ?? []).map((dataset) => ({
-        id: dataset.id,
-        label: dataset.name,
-        hint: "Dataset",
-        href: generateWorkspaceUrl(route.workspaceId, "context-docs")
-      }));
-    }
-
-    if (route.scope === "project") {
-      return projectDatasetQueries.flatMap((query) =>
-        (query.data ?? []).map((dataset) => ({
-          id: dataset.id,
-          label: dataset.name,
-          hint: `Dataset in ${dataset.workspace_id}`,
-          href: generateProjectUrl(route.projectId, "documents")
-        }))
-      );
-    }
-
-    return [];
-  }, [projectDatasetQueries, route, workspaceDatasetQuery.data]);
 
   const documentItems = useMemo(() => {
     if (route.scope !== "workspace") {
@@ -124,30 +72,23 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         label: workspace.name,
         hint: "Workspace",
         href: generateWorkspaceUrl(workspace.id)
-      })),
-      ...(modelsQuery.data ?? []).map((model) => ({
-        id: `model-${model.id}`,
-        label: model.name,
-        hint: `${model.framework} ${model.type}`,
-        href: route.scope === "workspace" ? generateWorkspaceUrl(route.workspaceId, "rag") : route.scope === "project" ? generateProjectUrl(route.projectId) : "/dashboard"
       }))
     ],
-    [modelsQuery.data, organizations, projects, route, workspaces]
+    [organizations, projects, workspaces]
   );
 
   const commandItems = useMemo(
     () => [
-      ...navigationItems.map((item) => ({
-        id: item.href,
-        label: item.label,
-        hint: item.description,
-        href: item.href
+      ...navigationItems.map((nav) => ({
+        id: nav.href,
+        label: nav.label,
+        hint: nav.description,
+        href: nav.href
       })),
       ...entityItems,
-      ...datasetItems,
       ...documentItems
     ],
-    [datasetItems, documentItems, entityItems, navigationItems]
+    [documentItems, entityItems, navigationItems]
   );
 
   return (

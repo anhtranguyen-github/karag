@@ -13,7 +13,6 @@ export default function CreateWorkspacePage() {
     const router = useRouter();
     const { tenant, setWorkspaceId } = useTenant();
     const [loading, setLoading] = useState(false);
-    const [id, setId] = useState("");
     const [name, setName] = useState("");
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -22,7 +21,7 @@ export default function CreateWorkspacePage() {
 
         setLoading(true);
         try {
-            const workspace = await platformApi.createWorkspace(tenant, { id, name });
+            const workspace = await platformApi.createWorkspace(tenant, { name });
             setWorkspaceId(workspace.id);
             router.push(`/dashboard/workspace/${workspace.id}`);
         } catch (error) {
@@ -44,18 +43,6 @@ export default function CreateWorkspacePage() {
                 <form onSubmit={handleSubmit}>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="id" className="text-slate-700">Workspace ID</Label>
-                            <Input
-                                id="id"
-                                placeholder="e.g. dev-environment"
-                                value={id}
-                                onChange={(e) => setId(e.target.value)}
-                                required
-                                className="border-slate-200 focus:border-emerald-500 focus:ring-emerald-500"
-                            />
-                            <p className="text-[11px] text-slate-400">Unique identifier for this workspace.</p>
-                        </div>
-                        <div className="space-y-2">
                             <Label htmlFor="name" className="text-slate-700">Workspace Name</Label>
                             <Input
                                 id="name"
@@ -65,13 +52,14 @@ export default function CreateWorkspacePage() {
                                 required
                                 className="border-slate-200 focus:border-emerald-500 focus:ring-emerald-500"
                             />
+                            <p className="text-[11px] text-slate-400">Workspace ID will be automatically generated.</p>
                         </div>
                     </CardContent>
                     <CardFooter>
                         <Button
                             type="submit"
                             className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98]"
-                            disabled={loading || !id || !name || !tenant.projectId}
+                            disabled={loading || !name || !tenant.projectId}
                         >
                             {loading ? "Creating..." : "Create Workspace"}
                         </Button>

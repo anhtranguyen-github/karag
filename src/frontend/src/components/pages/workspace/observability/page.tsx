@@ -85,8 +85,8 @@ export default function WorkspaceObservabilityPage() {
 						{isLoading ? (
 							<Badge variant="outline" className="bg-slate-800 border-slate-700 animate-pulse">Syncing...</Badge>
 						) : (
-							<Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
-								<div className="h-2 w-2 rounded-full bg-emerald-500 mr-2 animate-pulse" />
+							<Badge variant="outline" className="bg-orange-400/10 text-orange-400 border-orange-400/20">
+								<div className="h-2 w-2 rounded-full bg-orange-400 mr-2 animate-pulse" />
 								Live Telemetry
 							</Badge>
 						)}
@@ -101,18 +101,18 @@ export default function WorkspaceObservabilityPage() {
 								<Clock className="w-5 h-5" />
 							</div>
 							<div>
-								<div className="text-2xl font-bold text-white">{metrics.avgLatency}ms</div>
+								<div className="text-2xl font-bold text-[#e5e5e5]">{metrics.avgLatency}ms</div>
 								<div className="text-xs text-slate-400">Avg Latency</div>
 							</div>
 						</CardContent>
 					</Card>
 					<Card className="bg-[#18181b] border-slate-800">
 						<CardContent className="p-4 flex items-center gap-4">
-							<div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500">
+							<div className="p-2 rounded-lg bg-orange-400/10 text-orange-400">
 								<BarChart3 className="w-5 h-5" />
 							</div>
 							<div>
-								<div className="text-2xl font-bold text-white">{metrics.totalCalls}</div>
+								<div className="text-2xl font-bold text-[#e5e5e5]">{metrics.totalCalls}</div>
 								<div className="text-xs text-slate-400">Total Traces</div>
 							</div>
 						</CardContent>
@@ -123,7 +123,7 @@ export default function WorkspaceObservabilityPage() {
 								<Zap className="w-5 h-5" />
 							</div>
 							<div>
-								<div className="text-2xl font-bold text-white">{metrics.tokenThroughput}</div>
+								<div className="text-2xl font-bold text-[#e5e5e5]">{metrics.tokenThroughput}</div>
 								<div className="text-xs text-slate-400">Tokens Processed</div>
 							</div>
 						</CardContent>
@@ -134,7 +134,7 @@ export default function WorkspaceObservabilityPage() {
 								<GitGraph className="w-5 h-5" />
 							</div>
 							<div>
-								<div className="text-2xl font-bold text-white">{metrics.eventCount}</div>
+								<div className="text-2xl font-bold text-[#e5e5e5]">{metrics.eventCount}</div>
 								<div className="text-xs text-slate-400">Recent Events</div>
 							</div>
 						</CardContent>
@@ -155,8 +155,8 @@ export default function WorkspaceObservabilityPage() {
 						<Card className="bg-[#1c1c21] border-slate-800">
 							<CardHeader className="border-b border-slate-800/50">
 								<div className="flex justify-between items-center">
-									<CardTitle className="text-lg text-white">Recent Traces</CardTitle>
-									<Button variant="ghost" size="sm" className="text-slate-500 hover:text-white">
+									<CardTitle className="text-lg text-[#e5e5e5]">Recent Traces</CardTitle>
+									<Button variant="ghost" size="sm" className="text-slate-500 hover:text-[#e5e5e5]">
 										<Filter className="w-4 h-4 mr-2" /> Filter
 									</Button>
 								</div>
@@ -170,14 +170,14 @@ export default function WorkspaceObservabilityPage() {
 													<div className={cn(
 														"p-2 rounded-lg bg-slate-900 border border-slate-800",
 														trace.trace_type === "chat_completion" ? "text-blue-400" :
-															trace.trace_type === "rag_query" ? "text-emerald-400" : "text-amber-400"
+															trace.trace_type === "rag_query" ? "text-orange-400" : "text-amber-400"
 													)}>
 														{trace.trace_type === "chat_completion" ? <MessageSquareText className="w-5 h-5" /> :
 															trace.trace_type === "rag_query" ? <Search className="w-5 h-5" /> : <Activity className="w-5 h-5" />}
 													</div>
 													<div>
 														<div className="flex items-center gap-2">
-															<span className="text-sm font-semibold text-white capitalize">{trace.trace_type.replace(/_/g, " ")}</span>
+															<span className="text-sm font-semibold text-[#e5e5e5] capitalize">{trace.trace_type.replace(/_/g, " ")}</span>
 															<Badge variant="outline" className="text-[10px] bg-slate-900 border-slate-800 text-slate-500 py-0 h-4">
 																{trace.trace_id.slice(0, 8)}
 															</Badge>
@@ -190,16 +190,16 @@ export default function WorkspaceObservabilityPage() {
 
 												<div className="flex items-center gap-6">
 													<div className="hidden md:flex flex-col items-end">
-														<span className="text-xs font-bold text-white">{trace.metrics?.latency_ms || 0}ms</span>
+														<span className="text-xs font-bold text-[#e5e5e5]">{trace.metrics?.latency_ms || 0}ms</span>
 														<span className="text-[10px] text-slate-500">Latency</span>
 													</div>
 													<div className="hidden md:flex flex-col items-end">
-														<span className="text-xs font-bold text-white">{trace.metrics?.total_tokens || 0}</span>
+														<span className="text-xs font-bold text-[#e5e5e5]">{trace.metrics?.total_tokens || 0}</span>
 														<span className="text-[10px] text-slate-500">Tokens</span>
 													</div>
 													<div className="flex items-center gap-2">
 														{trace.status === "ok" ? (
-															<CheckCircle2 className="w-4 h-4 text-emerald-500" />
+															<CheckCircle2 className="w-4 h-4 text-orange-400" />
 														) : (
 															<AlertCircle className="w-4 h-4 text-rose-500" />
 														)}
@@ -224,7 +224,7 @@ export default function WorkspaceObservabilityPage() {
 					<TabsContent value="events">
 						<Card className="bg-[#1c1c21] border-slate-800">
 							<CardHeader className="border-b border-slate-800/50">
-								<CardTitle className="text-lg text-white">Event Bus Feed (Outbox)</CardTitle>
+								<CardTitle className="text-lg text-[#e5e5e5]">Event Bus Feed (Outbox)</CardTitle>
 							</CardHeader>
 							<CardContent className="p-0">
 								<div className="p-4 bg-black/40 font-mono text-[13px] text-slate-400 space-y-2 max-h-[500px] overflow-y-auto">
@@ -234,7 +234,7 @@ export default function WorkspaceObservabilityPage() {
 												<span className="text-slate-600 shrink-0">[{new Date(event.occurred_at).toLocaleTimeString()}]</span>
 												<span className="text-blue-400 shrink-0">{event.event_type}</span>
 												<span className="text-slate-500 truncate">ID: {event.resource_id}</span>
-												<span className="ml-auto flex items-center gap-1.5 text-[11px] text-emerald-500/80 font-bold">
+												<span className="ml-auto flex items-center gap-1.5 text-[11px] text-orange-400/80 font-bold">
 													<ShieldCheck className="w-3 h-3" /> VERIFIED
 												</span>
 											</div>

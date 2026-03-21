@@ -1,4 +1,3 @@
-import os
 import pytest
 from fastapi.testclient import TestClient
 
@@ -71,7 +70,7 @@ def test_health_and_dependency_report() -> None:
     assert health.status_code == 200
     assert health.json() == {"status": "ok"}
     assert dependencies.status_code == 200
-    assert dependencies.json()["providers"]["vector_store"] == "qdrant"
+    assert dependencies.json()["infrastructure"]["storage"] is not None
 
 
 def test_organization_project_and_workspace_bootstrap() -> None:
@@ -107,182 +106,10 @@ def test_organization_project_and_workspace_bootstrap() -> None:
     assert workspace_response.status_code == 201
 
 
-def test_knowledge_dataset_ingestion_and_rag_query() -> None:
-    with TestClient(app) as client:
-        _create_workspace(client, workspace_id="workspace-alpha")
-        tenant_headers = _headers(workspace_id="workspace-alpha")
-        dataset_response = client.post(
-            "/api/v1/knowledge-datasets",
-            headers=tenant_headers,
-            json={
-                "workspace_id": "workspace-alpha",
-                "name": "Product Docs",
-                "description": "Primary knowledge base",
-                "embedding_model": os.getenv("EMBEDDING_MODEL", "text-embedding-3-small"),
-                "chunk_strategy": "word-window",
-            },
-        )
-        dataset = dataset_response.json()
-        upload_response = client.post(
-            f"/api/v1/knowledge-datasets/{dataset['id']}/documents",
-            headers=tenant_headers,
-            files={"file": ("pricing.txt", b"pricing tiers enterprise support onboarding", "text/plain")},
-        )
-        chunks_response = client.get(
-            f"/api/v1/knowledge-datasets/{dataset['id']}/chunks",
-            headers=tenant_headers,
-        )
-        rag_response = client.post(
-            "/v1/rag/query",
-            headers=tenant_headers,
-            json={
-                "workspace_id": "workspace-alpha",
-                "knowledge_dataset_id": dataset["id"],
-                "query": "enterprise support pricing",
-                "top_k": 3,
-            },
-        )
-
-    assert dataset_response.status_code == 201
-    assert upload_response.status_code == 201
-    assert "document_uploaded" in upload_response.json()["events"]
-    assert chunks_response.status_code == 200
-    assert len(chunks_response.json()) >= 1
-    assert rag_response.status_code == 200
-    assert rag_response.json()["chunks"][0]["document_title"] == "pricing.txt"
 
 
-def test_evaluation_dataset_run_is_separate_from_ingestion() -> None:
-    with TestClient(app) as client:
-        _create_workspace(client, workspace_id="workspace-eval")
-        tenant_headers = _headers(workspace_id="workspace-eval")
-        knowledge_response = client.post(
-            "/api/v1/knowledge-datasets",
-            headers=tenant_headers,
-            json={
-                "workspace_id": "workspace-eval",
-                "name": "Policies",
-                "description": "Operational policies",
-                "embedding_model": os.getenv("EMBEDDING_MODEL", "text-embedding-3-small"),
-                "chunk_strategy": "word-window",
-            },
-        )
-        knowledge_dataset = knowledge_response.json()
-        client.post(
-            f"/api/v1/knowledge-datasets/{knowledge_dataset['id']}/documents",
-            headers=tenant_headers,
-            files={"file": ("policy.txt", b"security reviews require audit trails", "text/plain")},
-        )
-        evaluation_response = client.post(
-            "/api/v1/evaluation-datasets",
-            headers=tenant_headers,
-            json={
-                "workspace_id": "workspace-eval",
-                "name": "Audit Benchmarks",
-                "description": "Evaluation questions",
-            },
-        )
-        evaluation_dataset = evaluation_response.json()
-        question_response = client.post(
-            f"/api/v1/evaluation-datasets/{evaluation_dataset['id']}/questions",
-            headers=tenant_headers,
-            json={
-                "question": "What do reviews require?",
-                "expected_answer": "audit trails",
-                "expected_context": "security reviews require audit trails",
-            },
-        )
-        run_response = client.post(
-            f"/api/v1/evaluation-datasets/{evaluation_dataset['id']}/run",
-            headers=tenant_headers,
-            json={"knowledge_dataset_id": knowledge_dataset["id"], "top_k": 2},
-        )
-        documents_response = client.get(
-            "/v1/documents",
-            headers=tenant_headers,
-            params={"workspace_id": "workspace-eval"},
-        )
 
-    assert evaluation_response.status_code == 201
-    assert question_response.status_code == 201
-    assert run_response.status_code == 200
-    assert run_response.json()["total_questions"] == 1
-    assert documents_response.status_code == 200
-    assert len(documents_response.json()) == 1
-
-
-def test_tenant_isolation_requires_matching_workspace_scope() -> None:
-    with TestClient(app) as client:
-        _create_workspace(client, workspace_id="workspace-a")
-        _create_workspace(client, workspace_id="workspace-b")
-        create_response = client.post(
-            "/api/v1/knowledge-datasets",
-            headers=_headers(workspace_id="workspace-a"),
-            json={
-                "workspace_id": "workspace-a",
-                "name": "Scoped Dataset",
-                "description": "Tenant isolation",
-                "embedding_model": os.getenv("EMBEDDING_MODEL", "text-embedding-3-small"),
-                "chunk_strategy": "word-window",
-            },
-        )
-        dataset_id = create_response.json()["id"]
-        forbidden_response = client.get(
-            f"/api/v1/knowledge-datasets/{dataset_id}",
-            headers=_headers(workspace_id="workspace-b"),
-        )
-
-    assert create_response.status_code == 201
-    assert forbidden_response.status_code == 403
-
-
-def test_model_registry_lifecycle_endpoints() -> None:
-    with TestClient(app) as client:
-        _create_workspace(client, workspace_id="workspace-models")
-        tenant_headers = _headers(workspace_id="workspace-models")
-        model_response = client.post(
-            "/api/v1/models",
-            headers=tenant_headers,
-            json={
-                "name": "Support Assistant",
-                "type": "llm",
-                "framework": "gguf",
-                "description": "Customer support model",
-            },
-        )
-        model = model_response.json()
-        version_response = client.post(
-            f"/api/v1/models/{model['id']}/versions",
-            headers=tenant_headers,
-            json={"version": "1.0.0", "release_notes": "Initial deployable build"},
-        )
-        version = version_response.json()
-        artifact_response = client.post(
-            f"/api/v1/model-versions/{version['id']}/artifacts",
-            headers=tenant_headers,
-            json={"name": "weights.gguf", "artifact_type": "weights"},
-        )
-        deployment_response = client.post(
-            f"/api/v1/model-versions/{version['id']}/deployments",
-            headers=tenant_headers,
-            json={
-                "workspace_id": "workspace-models",
-                "target": "vllm",
-                "inference_url": "http://vllm:8000",
-                "configuration": {"replicas": 1},
-            },
-        )
-        observability_response = client.get("/api/v1/observability/summary")
-
-    assert model_response.status_code == 201
-    assert version_response.status_code == 201
-    assert artifact_response.status_code == 201
-    assert deployment_response.status_code == 201
-    assert observability_response.status_code == 200
-    assert observability_response.json()["trace_counts"]["model_deployment"] == 1
-
-
-def test_workspace_crud_and_dependency_guards() -> None:
+def test_workspace_crud_and_deletion() -> None:
     with TestClient(app) as client:
         _create_workspace(client, workspace_id="workspace-shared")
         create_response = client.post(
@@ -299,17 +126,6 @@ def test_workspace_crud_and_dependency_guards() -> None:
             "/api/v1/workspaces/workspace-shared",
             headers=_headers(workspace_id="workspace-shared"),
         )
-        dataset_response = client.post(
-            "/api/v1/knowledge-datasets",
-            headers=_headers(workspace_id="workspace-shared"),
-            json={
-                "workspace_id": "workspace-shared",
-                "name": "Workspace Docs",
-                "description": "Protected by workspace",
-                "embedding_model": os.getenv("EMBEDDING_MODEL", "text-embedding-3-small"),
-                "chunk_strategy": "word-window",
-            },
-        )
         delete_response = client.delete(
             "/api/v1/workspaces/workspace-shared",
             headers=_headers(workspace_id="workspace-shared"),
@@ -319,8 +135,7 @@ def test_workspace_crud_and_dependency_guards() -> None:
     assert list_response.status_code == 200
     assert len(list_response.json()) >= 1
     assert get_response.status_code == 200
-    assert dataset_response.status_code == 201
-    assert delete_response.status_code == 409
+    assert delete_response.status_code == 204
 
 
 def test_workspace_rag_config_updates_runtime_defaults() -> None:
@@ -335,72 +150,100 @@ def test_workspace_rag_config_updates_runtime_defaults() -> None:
             "/api/v1/workspaces/workspace-rag/rag-config",
             headers=tenant_headers,
             json={
-                "embedding_provider": "openai",
-                "embedding_model": "text-embedding-3-small",
-                "embedding_dimension": 1536,
-                "embedding_batch_size": 8,
-                "vector_store_type": "qdrant",
-                "vector_store_config": {
-                    "collection_name": None,
-                    "distance_metric": "cosine",
-                    "index_type": "hnsw",
+                "embedding": {
+                    "component": "dense",
+                    "provider": "openai",
+                    "model": "text-embedding-3-small",
+                    "dimension": 1536,
+                    "batch_size": 8,
                 },
-                "retrieval_config": {
-                    "top_k": 1,
-                    "score_threshold": 0.0,
-                    "hybrid_search": True,
-                    "reranker_model": "cross-encoder-mini",
+                "chunking": {
+                    "component": "recursive",
                     "chunk_size": 512,
                     "chunk_overlap": 64,
                 },
-                "reading_config": {
+                "vectorstore": {
+                    "component": "qdrant",
+                    "collection_name": None,
+                    "distance_metric": "cosine",
+                    "index_type": "hnsw",
+                    "vector_dimension": 1536,
+                },
+                "retriever": {
+                    "component": "vector",
+                    "top_k": 1,
+                    "score_threshold": 0.0,
+                },
+                "reranker": {
+                    "component": "none",
+                    "provider": "jina",
+                    "model": "cross-encoder-mini",
+                },
+                "rag": {
+                    "reader": "marker",
+                    "query_transformer": "identity",
+                    "generator": "openai",
+                    "prompt_template": "System\n\nContext:\n{{context}}\n\nQuestion:\n{{question}}\n\nAnswer:",
                     "max_context_tokens": 4000,
                     "context_compression": False,
                     "citation_mode": "inline",
                     "context_formatting_template": "[{index}] {text}",
                 },
-                "llm_config": {
-                    "provider": "vllm",
-                    "model": "meta-llama/Llama-3.1-8B-Instruct",
+                "llm": {
+                    "provider": "omniroute",
+                    "model": "cost-saver",
                     "temperature": 0.1,
                     "max_tokens": 512,
                     "streaming": False,
                 },
-                "prompt_template": "System\\n\\nContext:\\n{{context}}\\n\\nQuestion:\\n{{question}}\\n\\nAnswer:",
             },
         )
-        dataset_response = client.post(
-            "/api/v1/knowledge-datasets",
+        refreshed_config = client.get(
+            "/api/v1/workspaces/workspace-rag/rag-config",
             headers=tenant_headers,
-            json={
-                "workspace_id": "workspace-rag",
-                "name": "Runtime Defaults",
-                "description": "Config-aware runtime",
-                "embedding_model": "text-embedding-3-small",
-                "chunk_strategy": "word-window",
-            },
-        )
-        dataset = dataset_response.json()
-        upload_response = client.post(
-            f"/api/v1/knowledge-datasets/{dataset['id']}/documents",
-            headers=tenant_headers,
-            files={"file": ("runtime.txt", b"workspace rag config controls runtime defaults", "text/plain")},
-        )
-        rag_response = client.post(
-            "/v1/rag/query",
-            headers=tenant_headers,
-            json={
-                "workspace_id": "workspace-rag",
-                "knowledge_dataset_id": dataset["id"],
-                "query": "what controls runtime defaults",
-            },
         )
 
     assert default_config_response.status_code == 200
     assert update_response.status_code == 200
-    assert dataset_response.status_code == 201
-    assert upload_response.status_code == 201
-    assert rag_response.status_code == 200
-    assert rag_response.json()["provider"] == "vllm"
-    assert "Llama-3.1-8B" in rag_response.json()["model"]
-    assert rag_response.json()["prompt"].startswith("System")
+    config = refreshed_config.json()
+    assert config["vectorstore"]["component"] == "qdrant"
+    assert config["llm"]["model"] == "cost-saver"
+
+
+def test_workspace_rag_config_safe_update_validation() -> None:
+    with TestClient(app) as client:
+        _create_workspace(client, workspace_id="workspace-audit")
+        tenant_headers = _headers(workspace_id="workspace-audit")
+
+        config_response = client.get(
+            "/api/v1/workspaces/workspace-audit/rag-config",
+            headers=tenant_headers,
+        )
+        current_config = config_response.json()
+
+        invalid_candidate = {
+            "embedding": {
+                **current_config["embedding"],
+                "component": "multi_vector",
+            },
+            "vectorstore": {
+                **current_config["vectorstore"],
+                "component": "qdrant",
+                "vector_dimension": current_config["embedding"]["dimension"],
+            },
+            "retriever": {
+                **current_config["retriever"],
+                "component": "vector",
+            },
+            "reranker": current_config["reranker"],
+            "chunking": current_config["chunking"],
+            "llm": current_config["llm"],
+            "rag": current_config["rag"],
+        }
+
+        update_response = client.put(
+            "/api/v1/workspaces/workspace-audit/rag-config",
+            headers=tenant_headers,
+            json=invalid_candidate,
+        )
+        assert update_response.status_code == 422

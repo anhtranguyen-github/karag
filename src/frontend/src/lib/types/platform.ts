@@ -2,6 +2,7 @@ export type OrganizationSummary = {
   id: string;
   name: string;
   description?: string | null;
+  status: string;
   created_at: string;
 };
 
@@ -10,6 +11,7 @@ export type ProjectSummary = {
   organization_id: string;
   name: string;
   description?: string | null;
+  status: string;
   document_storage_config: {
     provider: string;
     endpoint?: string | null;
@@ -27,31 +29,49 @@ export type WorkspaceSummary = {
   project_id: string;
   name: string;
   description?: string | null;
+  status: string;
   created_at: string;
 };
 
-export type WorkspaceRetrievalConfig = {
-  top_k: number;
-  score_threshold: number;
-  hybrid_search: boolean;
-  reranker_model: string;
+export type WorkspaceEmbeddingConfig = {
+  component: string;
+  provider: string;
+  model: string;
+  dimension?: number | null;
+  batch_size: number;
+  api_key?: string | null;
+  api_base?: string | null;
+};
+
+export type WorkspaceChunkingConfig = {
+  component: string;
   chunk_size: number;
   chunk_overlap: number;
 };
 
 export type WorkspaceVectorStoreConfig = {
+  component: string;
   url?: string | null;
   api_key?: string | null;
   collection_name?: string | null;
   distance_metric: string;
   index_type: string;
+  vector_dimension?: number | null;
 };
 
-export type WorkspaceReadingConfig = {
-  max_context_tokens: number;
-  context_compression: boolean;
-  citation_mode: string;
-  context_formatting_template: string;
+export type WorkspaceRetrieverConfig = {
+  component: string;
+  top_k: number;
+  score_threshold: number;
+};
+
+export type WorkspaceRerankConfig = {
+  component: string;
+  provider: string;
+  model: string;
+  top_k?: number;
+  api_key?: string | null;
+  api_base?: string | null;
 };
 
 export type WorkspaceLlmConfig = {
@@ -60,42 +80,64 @@ export type WorkspaceLlmConfig = {
   temperature: number;
   max_tokens: number;
   streaming: boolean;
+  api_key?: string | null;
+  api_base?: string | null;
+};
+
+export type WorkspaceRagBehaviorConfig = {
+  reader: string;
+  query_transformer: string;
+  generator: string;
+  prompt_template: string;
+  max_context_tokens: number;
+  context_compression: boolean;
+  citation_mode: string;
+  context_formatting_template: string;
 };
 
 export type WorkspaceRagConfig = {
   workspace_id: string;
-  organization_id: string;
-  project_id: string;
-  embedding_provider: string;
-  embedding_model: string;
-  embedding_dimension?: number | null;
-  embedding_batch_size: number;
-  vector_store_type: string;
-  vector_store_config: WorkspaceVectorStoreConfig;
-  retrieval_config: WorkspaceRetrievalConfig;
-  reading_config: WorkspaceReadingConfig;
-  llm_config: WorkspaceLlmConfig;
-  prompt_template: string;
+  embedding: WorkspaceEmbeddingConfig;
+  chunking: WorkspaceChunkingConfig;
+  vectorstore: WorkspaceVectorStoreConfig;
+  retriever: WorkspaceRetrieverConfig;
+  reranker: WorkspaceRerankConfig;
+  llm: WorkspaceLlmConfig;
+  rag: WorkspaceRagBehaviorConfig;
+  features: Record<string, unknown>;
   updated_at: string;
 };
 
-export type WorkspaceRagConfigUpdate = Omit<
-  WorkspaceRagConfig,
-  "workspace_id" | "organization_id" | "project_id" | "updated_at"
->;
+export type WorkspaceRagConfigUpdate = Partial<{
+  embedding: Partial<WorkspaceEmbeddingConfig>;
+  chunking: Partial<WorkspaceChunkingConfig>;
+  vectorstore: Partial<WorkspaceVectorStoreConfig>;
+  retriever: Partial<WorkspaceRetrieverConfig>;
+  reranker: Partial<WorkspaceRerankConfig>;
+  llm: Partial<WorkspaceLlmConfig>;
+  rag: Partial<WorkspaceRagBehaviorConfig>;
+  features: Record<string, unknown>;
+}>;
 
-export type KnowledgeDatasetDetail = {
-  id: string;
-  organization_id: string;
-  project_id: string;
-  workspace_id: string;
+export type RagPipelineCompatibilityCheck = {
   name: string;
-  description?: string | null;
-  embedding_model: string;
-  chunk_strategy: string;
-  created_at: string;
-  document_count: number;
-  chunk_count: number;
+  status: string;
+  message: string;
+};
+
+export type RagPipelineComponentMetadata = {
+  implementation: string;
+  enabled: boolean;
+  details: Record<string, unknown>;
+};
+
+export type RagPipelineAudit = {
+  valid: boolean;
+  current_pipeline: Record<string, string>;
+  pipeline_graph: string[];
+  compatibility: RagPipelineCompatibilityCheck[];
+  components: Record<string, RagPipelineComponentMetadata>;
+  available_components: Record<string, string[]>;
 };
 
 export type DocumentSummary = {
@@ -108,24 +150,6 @@ export type DocumentSummary = {
   storage_path: string;
   metadata: Record<string, unknown>;
   created_at: string;
-};
-
-export type ChunkSummary = {
-  id: string;
-  document_id: string;
-  dataset_id: string;
-  organization_id: string;
-  project_id: string;
-  workspace_id: string;
-  text: string;
-  token_count: number;
-  created_at: string;
-};
-
-export type DocumentUploadResponse = {
-  document: DocumentSummary;
-  chunks_created: number;
-  events: string[];
 };
 
 export type EvaluationDatasetSummary = {
@@ -172,55 +196,9 @@ export type EvaluationRunResult = {
   question_results: EvaluationRunQuestionResult[];
 };
 
-export type ModelSummary = {
-  id: string;
-  organization_id: string;
-  name: string;
-  type: string;
-  framework: string;
-  description?: string | null;
-  lifecycle_state: string;
-  created_at: string;
-};
-
-export type ModelVersionSummary = {
-  id: string;
-  model_id: string;
-  organization_id: string;
-  version: string;
-  release_notes?: string | null;
-  lifecycle_state: string;
-  created_at: string;
-};
-
-export type ModelArtifactSummary = {
-  id: string;
-  model_version_id: string;
-  organization_id: string;
-  name: string;
-  artifact_type: string;
-  storage_backend: string;
-  storage_path: string;
-  metadata: Record<string, unknown>;
-  created_at: string;
-};
-
-export type ModelDeploymentSummary = {
-  id: string;
-  model_version_id: string;
-  organization_id: string;
-  project_id: string;
-  workspace_id: string;
-  target: string;
-  inference_url: string;
-  configuration: Record<string, unknown>;
-  lifecycle_state: string;
-  created_at: string;
-};
-
 export type RuntimeModelSummary = {
   provider: string;
-  kind: "llm" | "embedding";
+  kind: "llm" | "embedding" | "reranking";
   models: string[];
 };
 
@@ -239,6 +217,7 @@ export type DependencyHealth = {
     event_bus: string;
     embedding_provider: string;
     llm_provider: string;
+    rerank_provider: string;
   };
   counts: Record<string, number>;
 };
@@ -299,103 +278,21 @@ export type TenantSelection = {
   actorId?: string;
 };
 
-export type ProjectProviderRecord = {
+export type ChatMessageSummary = {
   id: string;
-  projectId: string;
-  providerType: string;
-  name: string;
-  config: Record<string, unknown>;
-  status: "not-configured" | "connected" | "failed";
-  createdAt: string;
-};
-
-export type ProjectApiKeyRecord = {
-  id: string;
-  organization_id: string;
-  project_id: string;
-  name: string;
-  masked_key: string;
-  key_value?: string;
-  is_active: boolean;
+  session_id: string;
+  role: string;
+  content: string;
+  metadata: Record<string, any>;
   created_at: string;
 };
 
-export type ProjectSettingRecord = {
-  projectId: string;
-  storageProvider: string;
-  embeddingProvider: string;
-  defaultPipeline: string;
-  systemLimits: number;
-  maxUploadMb: number;
-  promptRedaction: boolean;
-};
-
-export type WorkspaceContextDocumentSelection = {
-  workspaceId: string;
-  documentIds: string[];
-};
-
-export type WorkspaceAgentConfig = {
-  workspaceId: string;
-  systemPrompt: string;
-  llmProvider: string;
-  llmModel: string;
-  retrievalTopK: number;
-  temperature: number;
-};
-
-export type PipelineConfig = {
+export type ChatSessionSummary = {
   id: string;
-  workspaceId: string;
-  name: string;
-  embeddingModel: string;
-  chunkSize: number;
-  retriever: string;
-  reranker: string;
-  topK: number;
-  enabled: boolean;
-  createdAt: string;
-};
-
-export type ProviderConfig = {
-  id: string;
-  workspaceId: string;
-  providerType: string;
-  name: string;
-  config: Record<string, unknown>;
-  status: "not-configured" | "connected" | "failed";
-  createdAt: string;
-};
-
-export type ApiKeyRecord = {
-  id: string;
-  workspaceId: string;
-  name: string;
-  value: string;
-  scope: string;
-  usageCount: number;
-  createdAt: string;
-  revokedAt?: string | null;
-};
-
-export type WorkspaceSettingRecord = {
-  workspaceId: string;
-  storageProvider: string;
-  embeddingProvider: string;
-  defaultPipeline: string;
-  systemLimits: number;
-  maxUploadMb: number;
-  promptRedaction: boolean;
-};
-
-export type ExperimentRecord = {
-  id: string;
-  workspaceId: string;
-  evaluationDatasetId: string;
-  knowledgeDatasetId: string;
-  provider: string;
-  model: string;
-  averageScore: number;
-  totalQuestions: number;
-  createdAt: string;
+  title?: string | null;
+  workspace_id: string;
+  project_id: string;
+  organization_id: string;
+  user_id: string;
+  created_at: string;
 };

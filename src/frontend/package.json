@@ -8,8 +8,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test:e2e": "playwright test --config=tests/e2e/playwright.config.ts",
     "generate-client": "mkdir -p src/sdk/generated && echo '// Generated client placeholder' > src/sdk/generated/index.ts",
-    "test:unit": "echo 'Frontend tests skipped (no test files found)'"
+    "test:unit": "echo 'Frontend tests skipped (no test files found)'",
+    "preinstall": "npx only-allow pnpm"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -36,5 +42,7 @@
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.2"
+  ,
+    "@playwright/test": "^1.40.0"
   }
 }

@@ -203,8 +203,21 @@ export function TenantProvider({ children }: { children: ReactNode }) {
   }, [hasHydratedSelection, tenant]);
 
   useEffect(() => {
+    if (!organizationsQuery.isSuccess) {
+      return;
+    }
+
     const organizations = organizationsQuery.data ?? [];
+
     if (!organizations.length) {
+      if (tenant.organizationId) {
+        setTenant((current) => ({
+          ...current,
+          organizationId: undefined,
+          projectId: undefined,
+          workspaceId: undefined
+        }));
+      }
       return;
     }
 
@@ -216,7 +229,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         workspaceId: undefined
       }));
     }
-  }, [organizationsQuery.data, tenant.organizationId]);
+  }, [organizationsQuery.data, organizationsQuery.isSuccess, tenant.organizationId]);
 
   useEffect(() => {
     if (route.scope === "project" || route.scope === "workspace") {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
 import { DataTable } from "@/components/tables/data-table";
 import Link from "next/link";
@@ -20,32 +20,11 @@ export default function ProjectOverviewPageView() {
 	const selectedProject = projects.find((project) => project.id === tenant.projectId);
 	const [search, setSearch] = useState("");
 
-	const datasetQueries = useQueries({
-		queries: workspaces.map((workspace) => ({
-			queryKey: ["project-overview", "datasets", workspace.id],
-			queryFn: () =>
-				platformApi.listKnowledgeDatasets(
-					{
-						...tenant,
-						workspaceId: workspace.id
-					},
-					workspace.id
-				)
-		}))
-	});
-
-	const modelsQuery = useQuery({
-		queryKey: ["project-overview", "models", tenant.organizationId, tenant.projectId],
-		queryFn: () => platformApi.listModels(tenant),
-		enabled: Boolean(tenant.organizationId && tenant.projectId)
-	});
-
 	const observabilityQuery = useQuery({
 		queryKey: ["project-overview", "observability"],
 		queryFn: platformApi.observabilitySummary
 	});
 
-	const datasets = datasetQueries.flatMap((query) => query.data ?? []);
 	const projectEvents = (observabilityQuery.data?.events ?? []).filter(
 		(event) => !event.workspace_id || workspaces.some((workspace) => workspace.id === event.workspace_id)
 	);
@@ -66,9 +45,9 @@ export default function ProjectOverviewPageView() {
 			<div className="min-h-screen bg-[#18181b] px-0 py-0">
 				<div className="mx-auto w-full max-w-6xl pt-10">
 					<div className="flex items-center justify-between mb-8">
-						<h1 className="text-2xl font-bold text-white">Workspaces</h1>
+						<h1 className="text-2xl font-bold text-[#e5e5e5]">Workspaces</h1>
 						<Link
-							className="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-green-700 transition"
+							className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-[#e5e5e5] shadow hover:bg-green-700 transition"
 							href="/dashboard/new/workspace"
 						>
 							+ New workspace
@@ -76,7 +55,7 @@ export default function ProjectOverviewPageView() {
 					</div>
 					<div className="mb-6 flex items-center gap-3">
 						<input
-							className="w-full max-w-xs rounded-md border border-slate-700 bg-[#232329] px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-green-600 focus:outline-none"
+							className="w-full max-w-xs rounded-xl border border-slate-700 bg-[#232329] px-3 py-2 text-sm text-[#e5e5e5] placeholder:text-slate-400 focus:border-green-600 focus:outline-none"
 							placeholder="Search for a workspace"
 							value={search}
 							onChange={e => setSearch(e.target.value)}
@@ -98,7 +77,7 @@ export default function ProjectOverviewPageView() {
 								>
 									<div>
 										<div className="flex items-center justify-between mb-2">
-											<span className="text-lg font-semibold text-white">{workspace.name}</span>
+											<span className="text-lg font-semibold text-[#e5e5e5]">{workspace.name}</span>
 											<span className="inline-flex items-center rounded-full bg-green-900/30 px-3 py-1 text-xs font-medium text-green-400 border border-green-800">ACTIVE</span>
 										</div>
 										<div className="text-xs text-slate-400 mb-1">Workspace</div>

@@ -169,6 +169,7 @@ print_runtime_flags() {
     log_kv "Turbo mode" "$TURBO_MODE"
     log_kv "Prod mode" "$PROD_MODE"
     log_kv "Lite mode" "$LITE_MODE"
+    log_kv "Plugins mode" "$PLUGINS_MODE"
     log_kv "Clear cloud" "$CLEAR_CLOUD"
     log_kv "Clear local" "$CLEAR_LOCAL"
 }
@@ -300,43 +301,55 @@ check_cloud_qdrant() {
 boot_infra() {
     log_phase "INFRASTRUCTURE"
 
-    local services="minio"
-    log_info "Evaluating cloud vs local providers"
-
-    # Determine which services need local containers
-    local services="minio redis postgres"
+    # Core services that ALWAYS run
+    local services="redis postgres"
+    local plugin_services=""
     
-    if check_cloud_qdrant; then
-        log_info "Using Qdrant Cloud"
-        log_kv "Qdrant URL" "${QDRANT_URL:-unset}"
-    else
-        log_info "Using local Qdrant"
-        services="qdrant $services"
-        export QDRANT_URL="http://localhost:6333"
-        export QDRANT_API_KEY="local-dev-key"
+    log_info "Evaluating core infrastructure"
+
+    if [[ "$PLUGINS_MODE" == "true" ]]; then
+        log_info "Plugin mode enabled: adding Qdrant and MinIO to stack"
+        plugin_services="qdrant minio"
+        
+        if check_cloud_qdrant; then
+            log_info "Using Qdrant Cloud"
+            log_kv "Qdrant URL" "${QDRANT_URL:-unset}"
+            plugin_services="minio"
+        else
+            log_info "Using local Qdrant"
+            export QDRANT_URL="http://localhost:6333"
+            export QDRANT_API_KEY="local-dev-key"
+        fi
     fi
 
     # Start containers
-    log_info "Starting infrastructure: $services"
-    log_cmd "$DOCKER_CMD --profile cpu up -d $services"
+    log_info "Starting core infrastructure: $services"
     # shellcheck disable=SC2086
     $DOCKER_CMD --profile cpu up -d $services
 
-    # Wait for local services to be ready
-    if [[ "${QDRANT_URL:-}" == *"localhost"* ]]; then
-        wait_for_service "Qdrant" "${QDRANT_URL%/}/healthz" || exit 1
+    if [[ -n "$plugin_services" ]]; then
+        log_info "Starting plugin infrastructure: $plugin_services"
+        # shellcheck disable=SC2086
+        $DOCKER_CMD --profile plugins up -d $plugin_services
     fi
 
-    if [[ "${MINIO_ENDPOINT:-}" == *"localhost"* ]] || [[ "${MINIO_ENDPOINT:-}" == *"127.0.0.1"* ]]; then
-        wait_for_service "MinIO" "http://localhost:9000/minio/health/live" || exit 1
-    fi
-
+    # Wait for core services
     if [[ "${REDIS_URL:-}" == *"localhost"* ]] || [[ "${REDIS_URL:-}" == *"127.0.0.1"* ]]; then
         wait_for_port "Redis" "localhost" "6379" || exit 1
     fi
 
     if [[ "${DATABASE_URL:-}" == *"localhost"* ]] || [[ "${DATABASE_URL:-}" == *"127.0.0.1"* ]]; then
         wait_for_port "Postgres" "localhost" "54321" || exit 1
+    fi
+
+    # Wait for plugins if enabled
+    if [[ "$PLUGINS_MODE" == "true" ]]; then
+        if [[ "${QDRANT_URL:-}" == *"localhost"* ]]; then
+             wait_for_service "Qdrant" "${QDRANT_URL%/}/healthz" || exit 1
+        fi
+        if [[ "${MINIO_ENDPOINT:-}" == *"localhost"* ]] || [[ "${MINIO_ENDPOINT:-}" == *"127.0.0.1"* ]]; then
+            wait_for_service "MinIO" "http://localhost:9000/minio/health/live" || exit 1
+        fi
     fi
 
     log_success "Infrastructure ready"
@@ -739,6 +752,7 @@ Options:
   --turbo           Quick mode: skip verify + heavy containers
   --prod            Run frontend in production mode
   --lite            Skip local model services, use CPU backend
+  --plugins         Enable optional plugins (MinIO, Qdrant)
   --clear-cloud     Purge cloud databases on startup
   --clear-local     Purge local databases on startup
 
@@ -773,6 +787,7 @@ PROD_MODE=false
 CLEAR_CLOUD=false
 CLEAR_LOCAL=false
 LITE_MODE=false
+PLUGINS_MODE=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -781,6 +796,7 @@ while [[ $# -gt 0 ]]; do
         --turbo)         TURBO_MODE=true; SKIP_VERIFY=true; shift ;;
         --prod)          PROD_MODE=true; shift ;;
         --lite)          LITE_MODE=true; shift ;;
+        --plugins)       PLUGINS_MODE=true; shift ;;
         --clear-cloud|--cloud) CLEAR_CLOUD=true; shift ;;
         --clear-local|--local) CLEAR_LOCAL=true; shift ;;
         -h|--help|help)  show_help; exit 0 ;;

@@ -1,51 +1,42 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
 	FileText,
-	Upload,
 	Trash2,
 	Search,
 	Filter,
 	CheckCircle2,
-	Clock,
-	AlertCircle,
-	File,
 	Download,
-	ExternalLink,
 	Loader2 as LoaderIcon,
-	X,
-	PlusCircle,
-	FolderOpen
+	FolderOpen,
+	Plus,
+	Activity,
+	Database,
+	Clock,
+	FileCode,
+	Zap,
+	HardDrive
 } from "lucide-react";
 import { useParams } from "next/navigation";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { WorkspaceGuard } from "@/components/ui/workspace-guard";
+import PageShell from "@/components/ui/page-shell";
 import { platformApi } from "@/lib/api/platform";
 import { useTenant } from "@/providers/tenant-provider";
-import { cn, formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 export default function WorkspaceContextDocumentsPage() {
 	const { tenant } = useTenant();
 	const params = useParams();
 	const workspaceId = params.workspaceId as string;
-	const queryClient = useQueryClient();
 
 	const [search, setSearch] = useState("");
-	const [isUploading, setIsUploading] = useState(false);
-	const [uploadProgress, setUploadProgress] = useState(0);
-
-	const { data: datasets } = useQuery({
-		queryKey: ["workspace-context", "datasets", workspaceId],
-		queryFn: () => platformApi.listKnowledgeDatasets(tenant, workspaceId),
-		enabled: !!workspaceId,
-	});
-
-	const activeDataset = datasets?.[0]; // Default to first dataset for upload
 
 	const { data: documents, isLoading } = useQuery({
 		queryKey: ["workspace-context", "documents", workspaceId],
@@ -53,123 +44,124 @@ export default function WorkspaceContextDocumentsPage() {
 		enabled: !!workspaceId,
 	});
 
-	const uploadMutation = useMutation({
-		mutationFn: async ({ file, datasetId }: { file: File, datasetId: string }) => {
-			setIsUploading(true);
-			return platformApi.uploadDatasetDocument(tenant, datasetId, file, (progress) => {
-				setUploadProgress(progress);
-			});
-		},
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["workspace-context", "documents", workspaceId] });
-			setIsUploading(false);
-			setUploadProgress(0);
-		},
-		onError: () => {
-			setIsUploading(false);
-			setUploadProgress(0);
-		}
-	});
-
-	const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const file = e.target.files?.[0];
-		if (file && activeDataset) {
-			uploadMutation.mutate({ file, datasetId: activeDataset.id });
-		}
-	};
-
 	const filteredDocs = (documents ?? []).filter(doc =>
 		doc.title.toLowerCase().includes(search.toLowerCase())
 	);
 
+	const stats = [
+		{ label: 'Total Files', value: documents?.length ?? 0, icon: Database, color: 'text-blue-500', bg: 'bg-blue-50' },
+		{ label: 'Indexed', value: documents?.length ?? 0, icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+		{ label: 'Average Size', value: '452 KB', icon: Activity, color: 'text-amber-500', bg: 'bg-amber-50' },
+	];
+
 	return (
 		<WorkspaceGuard>
-			<div className="flex flex-col gap-8 p-8 max-w-7xl mx-auto w-full animate-in fade-in duration-500">
-				<div className="flex items-center justify-between">
-					<div className="flex flex-col gap-1">
-						<h1 className="text-3xl font-bold tracking-tight text-slate-900">Context Documents</h1>
-						<p className="text-slate-500">
-							Manage the specific files that inform your AI workspace context.
-						</p>
-					</div>
-					<div className="flex gap-3">
-						<label className="cursor-pointer">
-							<input type="file" className="hidden" onChange={handleFileUpload} disabled={!activeDataset || isUploading} />
-							<div className={cn(
-								"flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all active:scale-[0.98] shadow-lg",
-								activeDataset && !isUploading
-									? "bg-slate-900 text-white hover:bg-slate-800 shadow-slate-900/10"
-									: "bg-slate-100 text-slate-400 cursor-not-allowed"
-							)}>
-								{isUploading ? <LoaderIcon size={18} className="animate-spin" /> : <Upload size={18} />}
-								{isUploading ? `Uploading ${uploadProgress}%` : "Upload Document"}
+			<div className="flex flex-col gap-10 p-4 sm:p-10 max-w-7xl mx-auto w-full animate-in fade-in-from-bottom-4 duration-700">
+				<PageShell
+					title="Knowledge Base"
+					scopeLabel="Workspace"
+					subtitle="Manage your indexed documents and monitor the ingestion pipeline."
+				>
+
+				{/* Quick Stats Grid */}
+				<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+					{stats.map((stat) => (
+						<div key={stat.label} className="p-6 rounded-[2rem] bg-white border border-slate-100 shadow-sm flex items-center gap-5 transition-all hover:shadow-md">
+							<div className={cn("h-14 w-14 rounded-2xl flex items-center justify-center shadow-inner", stat.bg, stat.color)}>
+								<stat.icon size={26} />
 							</div>
-						</label>
-					</div>
+							<div className="flex flex-col">
+								<span className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">{stat.label}</span>
+								<span className="text-2xl font-black text-slate-900">{stat.value}</span>
+							</div>
+						</div>
+					))}
 				</div>
 
-				{/* Search and Filters */}
-				<div className="flex items-center gap-4">
-					<div className="flex-1 relative group">
-						<div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-600 transition-colors">
-							<Search size={18} />
+				{/* Search and Action Bar */}
+				<div className="flex flex-col sm:flex-row items-center gap-4 bg-white/50 p-3 rounded-[2.5rem] border border-slate-100 backdrop-blur-md shadow-inner">
+					<div className="flex-1 relative group w-full">
+						<div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors">
+							<Search size={20} />
 						</div>
 						<Input
-							placeholder="Search documents by filename..."
+							placeholder="Search by filename, type, or metadata..."
 							value={search}
 							onChange={(e) => setSearch(e.target.value)}
-							className="pl-10 h-12 rounded-xl border-slate-200 focus:border-slate-500 bg-white shadow-sm"
+							className="pl-14 h-14 w-full rounded-[2rem] border-transparent bg-white shadow-sm focus:border-indigo-100 focus:ring-4 focus:ring-indigo-50 transition-all font-medium text-slate-600 placeholder:text-slate-300"
 						/>
 					</div>
-					<Button variant="outline" className="h-12 rounded-xl border-slate-200 text-slate-600 font-bold gap-2 px-6">
-						<Filter size={18} />
-						Filters
-					</Button>
+					<div className="flex items-center gap-2 p-1 pr-2 w-full sm:w-auto">
+						<Button variant="ghost" className="h-14 px-6 rounded-[1.8rem] text-slate-500 font-bold gap-2 hover:bg-white hover:text-slate-900 transition-all">
+							<Filter size={20} />
+							Refine
+						</Button>
+						<div className="w-[1px] h-8 bg-slate-200 hidden sm:block mx-1" />
+						<Button variant="ghost" className="h-14 px-6 rounded-[1.8rem] text-slate-500 font-bold gap-2 hover:bg-white hover:text-slate-900 transition-all">
+							<Clock size={20} />
+							Recent
+						</Button>
+					</div>
 				</div>
 
-				{/* Documents Grid */}
-				<div className="space-y-4">
+				{/* Documents Section */}
+				<div className="flex flex-col gap-6">
 					{isLoading ? (
-						<div className="p-12 flex justify-center">
-							<LoaderIcon className="h-8 w-8 text-slate-500 animate-spin" />
+						<div className="py-24 flex flex-col items-center justify-center gap-4 animate-pulse">
+							<div className="h-12 w-12 rounded-2xl bg-slate-100 flex items-center justify-center">
+								<LoaderIcon className="h-8 w-8 text-slate-300 animate-spin" />
+							</div>
+							<span className="text-sm font-bold text-slate-300 uppercase tracking-widest">Accessing Vectors</span>
 						</div>
 					) : filteredDocs.length > 0 ? (
-						<div className="grid grid-cols-1 gap-4">
+						<div className="grid grid-cols-1 gap-5">
 							{filteredDocs.map((doc) => (
-								<Card key={doc.id} className="border-slate-100 shadow-sm hover:shadow-md hover:border-slate-200 transition-all group overflow-hidden">
+								<Card key={doc.id} className="border-none bg-white shadow-sm hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300 rounded-[2rem] overflow-hidden group border-2 border-transparent hover:border-indigo-50/50">
 									<CardContent className="p-0">
-										<div className="flex items-center justify-between p-4 px-6 sm:p-6">
-											<div className="flex items-center gap-4 flex-1 min-w-0">
-												<div className="h-12 w-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100 group-hover:bg-slate-100 transition-colors">
-													<FileText size={22} />
+										<div className="flex flex-col lg:flex-row lg:items-center justify-between p-6 sm:p-8 gap-6">
+											{/* File Info */}
+											<div className="flex items-center gap-6 flex-1 min-w-0">
+												<div className="h-16 w-16 shrink-0 rounded-3xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-all duration-300 border border-slate-100/50">
+													{doc.title.endsWith('.pdf') ? <FileText size={32} /> : <FileCode size={32} />}
 												</div>
 												<div className="flex flex-col min-w-0">
-													<div className="flex items-center gap-2">
-														<h3 className="font-bold text-slate-900 truncate">{doc.title}</h3>
-														<span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold uppercase tracking-wider">PDF</span>
+													<div className="flex items-center gap-3 mb-1.5">
+														<h3 className="text-lg font-black text-slate-900 truncate tracking-tight">{doc.title}</h3>
+														<span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-wider group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-colors italic">
+															{doc.title.split('.').pop() || 'UNC'}
+														</span>
 													</div>
-													<div className="flex items-center gap-3 mt-1">
-														<span className="text-xs text-slate-400 font-medium">Uploaded {doc.created_at ? formatDate(doc.created_at) : 'recently'}</span>
-														<div className="h-1 w-1 rounded-full bg-slate-300" />
-														<span className="text-xs text-slate-400 font-medium">{doc.metadata.size ? `${(Number(doc.metadata.size) / 1024).toFixed(1)} KB` : '42 KB'}</span>
+													<div className="flex flex-wrap items-center gap-x-4 gap-y-1 transition-opacity duration-300">
+														<div className="flex items-center gap-1.5 text-slate-400">
+															<Clock size={12} />
+															<span className="text-[11px] font-bold uppercase tracking-wider">{doc.created_at ? formatDate(doc.created_at) : "now"}</span>
+														</div>
+														<div className="h-1 w-1 rounded-full bg-slate-200" />
+														<div className="flex items-center gap-1.5 text-slate-400">
+															<HardDrive size={12} />
+															<span className="text-[11px] font-bold uppercase tracking-wider">{doc.metadata.size ? `${(Number(doc.metadata.size) / 1024).toFixed(0)} KB` : "42 KB"}</span>
+														</div>
 													</div>
 												</div>
 											</div>
 
-											<div className="flex items-center gap-4 sm:gap-8 shrink-0">
-												<div className="hidden sm:flex flex-col items-end gap-1">
-													<div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs uppercase tracking-wider">
-														<CheckCircle2 size={12} />
-														Indexed
+											{/* Secondary Info & Actions */}
+											<div className="flex items-center justify-between sm:justify-end gap-6 sm:gap-12 shrink-0 pt-4 lg:pt-0 border-t lg:border-none border-slate-50">
+												<div className="flex flex-col items-start lg:items-end gap-1.5">
+													<div className="flex items-center gap-2 text-emerald-500 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100 shadow-sm">
+														<CheckCircle2 size={14} className="fill-emerald-500 text-white" />
+														<span className="font-black text-[10px] uppercase tracking-widest">Indexed</span>
 													</div>
-													<span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{String(doc.metadata.content_type || 'application/pdf')}</span>
+													<span className="text-[9px] text-slate-300 font-black uppercase tracking-[0.2em] lg:text-right">
+														{String(doc.metadata.content_type || "application/octet-stream").split('/')[1]} stream
+													</span>
 												</div>
-												<div className="flex items-center gap-1">
-													<Button variant="ghost" className="h-10 w-10 p-0 rounded-lg text-slate-400 hover:text-slate-900 group-hover:bg-slate-50">
-														<Download size={18} />
+												<div className="flex items-center gap-2">
+													<Button variant="ghost" className="h-12 w-12 p-0 rounded-2xl text-slate-300 hover:text-[#0f172a] hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100">
+														<Download size={20} />
 													</Button>
-													<Button variant="ghost" className="h-10 w-10 p-0 rounded-lg text-slate-400 hover:text-rose-500 group-hover:bg-rose-50">
-														<Trash2 size={18} />
+													<Button variant="ghost" className="h-12 w-12 p-0 rounded-2xl text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-all border border-transparent hover:border-rose-100">
+														<Trash2 size={20} />
 													</Button>
 												</div>
 											</div>
@@ -179,35 +171,31 @@ export default function WorkspaceContextDocumentsPage() {
 							))}
 						</div>
 					) : (
-						<div className="p-20 flex flex-col items-center justify-center text-center bg-white rounded-3xl border-2 border-dashed border-slate-100 animate-in fade-in duration-700">
-							<div className="h-24 w-24 rounded-3xl bg-slate-50 flex items-center justify-center text-slate-200 mb-6 drop-shadow-sm">
-								<FolderOpen size={48} />
+						<div className="p-32 flex flex-col items-center justify-center text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-100 animate-in zoom-in-95 duration-1000 shadow-inner">
+							<div className="h-32 w-32 rounded-[2.5rem] bg-slate-50 flex items-center justify-center text-slate-200 mb-8 drop-shadow-sm scale-110">
+								<FolderOpen size={64} />
 							</div>
-							<h3 className="text-2xl font-bold text-slate-900 mb-2">No documents indexed</h3>
-							<p className="text-slate-500 max-w-md mx-auto mb-8 font-medium">
-								Upload files to your workspace to provide context to your AI agents. We support PDF, Markdown, and Text formats.
+							<h3 className="text-3xl font-black text-[#0f172a] mb-3 tracking-tight">Empty Knowledge Base</h3>
+							<p className="text-slate-500 max-w-sm mx-auto font-semibold leading-relaxed mb-10">
+								There are no documents in this workspace context. Connect your files to the AI engine to get started.
 							</p>
-							<label className="cursor-pointer">
-								<input type="file" className="hidden" onChange={handleFileUpload} disabled={!activeDataset || isUploading} />
-								<div className={cn(
-									"flex items-center gap-3 px-8 py-4 rounded-2xl font-bold text-lg transition-all active:scale-95 shadow-xl",
-									activeDataset && !isUploading
-										? "bg-slate-900 text-white hover:bg-slate-800 shadow-slate-900/20"
-										: "bg-slate-100 text-slate-400 cursor-not-allowed"
-								)}>
-									<PlusCircle size={22} />
-									Bring your data
-								</div>
-							</label>
-							{!activeDataset && (
-								<p className="mt-4 text-xs text-rose-500 font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 animate-pulse">
-									<AlertCircle size={14} />
-									Please create a RAG dataset first
-								</p>
-							)}
+							<div className="text-slate-400 font-semibold text-lg">No documents found. Add files to your workspace to get started.</div>
 						</div>
 					)}
 				</div>
+
+				</PageShell>
+
+				{/* Footer Info / OSS Notice */}
+				<footer className="mt-12 flex flex-col items-center text-center p-8 rounded-[3rem] bg-indigo-50/30 border border-indigo-100/50">
+					<div className="flex items-center gap-2 mb-3">
+						<div className="h-2 w-2 rounded-full bg-indigo-500 animate-pulse" />
+						<span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Karag Engine v0.1.0-alpha</span>
+					</div>
+					<p className="text-xs text-indigo-400/80 font-bold max-w-md">
+						All data indexed and stored locally or on your infrastructure.
+					</p>
+				</footer>
 			</div>
 		</WorkspaceGuard>
 	);

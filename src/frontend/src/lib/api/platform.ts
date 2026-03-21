@@ -1,27 +1,23 @@
 import { request, uploadWithProgress } from "@/lib/api/client";
 import type {
   ChatCompletionResponse,
-  ChunkSummary,
   DependencyHealth,
   DocumentSummary,
-  DocumentUploadResponse,
   EvaluationDatasetSummary,
   EvaluationQuestionSummary,
   EvaluationRunResult,
-  KnowledgeDatasetDetail,
-  ModelArtifactSummary,
-  ModelDeploymentSummary,
-  ModelSummary,
-  ModelVersionSummary,
   ObservabilitySummary,
   OrganizationSummary,
   ProjectSummary,
   RagQueryResponse,
   RuntimeModelSummary,
+  RagPipelineAudit,
   TenantSelection,
   WorkspaceRagConfig,
   WorkspaceRagConfigUpdate,
-  WorkspaceSummary
+  WorkspaceSummary,
+  ChatMessageSummary,
+  ChatSessionSummary
 } from "@/lib/types/platform";
 
 export const platformApi = {
@@ -30,14 +26,14 @@ export const platformApi = {
   observabilitySummary: () => request<ObservabilitySummary>("/api/v1/observability/summary"),
 
   listOrganizations: () => request<OrganizationSummary[]>("/api/v1/organizations"),
-  createOrganization: (body: { id: string; name: string; description?: string }) =>
+  createOrganization: (body: { id?: string; name: string; description?: string }) =>
     request<OrganizationSummary>("/api/v1/organizations", { method: "POST", body }),
 
   listProjects: (organizationId: string) =>
     request<ProjectSummary[]>(`/api/v1/organizations/${organizationId}/projects`),
   createProject: (
     organizationId: string,
-    body: { id: string; name: string; description?: string }
+    body: { id?: string; name: string; description?: string }
   ) =>
     request<ProjectSummary>(`/api/v1/organizations/${organizationId}/projects`, {
       method: "POST",
@@ -59,7 +55,7 @@ export const platformApi = {
     request<WorkspaceSummary[]>("/api/v1/workspaces", { tenant }),
   createWorkspace: (
     tenant: TenantSelection,
-    body: { id: string; name: string; description?: string }
+    body: { id?: string; name: string; description?: string }
   ) =>
     request<WorkspaceSummary>("/api/v1/workspaces", { method: "POST", tenant, body }),
   deleteWorkspace: (tenant: TenantSelection, workspaceId: string) =>
@@ -76,49 +72,19 @@ export const platformApi = {
       tenant,
       body
     }),
-
-  listKnowledgeDatasets: (tenant: TenantSelection, workspaceId: string) =>
-    request<KnowledgeDatasetDetail[]>(
-      `/api/v1/knowledge-datasets?workspace_id=${encodeURIComponent(workspaceId)}`,
-      { tenant }
-    ),
-  createKnowledgeDataset: (
+  getWorkspaceRagPipelineAudit: (tenant: TenantSelection, workspaceId: string) =>
+    request<RagPipelineAudit>(`/api/v1/workspaces/${workspaceId}/rag-pipeline/audit`, { tenant }),
+  validateWorkspaceRagPipeline: (
     tenant: TenantSelection,
-    body: {
-      workspace_id: string;
-      name: string;
-      description?: string;
-      embedding_model: string;
-      chunk_strategy: string;
-    }
+    workspaceId: string,
+    body: WorkspaceRagConfigUpdate
   ) =>
-    request<KnowledgeDatasetDetail>("/api/v1/knowledge-datasets", {
+    request<RagPipelineAudit>(`/api/v1/workspaces/${workspaceId}/rag-pipeline/validate`, {
       method: "POST",
       tenant,
       body
     }),
-  deleteKnowledgeDataset: (tenant: TenantSelection, datasetId: string) =>
-    request<void>(`/api/v1/knowledge-datasets/${datasetId}`, {
-      method: "DELETE",
-      tenant
-    }),
-  listDatasetDocuments: (tenant: TenantSelection, datasetId: string) =>
-    request<DocumentSummary[]>(`/api/v1/knowledge-datasets/${datasetId}/documents`, { tenant }),
-  listDatasetChunks: (tenant: TenantSelection, datasetId: string) =>
-    request<ChunkSummary[]>(`/api/v1/knowledge-datasets/${datasetId}/chunks`, { tenant }),
-  uploadDatasetDocument: (
-    tenant: TenantSelection,
-    datasetId: string,
-    file: File,
-    onProgress?: (value: number) => void
-  ) =>
-    uploadWithProgress<DocumentUploadResponse>(
-      `/api/v1/knowledge-datasets/${datasetId}/documents`,
-      file,
-      "file",
-      tenant,
-      onProgress
-    ),
+
   listRuntimeDocuments: (tenant: TenantSelection, workspaceId: string) =>
     request<DocumentSummary[]>(`/v1/documents?workspace_id=${encodeURIComponent(workspaceId)}`, {
       tenant
@@ -191,77 +157,6 @@ export const platformApi = {
       body
     }),
 
-  listModels: (tenant: TenantSelection) => request<ModelSummary[]>("/api/v1/models", { tenant }),
-  listProviders: () => request<{ storage_providers: string[]; vector_stores: string[]; llm_providers: string[]; embedding_providers: string[] }>("/api/v1/providers"),
-  vllmHealth: () => request<Record<string, unknown>>("/api/v1/providers/vllm/health"),
-  createModel: (
-    tenant: TenantSelection,
-    body: { name: string; type: string; framework: string; description?: string }
-  ) =>
-    request<ModelSummary>("/api/v1/models", {
-      method: "POST",
-      tenant,
-      body
-    }),
-  installModel: (
-    tenant: TenantSelection,
-    workspaceId: string,
-    body: { name: string; type: string; framework: string; description?: string }
-  ) =>
-    request<ModelDeploymentSummary>(`/api/v1/models/install?workspace_id=${encodeURIComponent(workspaceId)}`, {
-      method: "POST",
-      tenant,
-      body
-    }),
-  listModelVersions: (tenant: TenantSelection, modelId: string) =>
-    request<ModelVersionSummary[]>(`/api/v1/models/${modelId}/versions`, { tenant }),
-  createModelVersion: (
-    tenant: TenantSelection,
-    modelId: string,
-    body: { version: string; release_notes?: string }
-  ) =>
-    request<ModelVersionSummary>(`/api/v1/models/${modelId}/versions`, {
-      method: "POST",
-      tenant,
-      body
-    }),
-  listModelArtifacts: (tenant: TenantSelection, versionId: string) =>
-    request<ModelArtifactSummary[]>(`/api/v1/model-versions/${versionId}/artifacts`, { tenant }),
-  createModelArtifact: (
-    tenant: TenantSelection,
-    versionId: string,
-    body: {
-      name: string;
-      artifact_type: string;
-      storage_backend: string;
-      metadata?: Record<string, unknown>;
-    }
-  ) =>
-    request<ModelArtifactSummary>(`/api/v1/model-versions/${versionId}/artifacts`, {
-      method: "POST",
-      tenant,
-      body
-    }),
-  listModelDeployments: (tenant: TenantSelection, versionId: string) =>
-    request<ModelDeploymentSummary[]>(`/api/v1/model-versions/${versionId}/deployments`, {
-      tenant
-    }),
-  createModelDeployment: (
-    tenant: TenantSelection,
-    versionId: string,
-    body: {
-      workspace_id: string;
-      target: string;
-      inference_url: string;
-      configuration?: Record<string, unknown>;
-    }
-  ) =>
-    request<ModelDeploymentSummary>(`/api/v1/model-versions/${versionId}/deployments`, {
-      method: "POST",
-      tenant,
-      body
-    }),
-
   runtimeModels: () => request<RuntimeModelSummary[]>("/v1/models"),
   chatCompletion: (
     tenant: TenantSelection,
@@ -288,5 +183,15 @@ export const platformApi = {
           messages: [{ role: "user", content: "Reply with the single word ready." }]
         }
       }
-    )
+    ),
+  
+  // Phase 2 Chat Sessions
+  listChatSessions: (tenant: TenantSelection) =>
+    request<ChatSessionSummary[]>("/api/v1/chat/sessions", { tenant }),
+  createChatSession: (tenant: TenantSelection, body: { workspace_id: string; project_id: string; organization_id: string; title?: string }) =>
+    request<ChatSessionSummary>("/api/v1/chat/sessions", { method: "POST", tenant, body }),
+  askChatSession: (tenant: TenantSelection, sessionId: string, query: string) =>
+    request<ChatCompletionResponse>(`/api/v1/chat/sessions/${sessionId}/ask?query=${encodeURIComponent(query)}`, { method: "POST", tenant }),
+  listChatMessages: (tenant: TenantSelection, sessionId: string) =>
+    request<ChatMessageSummary[]>(`/api/v1/chat/sessions/${sessionId}/messages`, { tenant })
 };

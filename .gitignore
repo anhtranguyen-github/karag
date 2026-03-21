@@ -141,6 +141,9 @@ src/backend/data/*.json
 .agent/
 .agents/
 .gemini/
+.gstack/
+.jenkins/
+.docs/
 
 # ===================
 # Project Documentation

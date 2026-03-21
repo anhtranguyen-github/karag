@@ -12,6 +12,8 @@ export type ProjectSection =
   | "overview"
   | "documents"
   | "workspaces"
+  | "members"
+  | "billing"
   | "observability"
   | "logs"
   | "integrations"
@@ -21,6 +23,9 @@ export type WorkspaceSection =
   | "overview"
   | "chat"
   | "context-docs"
+  | "history"
+  | "members"
+  | "billing"
   | "rag"
   | "rag-retrieval"
   | "rag-embedding"
@@ -28,13 +33,9 @@ export type WorkspaceSection =
   | "rag-llm"
   | "rag-strategy"
   | "settings"
-  | "models"
-  | "providers"
-  | "configs"
   | "api-keys"
   | "observability"
   | "evaluation"
-  | "experiments"
   | "playground";
 
 export type RouteMatch =
@@ -93,6 +94,16 @@ const projectSections: Record<ProjectSection, { label: string; description: stri
     description: "Project integrations",
     icon: Blocks
   },
+  members: {
+    label: "Members",
+    description: "Project members",
+    icon: Blocks
+  },
+  billing: {
+    label: "Billing",
+    description: "Project billing",
+    icon: Blocks
+  },
   settings: {
     label: "Settings",
     description: "Project settings",
@@ -115,6 +126,21 @@ const workspaceSections: Record<WorkspaceSection, { label: string; description: 
     label: "Context docs",
     description: "Selected docs",
     icon: Files
+  },
+  history: {
+    label: "History",
+    description: "Chat history",
+    icon: MessageSquareText
+  },
+  members: {
+    label: "Members",
+    description: "Workspace members",
+    icon: Blocks
+  },
+  billing: {
+    label: "Billing",
+    description: "Workspace billing",
+    icon: Blocks
   },
   rag: {
     label: "RAG Overview",
@@ -151,21 +177,6 @@ const workspaceSections: Record<WorkspaceSection, { label: string; description: 
     description: "Workspace settings",
     icon: Settings2
   },
-  models: {
-    label: "Models",
-    description: "Workspace models",
-    icon: Blocks
-  },
-  providers: {
-    label: "Providers",
-    description: "Workspace providers",
-    icon: Blocks
-  },
-  configs: {
-    label: "Configs",
-    description: "Workspace configs",
-    icon: Settings2
-  },
   "api-keys": {
     label: "API Keys",
     description: "Workspace API keys",
@@ -179,11 +190,6 @@ const workspaceSections: Record<WorkspaceSection, { label: string; description: 
   evaluation: {
     label: "Evaluation",
     description: "Workspace evaluation",
-    icon: Blocks
-  },
-  experiments: {
-    label: "Experiments",
-    description: "Workspace experiments",
     icon: Blocks
   },
   playground: {

@@ -2,21 +2,10 @@
 
 Enterprise self-hosted RAG infrastructure monorepo with a FastAPI backend and Next.js admin console.
 
-## What is implemented
-
-- Workspace-aware tenant context built on `organization_id`, `project_id`, and `workspace_id`
-- Split dataset architecture:
-  - `KnowledgeDataset` for document ingestion and retrieval
-  - `EvaluationDataset` for benchmark questions and evaluation runs
-- Pluggable backend interfaces for:
-  - `VectorStore`
-  - `StorageProvider`
-  - `EventBus`
-  - `EmbeddingProvider`
-  - `LLMProvider`
-- Internal event bus with typed envelopes and transactional outbox staging
-- Model registry scaffold with models, versions, artifacts, and workspace-scoped deployments
-- Runtime RAG endpoints, observability summary endpoint, and frontend console sections
+- **Core Architecture**: Foundational RAG, Tenancy, and Object Storage unified in `app.core`.
+- **Modular RAG Pipeline**: Defaulting to high-accuracy `MarkerReader` + `RecursiveChunker` + `JinaReranker`.
+- **Hybrid Retrieval**: Dense + Sparse search support with `QdrantVectorStore`.
+- **Enterprise Storage**: S3-compatible storage service for document persistence.
 
 ## Monorepo structure
 
@@ -24,9 +13,9 @@ Enterprise self-hosted RAG infrastructure monorepo with a FastAPI backend and Ne
 src/
   backend/
     app/
-      adapters/
-      core/
-      modules/
+      core/          # Foundational Kernel (RAG, Storage, Auth, DB)
+      modules/       # Domain Logic (Workspaces, Chat, Organizations)
+      api/           # Interface Layer (FastAPI routes)
   frontend/
     src/
       app/

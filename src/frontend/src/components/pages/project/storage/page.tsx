@@ -24,12 +24,6 @@ export default function ProjectDocumentStoragePage() {
         enabled: Boolean(organizationId && projectId)
     });
 
-    const { data: providers } = useQuery({
-        queryKey: ["providers"],
-        queryFn: () => platformApi.listProviders(),
-        staleTime: 1000 * 60 * 5,
-    });
-
     const saveConfig = useMutation({
         mutationFn: (body: any) =>
             platformApi.updateProject(organizationId, projectId, body),
@@ -56,15 +50,7 @@ export default function ProjectDocumentStoragePage() {
                             ...projectDocumentStorageFormDefinition,
                             // Override provider options dynamically
                             defaultValues: projectDocumentStorageFormDefinition.defaultValues,
-                            fields: projectDocumentStorageFormDefinition.fields.map((f) => {
-                                if (f.name === "provider") {
-                                    return {
-                                        ...f,
-                                        options: (providers?.storage_providers || ["minio"]).map((p: string) => ({ label: p, value: p })),
-                                    };
-                                }
-                                return f;
-                            }),
+                            fields: projectDocumentStorageFormDefinition.fields,
                         }}
                         initialValues={{
                             provider: config?.provider ?? "minio",

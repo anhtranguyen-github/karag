@@ -13,14 +13,13 @@ export default function CreateOrganizationPage() {
     const router = useRouter();
     const { setOrganizationId } = useTenant();
     const [loading, setLoading] = useState(false);
-    const [id, setId] = useState("");
     const [name, setName] = useState("");
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         try {
-            const org = await platformApi.createOrganization({ id, name });
+            const org = await platformApi.createOrganization({ name });
             setOrganizationId(org.id);
             router.push(`/dashboard/org/${org.id}`);
         } catch (error) {
@@ -42,18 +41,6 @@ export default function CreateOrganizationPage() {
                 <form onSubmit={handleSubmit}>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="id" className="text-slate-700">Organization ID</Label>
-                            <Input
-                                id="id"
-                                placeholder="e.g. acme-corp"
-                                value={id}
-                                onChange={(e) => setId(e.target.value)}
-                                required
-                                className="border-slate-200 focus:border-blue-500 focus:ring-blue-500"
-                            />
-                            <p className="text-[11px] text-slate-400">This unique ID will be used in your workspace URLs.</p>
-                        </div>
-                        <div className="space-y-2">
                             <Label htmlFor="name" className="text-slate-700">Display Name</Label>
                             <Input
                                 id="name"
@@ -63,13 +50,14 @@ export default function CreateOrganizationPage() {
                                 required
                                 className="border-slate-200 focus:border-blue-500 focus:ring-blue-500"
                             />
+                            <p className="text-[11px] text-slate-400">Organization ID will be automatically generated.</p>
                         </div>
                     </CardContent>
                     <CardFooter>
                         <Button
                             type="submit"
                             className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98]"
-                            disabled={loading || !id || !name}
+                            disabled={loading || !name}
                         >
                             {loading ? "Creating..." : "Create Organization"}
                         </Button>

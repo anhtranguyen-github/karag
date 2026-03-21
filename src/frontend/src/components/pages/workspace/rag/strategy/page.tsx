@@ -14,7 +14,7 @@ import type { WorkspaceRagConfig, WorkspaceRagConfigUpdate } from "@/lib/types/p
 import { useTenant } from "@/providers/tenant-provider";
 
 function toUpdatePayload(config: WorkspaceRagConfig): WorkspaceRagConfigUpdate {
-    const { workspace_id, organization_id, project_id, updated_at, ...rest } = config;
+    const { workspace_id, updated_at, ...rest } = config;
     return rest;
 }
 
@@ -64,10 +64,10 @@ export default function WorkspaceRagStrategyPage() {
                             <ConfigForm
                                 definition={workspaceRagPromptFormDefinition}
                                 initialValues={{
-                                    prompt_template: config?.prompt_template
+                                    prompt_template: config?.rag.prompt_template
                                 }}
                                 loading={saveConfig.isPending || configQuery.isLoading}
-                                onSubmit={(values) => savePartial(values)}
+                                onSubmit={(values) => savePartial({ rag: values })}
                             />
                         </CardContent>
                     </Card>
@@ -82,9 +82,14 @@ export default function WorkspaceRagStrategyPage() {
                         <CardContent>
                             <ConfigForm
                                 definition={workspaceRagReadingFormDefinition}
-                                initialValues={config?.reading_config}
+                                initialValues={config?.rag ? {
+                                    max_context_tokens: config.rag.max_context_tokens,
+                                    context_compression: config.rag.context_compression,
+                                    citation_mode: config.rag.citation_mode,
+                                    context_formatting_template: config.rag.context_formatting_template
+                                } : undefined}
                                 loading={saveConfig.isPending || configQuery.isLoading}
-                                onSubmit={(values) => savePartial({ reading_config: values })}
+                                onSubmit={(values) => savePartial({ rag: values })}
                             />
                         </CardContent>
                     </Card>

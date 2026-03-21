@@ -56,18 +56,26 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
     let detail: unknown = null;
     let message = response.statusText;
 
+    // Read the body as text once (avoid double-reading the stream), then try to parse JSON.
     try {
-      detail = await response.json();
-      if (detail && typeof detail === "object" && "detail" in detail) {
-        const payload = detail as { detail?: unknown };
-        message =
-          typeof payload.detail === "string" ? payload.detail : JSON.stringify(payload.detail);
+      const text = await response.text();
+      if (text) {
+        try {
+          detail = JSON.parse(text);
+        } catch {
+          detail = text;
+        }
+
+        if (detail && typeof detail === "object" && "detail" in detail) {
+          const payload = detail as { detail?: unknown };
+          message = typeof payload.detail === "string" ? payload.detail : JSON.stringify(payload.detail);
+        } else if (typeof detail === "string" && detail) {
+          message = detail;
+        }
       }
-    } catch {
-      detail = await response.text();
-      if (typeof detail === "string" && detail) {
-        message = detail;
-      }
+    } catch (err) {
+      // If even reading text fails, fall back to statusText and null detail.
+      detail = null;
     }
 
     throw new ApiError(message, response.status, detail);
@@ -89,6 +97,11 @@ export function uploadWithProgress<T>(
 ) {
   return new Promise<T>((resolve, reject) => {
     const requestClient = new XMLHttpRequest();
+    // Generate an upload id for server-side progress notifications
+    const uploadId = (typeof crypto !== "undefined" && (crypto as any).randomUUID)
+      ? (crypto as any).randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
     requestClient.open("POST", `/proxy${path}`);
 
     if (tenant?.organizationId) {
@@ -102,6 +115,38 @@ export function uploadWithProgress<T>(
     }
     if (tenant?.actorId) {
       requestClient.setRequestHeader("X-Actor-Id", tenant.actorId);
+    }
+
+    // Let the server correlate processing progress messages
+    requestClient.setRequestHeader("X-Upload-Id", uploadId);
+
+    // Open a websocket to receive server-side processing updates (best-effort)
+    try {
+      const wsProto = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const wsHost = window.location.hostname;
+      const wsPort = 8000; // backend http/ws port in dev
+      const wsUrl = `${wsProto}//${wsHost}:${wsPort}/ws/uploads/${uploadId}`;
+      const ws = new WebSocket(wsUrl);
+      ws.addEventListener("message", (ev) => {
+        try {
+          const data = JSON.parse(ev.data);
+          if (typeof data.progress === "number") {
+            onProgress?.(data.progress);
+          }
+        } catch (e) {
+          // ignore parse errors
+        }
+      });
+      // close websocket when upload completes/errs
+      const cleanupWs = () => {
+        try {
+          ws.close();
+        } catch (e) {}
+      };
+      requestClient.addEventListener("loadend", cleanupWs);
+      requestClient.addEventListener("error", cleanupWs);
+    } catch (e) {
+      // websocket best-effort; ignore failures
     }
 
     requestClient.upload.addEventListener("progress", (event) => {

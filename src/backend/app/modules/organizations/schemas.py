@@ -6,16 +6,16 @@ from pydantic import BaseModel, Field
 
 
 class DocumentStorageConfig(BaseModel):
-    provider: str = "minio"
+    provider: str
     endpoint: str | None = None
     access_key: str | None = None
     secret_key: str | None = None
-    bucket: str = "karag"
-    secure: bool = False
+    bucket: str
+    secure: bool
 
 
 class OrganizationCreate(BaseModel):
-    id: str
+    id: str | None = None
     name: str
     description: str | None = None
 
@@ -24,14 +24,15 @@ class OrganizationSummary(BaseModel):
     id: str
     name: str
     description: str | None = None
-    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    status: str
+    created_at: datetime
 
 
 class ProjectCreate(BaseModel):
-    id: str
+    id: str | None = None
     name: str
     description: str | None = None
-    document_storage_config: DocumentStorageConfig = Field(default_factory=DocumentStorageConfig)
+    document_storage_config: DocumentStorageConfig | None = None
 
 
 class ProjectSummary(BaseModel):
@@ -39,11 +40,13 @@ class ProjectSummary(BaseModel):
     organization_id: str
     name: str
     description: str | None = None
-    document_storage_config: DocumentStorageConfig = Field(default_factory=DocumentStorageConfig)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    status: str
+    document_storage_config: DocumentStorageConfig
+    created_at: datetime
 
 
 class ProjectUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
+    status: str | None = None
     document_storage_config: DocumentStorageConfig | None = None

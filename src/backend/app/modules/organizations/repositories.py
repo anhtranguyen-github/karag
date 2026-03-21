@@ -11,6 +11,7 @@ def _organization_to_schema(row: OrganizationRow) -> OrganizationSummary:
         id=row.id,
         name=row.name,
         description=row.description,
+        status=row.status,
         created_at=row.created_at,
     )
 
@@ -22,6 +23,7 @@ def _project_to_schema(row: ProjectRow) -> ProjectSummary:
         organization_id=row.organization_id,
         name=row.name,
         description=row.description,
+        status=row.status,
         document_storage_config=DocumentStorageConfig(**row.document_storage_config_json),
         created_at=row.created_at,
     )
@@ -38,6 +40,7 @@ class OrganizationRepository:
                     id=organization.id,
                     name=organization.name,
                     description=organization.description,
+                    status=organization.status,
                     created_at=organization.created_at,
                 )
             )
@@ -45,7 +48,7 @@ class OrganizationRepository:
 
     def list(self) -> list[OrganizationSummary]:
         with self.database.session() as session:
-            rows = session.scalars(select(OrganizationRow)).all()
+            rows = session.scalars(select(OrganizationRow).order_by(OrganizationRow.name)).all()
         return [_organization_to_schema(row) for row in rows]
 
     def get(self, organization_id: str) -> OrganizationSummary | None:
@@ -67,6 +70,7 @@ class ProjectRepository:
                     name=project.name,
                     description=project.description,
                     document_storage_config_json=project.document_storage_config.model_dump(),
+                    status=project.status,
                     created_at=project.created_at,
                 )
             )
@@ -75,7 +79,9 @@ class ProjectRepository:
     def list_for_organization(self, organization_id: str) -> list[ProjectSummary]:
         with self.database.session() as session:
             rows = session.scalars(
-                select(ProjectRow).where(ProjectRow.organization_id == organization_id)
+                select(ProjectRow)
+                .where(ProjectRow.organization_id == organization_id)
+                .order_by(ProjectRow.name)
             ).all()
         return [_project_to_schema(row) for row in rows]
 
@@ -100,5 +106,6 @@ class ProjectRepository:
             if row:
                 row.name = project.name
                 row.description = project.description
+                row.status = project.status
                 row.document_storage_config_json = project.document_storage_config.model_dump()
         return project

@@ -9,13 +9,13 @@ from pydantic import BaseModel, ConfigDict, Field
 class ApiKeySummary(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: str = Field(default_factory=lambda: str(uuid4()))
+    id: str
     organization_id: str
     project_id: str
     name: str
     masked_key: str | None = None
-    is_active: bool = True
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    is_active: bool
+    created_at: datetime
 
 
 class ApiKeyCreate(BaseModel):

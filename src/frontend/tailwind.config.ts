@@ -59,11 +59,12 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-sans)"],
-        display: ["var(--font-display)"]
+        display: ["var(--font-display)"],
+        mono: ["var(--font-mono)"]
       },
       backgroundImage: {
         "dashboard-grid":
-          "linear-gradient(to right, rgba(15, 23, 42, 0.04) 1px, transparent 1px), linear-gradient(to bottom, rgba(15, 23, 42, 0.04) 1px, transparent 1px)"
+          "linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px)"
       }
     }
   },

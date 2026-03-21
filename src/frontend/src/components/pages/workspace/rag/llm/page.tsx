@@ -13,7 +13,7 @@ import type { WorkspaceRagConfig, WorkspaceRagConfigUpdate } from "@/lib/types/p
 import { useTenant } from "@/providers/tenant-provider";
 
 function toUpdatePayload(config: WorkspaceRagConfig): WorkspaceRagConfigUpdate {
-    const { workspace_id, organization_id, project_id, updated_at, ...rest } = config;
+    const { workspace_id, updated_at, ...rest } = config;
     return rest;
 }
 
@@ -29,34 +29,9 @@ export default function WorkspaceRagLlmPage() {
         enabled: Boolean(tenant.workspaceId)
     });
 
-    const modelsQuery = useQuery({
-        queryKey: ["models", tenant.organizationId],
-        queryFn: () => platformApi.listModels(tenant),
-        enabled: Boolean(tenant.organizationId)
-    });
-
-    // Dynamic model options based on both Registry and Runtime
     const modelOptions = useMemo(() => {
-        const availableOptions = (runtime.modelOptionsByProvider[currentProvider] || []);
-
-        // Also combine with registered models of same type (simplified for now)
-        const chatTypes = new Set(["chat", "text-generation"]);
-        const registered = (modelsQuery.data ?? [])
-            .filter((m) => chatTypes.has(m.type))
-            .map((m) => ({ label: `${m.name} (DB)`, value: m.name }));
-
-        // Deduplicate
-        const seen = new Set(availableOptions.map(o => o.value));
-        const combined = [...availableOptions];
-        for (const r of registered) {
-            if (!seen.has(r.value)) {
-                combined.push(r);
-                seen.add(r.value);
-            }
-        }
-
-        return combined;
-    }, [runtime.modelOptionsByProvider, currentProvider, modelsQuery.data]);
+        return runtime.modelOptionsByProvider[currentProvider] || [];
+    }, [runtime.modelOptionsByProvider, currentProvider]);
 
     const saveConfig = useMutation({
         mutationFn: (body: WorkspaceRagConfigUpdate) =>
@@ -83,19 +58,23 @@ export default function WorkspaceRagLlmPage() {
                 <PageHeader eyebrow="RAG Settings" title="LLM Generation" description="Configure the LLM engine used for answer synthesis in your RAG pipeline." />
                 <Card className="border-slate-800 bg-[#1c1c21]">
                     <CardHeader>
-                        <CardTitle className="text-white">Inference Model</CardTitle>
+                        <CardTitle className="text-[#e5e5e5]">Inference Model</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <ConfigForm
                             definition={workspaceRagLlmFormDefinition}
-                            initialValues={config?.llm_config}
+                            initialValues={config ? {
+                                ...config.llm,
+                                api_key: config.llm.api_key ?? undefined,
+                                api_base: config.llm.api_base ?? undefined
+                            } : undefined}
                             loading={saveConfig.isPending || configQuery.isLoading}
                             onValuesChange={(values) => {
                                 if (values.provider !== currentProvider) {
                                     setCurrentProvider(values.provider);
                                 }
                             }}
-                            onSubmit={(values) => savePartial({ llm_config: values })}
+                            onSubmit={(values) => savePartial({ llm: values })}
                             overrides={{
                                 provider: { options: runtime.providerOptions.length ? runtime.providerOptions : undefined },
                                 model: {
