@@ -22,9 +22,6 @@ compose-config:
 compose-config-gpu:
 	docker compose --profile gpu config > NUL
 
-helm-lint:
-	helm lint deploy/helm/rag-platform
-
 compose-up:
 	docker compose --profile cpu up --build
 

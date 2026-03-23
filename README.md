@@ -61,11 +61,6 @@ src/
     src/
       app/
       components/
-deploy/
-  helm/
-  kong/
-  otel/
-  prometheus/
 ```
 
 ## Quick start

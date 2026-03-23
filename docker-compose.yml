@@ -86,43 +86,6 @@ services:
       - "8080:8080"
     profiles: [ "cpu" ]
 
-  kong:
-    image: kong:3.9
-    environment:
-      KONG_DATABASE: "off"
-      KONG_DECLARATIVE_CONFIG: /kong/declarative/kong.yml
-      KONG_PROXY_ACCESS_LOG: /dev/stdout
-      KONG_ADMIN_ACCESS_LOG: /dev/stdout
-      KONG_PROXY_ERROR_LOG: /dev/stderr
-      KONG_ADMIN_ERROR_LOG: /dev/stderr
-      KONG_ADMIN_LISTEN: 0.0.0.0:8000
-    ports:
-      - "8000:8000"
-      - "8088:8000"
-    volumes:
-      - ./deploy/kong/kong.yml:/kong/declarative/kong.yml:ro
-    depends_on:
-      - backend
-      - frontend
-    profiles: [ "cpu" ]
-
-  temporal:
-    image: temporalio/auto-setup:1.26.2
-    environment:
-      DB: postgres12
-      DB_PORT: 5432
-      POSTGRES_USER: karag
-      POSTGRES_PWD: ${POSTGRES_PWD}
-      POSTGRES_SEEDS: postgres
-      DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development-sql.yaml
-    ports:
-      - "7233:7233"
-    volumes:
-      - ./deploy/temporal/development-sql.yaml:/etc/temporal/config/dynamicconfig/development-sql.yaml:ro
-    depends_on:
-      - postgres
-    profiles: [ "cpu" ]
-
   vllm:
     image: vllm/vllm-openai:latest
     command: --model meta-llama/Llama-3.1-8B-Instruct
